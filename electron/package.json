@@ -2,6 +2,11 @@
   "name": "modoro-claw",
   "version": "2.0.0",
   "description": "MODOROClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
+  "author": "MODORO Tech Corp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modoro-digital/MODOROClaw-Mac.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -17,6 +22,7 @@
     "appId": "vn.modoro.claw",
     "productName": "MODOROClaw",
     "copyright": "© 2026 MODORO Tech Corp",
+    "publish": null,
     "directories": {
       "output": "../dist",
       "buildResources": "build"

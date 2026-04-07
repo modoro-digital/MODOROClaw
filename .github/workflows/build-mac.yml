@@ -25,7 +25,8 @@ jobs:
           - arch: arm64
             runner: macos-14   # Apple Silicon (M-series)
           - arch: x64
-            runner: macos-13   # Intel
+            runner: macos-14   # macos-13 retired — build x64 from arm64 runner via Rosetta/cross
+
 
     steps:
       - name: Checkout
