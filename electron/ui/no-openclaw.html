@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <title>MODOROClaw — Cài đặt</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="titlebar">MODOROClaw</div>
+  <div class="container" style="padding-top:40px">
+    <div style="text-align:center;margin-bottom:16px">
+      <img src="modoro-mascot.png" alt="MODOROClaw" style="width:100px;height:100px" onerror="this.style.display='none'">
+    </div>
+    <h1 style="text-align:center">Cài đặt lần đầu</h1>
+
+    <!-- Auth gate: chỉ nhân viên MODORO mới được cài -->
+    <div id="auth-section">
+      <p style="text-align:center">Vui lòng nhập mã cài đặt từ MODORO.</p>
+      <label>Mã cài đặt</label>
+      <input type="password" id="install-code" placeholder="Nhập mã cài đặt">
+      <div id="auth-error" style="display:none;color:var(--danger);font-size:13px;margin-bottom:12px"></div>
+      <button class="btn btn-primary" onclick="verifyCode()" id="auth-btn" style="margin-top:8px">Xác nhận</button>
+    </div>
+
+    <!-- Install section: chỉ hiện sau khi nhập mã đúng -->
+    <div id="install-section" style="display:none">
+      <p style="text-align:center">Nhấn nút bên dưới và chờ khoảng 2-3 phút.</p>
+      <button class="btn btn-primary" id="install-btn" onclick="install()" style="margin-top:16px">
+        Cài đặt tự động
+      </button>
+
+      <div id="progress" style="display:none;margin-top:20px">
+        <!-- Progress bar -->
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px">
+            <span id="progress-label">Đang cài đặt...</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div style="height:6px;background:var(--surface);border-radius:3px;overflow:hidden">
+            <div id="progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.3s ease"></div>
+          </div>
+        </div>
+        <div class="card" style="text-align:left;max-height:200px;overflow-y:auto;padding:12px" id="progress-card">
+          <div id="progress-text" style="font-size:11px;font-family:'Consolas','Courier New',monospace;white-space:pre-wrap;color:var(--text-muted);line-height:1.5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="done-section" style="display:none;margin-top:20px">
+      <div class="card" style="border-color:var(--success);background:rgba(34,197,94,0.05);text-align:center;padding:20px">
+        <p style="color:var(--success);font-size:16px;font-weight:600;margin:0">Cài đặt thành công!</p>
+      </div>
+      <button class="btn btn-primary" onclick="window.claw.relaunch()" style="margin-top:12px">Tiếp tục →</button>
+    </div>
+
+    <div id="error-section" style="display:none;margin-top:20px">
+      <div class="card" style="border-color:var(--danger)">
+        <p style="color:var(--danger);font-size:13px;margin-bottom:8px" id="error-text"></p>
+        <p style="font-size:12px;color:var(--text-muted);margin:0">Liên hệ hỗ trợ MODORO nếu cần giúp đỡ.</p>
+      </div>
+      <button class="btn btn-secondary" onclick="location.reload()" style="margin-top:12px">Thử lại</button>
+    </div>
+  </div>
+
+  <script>
+    // Mã cài đặt được lưu dưới dạng SHA-256 hash — không lộ mã gốc trong source
+    // Để thêm mã mới: chạy trong console/node: crypto.subtle.digest('SHA-256', new TextEncoder().encode('MA_MOI')).then(b => console.log(Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')))
+    const VALID_HASHES = [
+      'a24b7dc0e007b694ea3b9a98d319e686be8447e9881f710fb5b8198f5e646de7',
+      '697f648f36ab28b1d9e356b688d61dc48d1734d7c87602ccf2d6f1473464f233',
+      'af668211633ec9c50b80e114699f00708a12a6260ee381d44e9717a32992f559',
+    ];
+
+    async function hashCode(code) {
+      const data = new TextEncoder().encode(code.trim().toUpperCase());
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function verifyCode() {
+      const input = document.getElementById('install-code').value;
+      const err = document.getElementById('auth-error');
+      const btn = document.getElementById('auth-btn');
+
+      if (!input.trim()) { err.style.display = 'block'; err.textContent = 'Vui lòng nhập mã cài đặt.'; return; }
+
+      btn.disabled = true; btn.classList.add('loading');
+      const hash = await hashCode(input);
+      btn.disabled = false; btn.classList.remove('loading');
+
+      if (VALID_HASHES.includes(hash)) {
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('install-section').style.display = 'block';
+      } else {
+        err.style.display = 'block';
+        err.textContent = 'Mã cài đặt không đúng. Liên hệ MODORO để nhận mã.';
+      }
+    }
+
+    // Enter key to submit
+    document.getElementById('install-code').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') verifyCode();
+    });
+
+    async function install() {
+      const btn = document.getElementById('install-btn');
+      const progress = document.getElementById('progress');
+      const progressText = document.getElementById('progress-text');
+      const progressBar = document.getElementById('progress-bar');
+      const progressPct = document.getElementById('progress-pct');
+      const progressLabel = document.getElementById('progress-label');
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      progress.style.display = 'block';
+      progressText.textContent = '';
+
+      // Progress estimation based on npm output keywords
+      let pct = 0;
+      const steps = [
+        { match: 'npm', pct: 5, label: 'Đang khởi tạo npm...' },
+        { match: 'added', pct: 70, label: 'Đang tải packages...' },
+        { match: 'packages in', pct: 80, label: 'Đã tải xong packages' },
+        { match: 'Bước 2', pct: 85, label: 'Đang kiểm tra cài đặt...' },
+        { match: 'Exit code: 0', pct: 90, label: 'Cài đặt hoàn tất, đang xác nhận...' },
+        { match: 'THÀNH CÔNG', pct: 100, label: 'Hoàn tất!' },
+      ];
+
+      function updateBar(newPct, label) {
+        if (newPct > pct) pct = newPct;
+        progressBar.style.width = pct + '%';
+        progressPct.textContent = pct + '%';
+        if (label) progressLabel.textContent = label;
+      }
+
+      // Slow auto-increment so user sees movement
+      const autoTick = setInterval(() => {
+        if (pct < 65) updateBar(pct + 1);
+      }, 2000);
+
+      try {
+        const result = await window.claw.installOpenClaw((step) => {
+          progressText.textContent += step + '\n';
+          document.getElementById('progress-card').scrollTop = 999999;
+          // Match keywords to advance progress
+          for (const s of steps) {
+            if (step.includes(s.match)) updateBar(s.pct, s.label);
+          }
+        });
+
+        clearInterval(autoTick);
+
+        if (result.success) {
+          updateBar(100, 'Hoàn tất!');
+          await new Promise(r => setTimeout(r, 500));
+          document.getElementById('install-section').style.display = 'none';
+          document.getElementById('done-section').style.display = 'block';
+        } else {
+          throw new Error(result.error || 'Cài đặt thất bại');
+        }
+      } catch (err) {
+        clearInterval(autoTick);
+        document.getElementById('install-section').style.display = 'none';
+        document.getElementById('error-section').style.display = 'block';
+        document.getElementById('error-text').textContent = err.message || 'Lỗi không xác định';
+      }
+    }
+  </script>
+</body>
+</html>

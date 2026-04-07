@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:20128 http://127.0.0.1:18789; frame-src http://127.0.0.1:18789 http://127.0.0.1:20128 http://localhost:18789 http://localhost:20128; img-src 'self' data: https:;">
+  <title>MODOROClaw</title>
+  <script>
+    // Apply theme before paint to avoid flash
+    try {
+      const saved = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    html, body { height:100%; margin:0; overflow:hidden; }
+    body { display:flex; flex-direction:column; }
+
+    .app-layout { display:flex; flex:1; overflow:hidden; }
+
+    /* Sidebar */
+    .sidebar { width:220px; background:var(--bg); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:16px; flex-shrink:0; }
+    .sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+    .sidebar-logo img { width:36px; height:36px; }
+    .sidebar-logo h1 { font-size:18px; margin:0; }
+    .sidebar-status { display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface); border-radius:10px; margin-bottom:16px; }
+    .sidebar-status .status-dot { width:10px; height:10px; }
+    .sidebar-status span { font-size:13px; }
+    .sidebar-btn { width:100%; margin-bottom:12px; }
+    .sidebar-nav { margin-top:auto; display:flex; flex-direction:column; gap:4px; }
+    .sidebar-nav a { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; font-size:13px; color:var(--text-muted); text-decoration:none; cursor:pointer; }
+    .sidebar-nav a:hover { background:var(--surface); color:var(--text); }
+
+    /* Main content */
+    .main-content { flex:1; padding:20px 24px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
+
+    /* Activity panel */
+    .activity-panel { width:300px; background:var(--bg); border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+    .activity-header { padding:16px; border-bottom:1px solid var(--border); }
+    .activity-header h3 { margin:0; font-size:14px; }
+    .activity-list { flex:1; overflow-y:auto; padding:8px 16px; }
+    .activity-item { padding:10px 0; border-bottom:1px solid var(--border); }
+    .activity-item:last-child { border:none; }
+    .activity-time { font-size:11px; color:var(--text-muted); }
+    .activity-text { font-size:13px; color:var(--text); margin-top:2px; }
+    .activity-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:40px 0; }
+
+    /* Channel rows */
+    .channel-row { display:flex; align-items:center; gap:10px; padding:8px 0; }
+    .channel-row + .channel-row { border-top:1px solid var(--border); }
+    .channel-icon { font-size:18px; flex-shrink:0; }
+    .channel-name { font-size:13px; font-weight:600; flex:1; }
+    .channel-status { font-size:11px; padding:3px 10px; border-radius:12px; font-weight:500; white-space:nowrap; }
+    .channel-status.ok { background:rgba(76,175,80,0.15); color:var(--success); }
+    .channel-status.err { background:rgba(239,68,68,0.15); color:var(--danger); }
+    .channel-status.wait { background:rgba(255,167,38,0.15); color:var(--warning); }
+
+    /* Cards in main */
+    .main-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .main-card h3 { margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); }
+    .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+    /* How it works */
+    .how-item { display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; }
+    .how-item strong { min-width:90px; }
+
+    /* Toggle switch */
+    .toggle-switch { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; border-radius:20px; transition:.2s; }
+    .toggle-slider:before { content:''; position:absolute; height:16px; width:16px; left:2px; bottom:2px; background:white; border-radius:50%; transition:.2s; }
+    .toggle-switch input:checked + .toggle-slider { background:var(--success); }
+    .toggle-switch input:not(:checked) + .toggle-slider { background:var(--border); }
+    .toggle-switch input:checked + .toggle-slider:before { transform:translateX(16px); }
+
+    /* Tip card */
+    .tip-card { background:rgba(76,175,80,0.03); border:1px solid rgba(76,175,80,0.2); border-radius:12px; padding:14px 16px; }
+    .tip-card p { font-size:13px; margin:0; color:var(--text); }
+
+    /* Responsive */
+    @media (max-width:1100px) {
+      .activity-panel { display:none; }
+    }
+    @media (max-width:800px) {
+      .sidebar { width:60px; padding:12px 8px; }
+      .sidebar-logo h1, .sidebar-status span, .sidebar-nav a span { display:none; }
+      .sidebar-btn { font-size:0; padding:8px; }
+      .sidebar-btn::after { content:''; font-size:13px; }
+      .main-grid { grid-template-columns:1fr; }
+    }
+
+    /* Zalo QR Modal */
+    .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:100; justify-content:center; align-items:center; }
+    .modal-overlay.show { display:flex; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:360px; width:90%; text-align:center; }
+    .modal-box h3 { margin:0 0 8px; }
+    .modal-box p { font-size:13px; color:var(--text-muted); margin:0 0 16px; }
+    .modal-box img { width:240px; height:240px; border-radius:12px; background:white; margin-bottom:12px; }
+    .modal-box .btn { margin:4px; }
+    .modal-success { color:var(--success); font-weight:600; font-size:14px; }
+    /* Cron detail modal */
+    .cron-detail-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:420px; width:90%; text-align:left; }
+    .cron-detail-box h3 { margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+    .cron-detail-row { display:flex; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .cron-detail-row:last-child { border-bottom:none; }
+    .cron-detail-label { color:var(--text-muted); min-width:80px; flex-shrink:0; }
+    .cron-detail-value { word-break:break-word; }
+    .cron-detail-prompt { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:12px; margin-top:8px; white-space:pre-wrap; max-height:120px; overflow-y:auto; }
+    /* Zalo manager modal */
+    .zalo-mgr-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; max-width:640px; width:92%; max-height:85vh; display:flex; flex-direction:column; text-align:left; }
+    .zalo-mgr-box h3 { margin:0 0 12px; }
+    .zalo-mgr-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:12px; flex-shrink:0; }
+    .zalo-mgr-tab { padding:8px 14px; cursor:pointer; font-size:13px; border-bottom:2px solid transparent; color:var(--text-muted); }
+    .zalo-mgr-tab.active { color:var(--text); border-bottom-color:var(--accent, #4ea1ff); font-weight:600; }
+    .zalo-mgr-pane { display:none; flex:1; overflow-y:auto; min-height:300px; }
+    .zalo-mgr-pane.active { display:block; }
+    .zalo-mgr-search { width:100%; padding:9px 12px 9px 36px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; margin-bottom:10px; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>"); background-repeat:no-repeat; background-position:12px center; }
+    .zalo-mgr-search:focus { outline:none; border-color:var(--accent, #4ea1ff); }
+    .zalo-mgr-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; color:var(--text); }
+    .zalo-mgr-row:hover { background:var(--surface); }
+    .zalo-mgr-row:last-child { border-bottom:none; }
+    .zalo-mgr-row img { width:32px; height:32px; border-radius:50%; flex-shrink:0; background:var(--bg); object-fit:cover; }
+    .avatar-fallback { width:32px; height:32px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-muted); }
+    .avatar-wrap { position:relative; width:32px; height:32px; flex-shrink:0; }
+    .avatar-wrap .avatar-img { width:32px; height:32px; border-radius:50%; background:var(--bg); object-fit:cover; display:block; }
+    .avatar-wrap .avatar-fallback { position:absolute; top:0; left:0; display:none; }
+    .avatar-wrap.failed .avatar-img { display:none; }
+    .avatar-wrap.failed .avatar-fallback { display:inline-flex; }
+    .schedule-icon-wrap { width:36px; height:36px; border-radius:10px; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accent, #4ea1ff); }
+    /* Activity FAB (floating button) — shows on non-overview pages */
+    .activity-fab { position:fixed; bottom:20px; right:20px; width:48px; height:48px; border-radius:50%; background:var(--accent, #4ea1ff); color:#fff; border:none; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:90; transition:transform 0.15s; }
+    .activity-fab:hover { transform:scale(1.08); }
+    .activity-fab .fab-badge { position:absolute; top:-4px; right:-4px; background:var(--danger,#e74c3c); color:#fff; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; border:2px solid var(--bg); }
+    body.compact-layout .activity-fab { display:flex; }
+    body.compact-layout .activity-panel { display:none; }
+    /* Activity drawer (popover from right) */
+    .activity-drawer { position:fixed; top:0; right:-340px; width:320px; height:100vh; background:var(--bg); border-left:1px solid var(--border); z-index:95; transition:right 0.25s ease; display:flex; flex-direction:column; box-shadow:-8px 0 24px rgba(0,0,0,0.3); }
+    .activity-drawer.show { right:0; }
+    .activity-drawer-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .activity-drawer-header h3 { margin:0; font-size:14px; }
+    .activity-drawer-close { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; border-radius:6px; display:inline-flex; align-items:center; }
+    .activity-drawer-close:hover { background:var(--surface); color:var(--text); }
+    .activity-drawer-list { flex:1; overflow-y:auto; padding:8px 16px; }
+    .activity-drawer-backdrop { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:94; display:none; }
+    .activity-drawer-backdrop.show { display:block; }
+    /* Zalo 3-column layout */
+    #page-zalo.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
+    .zalo-columns { display:grid; grid-template-columns:300px 1fr 1fr; gap:12px; flex:1; min-height:0; margin-bottom:12px; }
+    .zalo-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .zalo-col h4 { margin:0 0 10px; font-size:14px; }
+    .zalo-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0; }
+    .zalo-col-header h4 { margin:0; }
+    .zalo-col .zalo-mgr-search { flex-shrink:0; }
+    .zalo-col .zalo-list-container { flex:1; min-height:0; max-height:none; }
+    .zalo-col-help { font-size:11px; color:var(--text-muted); margin-bottom:8px; flex-shrink:0; line-height:1.4; }
+    @media (max-width: 1200px) {
+      .zalo-columns { grid-template-columns:1fr; }
+      #page-zalo.page.active { height:auto; }
+    }
+    /* Knowledge tab — 3 column layout */
+    #page-knowledge.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
+    .know-columns { display:grid; grid-template-columns:260px 1fr 320px; gap:12px; flex:1; min-height:0; }
+    .know-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .know-col h4 { margin:0 0 12px; font-size:14px; }
+    .know-folder { display:flex; align-items:center; gap:12px; padding:12px; border-radius:10px; cursor:pointer; margin-bottom:6px; border:1px solid var(--border); background:var(--bg); transition:all 0.15s; }
+    .know-folder:hover { border-color:var(--accent, #4ea1ff); }
+    .know-folder.active { background:var(--accent, #4ea1ff); color:#fff; border-color:var(--accent, #4ea1ff); }
+    .know-folder .icon-wrap { width:36px; height:36px; border-radius:8px; background:var(--surface); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accent, #4ea1ff); }
+    .know-folder.active .icon-wrap { background:rgba(255,255,255,0.2); color:#fff; }
+    .know-folder .info { flex:1; min-width:0; }
+    .know-folder .name { font-weight:600; font-size:13px; }
+    .know-folder .count { font-size:11px; color:var(--text-muted); }
+    .know-folder.active .count { color:rgba(255,255,255,0.8); }
+    .know-files-list { flex:1; overflow-y:auto; min-height:0; }
+    .know-file { display:flex; gap:12px; padding:12px; border-bottom:1px solid var(--border); font-size:13px; }
+    .know-file:last-child { border-bottom:none; }
+    .know-file .file-icon { width:40px; height:40px; border-radius:8px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accent, #4ea1ff); }
+    .know-file .file-info { flex:1; min-width:0; }
+    .know-file .file-name { font-weight:600; word-break:break-word; }
+    .know-file .file-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .know-file .file-summary { font-size:12px; color:var(--text); margin-top:6px; line-height:1.4; padding:6px 8px; background:var(--bg); border-radius:6px; }
+    .know-file .file-actions { display:flex; align-items:flex-start; }
+    .know-file-delete { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; border-radius:4px; }
+    .know-file-delete:hover { color:var(--danger, #e74c3c); background:var(--bg); }
+    .know-empty { text-align:center; color:var(--text-muted); padding:60px 20px; font-size:13px; }
+    .know-empty .big-icon { color:var(--accent, #4ea1ff); margin-bottom:12px; opacity:0.6; }
+    .know-drop-zone { border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center; color:var(--text-muted); cursor:pointer; transition:all 0.15s; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .know-drop-zone:hover, .know-drop-zone.dragover { border-color:var(--accent, #4ea1ff); background:var(--bg); color:var(--text); }
+    .know-drop-zone .upload-icon { color:var(--accent, #4ea1ff); margin-bottom:12px; }
+    .know-drop-zone strong { color:var(--text); display:block; margin-bottom:6px; }
+    .know-upload-help { font-size:11px; color:var(--text-muted); margin-top:12px; padding:10px; background:var(--bg); border-radius:8px; line-height:1.5; }
+    .know-progress { font-size:12px; padding:10px; background:var(--bg); border-radius:8px; margin-top:8px; }
+    @media (max-width: 1200px) {
+      .know-columns { grid-template-columns:1fr; }
+      #page-knowledge.page.active { height:auto; }
+    }
+    /* Embedded web UI pages (9Router, OpenClaw) */
+    #page-9router.page.active, #page-openclaw.page.active {
+      display:flex; flex-direction:column; height:calc(100vh - 32px);
+    }
+    .embed-wrap {
+      flex:1; min-height:0;
+      border:1px solid var(--border); border-radius:12px;
+      overflow:hidden; background:#fff;
+    }
+    html[data-theme="dark"] .embed-wrap { background:var(--bg); }
+    .embed-frame { width:100%; height:100%; border:0; display:flex; flex:1; }
+    webview.embed-frame { display:inline-flex; }
+    .embed-loading { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px; }
+    .zalo-mgr-row .info { flex:1; min-width:0; overflow:hidden; }
+    .zalo-mgr-row .name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .zalo-mgr-row .sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .zalo-mgr-empty { text-align:center; color:var(--text-muted); padding:40px 20px; font-size:13px; }
+    .zalo-mgr-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--border); margin-top:12px; flex-shrink:0; }
+    .zalo-mgr-badge { background:var(--bg); padding:3px 8px; border-radius:10px; font-size:11px; color:var(--text-muted); }
+    /* Side menu nav */
+    .sidebar-menu { margin-top:14px; border-top:1px solid var(--border); padding-top:10px; display:flex; flex-direction:column; gap:2px; }
+    .sidebar-menu-header { font-size:10px; text-transform:uppercase; color:var(--text-muted); padding:6px 8px 2px; letter-spacing:0.5px; }
+    .sidebar-menu-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.15s; }
+    /* Real-readiness indicator dot — pushed to right of menu item */
+    .ready-dot { margin-left:auto; width:9px; height:9px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 2px var(--surface); }
+    .ready-dot[data-state="ready"] { background:#22c55e; box-shadow:0 0 0 2px var(--surface), 0 0 6px rgba(34,197,94,0.6); }
+    .ready-dot[data-state="not-ready"] { background:#ef4444; box-shadow:0 0 0 2px var(--surface), 0 0 6px rgba(239,68,68,0.6); }
+    .ready-dot[data-state="checking"] { background:#94a3b8; animation:pulse-dot 1.4s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:0.5} 50%{opacity:1} }
+    /* Inline status pill in channel page headers — explicit text for CEO */
+    .ready-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:500; line-height:1; }
+    .ready-pill[data-state="ready"] { background:rgba(34,197,94,0.12); color:#16a34a; border:1px solid rgba(34,197,94,0.3); }
+    .ready-pill[data-state="not-ready"] { background:rgba(239,68,68,0.12); color:#dc2626; border:1px solid rgba(239,68,68,0.3); }
+    .ready-pill[data-state="checking"] { background:rgba(148,163,184,0.15); color:var(--text-muted); border:1px solid var(--border); }
+    .ready-pill .pill-icon { width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .ready-pill[data-state="checking"] .pill-icon { animation:pulse-dot 1.4s ease-in-out infinite; }
+    .sidebar-menu-item:hover { background:var(--surface); }
+    .sidebar-menu-item.active { background:var(--accent, #4ea1ff); color:#fff; font-weight:600; }
+    .sidebar-menu-item .icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+    .sidebar-menu-item .label { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-menu-item .badge { background:var(--bg); color:var(--text-muted); font-size:10px; padding:1px 6px; border-radius:8px; }
+    .sidebar-menu-item.active .badge { background:rgba(255,255,255,0.25); color:#fff; }
+    .sidebar-menu-item.disabled { opacity:0.5; cursor:not-allowed; }
+    .sidebar-menu-item.disabled:hover { background:transparent; }
+    /* Page system */
+    .page { display:none; animation:fadeIn 0.2s ease; }
+    .page.active { display:block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+    .btn-spinner { display:inline-block; width:12px; height:12px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
+    .btn.is-loading { opacity:0.75; cursor:wait; pointer-events:none; }
+    .zalo-saving-overlay { position:absolute; inset:0; background:var(--bg, rgba(0,0,0,0.15)); opacity:0.35; pointer-events:none; border-radius:inherit; transition:opacity 0.2s; z-index:5; }
+    .page-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+    .page-header h2 { margin:0; font-size:18px; }
+    .page-header .page-icon { font-size:24px; }
+    .page-header .page-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .coming-soon { text-align:center; padding:60px 20px; color:var(--text-muted); }
+    .coming-soon .big-icon { font-size:48px; margin-bottom:12px; }
+    .coming-soon h3 { margin:0 0 6px; color:var(--text); }
+    /* Inline Zalo manager (full page, not modal) */
+    .zalo-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
+    .zalo-section h4 { margin:0 0 10px; font-size:14px; }
+    .zalo-list-container { max-height:400px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+    /* Properly aligned radio/checkbox rows for dark theme */
+    .zalo-radio-group { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .zalo-radio-row,
+    .zalo-checkbox-row {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; background:var(--bg); border:1px solid var(--border);
+      border-radius:8px; cursor:pointer; font-size:13px; color:var(--text);
+      transition:border-color 0.15s, background 0.15s;
+    }
+    .zalo-radio-row:hover,
+    .zalo-checkbox-row:hover { border-color:var(--accent, #4ea1ff); }
+    .zalo-radio-row input[type="radio"],
+    .zalo-checkbox-row input[type="checkbox"],
+    .zalo-mgr-row input[type="checkbox"] {
+      appearance:none; -webkit-appearance:none;
+      width:18px; height:18px; flex-shrink:0; margin:0;
+      border:2px solid var(--border); background:var(--surface);
+      cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+      transition:border-color 0.15s, background 0.15s;
+    }
+    .zalo-radio-row input[type="radio"] { border-radius:50%; }
+    .zalo-checkbox-row input[type="checkbox"],
+    .zalo-mgr-row input[type="checkbox"] { border-radius:4px; }
+    .zalo-radio-row input[type="radio"]:checked,
+    .zalo-checkbox-row input[type="checkbox"]:checked,
+    .zalo-mgr-row input[type="checkbox"]:checked {
+      border-color:var(--accent, #4ea1ff); background:var(--accent, #4ea1ff);
+    }
+    .zalo-radio-row input[type="radio"]:checked::after {
+      content:''; width:8px; height:8px; border-radius:50%; background:#fff;
+    }
+    .zalo-checkbox-row input[type="checkbox"]:checked::after,
+    .zalo-mgr-row input[type="checkbox"]:checked::after {
+      content:'✓'; color:#fff; font-size:13px; font-weight:700; line-height:1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3-Column Layout -->
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="modoro-mascot.png" alt="" onerror="this.style.display='none'">
+        <h1>MODOROClaw</h1>
+      </div>
+
+      <div class="sidebar-status">
+        <span class="status-dot stopped" id="status-dot"></span>
+        <span id="status-text">Đang kiểm tra...</span>
+      </div>
+
+      <button class="btn btn-primary btn-small sidebar-btn" id="toggle-btn" onclick="toggleBot()">Khởi động</button>
+      <button class="btn btn-secondary btn-small sidebar-btn" onclick="checkChannels()" id="check-btn">Kiểm tra kênh</button>
+
+      <div class="sidebar-menu">
+        <div class="sidebar-menu-header">Điều khiển</div>
+        <div class="sidebar-menu-item active" data-page="overview" onclick="switchPage('overview')">
+          <span class="icon" data-icon="home"></span><span class="label">Tổng quan</span>
+        </div>
+        <div class="sidebar-menu-item" data-page="schedules" onclick="switchPage('schedules')">
+          <span class="icon" data-icon="calendar"></span><span class="label">Lịch tự động</span>
+        </div>
+        <div class="sidebar-menu-item" data-page="knowledge" onclick="switchPage('knowledge')">
+          <span class="icon" data-icon="book-open"></span><span class="label">Knowledge</span>
+        </div>
+
+        <div class="sidebar-menu-header">Kênh giao tiếp</div>
+        <div class="sidebar-menu-item" data-page="telegram" onclick="switchPage('telegram')">
+          <span class="icon" data-icon="send"></span><span class="label">Telegram</span>
+          <span class="ready-dot" id="ready-dot-telegram" data-state="checking" title="Đang kiểm tra..."></span>
+        </div>
+        <div class="sidebar-menu-item" data-page="zalo" onclick="switchPage('zalo')">
+          <span class="icon" data-icon="message-circle"></span><span class="label">Zalo</span>
+          <span class="ready-dot" id="ready-dot-zalo" data-state="checking" title="Đang kiểm tra..."></span>
+        </div>
+        <div class="sidebar-menu-item disabled" title="Sắp ra mắt">
+          <span class="icon" data-icon="messenger"></span><span class="label">Messenger</span><span class="badge">soon</span>
+        </div>
+        <div class="sidebar-menu-item disabled" title="Sắp ra mắt">
+          <span class="icon" data-icon="megaphone"></span><span class="label">Fanpage</span><span class="badge">soon</span>
+        </div>
+
+        <div class="sidebar-menu-header">Công cụ</div>
+        <div class="sidebar-menu-item" data-page="9router" onclick="switchPage('9router')">
+          <span class="icon" data-icon="cpu"></span><span class="label">9Router</span>
+        </div>
+        <div class="sidebar-menu-item" data-page="openclaw" onclick="switchPage('openclaw')">
+          <span class="icon" data-icon="zap"></span><span class="label">OpenClaw</span>
+        </div>
+        <div class="sidebar-menu-item" id="theme-toggle-btn" onclick="toggleTheme()">
+          <span class="icon" id="theme-toggle-icon" data-icon="moon"></span><span class="label" id="theme-toggle-label">Giao diện sáng</span>
+        </div>
+      </div>
+      <div id="gateway-token-box" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;color:var(--text-muted);margin-bottom:6px">
+          <span>Gateway Token (login)</span>
+          <button onclick="hideGatewayToken()" title="Ẩn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:14px;line-height:1">×</button>
+        </div>
+        <div style="display:flex;gap:4px">
+          <input type="text" id="gateway-token" readonly style="flex:1;font-size:10px;padding:5px 7px;font-family:monospace;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+          <button class="btn btn-secondary btn-small" onclick="copyGatewayToken()" style="padding:3px 10px;font-size:10px;width:auto">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- PAGE: Overview -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <span class="page-icon" data-icon="home" data-icon-size="26"></span>
+          <div><h2>Tổng quan</h2><div class="page-sub">Trạng thái hệ thống và lệnh nhanh</div></div>
+        </div>
+        <div class="main-grid">
+          <div class="main-card">
+            <h3>Kết nối</h3>
+            <div class="channel-row"><span class="channel-icon" data-icon="send"></span><span class="channel-name">Telegram Bot</span><span class="channel-status wait" id="ch-telegram">...</span></div>
+            <div class="channel-row"><span class="channel-icon" data-icon="message-circle"></span><span class="channel-name">Zalo</span><span class="channel-status wait" id="ch-zalo">...</span></div>
+            <div class="channel-row"><span class="channel-icon" data-icon="calendar"></span><span class="channel-name">Google</span><span class="channel-status wait" id="ch-google">...</span></div>
+            <div class="channel-row"><span class="channel-icon" data-icon="cpu"></span><span class="channel-name">AI (9Router)</span><span class="channel-status wait" id="ch-ai">...</span></div>
+            <div class="channel-row"><span class="channel-icon" data-icon="zap"></span><span class="channel-name">Gateway</span><span class="channel-status wait" id="ch-gateway">...</span></div>
+          </div>
+          <div class="main-card">
+            <h3>Lệnh nhanh (Telegram)</h3>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"menu"</strong> <span style="font-size:12px;color:var(--text-muted)">Mẫu giao việc theo ngành</span></div>
+              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"báo cáo"</strong> <span style="font-size:12px;color:var(--text-muted)">Báo cáo tổng hợp ngay</span></div>
+              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"hướng dẫn"</strong> <span style="font-size:12px;color:var(--text-muted)">Hướng dẫn sử dụng</span></div>
+              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"skill"</strong> <span style="font-size:12px;color:var(--text-muted)">Kỹ năng đã cài</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="error-display" style="display:none;font-size:11px;font-family:monospace;color:var(--danger);background:rgba(239,68,68,0.1);padding:8px 12px;border-radius:8px;white-space:pre-wrap;max-height:80px;overflow-y:auto;margin-top:12px"></div>
+      </div>
+
+      <!-- PAGE: Schedules -->
+      <div class="page" id="page-schedules">
+        <div class="page-header">
+          <span class="page-icon" data-icon="calendar" data-icon-size="26"></span>
+          <div><h2>Lịch tự động</h2><div class="page-sub">Cron jobs tự động chạy hàng ngày</div></div>
+          <button class="btn btn-secondary btn-small" onclick="loadSchedules()" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Refresh</button>
+        </div>
+        <div class="main-card">
+          <div id="schedule-list" style="display:flex;flex-direction:column;gap:6px">
+            <div style="color:var(--text-muted);font-size:13px">Đang tải...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: Telegram -->
+      <div class="page" id="page-telegram">
+        <div class="page-header">
+          <span class="page-icon" data-icon="send" data-icon-size="26"></span>
+          <div>
+            <h2>Telegram</h2>
+            <div class="page-sub">Kênh giao tiếp chính với CEO</div>
+            <div style="margin-top:8px"><span class="ready-pill" id="ready-pill-telegram" data-state="checking"><span class="pill-icon"></span><span id="ready-pill-telegram-text">Đang kiểm tra kết nối...</span></span></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
+            <button class="btn btn-secondary btn-small" onclick="recheckTelegram()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Kiểm tra</button>
+            <button class="btn btn-secondary btn-small" onclick="testTelegramSend()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="send" data-icon-size="14"></span>Gửi tin test</button>
+          </div>
+        </div>
+        <div class="main-card">
+          <h3>Giới thiệu</h3>
+          <div style="font-size:13px;color:var(--text);line-height:1.6;padding:12px;background:var(--bg);border-radius:8px;display:flex;gap:10px;align-items:flex-start">
+            <span data-icon="lightbulb" data-icon-size="18" style="color:var(--accent);flex-shrink:0;margin-top:2px"></span>
+            <div>Telegram là kênh giao tiếp chính giữa CEO và trợ lý AI. Dùng các lệnh nhanh bên dưới để điều khiển bot. Để xem trạng thái kết nối, vào <strong>Tổng quan</strong>.</div>
+          </div>
+        </div>
+        <div class="main-card" style="margin-top:12px">
+          <h3>Lệnh nhanh</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">/menu</strong> <span style="font-size:12px;color:var(--text-muted)">Mẫu giao việc theo ngành</span></div>
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">/baocao</strong> <span style="font-size:12px;color:var(--text-muted)">Báo cáo tổng hợp ngay</span></div>
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">/huongdan</strong> <span style="font-size:12px;color:var(--text-muted)">Hướng dẫn sử dụng</span></div>
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">/skill</strong> <span style="font-size:12px;color:var(--text-muted)">Kỹ năng đã cài</span></div>
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">Knowledge</strong> <span style="font-size:12px;color:var(--text-muted)">Tài liệu doanh nghiệp (tab bên trái)</span></div>
+            <div class="how-item"><strong style="color:var(--accent);min-width:100px">/reset</strong> <span style="font-size:12px;color:var(--text-muted)">Xóa ngữ cảnh, bắt đầu lại</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: Zalo -->
+      <div class="page" id="page-zalo">
+        <div class="page-header">
+          <span class="page-icon" data-icon="message-circle" data-icon-size="26"></span>
+          <div>
+            <h2>Zalo</h2>
+            <div class="page-sub">Quản lý nhóm, bạn bè và chế độ trả lời</div>
+            <div style="margin-top:8px"><span class="ready-pill" id="ready-pill-zalo" data-state="checking"><span class="pill-icon"></span><span id="ready-pill-zalo-text">Đang kiểm tra kết nối...</span></span></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
+            <button class="btn btn-secondary btn-small" onclick="recheckZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Kiểm tra</button>
+            <button class="btn btn-secondary btn-small" onclick="reconnectZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Đổi tài khoản</button>
+          </div>
+        </div>
+
+        <div class="zalo-columns">
+          <!-- Column 1: Settings -->
+          <div class="zalo-col">
+            <h4>Cài đặt</h4>
+            <div style="overflow-y:auto;flex:1;min-height:0">
+              <label class="zalo-checkbox-row" style="margin-bottom:10px">
+                <input type="checkbox" id="zalo-mgr-enabled">
+                <div>
+                  <div style="font-weight:600">Bật Zalo</div>
+                  <div style="font-size:11px;color:var(--text-muted)">Bot nhận và trả lời tin nhắn</div>
+                </div>
+              </label>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Chế độ trả lời:</div>
+              <select id="zalo-mode-select" onchange="changeZaloMode(this.value)" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+                <option value="auto">Tự động trả lời</option>
+                <option value="read">Chỉ đọc — báo Telegram</option>
+                <option value="daily">Tóm tắt cuối ngày</option>
+              </select>
+              <div id="zalo-mode-status" style="display:none;margin-top:6px">
+                <div class="test-result success" style="margin:0;font-size:12px">Đã cập nhật</div>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;line-height:1.5">
+                <strong>Lưu ý:</strong> Trong nhóm, bot chỉ trả lời khi được <strong>@mention</strong>.
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ từ Zalo</button>
+              <button id="zalo-mgr-save-btn" class="btn btn-primary btn-small" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
+            </div>
+          </div>
+
+          <!-- Column 2: Groups -->
+          <div class="zalo-col">
+            <div class="zalo-col-header">
+              <h4>Nhóm Zalo <span class="zalo-mgr-badge" id="zalo-mgr-group-count">0</span></h4>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllGroups(true)">Tất cả</button>
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllGroups(false)">Bỏ</button>
+              </div>
+            </div>
+            <div class="zalo-col-help">Tick = bot trả lời trong nhóm. Bỏ tick = im lặng.</div>
+            <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()">
+            <div class="zalo-list-container">
+              <div id="zalo-mgr-groups-list"></div>
+            </div>
+          </div>
+
+          <!-- Column 3: Friends -->
+          <div class="zalo-col">
+            <div class="zalo-col-header">
+              <h4>Bạn bè <span class="zalo-mgr-badge" id="zalo-mgr-friend-count">0</span></h4>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllFriends(true)">Tất cả</button>
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllFriends(false)">Bỏ</button>
+              </div>
+            </div>
+            <div class="zalo-col-help">Tick = bot trả lời DM. Đang bỏ qua: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong> user.</div>
+            <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()">
+            <div class="zalo-list-container">
+              <div id="zalo-mgr-friends-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: Knowledge -->
+      <div class="page" id="page-knowledge">
+        <div class="page-header">
+          <span class="page-icon" data-icon="book-open" data-icon-size="26"></span>
+          <div><h2>Knowledge doanh nghiệp</h2><div class="page-sub">Upload tài liệu để bot tự nhớ và dùng khi cần</div></div>
+        </div>
+
+        <div class="know-columns">
+          <div class="know-col">
+            <h4>Thư mục</h4>
+            <div id="know-folders-list">
+              <div class="know-folder active" data-cat="cong-ty" onclick="selectKnowledgeFolder('cong-ty')">
+                <div class="icon-wrap" data-icon="building"></div>
+                <div class="info">
+                  <div class="name">Công ty</div>
+                  <div class="count" id="know-count-cong-ty">0 tài liệu</div>
+                </div>
+              </div>
+              <div class="know-folder" data-cat="san-pham" onclick="selectKnowledgeFolder('san-pham')">
+                <div class="icon-wrap" data-icon="shopping-bag"></div>
+                <div class="info">
+                  <div class="name">Sản phẩm</div>
+                  <div class="count" id="know-count-san-pham">0 tài liệu</div>
+                </div>
+              </div>
+              <div class="know-folder" data-cat="nhan-vien" onclick="selectKnowledgeFolder('nhan-vien')">
+                <div class="icon-wrap" data-icon="users"></div>
+                <div class="info">
+                  <div class="name">Nhân viên</div>
+                  <div class="count" id="know-count-nhan-vien">0 tài liệu</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.5">
+              Bot tự đọc và nhớ nội dung file. Khi anh/chị hoặc khách hỏi, bot sẽ tìm trong knowledge để trả lời.
+            </div>
+          </div>
+
+          <div class="know-col">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h4 style="margin:0" id="know-files-title">Tài liệu — Công ty</h4>
+              <button class="btn btn-secondary btn-small" onclick="refreshKnowledgeFiles()" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px"><span data-icon="refresh-cw" data-icon-size="13"></span>Refresh</button>
+            </div>
+            <div class="know-files-list" id="know-files-list">
+              <div class="know-empty">Đang tải...</div>
+            </div>
+          </div>
+
+          <div class="know-col">
+            <h4>Thêm tài liệu</h4>
+            <div class="know-drop-zone" id="know-drop-zone" onclick="pickKnowledgeFiles()">
+              <div class="upload-icon" data-icon="upload" data-icon-size="36"></div>
+              <strong>Click để chọn file</strong>
+              <div>hoặc kéo thả vào đây</div>
+            </div>
+            <div id="know-progress" style="display:none"></div>
+            <div class="know-upload-help">
+              <strong>Định dạng hỗ trợ:</strong><br>
+              PDF, Word, Excel, TXT, CSV<br>
+              Ảnh (JPG, PNG)<br><br>
+              <strong>Tối đa:</strong> 20MB / file
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: 9Router (embedded web UI) -->
+      <div class="page" id="page-9router">
+        <div class="page-header">
+          <span class="page-icon" data-icon="cpu" data-icon-size="26"></span>
+          <div><h2>9Router</h2><div class="page-sub">Quản lý AI provider, model, API key — Mật khẩu mặc định: <code style="background:rgba(78,161,255,0.15);padding:1px 6px;border-radius:4px">123456</code></div></div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-secondary btn-small" onclick="reloadEmbed('9router')" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Reload</button>
+            <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('http://127.0.0.1:20128/')">Mở trong browser ↗</button>
+          </div>
+        </div>
+        <div class="embed-wrap">
+          <webview id="iframe-9router" class="embed-frame" src="about:blank" partition="persist:embed-9router" allowpopups></webview>
+        </div>
+      </div>
+
+      <!-- PAGE: OpenClaw Gateway (embedded web UI) -->
+      <div class="page" id="page-openclaw">
+        <div class="page-header">
+          <span class="page-icon" data-icon="zap" data-icon-size="26"></span>
+          <div><h2>OpenClaw Gateway</h2><div class="page-sub">Web UI gateway — phiên, log, agent</div></div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-secondary btn-small" onclick="copyAndShowGatewayToken()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="check" data-icon-size="14"></span>Copy token</button>
+            <button class="btn btn-secondary btn-small" onclick="reloadEmbed('openclaw')" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Reload</button>
+            <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('http://127.0.0.1:18789/')">Mở trong browser ↗</button>
+          </div>
+        </div>
+        <div class="embed-wrap">
+          <webview id="iframe-openclaw" class="embed-frame" src="about:blank" partition="persist:embed-openclaw" allowpopups></webview>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ACTIVITY PANEL (shown on Overview) -->
+    <div class="activity-panel">
+      <div class="activity-header">
+        <h3>Hoạt động gần đây</h3>
+      </div>
+      <div class="activity-list" id="activity-list">
+        <div class="activity-empty">Chưa có hoạt động</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Activity FAB (shown on non-Overview pages) -->
+  <button class="activity-fab" id="activity-fab" onclick="toggleActivityDrawer()" title="Hoạt động gần đây">
+    <span data-icon="activity" data-icon-size="22"></span>
+    <span class="fab-badge" id="activity-fab-badge" style="display:none">0</span>
+  </button>
+
+  <!-- Activity drawer (slides from right) -->
+  <div class="activity-drawer-backdrop" id="activity-drawer-backdrop" onclick="toggleActivityDrawer()"></div>
+  <div class="activity-drawer" id="activity-drawer">
+    <div class="activity-drawer-header">
+      <h3>Hoạt động gần đây</h3>
+      <button class="activity-drawer-close" onclick="toggleActivityDrawer()"><span data-icon="x" data-icon-size="18"></span></button>
+    </div>
+    <div class="activity-drawer-list activity-list" id="activity-list-drawer">
+      <div class="activity-empty">Chưa có hoạt động</div>
+    </div>
+  </div>
+
+  <!-- Zalo QR Modal -->
+  <div class="modal-overlay" id="zalo-modal" onclick="if(event.target===this)closeZaloModal()">
+    <div class="modal-box">
+      <h3>Quét mã QR Zalo</h3>
+      <p>Mở Zalo trên điện thoại, vào Quét QR và quét mã bên dưới</p>
+      <div id="zalo-modal-loading" style="padding:40px 0;color:var(--text-muted);font-size:13px">Đang tạo mã QR...</div>
+      <img id="zalo-modal-qr" style="display:none" alt="QR">
+      <div id="zalo-modal-success" class="modal-success" style="display:none">Đăng nhập thành công!</div>
+      <div style="margin-top:12px">
+        <button class="btn btn-secondary btn-small" onclick="refreshZaloQR()" id="zalo-modal-refresh">Làm mới mã QR</button>
+        <button class="btn btn-secondary btn-small" onclick="closeZaloModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cron detail modal -->
+  <div class="modal-overlay" id="cron-detail-modal" onclick="if(event.target===this)closeCronDetail()">
+    <div class="cron-detail-box" id="cron-detail-content"></div>
+  </div>
+
+  <script>
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // ============================================
+    //  ICONS — Lucide (SVG inline, premium look)
+    // ============================================
+    const ICONS = {
+      home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      calendar: '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
+      send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+      'message-circle': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+      messenger: '<circle cx="12" cy="12" r="10"/><path d="M7 12l3 3 7-7"/>',
+      megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+      cpu: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+      zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+      moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+      activity: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/>',
+      sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
+      bot: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
+      eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+      'clipboard-list': '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+      search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+      'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
+      save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+      settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+      users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+      lightbulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+      x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      check: '<polyline points="20 6 9 17 4 12"/>',
+      'phone-call': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+      'book-open': '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      building: '<rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+      'shopping-bag': '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+      'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
+      'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>',
+      upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+    };
+
+    function icon(name, size = 18) {
+      const path = ICONS[name] || ICONS['zap'];
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle">${path}</svg>`;
+    }
+
+    // Mount inline icons into elements with data-icon attribute
+    function mountIcons() {
+      document.querySelectorAll('[data-icon]').forEach(el => {
+        const name = el.getAttribute('data-icon');
+        const size = parseInt(el.getAttribute('data-icon-size') || '18', 10);
+        el.innerHTML = icon(name, size);
+      });
+    }
+
+    // Activity log
+    let _activityCount = 0;
+    let _activitySeen = 0;
+    function addActivity(text, type = 'info') {
+      const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      // Render to BOTH the overview panel and the drawer (keep in sync)
+      ['activity-list', 'activity-list-drawer'].forEach(id => {
+        const list = document.getElementById(id);
+        if (!list) return;
+        const empty = list.querySelector('.activity-empty');
+        if (empty) empty.remove();
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+        item.innerHTML = `<div class="activity-time">${now}</div><div class="activity-text">${esc(text)}</div>`;
+        list.prepend(item);
+        while (list.children.length > 50) list.lastChild.remove();
+      });
+      _activityCount++;
+      // Show unread badge on FAB when drawer closed
+      const drawerOpen = document.getElementById('activity-drawer')?.classList.contains('show');
+      if (!drawerOpen && document.body.classList.contains('compact-layout')) {
+        const unread = _activityCount - _activitySeen;
+        const badge = document.getElementById('activity-fab-badge');
+        if (badge && unread > 0) {
+          badge.textContent = unread > 9 ? '9+' : unread;
+          badge.style.display = 'flex';
+        }
+      }
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch {}
+      updateThemeToggleUI(next);
+      addActivity('Đã đổi giao diện: ' + (next === 'dark' ? 'tối' : 'sáng'));
+    }
+    function updateThemeToggleUI(theme) {
+      const iconEl = document.getElementById('theme-toggle-icon');
+      const labelEl = document.getElementById('theme-toggle-label');
+      if (!iconEl || !labelEl) return;
+      if (theme === 'dark') {
+        iconEl.setAttribute('data-icon', 'sun');
+        iconEl.innerHTML = icon('sun', 18);
+        labelEl.textContent = 'Giao diện sáng';
+      } else {
+        iconEl.setAttribute('data-icon', 'moon');
+        iconEl.innerHTML = icon('moon', 18);
+        labelEl.textContent = 'Giao diện tối';
+      }
+    }
+
+    function toggleActivityDrawer() {
+      const drawer = document.getElementById('activity-drawer');
+      const backdrop = document.getElementById('activity-drawer-backdrop');
+      const willShow = !drawer.classList.contains('show');
+      drawer.classList.toggle('show', willShow);
+      backdrop.classList.toggle('show', willShow);
+      if (willShow) {
+        _activitySeen = _activityCount;
+        const badge = document.getElementById('activity-fab-badge');
+        if (badge) badge.style.display = 'none';
+      }
+    }
+
+    // Dashboard
+    async function refreshDashboard() {
+      try {
+        const data = await window.claw.getDashboard();
+        updateBotStatus(data.botRunning);
+      } catch (e) { console.error('Dashboard refresh failed:', e); }
+    }
+
+    const statusMap = {
+      ok: ['channel-status ok', 'Online'],
+      configured: ['channel-status ok', 'OK'],
+      not_configured: ['channel-status wait', 'Chưa kết nối'],
+      error: ['channel-status err', 'Lỗi'],
+      stopped: ['channel-status err', 'Chưa chạy'],
+      timeout: ['channel-status err', 'Timeout'],
+      checking: ['channel-status wait', 'Đang kiểm tra...'],
+      unknown: ['channel-status wait', '...'],
+    };
+
+    function setChannelStatus(id, status) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const [cls, text] = statusMap[status] || statusMap.unknown;
+      el.className = cls;
+      el.textContent = text;
+    }
+
+    function setAllChannels(status) {
+      ['ch-telegram','ch-zalo','ch-ai','ch-google','ch-gateway'].forEach(id => setChannelStatus(id, status));
+    }
+
+    async function checkChannels() {
+      const btn = document.getElementById('check-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      setAllChannels('checking');
+
+      try {
+        const r = await window.claw.checkAllChannels();
+        // Stagger reveal — each channel flips after a short delay
+        const channels = [
+          ['ch-gateway', r.gateway],
+          ['ch-ai', r.ai],
+          ['ch-telegram', r.telegram],
+          ['ch-zalo', r.zalo],
+          ['ch-google', r.google],
+        ];
+        for (let i = 0; i < channels.length; i++) {
+          await new Promise(res => setTimeout(res, 200));
+          setChannelStatus(channels[i][0], channels[i][1]);
+        }
+      } catch (e) {
+        console.error('Channel check failed:', e);
+        setAllChannels('error');
+      }
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+
+    function updateBotStatus(running, error) {
+      document.getElementById('status-dot').className = `status-dot ${running ? 'running' : 'stopped'}`;
+      document.getElementById('status-text').textContent = running ? 'Đang chạy' : 'Đã dừng';
+      document.getElementById('toggle-btn').textContent = running ? 'Dừng' : 'Khởi động';
+      const errEl = document.getElementById('error-display');
+      if (error) { errEl.style.display = 'block'; errEl.textContent = error; addActivity(error, 'error'); }
+      else { errEl.style.display = 'none'; }
+    }
+
+    async function toggleBot() {
+      const btn = document.getElementById('toggle-btn');
+      const wasRunning = btn.textContent === 'Dừng';
+      btn.disabled = true; btn.classList.add('loading');
+      btn.textContent = wasRunning ? 'Đang dừng...' : 'Đang khởi động...';
+      document.getElementById('status-text').textContent = wasRunning ? 'Đang dừng...' : 'Đang khởi động...';
+      if (!wasRunning) { setAllChannels('checking'); addActivity('Đang khởi động trợ lý...'); }
+      else addActivity('Đang dừng trợ lý...');
+
+      try {
+        const result = await window.claw.toggleBot();
+        updateBotStatus(result.running);
+        if (result.running) {
+          addActivity('Trợ lý đã khởi động, đang kết nối kênh...');
+          document.getElementById('status-text').textContent = 'Đang kết nối kênh...';
+          for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+              const r = await window.claw.checkAllChannels();
+              setChannelStatus('ch-telegram', r.telegram);
+              setChannelStatus('ch-zalo', r.zalo);
+              setChannelStatus('ch-ai', r.ai);
+              setChannelStatus('ch-google', r.google);
+              setChannelStatus('ch-gateway', r.gateway);
+              if (r.gateway === 'ok' && r.ai === 'ok') { addActivity('Tất cả kênh đã kết nối'); break; }
+            } catch {}
+          }
+          document.getElementById('status-text').textContent = 'Đang chạy';
+        } else {
+          addActivity('Trợ lý đã dừng');
+        }
+      } catch (e) {
+        updateBotStatus(false, 'Lỗi: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.classList.remove('loading');
+      }
+    }
+
+    // Zalo QR
+    let zaloQRPoll = null;
+    async function reconnectZalo() {
+      const btn = document.getElementById('reconnect-zalo-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      document.getElementById('zalo-modal').classList.add('show');
+      document.getElementById('zalo-modal-loading').style.display = 'block';
+      document.getElementById('zalo-modal-qr').style.display = 'none';
+      document.getElementById('zalo-modal-success').style.display = 'none';
+      await window.claw.setupZalo();
+      btn.disabled = false; btn.classList.remove('loading');
+      startZaloQRPoll();
+    }
+    async function refreshZaloQR() {
+      const btn = document.getElementById('zalo-modal-refresh');
+      btn.disabled = true; btn.classList.add('loading');
+      document.getElementById('zalo-modal-loading').style.display = 'block';
+      document.getElementById('zalo-modal-qr').style.display = 'none';
+      document.getElementById('zalo-modal-success').style.display = 'none';
+      await window.claw.setupZalo();
+      btn.disabled = false; btn.classList.remove('loading');
+      startZaloQRPoll();
+    }
+    function startZaloQRPoll() {
+      if (zaloQRPoll) clearInterval(zaloQRPoll);
+      let qrFound = false, attempts = 0;
+      zaloQRPoll = setInterval(async () => {
+        attempts++;
+        if (!qrFound) {
+          const qr = await window.claw.findZaloQR();
+          if (qr) {
+            qrFound = true;
+            document.getElementById('zalo-modal-loading').style.display = 'none';
+            document.getElementById('zalo-modal-qr').src = qr;
+            document.getElementById('zalo-modal-qr').style.display = 'block';
+          }
+        }
+        if (qrFound) {
+          const status = await window.claw.checkZaloLogin();
+          if (status.loggedIn) {
+            clearInterval(zaloQRPoll); zaloQRPoll = null;
+            document.getElementById('zalo-modal-qr').style.display = 'none';
+            document.getElementById('zalo-modal-success').style.display = 'block';
+            setChannelStatus('ch-zalo', 'ok');
+            addActivity('Zalo đã kết nối thành công');
+            setTimeout(closeZaloModal, 2000);
+          }
+        }
+        if (attempts > 120) { clearInterval(zaloQRPoll); zaloQRPoll = null; }
+      }, 1000);
+    }
+    function closeZaloModal() {
+      document.getElementById('zalo-modal').classList.remove('show');
+      if (zaloQRPoll) { clearInterval(zaloQRPoll); zaloQRPoll = null; }
+    }
+
+    async function changeZaloMode(mode) {
+      const status = document.getElementById('zalo-mode-status');
+      status.style.display = 'none';
+      await window.claw.saveZaloMode(mode);
+      status.style.display = 'block';
+      addActivity('Đã đổi chế độ Zalo: ' + mode);
+      setTimeout(() => { status.style.display = 'none'; }, 3000);
+    }
+
+    async function loadZaloMode() {
+      const mode = await window.claw.getZaloMode();
+      if (mode) document.getElementById('zalo-mode-select').value = mode;
+    }
+
+    // Gateway UI
+    async function openGatewayUI() {
+      window.claw.openExternal('http://127.0.0.1:18789');
+      // Always show + refresh token (token có thể đổi sau restart gateway)
+      try {
+        const token = await window.claw.getGatewayToken();
+        if (token) {
+          document.getElementById('gateway-token').value = token;
+          document.getElementById('gateway-token-box').style.display = 'block';
+          addActivity('Gateway UI mở — token hiện bên sidebar');
+        } else {
+          addActivity('Không lấy được Gateway token');
+        }
+      } catch (e) {
+        addActivity('Lỗi lấy token: ' + e.message);
+      }
+    }
+    function hideGatewayToken() {
+      document.getElementById('gateway-token-box').style.display = 'none';
+    }
+    function copyGatewayToken() {
+      const input = document.getElementById('gateway-token');
+      input.select();
+      document.execCommand('copy');
+      try { navigator.clipboard.writeText(input.value); } catch {}
+      addActivity('Đã copy Gateway Token');
+      showToast('✓ Đã copy Gateway token');
+    }
+
+    // Schedules (fixed + custom)
+    let currentSchedules = [];
+    let customCrons = [];
+    async function loadSchedules() {
+      try {
+        currentSchedules = await window.claw.getSchedules();
+      } catch (e) {
+        console.error('loadSchedules error:', e);
+        currentSchedules = [
+          { id: 'morning', label: 'Báo cáo sáng', time: '07:30', enabled: true, description: 'Doanh thu, lịch họp, việc cần xử lý' },
+          { id: 'evening', label: 'Tóm tắt cuối ngày', time: '21:00', enabled: true, description: 'Kết quả ngày, vấn đề tồn đọng' },
+          { id: 'heartbeat', label: 'Kiểm tra tự động', time: 'Mỗi 30 phút', enabled: true, description: 'Email, lịch, tin nhắn khẩn' },
+        ];
+      }
+      try {
+        customCrons = await window.claw.getCustomCrons() || [];
+      } catch { customCrons = []; }
+      renderSchedules();
+    }
+    function cronToTime(expr) {
+      // "30 23 * * *" → "23:30"
+      if (!expr) return expr;
+      const parts = expr.split(' ');
+      if (parts.length >= 2 && /^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1])) {
+        return parts[1].padStart(2,'0') + ':' + parts[0].padStart(2,'0');
+      }
+      return expr;
+    }
+    function cronToHuman(expr) {
+      if (!expr) return '';
+      const parts = expr.split(' ');
+      if (parts.length < 5) return expr;
+      const [m, h, dom, mon, dow] = parts;
+      const days = {'1':'T2','2':'T3','3':'T4','4':'T5','5':'T6','6':'T7','0':'CN','*':'mỗi ngày'};
+      let when = '';
+      if (dow !== '*') {
+        when = dow.split(',').map(d => days[d] || d).join(', ');
+        if (dow === '1-5') when = 'T2–T6';
+        if (dow === '0,6') when = 'T7, CN';
+      } else if (dom !== '*') {
+        when = `ngày ${dom}` + (mon !== '*' ? ` tháng ${mon}` : ' hàng tháng');
+      } else {
+        when = 'mỗi ngày';
+      }
+      if (h.startsWith('*/')) return `Mỗi ${h.slice(2)} tiếng`;
+      if (m.startsWith('*/')) return `Mỗi ${m.slice(2)} phút`;
+      return `${when} lúc ${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+    }
+    // Map schedule ID → icon name
+    const SCHEDULE_ICON_MAP = {
+      morning: 'sun',
+      evening: 'moon',
+      heartbeat: 'activity',
+      meditation: 'sparkles',
+    };
+    function scheduleIcon(scheduleId, size = 18) {
+      return icon(SCHEDULE_ICON_MAP[scheduleId] || 'clock', size);
+    }
+
+    function statusDotHtml(enabled) {
+      const color = enabled ? '#22c55e' : '#6b7280';
+      const label = enabled ? 'Đang bật' : 'Đã tắt';
+      return `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block"></span>${label}</span>`;
+    }
+
+    function showCronDetail(type, id) {
+      let data;
+      if (type === 'fixed') {
+        data = currentSchedules.find(x => x.id === id);
+        if (!data) return;
+        document.getElementById('cron-detail-content').innerHTML = `
+          <h3>${scheduleIcon(data.id, 22)}<span style="margin-left:8px">${esc(data.label)}</span></h3>
+          <div class="cron-detail-row"><span class="cron-detail-label">Loại</span><span class="cron-detail-value">Lịch hệ thống (cố định)</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Thời gian</span><span class="cron-detail-value">${esc(data.time)}</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Mô tả</span><span class="cron-detail-value">${esc(data.description || '')}</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Trạng thái</span><span class="cron-detail-value">${statusDotHtml(data.enabled)}</span></div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn btn-secondary btn-small" onclick="testCron('fixed','${esc(data.id)}')">▶ Test ngay</button>
+            <button class="btn btn-secondary btn-small" onclick="closeCronDetail()">Đóng</button>
+          </div>
+        `;
+      } else {
+        data = customCrons.find(x => x.id === id);
+        if (!data) return;
+        const created = data.createdAt ? new Date(data.createdAt).toLocaleString('vi-VN') : 'Không rõ';
+        document.getElementById('cron-detail-content').innerHTML = `
+          <h3>${icon('bot', 22)}<span style="margin-left:8px">${esc(data.label || 'Custom cron')}</span></h3>
+          <div class="cron-detail-row"><span class="cron-detail-label">Loại</span><span class="cron-detail-value">Do bot tạo theo yêu cầu</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Lịch chạy</span><span class="cron-detail-value">${esc(cronToHuman(data.cronExpr))}</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Cron</span><span class="cron-detail-value" style="font-family:monospace">${esc(data.cronExpr)}</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Tạo lúc</span><span class="cron-detail-value">${esc(created)}</span></div>
+          <div class="cron-detail-row"><span class="cron-detail-label">Trạng thái</span><span class="cron-detail-value">${statusDotHtml(data.enabled)}</span></div>
+          <div style="margin-top:8px"><span class="cron-detail-label">Nội dung thực hiện:</span></div>
+          <div class="cron-detail-prompt">${esc(data.prompt)}</div>
+          <div style="margin-top:16px;text-align:right;display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn btn-secondary btn-small" onclick="testCron('custom','${esc(data.id)}')">▶ Test ngay</button>
+            <button class="btn btn-secondary btn-small" style="color:var(--danger);display:inline-flex;align-items:center;gap:6px" onclick="deleteCustomCron('${esc(data.id)}')">${icon('trash', 14)} Xóa</button>
+            <button class="btn btn-secondary btn-small" onclick="closeCronDetail()">Đóng</button>
+          </div>
+        `;
+      }
+      document.getElementById('cron-detail-modal').classList.add('show');
+    }
+    function closeCronDetail() { document.getElementById('cron-detail-modal').classList.remove('show'); }
+
+    async function testCron(type, id) {
+      addActivity('Đang test cron...');
+      try {
+        const result = await window.claw.testCron(type, id);
+        if (result?.success) {
+          addActivity('Test cron OK — kiểm tra Telegram');
+        } else {
+          addActivity('Test cron FAILED: ' + (result?.error || 'unknown'));
+        }
+      } catch (e) {
+        addActivity('Lỗi test cron: ' + e.message);
+      }
+    }
+
+    // ============================================
+    //  PAGE NAVIGATION (side menu)
+    // ============================================
+    let currentPage = 'overview';
+    let zaloDataLoaded = false;
+
+    function switchPage(page) {
+      currentPage = page;
+      document.querySelectorAll('.sidebar-menu-item').forEach(it => {
+        it.classList.toggle('active', it.dataset.page === page);
+      });
+      document.querySelectorAll('.page').forEach(p => {
+        p.classList.toggle('active', p.id === `page-${page}`);
+      });
+      // Compact layout: hide activity panel + show FAB on non-overview pages
+      document.body.classList.toggle('compact-layout', page !== 'overview');
+      // Close drawer when switching pages
+      const drawer = document.getElementById('activity-drawer');
+      const backdrop = document.getElementById('activity-drawer-backdrop');
+      if (drawer) drawer.classList.remove('show');
+      if (backdrop) backdrop.classList.remove('show');
+      // Lazy load heavy data when entering Zalo page
+      if (page === 'zalo' && !zaloDataLoaded) {
+        loadZaloManagerData();
+      }
+      if (page === 'schedules') {
+        loadSchedules();
+      }
+      if (page === 'knowledge') {
+        if (!knowledgeInitialized) initKnowledge();
+        else refreshKnowledgeFiles();
+      }
+      if (page === '9router' || page === 'openclaw') {
+        ensureEmbedLoaded(page);
+      }
+    }
+
+    // ============================================
+    //  EMBEDDED WEB UI (9Router + OpenClaw)
+    // ============================================
+    const embedLoaded = { '9router': false, 'openclaw': false };
+    const EMBED_URLS = {
+      '9router': 'http://127.0.0.1:20128/',
+      'openclaw': 'http://127.0.0.1:18789/',
+    };
+    function ensureEmbedLoaded(name) {
+      if (embedLoaded[name]) return;
+      const wv = document.getElementById('iframe-' + name);
+      if (!wv) return;
+      // <webview> uses .src setter (or loadURL once attached). About:blank → real URL.
+      try { wv.src = EMBED_URLS[name]; } catch { wv.setAttribute('src', EMBED_URLS[name]); }
+      embedLoaded[name] = true;
+      addActivity('Đã mở ' + (name === '9router' ? '9Router' : 'OpenClaw') + ' trong app');
+    }
+    function reloadEmbed(name) {
+      const wv = document.getElementById('iframe-' + name);
+      if (!wv) return;
+      // <webview> exposes reload() once dom-ready; fall back to src reassignment.
+      try {
+        if (typeof wv.reload === 'function') wv.reload();
+        else { wv.src = 'about:blank'; setTimeout(() => { wv.src = EMBED_URLS[name]; }, 100); }
+      } catch {
+        wv.src = 'about:blank'; setTimeout(() => { wv.src = EMBED_URLS[name]; }, 100);
+      }
+      addActivity('Reload ' + name);
+    }
+    async function copyAndShowGatewayToken() {
+      try {
+        const token = await window.claw.getGatewayToken();
+        if (!token) { showToast('Không lấy được Gateway token', 'error'); return; }
+        try { await navigator.clipboard.writeText(token); }
+        catch {
+          const ta = document.createElement('textarea');
+          ta.value = token; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); ta.remove();
+        }
+        // Also show in sidebar token box
+        document.getElementById('gateway-token').value = token;
+        document.getElementById('gateway-token-box').style.display = 'block';
+        addActivity('Đã copy Gateway token');
+        showToast('✓ Đã copy token — paste vào ô đăng nhập OpenClaw');
+      } catch (e) {
+        showToast('Lỗi: ' + e.message, 'error');
+      }
+    }
+
+    // Generic toast notification (top-right, auto-dismiss)
+    function showToast(text, type = 'success') {
+      let host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.style.cssText = 'position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+        document.body.appendChild(host);
+      }
+      const t = document.createElement('div');
+      const bg = type === 'error' ? '#e74c3c' : 'var(--accent, #4ea1ff)';
+      t.style.cssText = `background:${bg};color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.3);font-size:13px;font-weight:500;pointer-events:auto;animation:toastIn 0.2s ease;max-width:360px`;
+      t.textContent = text;
+      host.appendChild(t);
+      setTimeout(() => {
+        t.style.transition = 'opacity 0.3s, transform 0.3s';
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(20px)';
+        setTimeout(() => t.remove(), 300);
+      }, 2800);
+    }
+
+    // ============================================
+    //  KNOWLEDGE TAB
+    // ============================================
+    let knowledgeInitialized = false;
+    let currentKnowledgeCategory = 'cong-ty';
+    const KNOW_LABELS = { 'cong-ty': 'Công ty', 'san-pham': 'Sản phẩm', 'nhan-vien': 'Nhân viên' };
+
+    async function initKnowledge() {
+      knowledgeInitialized = true;
+      setupKnowledgeDragDrop();
+      await refreshKnowledgeCounts();
+      await refreshKnowledgeFiles();
+    }
+
+    async function refreshKnowledgeCounts() {
+      try {
+        const counts = await window.claw.getKnowledgeCounts();
+        for (const cat of ['cong-ty', 'san-pham', 'nhan-vien']) {
+          const el = document.getElementById('know-count-' + cat);
+          if (el) el.textContent = (counts[cat] || 0) + ' tài liệu';
+        }
+      } catch (e) { console.error('refreshKnowledgeCounts:', e); }
+    }
+
+    function selectKnowledgeFolder(cat) {
+      currentKnowledgeCategory = cat;
+      document.querySelectorAll('.know-folder').forEach(f => {
+        f.classList.toggle('active', f.dataset.cat === cat);
+      });
+      document.getElementById('know-files-title').textContent = 'Tài liệu — ' + KNOW_LABELS[cat];
+      refreshKnowledgeFiles();
+    }
+
+    async function refreshKnowledgeFiles() {
+      const list = document.getElementById('know-files-list');
+      list.innerHTML = '<div class="know-empty">Đang tải...</div>';
+      try {
+        const files = await window.claw.listKnowledgeFiles(currentKnowledgeCategory);
+        if (!files || files.length === 0) {
+          list.innerHTML = `
+            <div class="know-empty">
+              <div class="big-icon" data-icon="file-text" data-icon-size="48"></div>
+              <div><strong>Chưa có tài liệu nào</strong></div>
+              <div style="margin-top:6px">Upload file qua cột bên phải</div>
+            </div>`;
+          mountIcons();
+          return;
+        }
+        list.innerHTML = files.map(f => {
+          const sizeKB = (f.filesize / 1024).toFixed(1);
+          const date = new Date(f.created_at + 'Z').toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return `
+            <div class="know-file">
+              <div class="file-icon" data-icon="file-text" data-icon-size="20"></div>
+              <div class="file-info">
+                <div class="file-name">${esc(f.filename)}</div>
+                <div class="file-meta">${sizeKB} KB · ${esc(f.filetype || 'unknown')} · ${date} · ${f.word_count || 0} từ</div>
+                ${f.summary ? `<div class="file-summary">${esc(f.summary)}</div>` : ''}
+              </div>
+              <div class="file-actions">
+                <button class="know-file-delete" onclick="deleteKnowledgeFile('${esc(f.filename)}')" title="Xóa">
+                  <span data-icon="trash" data-icon-size="16"></span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        mountIcons();
+      } catch (e) {
+        list.innerHTML = '<div class="know-empty">Lỗi load: ' + esc(e.message) + '</div>';
+      }
+    }
+
+    async function pickKnowledgeFiles() {
+      try {
+        const result = await window.claw.pickKnowledgeFile();
+        if (result?.canceled) return;
+        await uploadKnowledgePaths(result.filePaths);
+      } catch (e) {
+        addActivity('Lỗi pick file: ' + e.message);
+      }
+    }
+
+    async function uploadKnowledgePaths(paths) {
+      if (!paths || paths.length === 0) return;
+      const progressEl = document.getElementById('know-progress');
+      progressEl.style.display = 'block';
+      progressEl.className = 'know-progress';
+      let success = 0, failed = 0;
+      for (let i = 0; i < paths.length; i++) {
+        const fp = paths[i];
+        const filename = fp.split(/[\\/]/).pop();
+        progressEl.textContent = `Đang xử lý ${i + 1}/${paths.length}: ${filename}...`;
+        try {
+          const r = await window.claw.uploadKnowledgeFile(currentKnowledgeCategory, fp, filename);
+          if (r?.success) {
+            success++;
+            addActivity(`Đã thêm: ${r.filename}`);
+          } else {
+            failed++;
+            addActivity(`Lỗi: ${filename} — ${r?.error || 'unknown'}`);
+          }
+        } catch (e) {
+          failed++;
+          addActivity(`Lỗi: ${filename} — ${e.message}`);
+        }
+      }
+      progressEl.textContent = `Xong! Thành công: ${success}, lỗi: ${failed}`;
+      setTimeout(() => { progressEl.style.display = 'none'; }, 4000);
+      await refreshKnowledgeCounts();
+      await refreshKnowledgeFiles();
+    }
+
+    async function deleteKnowledgeFile(filename) {
+      if (!confirm('Xóa "' + filename + '" khỏi knowledge?')) return;
+      try {
+        const r = await window.claw.deleteKnowledgeFile(currentKnowledgeCategory, filename);
+        if (r?.success) {
+          addActivity('Đã xóa: ' + filename);
+          await refreshKnowledgeCounts();
+          await refreshKnowledgeFiles();
+        } else {
+          addActivity('Lỗi xóa: ' + (r?.error || 'unknown'));
+        }
+      } catch (e) {
+        addActivity('Lỗi: ' + e.message);
+      }
+    }
+
+    function setupKnowledgeDragDrop() {
+      const zone = document.getElementById('know-drop-zone');
+      if (!zone) return;
+      ['dragenter', 'dragover'].forEach(ev => {
+        zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
+      });
+      ['dragleave', 'drop'].forEach(ev => {
+        zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); });
+      });
+      zone.addEventListener('drop', async (e) => {
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length === 0) return;
+        const paths = files.map(f => f.path).filter(Boolean);
+        if (paths.length > 0) await uploadKnowledgePaths(paths);
+      });
+    }
+
+    // ============================================
+    //  ZALO MANAGER (inline page)
+    // ============================================
+    let zaloFriends = [];
+    let zaloGroups = [];
+    let zaloMgrConfig = { enabled: true, groupPolicy: 'open', groupAllowFrom: [], userBlocklist: [] };
+
+    // Helper: is bot currently set to reply to ALL groups? (open mode via "*")
+    function isOpenGroupMode() {
+      return !zaloMgrConfig.groupAllowFrom
+        || zaloMgrConfig.groupAllowFrom.length === 0
+        || zaloMgrConfig.groupAllowFrom.includes('*')
+        || zaloMgrConfig.groupPolicy === 'open';
+    }
+
+    async function refreshZaloCache() {
+      addActivity('Đang đồng bộ nhóm/bạn bè từ Zalo...');
+      try {
+        const r = await window.claw.refreshZaloCache();
+        if (r?.success) {
+          addActivity('Đồng bộ xong, đang tải lại...');
+        } else {
+          addActivity('Đồng bộ thất bại: ' + (r?.error || 'unknown'));
+        }
+      } catch (e) { addActivity('Lỗi đồng bộ: ' + e.message); }
+      await loadZaloManagerData();
+    }
+
+    async function loadZaloManagerData() {
+      try {
+        const [friends, groups, config] = await Promise.all([
+          window.claw.listZaloFriends(),
+          window.claw.listZaloGroups(),
+          window.claw.getZaloManagerConfig(),
+        ]);
+        zaloFriends = friends || [];
+        zaloGroups = groups || [];
+        zaloMgrConfig = config || zaloMgrConfig;
+        zaloDataLoaded = true;
+
+        document.getElementById('zalo-mgr-friend-count').textContent = zaloFriends.length;
+        document.getElementById('zalo-mgr-group-count').textContent = zaloGroups.length;
+        document.getElementById('zalo-mgr-enabled').checked = zaloMgrConfig.enabled !== false;
+        updateBlockedCount();
+        renderZaloGroups();
+        renderZaloFriends();
+      } catch (e) {
+        console.error('loadZaloManagerData error:', e);
+        addActivity('Lỗi load Zalo manager');
+      }
+    }
+
+    function updateBlockedCount() {
+      document.getElementById('zalo-mgr-blocked-count').textContent = (zaloMgrConfig.userBlocklist || []).length;
+    }
+
+    function renderZaloGroups() {
+      const list = document.getElementById('zalo-mgr-groups-list');
+      const q = (document.getElementById('zalo-mgr-group-search').value || '').toLowerCase();
+      const filtered = zaloGroups.filter(g => !q || (g.name || '').toLowerCase().includes(q));
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="zalo-mgr-empty">Chưa có nhóm Zalo nào.<br>Thêm bot vào nhóm trên Zalo, rồi nhấn Refresh.</div>';
+        return;
+      }
+      const openMode = isOpenGroupMode();
+      list.innerHTML = filtered.map(g => {
+        // In open mode: all checked by default. In allowlist mode: only those in the list.
+        const checked = openMode || (zaloMgrConfig.groupAllowFrom || []).includes(g.groupId);
+        const avatarHtml = g.avatar
+          ? `<div class="avatar-wrap"><img class="avatar-img" src="${esc(g.avatar)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('failed')"><div class="avatar-fallback">${icon('users', 18)}</div></div>`
+          : `<div class="avatar-fallback">${icon('users', 18)}</div>`;
+        return `
+          <label class="zalo-mgr-row">
+            <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleGroupAllow('${esc(g.groupId)}', this.checked)">
+            ${avatarHtml}
+            <div class="info">
+              <div class="name">${esc(g.name)}</div>
+              <div class="sub">${g.memberCount} thành viên · ID: ${esc(g.groupId)}</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function toggleGroupAllow(groupId, checked) {
+      // Convert from open mode → explicit list (copy all groupIds)
+      if (isOpenGroupMode()) {
+        zaloMgrConfig.groupAllowFrom = zaloGroups.map(g => g.groupId);
+        zaloMgrConfig.groupPolicy = 'allowlist';
+      }
+      const arr = zaloMgrConfig.groupAllowFrom;
+      if (checked) {
+        if (!arr.includes(groupId)) arr.push(groupId);
+      } else {
+        const i = arr.indexOf(groupId);
+        if (i !== -1) arr.splice(i, 1);
+      }
+    }
+
+    function toggleAllGroups(checked) {
+      if (checked) {
+        zaloMgrConfig.groupAllowFrom = zaloGroups.map(g => g.groupId);
+      } else {
+        zaloMgrConfig.groupAllowFrom = [];
+      }
+      zaloMgrConfig.groupPolicy = 'allowlist';
+      renderZaloGroups();
+    }
+
+    function renderZaloFriends() {
+      const list = document.getElementById('zalo-mgr-friends-list');
+      const q = (document.getElementById('zalo-mgr-friend-search').value || '').toLowerCase();
+      const filtered = zaloFriends.filter(f => !q ||
+        (f.displayName || '').toLowerCase().includes(q)
+      );
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="zalo-mgr-empty">Không tìm thấy user.</div>';
+        return;
+      }
+      list.innerHTML = filtered.slice(0, 500).map(f => {
+        // INVERTED semantic: checked = bot REPLIES (not in blocklist). Default = all checked.
+        const blocked = (zaloMgrConfig.userBlocklist || []).includes(f.userId);
+        const checked = !blocked;
+        const avatarHtml = f.avatar
+          ? `<div class="avatar-wrap"><img class="avatar-img" src="${esc(f.avatar)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('failed')"><div class="avatar-fallback">${icon('user', 18)}</div></div>`
+          : `<div class="avatar-fallback">${icon('user', 18)}</div>`;
+        const mutedBadge = blocked
+          ? `<span style="color:var(--danger,#e74c3c);font-size:11px;display:inline-flex;align-items:center;gap:4px;margin-left:6px">${icon('ban', 12)} Bỏ qua</span>`
+          : '';
+        const phoneIcon = f.phoneNumber
+          ? `<span style="display:inline-flex;align-items:center;gap:3px">${icon('phone-call', 11)} ${esc(f.phoneNumber)}</span> · `
+          : '';
+        return `
+          <label class="zalo-mgr-row">
+            <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${esc(f.userId)}', this.checked)">
+            ${avatarHtml}
+            <div class="info">
+              <div class="name">${esc(f.displayName)}${mutedBadge}</div>
+              <div class="sub">${phoneIcon}ID: ${esc(f.userId)}</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+      if (filtered.length > 500) {
+        list.innerHTML += `<div class="zalo-mgr-empty">... còn ${filtered.length - 500} user. Dùng tìm kiếm để lọc.</div>`;
+      }
+    }
+
+    // Checked = bot replies; unchecked = add to blocklist
+    function toggleUserReply(userId, checked) {
+      const arr = zaloMgrConfig.userBlocklist || [];
+      if (checked) {
+        // Remove from blocklist
+        const i = arr.indexOf(userId);
+        if (i !== -1) arr.splice(i, 1);
+      } else {
+        // Add to blocklist
+        if (!arr.includes(userId)) arr.push(userId);
+      }
+      zaloMgrConfig.userBlocklist = arr;
+      updateBlockedCount();
+    }
+
+    function toggleAllFriends(checked) {
+      if (checked) {
+        zaloMgrConfig.userBlocklist = []; // Empty blocklist = reply to all
+      } else {
+        zaloMgrConfig.userBlocklist = zaloFriends.map(f => f.userId); // Block all
+      }
+      updateBlockedCount();
+      renderZaloFriends();
+    }
+
+    async function saveZaloManager() {
+      zaloMgrConfig.enabled = document.getElementById('zalo-mgr-enabled').checked;
+      // groupPolicy is derived: "open" if allowlist is empty or contains "*", else "allowlist"
+      if (!zaloMgrConfig.groupAllowFrom || zaloMgrConfig.groupAllowFrom.length === 0 || zaloMgrConfig.groupAllowFrom.includes('*')) {
+        zaloMgrConfig.groupPolicy = 'open';
+        zaloMgrConfig.groupAllowFrom = ['*'];
+      } else if (zaloGroups.length > 0 && zaloMgrConfig.groupAllowFrom.length === zaloGroups.length) {
+        // User ticked ALL groups → switch back to open mode
+        zaloMgrConfig.groupPolicy = 'open';
+        zaloMgrConfig.groupAllowFrom = ['*'];
+      } else {
+        zaloMgrConfig.groupPolicy = 'allowlist';
+      }
+      const btn = document.getElementById('zalo-mgr-save-btn');
+      const labelEl = btn?.querySelector('.btn-label');
+      const iconEl = btn?.querySelector('[data-icon="save"]');
+      const originalLabel = labelEl ? labelEl.textContent : '';
+      let spinnerEl = null;
+      if (btn) {
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+        if (iconEl) iconEl.style.display = 'none';
+        spinnerEl = document.createElement('span');
+        spinnerEl.className = 'btn-spinner';
+        btn.insertBefore(spinnerEl, labelEl);
+        if (labelEl) labelEl.textContent = 'Đang lưu...';
+      }
+      try {
+        const result = await window.claw.saveZaloManagerConfig(zaloMgrConfig);
+        if (result?.success) {
+          addActivity('Đã lưu cấu hình Zalo');
+          showToast('✓ Đã lưu cấu hình Zalo');
+          try { await loadZaloManagerData(); } catch (e) { console.warn('reload zalo data failed', e); }
+        } else {
+          const err = result?.error || 'unknown';
+          addActivity('Lỗi lưu: ' + err);
+          showToast('Lỗi lưu cấu hình: ' + err, 'error');
+        }
+      } catch (e) {
+        addActivity('Lỗi: ' + e.message);
+        showToast('Lỗi: ' + e.message, 'error');
+      } finally {
+        if (btn) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          if (spinnerEl) spinnerEl.remove();
+          if (iconEl) iconEl.style.display = '';
+          if (labelEl) labelEl.textContent = originalLabel || 'Lưu cấu hình';
+        }
+      }
+    }
+    async function deleteCustomCron(id) {
+      customCrons = customCrons.filter(x => x.id !== id);
+      try { await window.claw.saveCustomCrons(customCrons); } catch {}
+      closeCronDetail();
+      renderSchedules();
+      addActivity('Đã xóa custom cron');
+    }
+    function renderSchedules() {
+      const list = document.getElementById('schedule-list');
+      list.innerHTML = '';
+      // Fixed schedules
+      currentSchedules.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer;' + (i > 0 ? 'border-top:1px solid var(--border);' : '');
+        row.innerHTML = `
+          <span class="schedule-icon-wrap">${scheduleIcon(s.id, 18)}</span>
+          <div style="flex:1;min-width:0" onclick="showCronDetail('fixed','${esc(s.id)}')">
+            <div style="font-size:13px;font-weight:600">${esc(s.label)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${esc(s.description || '')}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin-right:4px">${esc(s.time)}</div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSchedule('${esc(s.id)}',this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        `;
+        list.appendChild(row);
+      });
+      // Custom crons (created by bot)
+      customCrons.forEach((c) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer;border-top:1px solid var(--border);';
+        row.innerHTML = `
+          <span class="schedule-icon-wrap">${icon('bot', 18)}</span>
+          <div style="flex:1;min-width:0" onclick="showCronDetail('custom','${esc(c.id)}')">
+            <div style="font-size:13px;font-weight:600">${esc(c.label || 'Custom cron')}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${esc(c.prompt ? c.prompt.substring(0, 60) + (c.prompt.length > 60 ? '...' : '') : '')}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin-right:4px">${esc(cronToTime(c.cronExpr) || '')}</div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${c.enabled ? 'checked' : ''} onchange="toggleCustomCron('${esc(c.id)}',this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        `;
+        list.appendChild(row);
+      });
+      if (currentSchedules.length === 0 && customCrons.length === 0) {
+        list.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Chưa có lịch nào</div>';
+      }
+    }
+    async function toggleSchedule(id, enabled) {
+      const s = currentSchedules.find(x => x.id === id);
+      if (s) {
+        s.enabled = enabled;
+        await window.claw.saveSchedules(currentSchedules);
+        renderSchedules();
+        addActivity(`${enabled ? 'Bật' : 'Tắt'} ${s.label}`);
+      }
+    }
+    async function toggleCustomCron(id, enabled) {
+      const c = customCrons.find(x => x.id === id);
+      if (c) {
+        c.enabled = enabled;
+        // Save back via main process — update the custom-crons.json
+        try { await window.claw.saveCustomCrons(customCrons); } catch {}
+        renderSchedules();
+        addActivity(`${enabled ? 'Bật' : 'Tắt'} ${c.label || 'Custom cron'}`);
+      }
+    }
+
+    // Init
+    mountIcons(); // Render static data-icon elements
+    updateThemeToggleUI(document.documentElement.getAttribute('data-theme') || 'dark');
+    window.claw.onBotStatus((data) => {
+      updateBotStatus(data.running, data.error);
+      setTimeout(checkChannels, 2000);
+    });
+
+    // ============================================
+    //  CHANNEL READINESS — real probes (Telegram getMe + Zalo listener check)
+    // ============================================
+    function fmtTime(iso) {
+      try { return new Date(iso || Date.now()).toLocaleTimeString('vi-VN', { hour12:false }); }
+      catch { return ''; }
+    }
+    function applyChannelStatus(channel, info, checkedAt) {
+      const dot = document.getElementById('ready-dot-' + channel);
+      const pill = document.getElementById('ready-pill-' + channel);
+      const pillText = document.getElementById('ready-pill-' + channel + '-text');
+      if (!info) return;
+      const state = info.ready ? 'ready' : 'not-ready';
+      const checkedLabel = 'kiểm tra ' + fmtTime(checkedAt);
+      let summary;
+      if (channel === 'telegram') {
+        summary = info.ready
+          ? 'Sẵn sàng nhận tin' + (info.username ? ' · @' + info.username : '') + ' · ' + checkedLabel
+          : 'Chưa sẵn sàng — ' + (info.error || 'không rõ lỗi');
+      } else {
+        summary = info.ready
+          ? 'Sẵn sàng nhận tin · listener pid ' + info.listenerPid +
+            (info.lastRefreshMinAgo != null ? ' · cache ' + info.lastRefreshMinAgo + ' phút trước' : '') +
+            ' · ' + checkedLabel
+          : 'Chưa sẵn sàng — ' + (info.error || 'không rõ lỗi');
+      }
+      if (dot) {
+        dot.setAttribute('data-state', state);
+        dot.setAttribute('title', summary);
+      }
+      if (pill) pill.setAttribute('data-state', state);
+      if (pillText) pillText.textContent = summary;
+    }
+    let _lastChannelStatus = { telegram: null, zalo: null, checkedAt: null };
+    function handleChannelStatus(payload) {
+      _lastChannelStatus = payload;
+      applyChannelStatus('telegram', payload.telegram, payload.checkedAt);
+      applyChannelStatus('zalo', payload.zalo, payload.checkedAt);
+    }
+    if (window.claw.onChannelStatus) window.claw.onChannelStatus(handleChannelStatus);
+    async function recheckTelegram() {
+      const pill = document.getElementById('ready-pill-telegram');
+      if (pill) pill.setAttribute('data-state', 'checking');
+      document.getElementById('ready-pill-telegram-text').textContent = 'Đang kiểm tra...';
+      try {
+        const info = await window.claw.checkTelegramReady();
+        applyChannelStatus('telegram', info, new Date().toISOString());
+        showToast(info.ready ? '✓ Telegram sẵn sàng' : ('Telegram lỗi: ' + (info.error||'')), info.ready ? 'success' : 'error');
+      } catch (e) { showToast('Lỗi kiểm tra: ' + e.message, 'error'); }
+    }
+    async function recheckZalo() {
+      const pill = document.getElementById('ready-pill-zalo');
+      if (pill) pill.setAttribute('data-state', 'checking');
+      document.getElementById('ready-pill-zalo-text').textContent = 'Đang kiểm tra...';
+      try {
+        const info = await window.claw.checkZaloReady();
+        applyChannelStatus('zalo', info, new Date().toISOString());
+        showToast(info.ready ? '✓ Zalo sẵn sàng' : ('Zalo: ' + (info.error||'')), info.ready ? 'success' : 'error');
+      } catch (e) { showToast('Lỗi kiểm tra: ' + e.message, 'error'); }
+    }
+    async function testTelegramSend() {
+      try {
+        showToast('Đang gửi tin test...', 'info');
+        const r = await window.claw.telegramSelfTest();
+        if (r && r.success) {
+          showToast('✓ Đã gửi tin test — kiểm tra Telegram của anh', 'success');
+        } else {
+          showToast('Gửi thất bại — token sai hoặc không có CEO chat ID', 'error');
+        }
+      } catch (e) { showToast('Lỗi: ' + e.message, 'error'); }
+    }
+    refreshDashboard();
+    loadZaloMode();
+    loadSchedules();
+    // Real-time: auto-refresh when bot creates/edits custom crons or fixed schedules
+    if (window.claw.onCustomCronsUpdated) {
+      window.claw.onCustomCronsUpdated((data) => {
+        customCrons = data || [];
+        renderSchedules();
+        addActivity('Custom cron đã cập nhật');
+      });
+    }
+    if (window.claw.onSchedulesUpdated) {
+      window.claw.onSchedulesUpdated((data) => {
+        currentSchedules = data || [];
+        renderSchedules();
+        addActivity('Lịch cố định đã cập nhật');
+      });
+    }
+    addActivity('Dashboard đã tải');
+    checkChannels();
+    setTimeout(checkChannels, 5000);
+    setInterval(refreshDashboard, 30000);
+    setInterval(checkChannels, 30000);
+  </script>
+</body>
+</html>

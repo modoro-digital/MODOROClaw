@@ -1,0 +1,20 @@
+{
+  "name": "claw",
+  "version": "1.0.0",
+  "description": "Bộ template workspace hoàn chỉnh để vận hành trợ lý AI cá nhân với [OpenClaw](https://github.com/openclaw/openclaw). Repo này chứa các file mẫu, công cụ và hướng dẫn để bạn có thể tùy chỉnh cho trợ lý AI của riêng mình.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "sharp": "^0.34.5"
+  }
+}

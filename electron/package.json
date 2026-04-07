@@ -1,0 +1,199 @@
+{
+  "name": "modoro-claw",
+  "version": "2.0.0",
+  "description": "MODOROClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "node scripts/fix-better-sqlite3.js",
+    "build:win": "electron-builder --win",
+    "prebuild:vendor": "node scripts/prebuild-vendor.js",
+    "build:mac": "npm run prebuild:vendor && electron-builder --mac",
+    "build:mac:arm": "TARGET_ARCH=arm64 node scripts/prebuild-vendor.js && electron-builder --mac --arm64",
+    "build:mac:intel": "TARGET_ARCH=x64 node scripts/prebuild-vendor.js && electron-builder --mac --x64",
+    "build:mac:universal": "electron-builder --mac --universal"
+  },
+  "build": {
+    "appId": "vn.modoro.claw",
+    "productName": "MODOROClaw",
+    "copyright": "© 2026 MODORO Tech Corp",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/**/*",
+      "scripts/**/*",
+      "patches/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/{CHANGELOG.md,README.md,readme.md,changelog.md}",
+      "!node_modules/**/{test,tests,__tests__,*.test.js,*.spec.js}",
+      "!node_modules/**/{example,examples,demo,demos}",
+      "!node_modules/**/.bin",
+      "!**/*.{md,markdown}",
+      "!**/{.DS_Store,Thumbs.db,.git,.svn,.hg}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{.eslintrc,.editorconfig,.prettierrc}"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor",
+        "to": "vendor",
+        "filter": [
+          "**/*",
+          "!**/{test,tests,__tests__,*.test.js,*.spec.js,*.test.mjs}",
+          "!**/{example,examples,demo,demos,docs}",
+          "!**/*.{md,markdown}",
+          "!**/.github/**",
+          "!**/{.DS_Store,Thumbs.db,.git,.svn,.hg,.editorconfig,.eslintrc*,.prettierrc*,.npmignore}",
+          "!**/{appveyor.yml,.travis.yml,circle.yml}",
+          "!package.json"
+        ]
+      },
+      {
+        "from": "../AGENTS.md",
+        "to": "workspace-templates/AGENTS.md"
+      },
+      {
+        "from": "../BOOTSTRAP.md",
+        "to": "workspace-templates/BOOTSTRAP.md"
+      },
+      {
+        "from": "../SOUL.md",
+        "to": "workspace-templates/SOUL.md"
+      },
+      {
+        "from": "../IDENTITY.md",
+        "to": "workspace-templates/IDENTITY.md"
+      },
+      {
+        "from": "../USER.md",
+        "to": "workspace-templates/USER.md"
+      },
+      {
+        "from": "../COMPANY.md",
+        "to": "workspace-templates/COMPANY.md"
+      },
+      {
+        "from": "../PRODUCTS.md",
+        "to": "workspace-templates/PRODUCTS.md"
+      },
+      {
+        "from": "../MEMORY.md",
+        "to": "workspace-templates/MEMORY.md"
+      },
+      {
+        "from": "../HEARTBEAT.md",
+        "to": "workspace-templates/HEARTBEAT.md"
+      },
+      {
+        "from": "../TOOLS.md",
+        "to": "workspace-templates/TOOLS.md"
+      },
+      {
+        "from": "../README.md",
+        "to": "workspace-templates/README.md"
+      },
+      {
+        "from": "../skills",
+        "to": "workspace-templates/skills",
+        "filter": ["**/*", "!**/{*.test.js,node_modules}"]
+      },
+      {
+        "from": "../industry",
+        "to": "workspace-templates/industry"
+      },
+      {
+        "from": "../prompts",
+        "to": "workspace-templates/prompts"
+      },
+      {
+        "from": "../memory",
+        "to": "workspace-templates/memory",
+        "filter": ["**/*", "!20*.md", "!heartbeat-state.json"]
+      },
+      {
+        "from": "../tools",
+        "to": "workspace-templates/tools"
+      },
+      {
+        "from": "../docs",
+        "to": "workspace-templates/docs"
+      },
+      {
+        "from": "../config",
+        "to": "workspace-templates/config",
+        "filter": ["**/*", "!zalo-mode.txt"]
+      },
+      {
+        "from": "../.learnings",
+        "to": "workspace-templates/.learnings"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/better-sqlite3/**",
+      "**/pdf-parse/**",
+      "**/mammoth/**",
+      "scripts/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "type": "distribution",
+      "extendInfo": {
+        "NSHighResolutionCapable": true,
+        "LSMinimumSystemVersion": "11.0.0",
+        "NSAppleEventsUsageDescription": "MODOROClaw spawns OpenClaw + 9Router subprocesses to power the AI assistant.",
+        "NSDesktopFolderUsageDescription": "MODOROClaw stores workspace files (knowledge, schedules, logs) under your user data folder."
+      },
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "MODOROClaw ${version}",
+      "icon": "build/icon.icns",
+      "background": null,
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        { "x": 140, "y": 200, "type": "file" },
+        { "x": 400, "y": 200, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MODOROClaw"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "11.10.0",
+    "mammoth": "^1.12.0",
+    "node-cron": "^4.2.1",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5"
+  }
+}

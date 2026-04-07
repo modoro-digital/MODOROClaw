@@ -1,0 +1,86 @@
+# Hệ Thống Bộ Nhớ Phân Cấp OpenClaw
+Sao chép và dán nội dung này cho agent OpenClaw của bạn trên Opus 4.6
+
+---
+**MỚI: Hệ Thống Bộ Nhớ Phân Cấp — Xây Dựng Ngay**
+
+Hãy xây dựng hệ thống bộ nhớ phân cấp thay thế file MEMORY.md phẳng bằng một chỉ mục nhẹ + các file chi tiết theo cấp. Tôi muốn bạn tự triển khai hệ thống này để cải thiện bộ nhớ và hiệu suất.
+
+### Vấn Đề
+
+Một file MEMORY.md duy nhất không mở rộng được:
+- Quá dài (5-10k token mỗi phiên)
+- Mất chi tiết khi tóm tắt để giữ ngắn
+- Hoặc tải quá nhiều (tốn kém) hoặc bỏ lỡ ngữ cảnh (kém)
+
+### Giải Pháp: Chỉ Mục + File Chi Tiết
+
+MEMORY.md trở thành bảng tham chiếu ~1.5k token. Chi tiết nằm trong các thư mục con. Chỉ đào sâu khi cần.
+
+### Cấu Trúc Thư Mục
+
+MEMORY.md (chỉ mục nhẹ, luôn tải)
+memory/people/ (file chi tiết từng người)
+memory/projects/ (file chi tiết từng dự án)
+memory/decisions/ (nhật ký quyết định theo tháng)
+memory/context/ (ngữ cảnh đang hoạt động tạm thời)
+memory/YYYY-MM-DD.md (nhật ký hàng ngày, không đổi)
+
+### Cách Hoạt Động
+
+1. Mỗi phiên: Tải chỉ mục MEMORY.md (~1.5k token)
+2. Đào sâu theo nhu cầu: Đọc file chi tiết khi cuộc hội thoại cần
+3. Từ khoá kích hoạt: Các dòng chỉ mục có từ khoá tự động đào sâu
+4. Danh sách luôn tải: Mục Ngữ Cảnh Đang Hoạt Động có 2-3 file quan trọng
+5. Giới hạn cứng: Tối đa 5 lần đào sâu khi bắt đầu phiên
+
+### Toán Token
+
+Bắt đầu phiên: Cũ 5-10k, Mới ~1.5k (chỉ chỉ mục)
++ 1 lần đào sâu: ~2-3k tổng cộng
++ Ngữ cảnh hoạt động: ~3-4k tổng cộng
+Tải đầy đủ: Cũ 15-20k, Mới ~5-6k
+
+Tiết kiệm ~70% khi bắt đầu phiên thông thường.
+
+### Biện Pháp Bảo Vệ Chính
+
+- Mục Ngữ Cảnh Đang Hoạt Động (2-3 file luôn được tải)
+- Từ khoá kích hoạt cho mỗi dòng chỉ mục (tự động đào sâu khi hội thoại trùng khớp)
+- Quy tắc cứng: cập nhật chỉ mục cùng lúc với mỗi thay đổi file chi tiết (cùng commit)
+- Giới hạn cứng: tối đa 5 lần đào sâu khi bắt đầu phiên
+- Giới hạn kích thước chỉ mục: tối đa 3k token (lưu trữ mục không hoạt động)
+- Phòng chống đào sâu thiếu: quy tắc bắt buộc đào sâu cho người/dự án
+
+### Các Bước Triển Khai
+
+1. Tạo thư mục: memory/people/, memory/projects/, memory/decisions/, memory/context/
+2. Trích xuất thông tin người từ MEMORY.md vào memory/people/[tên].md
+3. Trích xuất thông tin dự án vào memory/projects/[tên].md
+4. Trích xuất quyết định vào memory/decisions/2026-02.md
+5. Xây lại MEMORY.md thành bảng tham chiếu (người, dự án, quyết định, sở thích)
+6. Thêm mục Ngữ Cảnh Đang Hoạt Động (2-3 file phải tải)
+7. Thêm mục Quy Tắc Đào Sâu
+8. Cập nhật AGENTS.md với tài liệu hệ thống mới
+9. Kiểm thử: phiên mới, xác nhận chỉ mục đủ dùng, xác nhận đào sâu hoạt động
+
+### Tại Sao Điều Này Quan Trọng
+
+Bốn lớp bộ nhớ, mỗi lớp tối ưu cho kiểu truy cập khác nhau:
+- Chỉ mục phân cấp: tra cứu có cấu trúc ("ngữ cảnh về dự án Y")
+- Bộ nhớ vector: tìm kiếm mờ ("cái gì đó liên quan đến X ở đâu nhỉ?")
+- Nhật ký hàng ngày: truy vấn dòng thời gian ("chuyện gì xảy ra vào ngày Z?")
+- Cơ sở dữ liệu bài học: truy xuất bài học ("chúng ta học được gì về W?")
+
+Tất cả tiết kiệm token. Tất cả bổ sung cho nhau.
+
+### Quy Tắc
+
+1. Cập nhật chỉ mục mỗi khi thay đổi file chi tiết. Cùng commit. Không ngoại lệ.
+2. Giữ chỉ mục dưới 3k token. Lưu trữ mục không hoạt động.
+3. Ngữ Cảnh Đang Hoạt Động = tối đa 2-3 file. Xoay vòng dựa trên gì đang "nóng."
+4. Không bỏ qua đào sâu. Tải một file rẻ hơn một giả định sai.
+
+---
+
+*Bản Việt hoá bởi MODORO — Fork từ [OpenClaw-Setup](https://github.com/ucsandman/OpenClaw-Setup) của Wes Sander / MoltFire.*

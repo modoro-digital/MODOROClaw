@@ -1,0 +1,51 @@
+# Node + build outputs
+node_modules/
+dist/
+*.log
+electron/logs/
+electron/vendor/
+modoro-claw-plugin/dist/
+
+# Runtime state — re-created by seedWorkspace() / wizard on first run
+logs/
+.openclaw/
+.openzca/
+schedules.json
+custom-crons.json
+zalo-blocklist.json
+workspace-state.json
+zalo-mode.txt
+heartbeat-state.json
+config/zalo-mode.txt
+memory.db
+meditations.md
+
+# Daily memory files (regenerated each day by the bot)
+memory/20*.md
+memory/heartbeat-state.json
+
+# Personalized active configs (wizard re-creates)
+skills/active.md
+industry/active.md
+prompts/sop/active.md
+prompts/training/active.md
+
+# Knowledge tab uploads (per-user, not template)
+knowledge/cong-ty/files/
+knowledge/san-pham/files/
+knowledge/nhan-vien/files/
+knowledge/cong-ty/index.md
+knowledge/san-pham/index.md
+knowledge/nhan-vien/index.md
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Old build artifacts at repo root
+modoroclaw-mac.zip
+modoroclaw-mac-portable*.zip
+Huong-dan-cai-MODOROClaw-Mac.docx

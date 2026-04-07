@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>MODOROClaw — Thiết lập</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .step-number { display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;font-weight:700;font-size:13px;margin-right:8px;flex-shrink:0; }
+    .step-row { display:flex;align-items:flex-start;margin-bottom:12px; }
+    .step-row p { margin:0;font-size:13px;color:var(--text);line-height:1.6; }
+    .big-icon { font-size:32px;margin-right:12px;flex-shrink:0; }
+    .highlight { background:var(--accent);color:white;padding:2px 8px;border-radius:4px;font-weight:600; }
+    .skip-link { font-size:12px;color:var(--text-muted);text-align:center;display:block;margin-top:8px;cursor:pointer;text-decoration:underline; }
+    .skip-link:hover { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="titlebar">MODOROClaw</div>
+  <div class="container">
+
+    <div class="wizard-progress" id="progress">
+      <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <!-- ==================== STEP 1: Thông tin cơ bản ==================== -->
+    <div class="wizard-step active" id="step-1">
+      <div style="text-align:center;margin:16px 0">
+        <img src="modoro-mascot.png" alt="MODOROClaw" style="width:120px;height:120px" onerror="this.style.display='none'">
+      </div>
+      <h1 style="text-align:center">Chào mừng đến với MODOROClaw!</h1>
+      <p style="text-align:center">Trợ lý AI của bạn sẽ sẵn sàng trong vài phút.</p>
+
+      <label>Tên của bạn</label>
+      <input type="text" id="ceo-name" placeholder="Ví dụ: Nguyễn Văn Huy">
+
+      <label>Tên công ty / cửa hàng <span style="color:var(--text-muted);font-weight:400">(không bắt buộc)</span></label>
+      <input type="text" id="company" placeholder="Ví dụ: MODORO Technology">
+
+      <div style="font-size:12px;color:var(--text-muted);margin-top:14px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;line-height:1.5">
+        Báo cáo sáng 07:30, tóm tắt tối 21:00 đã được cài đặt sẵn. Bạn có thể chỉnh giờ hoặc thêm lịch mới trong <strong>Dashboard → Lịch tự động</strong> sau khi hoàn tất.
+      </div>
+
+      <button class="btn btn-primary" onclick="goNext('1b')" style="margin-top:14px">Tiếp tục →</button>
+    </div>
+
+    <!-- ==================== STEP 1B: Linh vuc & Ca nhan hoa ==================== -->
+    <div class="wizard-step" id="step-1b">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <img src="modoro-mascot.png" alt="" style="width:40px;height:40px" onerror="this.style.display='none'">
+        <h1>Lĩnh vực & phong cách</h1>
+      </div>
+      <p>Trợ lý sẽ được tối ưu cho ngành của bạn.</p>
+
+      <label>Lĩnh vực kinh doanh</label>
+      <select id="industry">
+        <option value="">— Chọn lĩnh vực —</option>
+        <option value="bat-dong-san">Bất động sản</option>
+        <option value="fnb">F&B / Nhà hàng / Quán cà phê</option>
+        <option value="thuong-mai">Thương mại / Bán lẻ</option>
+        <option value="dich-vu">Dịch vụ (spa, salon, phòng khám...)</option>
+        <option value="giao-duc">Giáo dục / Đào tạo</option>
+        <option value="cong-nghe">Công nghệ / IT</option>
+        <option value="san-xuat">Sản xuất</option>
+        <option value="tong-quat">Khác / Tổng quát</option>
+      </select>
+
+      <label>Phong cách giao tiếp</label>
+      <div style="margin-bottom:12px">
+        <label class="radio-option">
+          <input type="radio" name="tone" value="professional" onchange="selectedTone='professional'">
+          <div><strong>Chuyên nghiệp — lịch sự</strong><p>Phù hợp B2B, bất động sản, công nghệ</p></div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tone" value="friendly" checked onchange="selectedTone='friendly'">
+          <div><strong>Thân thiện — gần gũi</strong><p>Phù hợp F&B, dịch vụ, bán lẻ</p></div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tone" value="concise" onchange="selectedTone='concise'">
+          <div><strong>Ngắn gọn — hiệu quả</strong><p>Đi thẳng vào vấn đề, không dài dòng</p></div>
+        </label>
+      </div>
+
+      <label>Xưng hô với khách hàng</label>
+      <div style="margin-bottom:12px">
+        <label class="radio-option">
+          <input type="radio" name="pronouns" value="em-anh-chi" checked onchange="selectedPronouns='em-anh-chi'">
+          <div><strong>Em — Anh/Chị</strong><p>Lịch sự, phổ biến nhất</p></div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="pronouns" value="toi-quy-khach" onchange="selectedPronouns='toi-quy-khach'">
+          <div><strong>Tôi — Quý khách</strong><p>Trang trọng, doanh nghiệp lớn</p></div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="pronouns" value="minh-ban" onchange="selectedPronouns='minh-ban'">
+          <div><strong>Mình — Bạn</strong><p>Thân thiện, trẻ trung</p></div>
+        </label>
+      </div>
+
+      <label>Trợ lý gọi bạn là</label>
+      <input type="text" id="ceo-title" placeholder="Ví dụ: anh Huy, chị Lan, sếp">
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goNext(1)">← Quay lại</button>
+        <button class="btn btn-primary" onclick="goNext(2)">Tiếp tục →</button>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 2: Ket noi AI (9Router) ==================== -->
+    <div class="wizard-step" id="step-2">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <img src="modoro-mascot.png" alt="" style="width:40px;height:40px" onerror="this.style.display='none'">
+        <h1>Kết nối trí tuệ nhân tạo</h1>
+      </div>
+      <p>Trợ lý cần được kết nối với AI để hoạt động. Làm theo 3 bước:</p>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="step-row">
+          <span class="step-number">1</span>
+          <div>
+            <p>Tạo tài khoản <strong>Ollama</strong> (miễn phí):</p>
+            <p>→ Nhấn nút bên dưới → trang Ollama mở ra</p>
+            <p>→ Nhấn <span class="highlight">Sign In</span> (đăng nhập bằng Google/GitHub)</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-small" onclick="openOllama()" style="width:100%;margin-top:8px">Mở trang Ollama</button>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="step-row">
+          <span class="step-number">2</span>
+          <div>
+            <p>Lấy API Key:</p>
+            <p>→ Sau khi đăng nhập, nhấn nút bên dưới</p>
+            <p>→ Trang <strong>API Keys</strong> mở ra → nhấn <span class="highlight">New API Key</span></p>
+            <p>→ Đặt tên gì cũng được → nhấn <strong>Create</strong></p>
+            <p>→ <strong>Copy</strong> dòng key vừa tạo → dán vào ô bên dưới</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-small" onclick="openOllamaKeys()" style="width:100%;margin-top:8px">Mở trang API Keys</button>
+      </div>
+
+      <label>Dán Ollama API Key vào đây</label>
+      <input type="text" id="ollama-api-key" placeholder="Dán (Ctrl+V) API key từ Ollama">
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="step-row">
+          <span class="step-number">3</span>
+          <div>
+            <p>Nhấn nút bên dưới để <strong>hoàn tất thiết lập AI</strong>.</p>
+            <p style="font-size:12px;color:var(--text-muted)">Hệ thống sẽ tự động kết nối Ollama và tạo combo fallback.</p>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-small" onclick="autoSetup9Router()" id="auto-9router-btn" style="width:100%;margin-top:8px">Thiết lập AI</button>
+        <div id="router-auto-result" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px;border-color:var(--success);background:rgba(34,197,94,0.03)">
+        <p style="font-size:13px;margin:0"><strong>Sau này muốn thêm AI mạnh hơn?</strong> Mở trang quản lý AI bên dưới → thêm Codex, iFlow, hoặc bất kỳ provider nào → thêm model vào combo "main".</p>
+      </div>
+      <button class="btn btn-secondary btn-small" onclick="open9Router()" style="width:100%">Mở trang quản lý AI (nâng cao)</button>
+      <div id="router-status" style="display:none;margin-top:8px">
+        <div class="test-result success" style="margin:0">Đã mở trang quản lý</div>
+      </div>
+
+      <input type="hidden" id="router-api-key" value="">
+      <input type="hidden" id="router-model" value="main">
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-secondary" onclick="goNext('1b')">← Quay lại</button>
+        <button class="btn btn-primary" onclick="goNext(3)">Tiếp tục →</button>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 3: Telegram ==================== -->
+    <div class="wizard-step" id="step-3">
+      <h1>📱 Kết nối Telegram</h1>
+      <p>Telegram là nơi bạn nhận thông báo và điều khiển trợ lý.</p>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="step-row">
+          <span class="step-number">1</span>
+          <div>
+            <p>Mở app <strong>Telegram</strong> trên điện thoại hoặc máy tính</p>
+            <p>→ Tìm kiếm <span class="highlight">@BotFather</span></p>
+            <p>→ Gửi tin nhắn: <span class="highlight">/newbot</span></p>
+            <p>→ Đặt tên cho bot (ví dụ: "Trợ Lý MODORO")</p>
+            <p>→ BotFather sẽ gửi cho bạn một <strong>dòng chữ và số rất dài</strong> (dạng 123456:ABC...) — copy toàn bộ dòng đó</p>
+          </div>
+        </div>
+      </div>
+
+      <label>Dán Bot Token vào đây</label>
+      <input type="text" id="tg-token" placeholder="Dán token từ BotFather (dạng 123456:ABC...)">
+
+      <div class="card" style="margin:12px 0">
+        <div class="step-row">
+          <span class="step-number">2</span>
+          <div>
+            <p>Vẫn trong Telegram:</p>
+            <p>→ Tìm kiếm <span class="highlight">@userinfobot</span></p>
+            <p>→ Gửi tin nhắn: <span class="highlight">/start</span></p>
+            <p>→ Bot trả về một <strong>dãy số</strong> (chỉ gồm số, ví dụ: 1196242919) — copy dãy số đó</p>
+          </div>
+        </div>
+      </div>
+
+      <label>Dán User ID vào đây</label>
+      <input type="text" id="tg-user-id" placeholder="Dán dãy số (ví dụ: 1196242919)">
+
+      <div class="card" style="margin:12px 0;border-color:var(--warning);background:rgba(234,179,8,0.05)">
+        <div class="step-row">
+          <span class="big-icon">☝️</span>
+          <div>
+            <p><strong>Quan trọng:</strong> Trước khi test, hãy:</p>
+            <p>→ Mở Telegram → tìm <strong>bot bạn vừa tạo</strong></p>
+            <p>→ Gửi tin nhắn <span class="highlight">/start</span> cho bot đó</p>
+            <p>→ Rồi quay lại đây nhấn "Test"</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" id="test-tg-btn" onclick="testTelegram()" style="margin-bottom:12px">Test kết nối Telegram</button>
+      <div class="test-result" id="tg-test-result"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goNext(2)">← Quay lại</button>
+        <button class="btn btn-primary" onclick="goNext(4)">Tiếp tục →</button>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 4: Zalo ==================== -->
+    <div class="wizard-step" id="step-4">
+      <h1>💬 Kết nối Zalo</h1>
+      <p>Trợ lý sẽ đọc và trả lời tin nhắn Zalo của khách hàng giúp bạn.</p>
+
+      <div class="card" style="margin-bottom:12px" id="zalo-connect-card">
+        <div class="step-row" id="zalo-step-guide">
+          <span class="step-number">1</span>
+          <div>
+            <p>Nhấn nút bên dưới → mã QR sẽ hiện ra</p>
+            <p>→ Mở app <strong>Zalo trên điện thoại</strong> → vào <strong>Quét QR</strong></p>
+            <p>→ Quét mã và xác nhận đăng nhập</p>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-small" onclick="setupZalo()" id="zalo-btn" style="width:100%;margin-top:8px">Đăng nhập Zalo</button>
+        <div id="zalo-qr-container" style="display:none;margin-top:12px;text-align:center">
+          <p style="font-size:13px;color:var(--success);margin-bottom:8px">Quét mã QR bên dưới bằng Zalo trên điện thoại:</p>
+          <img id="zalo-qr-img" style="max-width:280px;border-radius:8px;background:white;padding:8px" alt="QR Code">
+          <p id="zalo-qr-hint" style="font-size:11px;color:var(--text-muted);margin-top:8px">Đang chờ bạn quét...</p>
+          <button class="btn btn-secondary btn-small" onclick="refreshZaloQR()" id="refresh-qr-btn" style="margin-top:8px">Làm mới mã QR</button>
+        </div>
+        <div id="zalo-login-success" style="display:none;margin-top:12px;text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">&#10004;</div>
+          <div style="font-size:16px;font-weight:700;color:var(--success);margin-bottom:4px">Zalo đã kết nối thành công!</div>
+          <div style="font-size:13px;color:var(--text-muted)">Trợ lý sẽ nhận tin nhắn từ tài khoản Zalo này</div>
+        </div>
+        <div id="zalo-status" style="display:none;margin-top:8px">
+          <div class="test-result success" style="margin:0">Đang tạo mã QR...</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="step-row">
+          <span class="step-number">2</span>
+          <p>Chọn chế độ Zalo:</p>
+        </div>
+        <div style="margin-top:8px">
+          <label class="radio-option" onclick="selectZaloMode('auto')">
+            <input type="radio" name="zalo-mode" value="auto" checked>
+            <div><strong>Tự động trả lời</strong><p>Trợ lý tự reply khách hàng. Vấn đề phức tạp gửi về Telegram cho bạn.</p></div>
+          </label>
+          <label class="radio-option" onclick="selectZaloMode('read')">
+            <input type="radio" name="zalo-mode" value="read">
+            <div><strong>Chỉ đọc</strong><p>Trợ lý đọc tin nhắn, báo qua Telegram. Không tự trả lời.</p></div>
+          </label>
+          <label class="radio-option" onclick="selectZaloMode('daily')">
+            <input type="radio" name="zalo-mode" value="daily">
+            <div><strong>Tóm tắt cuối ngày</strong><p>Đọc tất cả, gửi tổng hợp 1 lần mỗi ngày qua Telegram. Giờ cụ thể chỉnh trong Dashboard → Lịch tự động.</p></div>
+          </label>
+        </div>
+      </div>
+
+      <input type="hidden" id="fb-page-id" value="">
+      <input type="hidden" id="fb-token" value="">
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goNext(3)">← Quay lại</button>
+        <button class="btn btn-primary" id="finish-btn" onclick="finishSetup()">Hoàn tất ✓</button>
+      </div>
+      <div id="setup-loading" style="display:none;text-align:center;margin-top:20px">
+        <div class="spinner"></div>
+        <p style="font-size:13px;margin-top:12px;color:var(--text-muted)" id="setup-status">Đang thiết lập...</p>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 5: Done ==================== -->
+    <div class="wizard-step" id="step-5">
+      <div style="text-align:center;margin:32px 0 16px;font-size:48px">🎉</div>
+      <h1 style="text-align:center">Xong rồi!</h1>
+      <p style="text-align:center">Trợ lý AI của bạn đã sẵn sàng hoạt động.</p>
+
+      <div class="card" id="summary"></div>
+
+      <div class="card" style="border-color:var(--success);background:rgba(34,197,94,0.05)">
+        <div class="step-row">
+          <span class="big-icon">📱</span>
+          <div>
+            <p><strong>Bước tiếp theo:</strong> Mở Telegram và gửi tin nhắn cho bot của bạn.</p>
+            <p>Trợ lý sẽ trả lời ngay!</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="dashboard-btn" onclick="launchDashboard()">Khởi động trợ lý →</button>
+    </div>
+
+  </div>
+
+  <script>
+    let currentStep = 1;
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    // Timeout wrapper — prevents any IPC call from hanging forever
+    function withTimeout(promise, ms = 10000) {
+      return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]).catch(() => ({ success: false }));
+    }
+
+    // Inline error instead of alert popup
+    function showError(msg) {
+      // Remove previous error
+      const old = document.querySelector('.inline-error');
+      if (old) old.remove();
+      // Create new
+      const el = document.createElement('div');
+      el.className = 'inline-error';
+      el.style.cssText = 'background:rgba(239,68,68,0.1);border:1px solid var(--danger);border-radius:8px;padding:12px;margin:12px 0;color:var(--danger);font-size:13px;animation:fadeIn 0.3s ease';
+      el.textContent = msg;
+      // Insert before the btn-row of current step
+      const step = document.getElementById(`step-${currentStep}`);
+      const btnRow = step.querySelector('.btn-row') || step.querySelector('.btn-primary');
+      if (btnRow) btnRow.parentNode.insertBefore(el, btnRow);
+      else step.appendChild(el);
+      // Auto-remove after 15s
+      setTimeout(() => el.remove(), 15000);
+    }
+
+    let selectedTone = 'friendly';
+    let selectedPronouns = 'em-anh-chi';
+
+    const STEP_ORDER = [1, '1b', 2, 3, 4, 5];
+    function stepIdx(s) { return STEP_ORDER.indexOf(s); }
+
+    function updateDots(step) {
+      const idx = stepIdx(step);
+      document.querySelectorAll('#progress .dot').forEach((d, i) => {
+        d.className = 'dot';
+        if (i < idx) d.classList.add('done');
+        else if (i === idx) d.classList.add('active');
+      });
+    }
+
+    function goNext(step) {
+      const ci = stepIdx(currentStep);
+      const ni = stepIdx(step);
+      if (currentStep == 1 && step === '1b' && !document.getElementById('ceo-name').value.trim()) { showError('Vui lòng nhập tên của bạn.'); return; }
+      if (currentStep === '1b' && ni > ci && !document.getElementById('industry').value) { showError('Vui lòng chọn lĩnh vực kinh doanh.'); return; }
+      if (currentStep == 2 && ni > ci && !document.getElementById('router-api-key').value.trim()) { showError('Chưa thiết lập AI. Nhấn nút "Thiết lập AI" ở trên trước.'); return; }
+      if (currentStep == 3 && ni > ci) {
+        const t = document.getElementById('tg-token').value.trim();
+        const u = document.getElementById('tg-user-id').value.trim();
+        if (!t) { showError('Chưa có Bot Token. Làm theo hướng dẫn bước 1 ở trên.'); return; }
+        if (!u) { showError('Chưa có User ID. Làm theo hướng dẫn bước 2 ở trên.'); return; }
+      }
+      document.getElementById(`step-${currentStep}`).classList.remove('active');
+      document.getElementById(`step-${step}`).classList.add('active');
+      currentStep = step;
+      updateDots(step);
+      window.scrollTo(0, 0);
+    }
+
+    function openOllama() { window.claw.openExternal('https://ollama.com'); }
+    function openOllamaKeys() { window.claw.openExternal('https://ollama.com/settings/keys'); }
+
+    async function autoSetup9Router() {
+      const ollamaKey = document.getElementById('ollama-api-key').value.trim();
+      if (!ollamaKey) { showError('Vui lòng dán Ollama API Key trước.'); return; }
+
+      const btn = document.getElementById('auto-9router-btn');
+      const result = document.getElementById('router-auto-result');
+      btn.disabled = true; btn.classList.add('loading');
+      result.style.display = 'none';
+
+      const res = await window.claw.setup9RouterAuto({ ollamaKey });
+      btn.disabled = false; btn.classList.remove('loading');
+      result.style.display = 'block';
+
+      if (res.success) {
+        document.getElementById('router-api-key').value = res.apiKey;
+        result.innerHTML = `<div class="test-result success" style="margin:0">Thiết lập thành công! Ollama đã được kết nối.</div>`;
+      } else {
+        result.innerHTML = `<div class="test-result fail" style="margin:0">Lỗi: ${esc(res.error || 'Không xác định')}</div>`;
+      }
+    }
+
+    function open9Router() {
+      window.claw.start9Router();
+      document.getElementById('router-status').style.display = 'block';
+    }
+
+    async function setupGoogle() {
+      const btn = document.getElementById('google-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      document.getElementById('google-status').style.display = 'block';
+      await window.claw.setupGoogle();
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+
+    let zaloMode = 'auto';
+    function selectZaloMode(mode) {
+      zaloMode = mode;
+    }
+
+    async function refreshZaloQR() {
+      const btn = document.getElementById('refresh-qr-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      // Delete old QR, re-run openzca auth login, poll for new QR
+      await window.claw.setupZalo();
+      btn.disabled = false; btn.classList.remove('loading');
+      // Poll for new QR
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        const qrPath = await window.claw.findZaloQR();
+        if (qrPath) {
+          clearInterval(poll);
+          document.getElementById('zalo-qr-img').src = qrPath;
+        }
+        if (attempts > 30) clearInterval(poll);
+      }, 1000);
+    }
+
+    async function setupZalo() {
+      const btn = document.getElementById('zalo-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      document.getElementById('zalo-status').style.display = 'block';
+      const result = await window.claw.setupZalo();
+      btn.disabled = false; btn.classList.remove('loading');
+
+      // Poll for QR image then poll for login success
+      if (result.success) {
+        let qrFound = false;
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+
+          // Phase 1: Find QR image
+          if (!qrFound) {
+            const qrPath = await window.claw.findZaloQR();
+            if (qrPath) {
+              qrFound = true;
+              document.getElementById('zalo-qr-img').src = qrPath;
+              document.getElementById('zalo-qr-container').style.display = 'block';
+              document.getElementById('zalo-status').style.display = 'none';
+            }
+          }
+
+          // Phase 2: Check if login succeeded (after QR shown)
+          if (qrFound) {
+            const status = await window.claw.checkZaloLogin();
+            if (status.loggedIn) {
+              clearInterval(poll);
+              document.getElementById('zalo-qr-container').style.display = 'none';
+              document.getElementById('zalo-step-guide').style.display = 'none';
+              document.getElementById('zalo-btn').style.display = 'none';
+              document.getElementById('zalo-login-success').style.display = 'block';
+            }
+          }
+
+          if (attempts > 120) clearInterval(poll); // stop after 2 min
+        }, 1000);
+      }
+    }
+
+    async function testTelegram() {
+      const token = document.getElementById('tg-token').value.trim();
+      const chatId = document.getElementById('tg-user-id').value.trim();
+      const result = document.getElementById('tg-test-result');
+      if (!token || !chatId) { result.className = 'test-result fail'; result.textContent = 'Vui lòng nhập Bot Token và User ID trước.'; return; }
+      if (!/^\d{5,15}$/.test(chatId)) { result.className = 'test-result fail'; result.textContent = 'User ID chỉ gồm các chữ số (ví dụ: 1196242919). Kiểm tra lại.'; return; }
+      const btn = document.getElementById('test-tg-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      result.className = 'test-result'; result.style.display = 'block'; result.style.background = 'var(--surface)'; result.style.color = 'var(--text-muted)'; result.textContent = 'Đang kiểm tra...';
+      try {
+        const res = await window.claw.testTelegram(token, chatId);
+        btn.disabled = false; btn.classList.remove('loading');
+      if (res.success) {
+        result.className = 'test-result success';
+        result.textContent = 'Thành công! Kiểm tra Telegram — bot vừa gửi tin nhắn cho bạn.';
+      } else {
+        result.className = 'test-result fail';
+        result.textContent = 'Không kết nối được. Kiểm tra lại:\n• Bot Token có đúng không?\n• User ID có đúng không?\n• Bạn đã gửi /start cho bot chưa?';
+      }
+      } catch (err) {
+        result.className = 'test-result fail';
+        result.textContent = 'Lỗi kết nối. Thử lại.';
+        btn.disabled = false; btn.classList.remove('loading');
+      }
+    }
+
+    async function finishSetup() {
+      const name = document.getElementById('ceo-name').value.trim();
+      const company = document.getElementById('company').value.trim();
+      const tgToken = document.getElementById('tg-token').value.trim();
+      const tgUserId = document.getElementById('tg-user-id').value.trim();
+      const routerKey = document.getElementById('router-api-key').value.trim();
+      const routerModel = document.getElementById('router-model').value.trim() || 'auto';
+      const fbPageId = document.getElementById('fb-page-id').value.trim();
+      const fbToken = document.getElementById('fb-token').value.trim();
+
+      if (!name || !tgToken || !tgUserId) { showError('Thiếu thông tin. Quay lại kiểm tra các bước trước.'); return; }
+      if (!/^\d{5,15}$/.test(tgUserId)) { showError('User ID Telegram không hợp lệ — chỉ gồm chữ số.'); return; }
+      if (!routerKey) { showError('Thiếu API Key AI. Quay lại bước 2 để lấy.'); return; }
+
+      const finishBtn = document.getElementById('finish-btn');
+      const loading = document.getElementById('setup-loading');
+      const status = document.getElementById('setup-status');
+      finishBtn.disabled = true;
+      finishBtn.classList.add('loading');
+      loading.style.display = 'block';
+
+      try {
+        status.textContent = 'Đang lưu thông tin...';
+        await withTimeout(window.claw.saveWizardConfig([
+          { key: 'gateway.mode', value: 'local' },
+          { key: 'channels.telegram.botToken', value: tgToken },
+          { key: 'channels.telegram.allowFrom', value: [parseInt(tgUserId, 10)] },
+          { key: 'channels.telegram.dmPolicy', value: 'allowlist' },
+        ]));
+
+        status.textContent = 'Đang kết nối AI...';
+        await withTimeout(window.claw.setBatchConfig([{
+          path: 'models.providers.ninerouter',
+          value: {
+            baseUrl: 'http://127.0.0.1:20128/v1',
+            apiKey: routerKey,
+            api: 'openai-completions',
+            models: [
+              { id: 'main', name: 'Main Combo (tự động fallback)' },
+            ]
+          }
+        }]));
+
+        await withTimeout(window.claw.saveWizardConfig([
+          { key: 'agents.defaults.model', value: `ninerouter/${routerModel}` },
+        ]));
+
+        status.textContent = 'Đang cá nhân hóa trợ lý...';
+        const industry = document.getElementById('industry').value || 'tong-quat';
+        const ceoTitle = document.getElementById('ceo-title').value.trim() || name;
+        await withTimeout(window.claw.savePersonalization({ industry, tone: selectedTone, pronouns: selectedPronouns, ceoTitle }));
+
+        // Lịch tự động dùng defaults (07:30 sáng, 21:00 tối) — CEO chỉnh sau trong Dashboard
+        await withTimeout(window.claw.saveZaloMode(zaloMode));
+      } catch (err) {
+        console.error('finishSetup error:', err);
+      }
+
+      // Always proceed to done screen
+      finishBtn.disabled = false; finishBtn.classList.remove('loading'); loading.style.display = 'none';
+      document.getElementById('summary').innerHTML = `
+        <p style="color:var(--text);margin-bottom:8px"><strong>👤</strong> ${esc(name)}${company ? ' (' + esc(company) + ')' : ''}</p>
+        <p style="color:var(--text);margin-bottom:8px"><strong>📱</strong> Telegram — đã kết nối</p>
+        <p style="color:var(--text);margin-bottom:8px"><strong>💬</strong> Zalo — ${zaloMode === 'auto' ? 'tự động trả lời' : zaloMode === 'read' ? 'chỉ đọc' : 'tóm tắt cuối ngày'}</p>
+        <p style="color:var(--text);margin-bottom:0"><strong>⏰</strong> Lịch tự động — chỉnh trong Dashboard sau khi khởi động</p>
+      `;
+      goNext(5);
+    }
+
+    async function launchDashboard() {
+      const btn = document.getElementById('dashboard-btn');
+      btn.disabled = true; btn.classList.add('loading');
+      await window.claw.wizardComplete();
+    }
+  </script>
+</body>
+</html>
