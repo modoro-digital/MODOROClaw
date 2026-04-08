@@ -3017,6 +3017,56 @@ async function _startOpenClawImpl() {
   openclawProcess.stderr.pipe(logStream).on('error', () => {});
   openclawProcess.stderr.on('data', (d) => { lastError = d.toString().trim().slice(-300); });
 
+  // REAL READINESS NOTIFICATIONS
+  // CEO rule: "nếu thông báo là nhấn phải có reply thật sự" — don't send
+  // fake boot pings. Observe specific gateway log markers that indicate
+  // a channel is ACTUALLY able to receive + process messages:
+  //   - Telegram ready: `[telegram] [default] starting provider (@<bot>)`
+  //     (emitted after getMe success + polling active + channel registered)
+  //   - Zalo ready: `[openzalo] [default] openzca connected`
+  //     (emitted when openzca listener websocket is live + reading inbound)
+  //
+  // On first occurrence per boot, fire a single Telegram notification so
+  // CEO knows EXACTLY when it's safe to test. The Telegram notification
+  // itself proves Telegram send-path; Zalo notification is sent via
+  // Telegram (we don't have CEO's Zalo ID) but content confirms listener
+  // connected. If CEO doesn't receive the notification → channel broken.
+  if (!global._readyNotifyState) global._readyNotifyState = {};
+  const notifyState = global._readyNotifyState;
+  notifyState.telegramReady = false;
+  notifyState.zaloReady = false;
+  notifyState.bootSessionId = Date.now();
+  const readinessBuf = { tg: '', zl: '' };
+  const scanForReadiness = (chunk) => {
+    try {
+      const text = chunk.toString('utf8');
+      // Telegram marker
+      if (!notifyState.telegramReady && /\[telegram\]\s*\[\w+\]\s*starting provider/i.test(text)) {
+        notifyState.telegramReady = true;
+        console.log('[ready-notify] Telegram channel confirmed ready via gateway marker');
+        sendTelegram(
+          '*Telegram đã sẵn sàng*\n\n' +
+          'Bot đã kết nối + đăng ký channel. Nhắn bất kỳ tin nào ngay bây giờ, sẽ có reply thật.\n\n' +
+          '_(Thông báo này tự bot gửi — nếu anh nhận được = Telegram đã work 100%)_'
+        ).then(ok => console.log('[ready-notify] Telegram notify sent:', ok))
+         .catch(() => {});
+      }
+      // Zalo marker — openzca listener connected = inbound pipeline live
+      if (!notifyState.zaloReady && /\[openzalo\]\s*\[\w+\]\s*openzca connected/i.test(text)) {
+        notifyState.zaloReady = true;
+        console.log('[ready-notify] Zalo channel confirmed ready via gateway marker');
+        sendTelegram(
+          '*Zalo đã sẵn sàng*\n\n' +
+          'Openzca listener đã connect Zalo web, đang đọc tin nhắn. Nhắn bot trên Zalo ngay bây giờ, sẽ có reply thật.\n\n' +
+          '_(Thông báo gửi qua Telegram vì hệ thống không có Zalo ID của anh)_'
+        ).then(ok => console.log('[ready-notify] Zalo notify sent:', ok))
+         .catch(() => {});
+      }
+    } catch (e) { /* never break on observer */ }
+  };
+  openclawProcess.stdout.on('data', scanForReadiness);
+  openclawProcess.stderr.on('data', scanForReadiness);
+
   openclawProcess.on('exit', (code) => {
     botRunning = false;
     openclawProcess = null;
@@ -4294,49 +4344,77 @@ ipcMain.handle('cron-diagnostic', async () => {
   }
 });
 
-// Manually trigger a cron handler (for "Test ngay" button in Dashboard)
+// Build prompts used by BOTH the real scheduled cron AND the Dashboard "Test"
+// button. Keeping them in one place guarantees test fires are byte-identical to
+// what customers receive from scheduled runs — no test markers, no template
+// drift. If you change cron behavior, change it here and both paths follow.
+function buildMorningBriefingPrompt(timeStr) {
+  try { writeDailyMemoryJournal({ date: new Date(Date.now() - 86400000) }); } catch {}
+  const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+  const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+  const historyBlock = history
+    ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
+    : `\n\n_(Chưa có tin nhắn nào trong 24h qua — nếu CEO mới setup hoặc chưa ai nhắn thì điều này bình thường.)_\n\n`;
+  return (
+    `Bây giờ là ${timeStr || '07:30'} sáng. Hãy gửi BÁO CÁO SÁNG cho CEO qua Telegram.` +
+    historyBlock +
+    `Dựa trên lịch sử tin nhắn ở trên + AGENTS.md + memory/ + knowledge công ty, tổng hợp:\n` +
+    `1. Tóm tắt việc hôm qua (kết quả, deal đã chốt, vấn đề tồn đọng)\n` +
+    `2. Lịch họp / việc cần làm hôm nay (ưu tiên cao trước)\n` +
+    `3. Tin nhắn Zalo + Telegram cần xử lý (chỉ liệt kê tin có nội dung công việc, không liệt kê "hi" trống)\n` +
+    `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
+    `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **BÁO CÁO SÁNG** in đậm + bullet points. ` +
+    `KHÔNG dùng emoji (premium UI rule — bot phải sang trọng, chuyên nghiệp). ` +
+    `KHÔNG hỏi lại CEO. KHÔNG yêu cầu CEO gõ lệnh. ` +
+    `KHÔNG nói "em không có dữ liệu" — nếu lịch sử trên rỗng thì nói thẳng "Hôm qua không có tin nhắn nào đáng chú ý" và chuyển sang phần lịch hôm nay.`
+  );
+}
+
+function buildEveningSummaryPrompt(timeStr) {
+  try { writeDailyMemoryJournal({ date: new Date() }); } catch {}
+  const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+  const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+  const historyBlock = history
+    ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
+    : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
+  return (
+    `Bây giờ là ${timeStr || '21:00'}, hết ngày làm việc. Hãy gửi TÓM TẮT CUỐI NGÀY cho CEO qua Telegram.` +
+    historyBlock +
+    `Dựa trên lịch sử tin nhắn ở trên + memory/ + knowledge, tổng hợp:\n` +
+    `1. Kết quả hôm nay so với mục tiêu (việc đã xong, deal đã chốt, doanh thu nếu có)\n` +
+    `2. Vấn đề tồn đọng cần xử lý\n` +
+    `3. Kế hoạch / ưu tiên cho ngày mai\n` +
+    `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
+    `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **TÓM TẮT CUỐI NGÀY** in đậm + bullet points. ` +
+    `KHÔNG dùng emoji (premium UI rule). ` +
+    `KHÔNG hỏi lại CEO. KHÔNG nói "em không có dữ liệu" — nếu rỗng thì nói "Hôm nay không có hoạt động đáng chú ý" và liệt kê plan ngày mai.`
+  );
+}
+
+// Manually trigger a cron handler (for "Test ngay" button in Dashboard).
+// CRITICAL: test fires MUST be byte-identical to scheduled cron fires so the
+// customer's test preview matches what they'll receive in production. No
+// "[TEST]" preambles, no "(tin test thủ công)" footers — reuse the exact same
+// prompt builders.
 ipcMain.handle('test-cron', async (_event, { type, id }) => {
   try {
     if (type === 'fixed') {
       const schedules = loadSchedules();
       const s = schedules.find(x => x.id === id);
       if (!s) return { success: false, error: 'Schedule not found' };
-      // Match real cron behavior: morning/evening run through agent so CEO sees
-      // a REAL report when testing — not a "type báo cáo to trigger" template.
-      if (id === 'morning' || id === 'evening') {
-        // Inject conversation history same as real cron — bot must see actual
-        // messages, not be asked to "find data" it has no way to access.
-        try { writeDailyMemoryJournal({ date: new Date(Date.now() - (id === 'morning' ? 86400000 : 0)) }); } catch {}
-        const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
-        const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
-        const historyBlock = history
-          ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
-          : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
-
-        const isMorning = id === 'morning';
-        const title = isMorning ? '**BÁO CÁO SÁNG**' : '**TÓM TẮT CUỐI NGÀY**';
-        const timeContext = isMorning
-          ? `Bây giờ là ${s.time || '07:30'} sáng.`
-          : `Bây giờ là ${s.time || '21:00'}, hết ngày làm việc.`;
-        const sections = isMorning
-          ? `1. Tóm tắt việc hôm qua (kết quả, deal đã chốt, vấn đề tồn đọng)\n2. Lịch họp / việc cần làm hôm nay (ưu tiên cao trước)\n3. Tin nhắn Zalo + Telegram cần xử lý (chỉ liệt kê tin có nội dung công việc, không liệt kê "hi" trống)\n4. Cảnh báo / nhắc nhở quan trọng`
-          : `1. Kết quả hôm nay so với mục tiêu (việc đã xong, deal đã chốt, doanh thu)\n2. Vấn đề tồn đọng cần xử lý\n3. Kế hoạch / ưu tiên cho ngày mai\n4. Cảnh báo / nhắc nhở quan trọng`;
-
-        const prompt =
-          `[TEST CRON — fire thủ công từ Dashboard] ${timeContext} Hãy gửi ${title.replace(/\*/g,'')} cho CEO qua Telegram.` +
-          historyBlock +
-          `Dựa trên lịch sử tin nhắn ở trên + memory/ + knowledge, tổng hợp:\n${sections}\n\n` +
-          `Trả lời tiếng Việt, ngắn gọn, dùng tiêu đề ${title} in đậm + bullet points. ` +
-          `KHÔNG dùng emoji (premium UI rule). ` +
-          `KHÔNG nói "em không có dữ liệu" — nếu lịch sử rỗng thì nói "Hôm qua/Hôm nay không có hoạt động đáng chú ý" và sang phần tiếp. ` +
-          `Thêm dòng "_(tin test thủ công)_" ở cuối. KHÔNG hỏi lại CEO. KHÔNG yêu cầu CEO gõ lệnh.`;
-        const ok = await runCronAgentPrompt(prompt, { label: `TEST — ${id === 'morning' ? 'morning-briefing' : 'evening-summary'}` });
+      if (id === 'morning') {
+        const prompt = buildMorningBriefingPrompt(s.time);
+        const ok = await runCronAgentPrompt(prompt, { label: 'morning-briefing' });
+        return { success: ok, sent: ok };
+      } else if (id === 'evening') {
+        const prompt = buildEveningSummaryPrompt(s.time);
+        const ok = await runCronAgentPrompt(prompt, { label: 'evening-summary' });
         return { success: ok, sent: ok };
       } else if (id === 'heartbeat') {
-        const sent = await sendTelegram(`*TEST — Heartbeat*\n\nĐây là tin test. Hệ thống đang hoạt động bình thường.`);
+        const sent = await sendTelegram(`*Heartbeat*\n\nHệ thống đang hoạt động bình thường.`);
         return { success: sent === true, sent };
       } else if (id === 'meditation') {
-        const sent = await sendTelegram(`*TEST — Tối ưu ban đêm*\n\nĐây là tin test. Cron thật sẽ ghi queue lúc ${s.time}.`);
+        const sent = await sendTelegram(`*Tối ưu ban đêm*\n\nCron thật sẽ ghi queue lúc ${s.time}.`);
         return { success: sent === true, sent };
       }
       return { success: false, error: 'Unknown schedule id' };
@@ -5210,33 +5288,7 @@ function startCronJobs() {
           }
           global._cronInFlight?.set('morning', true);
           try {
-            // Write daily memory journal so it exists on disk too (for future
-            // session-aware reads + manual debugging).
-            try { writeDailyMemoryJournal({ date: new Date(Date.now() - 86400000) }); } catch {}
-
-            // Extract last 24h of Zalo + Telegram messages and INJECT directly
-            // into the prompt. This is the architectural fix — bot was previously
-            // hallucinating "no Zalo data" because each cron fire spawns a fresh
-            // session that doesn't see other channels' session jsonls. Now bot
-            // sees real conversation context inline.
-            const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
-            const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
-            const historyBlock = history
-              ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
-              : `\n\n_(Chưa có tin nhắn nào trong 24h qua — nếu CEO mới setup hoặc chưa ai nhắn thì điều này bình thường.)_\n\n`;
-
-            const prompt =
-              `Bây giờ là ${s.time || '07:30'} sáng. Hãy gửi BÁO CÁO SÁNG cho CEO qua Telegram.` +
-              historyBlock +
-              `Dựa trên lịch sử tin nhắn ở trên + AGENTS.md + memory/ + knowledge công ty, tổng hợp:\n` +
-              `1. Tóm tắt việc hôm qua (kết quả, deal đã chốt, vấn đề tồn đọng)\n` +
-              `2. Lịch họp / việc cần làm hôm nay (ưu tiên cao trước)\n` +
-              `3. Tin nhắn Zalo + Telegram cần xử lý (chỉ liệt kê tin có nội dung công việc, không liệt kê "hi" trống)\n` +
-              `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
-              `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **BÁO CÁO SÁNG** in đậm + bullet points. ` +
-              `KHÔNG dùng emoji (premium UI rule — bot phải sang trọng, chuyên nghiệp). ` +
-              `KHÔNG hỏi lại CEO. KHÔNG yêu cầu CEO gõ lệnh. ` +
-              `KHÔNG nói "em không có dữ liệu" — nếu lịch sử trên rỗng thì nói thẳng "Hôm qua không có tin nhắn nào đáng chú ý" và chuyển sang phần lịch hôm nay.`;
+            const prompt = buildMorningBriefingPrompt(s.time);
             await runCronAgentPrompt(prompt, { label: 'morning-briefing' });
           } catch (e) {
             console.error('[cron] Morning handler threw:', e?.message || e);
@@ -5257,24 +5309,7 @@ function startCronJobs() {
           }
           global._cronInFlight?.set('evening', true);
           try {
-            try { writeDailyMemoryJournal({ date: new Date() }); } catch {}
-            const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
-            const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
-            const historyBlock = history
-              ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
-              : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
-
-            const prompt =
-              `Bây giờ là ${s.time || '21:00'}, hết ngày làm việc. Hãy gửi TÓM TẮT CUỐI NGÀY cho CEO qua Telegram.` +
-              historyBlock +
-              `Dựa trên lịch sử tin nhắn ở trên + memory/ + knowledge, tổng hợp:\n` +
-              `1. Kết quả hôm nay so với mục tiêu (việc đã xong, deal đã chốt, doanh thu nếu có)\n` +
-              `2. Vấn đề tồn đọng cần xử lý\n` +
-              `3. Kế hoạch / ưu tiên cho ngày mai\n` +
-              `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
-              `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **TÓM TẮT CUỐI NGÀY** in đậm + bullet points. ` +
-              `KHÔNG dùng emoji (premium UI rule). ` +
-              `KHÔNG hỏi lại CEO. KHÔNG nói "em không có dữ liệu" — nếu rỗng thì nói "Hôm nay không có hoạt động đáng chú ý" và liệt kê plan ngày mai.`;
+            const prompt = buildEveningSummaryPrompt(s.time);
             await runCronAgentPrompt(prompt, { label: 'evening-summary' });
           } catch (e) {
             console.error('[cron] Evening handler threw:', e?.message || e);
