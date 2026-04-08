@@ -285,12 +285,19 @@ npm_install_global() {
 }
 
 # ----------------------------------------------------------------------
-# STEP 3 — Install openclaw globally if missing
+# STEP 3 — Install pinned versions of openclaw + 9router + openzca
 # ----------------------------------------------------------------------
+# CRITICAL: Pin EXACT versions to protect against upstream schema breakage.
+# Single source of truth is electron/scripts/prebuild-vendor.js. Keep these
+# in sync. To upgrade: edit both, smoke-test, then ship a new build.
+MODORO_OPENCLAW_VERSION="2026.4.5"
+MODORO_9ROUTER_VERSION="0.3.82"
+MODORO_OPENZCA_VERSION="0.1.57"
+
 if ! command -v openclaw >/dev/null 2>&1; then
   echo ""
-  echo "  Cài openclaw (npm install -g openclaw)..."
-  if ! npm_install_global openclaw; then
+  echo "  Cài openclaw@${MODORO_OPENCLAW_VERSION} (pinned version)..."
+  if ! npm_install_global "openclaw@${MODORO_OPENCLAW_VERSION}"; then
     echo ""
     echo "  ✗ Cài openclaw thất bại sau 3 lần thử. Có thể là một trong các nguyên nhân sau:"
     echo ""
@@ -320,13 +327,56 @@ echo "  ✓ openclaw: $(openclaw --version 2>/dev/null | head -1) ($(command -v 
 # ----------------------------------------------------------------------
 if ! command -v 9router >/dev/null 2>&1; then
   echo ""
-  echo "  Cài 9router (npm install -g 9router)..."
-  if ! npm_install_global 9router; then
+  echo "  Cài 9router@${MODORO_9ROUTER_VERSION} (pinned version)..."
+  if ! npm_install_global "9router@${MODORO_9ROUTER_VERSION}"; then
     echo "  ⚠  Cài 9router thất bại — không nghiêm trọng. Tab 9Router trong app sẽ trống nhưng cron + bot vẫn chạy bình thường."
   fi
 fi
 if command -v 9router >/dev/null 2>&1; then
   echo "  ✓ 9router: $(command -v 9router)"
+fi
+
+# ----------------------------------------------------------------------
+# STEP 4B — Install openzca globally if missing (REQUIRED for Zalo listener)
+# ----------------------------------------------------------------------
+# Critical: Without openzca, openzalo plugin cannot spawn the Zalo websocket
+# listener → "Chưa sẵn sàng" forever. The gateway does NOT auto-install
+# openzca like it does openclaw, so we MUST do it here on first run.
+if ! command -v openzca >/dev/null 2>&1; then
+  # Also check via lib path in case PATH not updated yet
+  OPENZCA_FOUND=""
+  for prefix in /opt/homebrew /usr/local /opt/local "$HOME/.npm-global" "$HOME/.local"; do
+    if [ -f "$prefix/lib/node_modules/openzca/dist/cli.js" ]; then
+      OPENZCA_FOUND="$prefix"
+      break
+    fi
+  done
+  if [ -z "$OPENZCA_FOUND" ]; then
+    echo ""
+    echo "  Cài openzca@${MODORO_OPENZCA_VERSION} (pinned version) — cần cho Zalo listener..."
+    if ! npm_install_global "openzca@${MODORO_OPENZCA_VERSION}"; then
+      echo ""
+      echo "  ✗ Cài openzca thất bại sau 3 lần thử. Zalo sẽ KHÔNG hoạt động."
+      echo ""
+      echo "  Recovery options:"
+      echo "  1. Thử thủ công:"
+      echo "       npm install -g openzca"
+      echo "       (nếu fail với EACCES → 'sudo chown -R \$(whoami) ~/.npm' rồi thử lại)"
+      echo ""
+      echo "  2. Đổi npm prefix sang home directory:"
+      echo "       mkdir -p ~/.npm-global"
+      echo "       npm config set prefix '~/.npm-global'"
+      echo "       npm install -g openzca"
+      echo ""
+      echo "  3. Tạm bỏ qua Zalo, dùng Telegram trước (cron + Telegram bot vẫn chạy)."
+      echo ""
+      echo "  App sẽ vẫn khởi động — chỉ Zalo bị thiếu."
+      sleep 3  # Give user time to read
+    fi
+  fi
+fi
+if command -v openzca >/dev/null 2>&1; then
+  echo "  ✓ openzca: $(command -v openzca)"
 fi
 
 # ----------------------------------------------------------------------
@@ -411,12 +461,41 @@ fi
 
 # Safety net: better-sqlite3 ABI must match Electron's bundled Node
 if [ -d "node_modules/better-sqlite3" ] && [ ! -f "node_modules/better-sqlite3/build/Release/better_sqlite3.node" ]; then
-  echo "  🔧 Sửa better-sqlite3 ABI..."
+  echo "  Sửa better-sqlite3 ABI..."
   if [ -f "scripts/fix-better-sqlite3.js" ]; then
     node scripts/fix-better-sqlite3.js || true
   fi
 fi
 echo "  ✓ Electron deps: OK"
+
+# ----------------------------------------------------------------------
+# STEP 5B — Pre-build vendor/ for packaged .app (DEV ONLY — skipped if running unpacked)
+# ----------------------------------------------------------------------
+# When running RUN.command directly (dev mode), the .app isn't packaged yet
+# so vendor/ isn't strictly needed. But we run prebuild-vendor anyway so the
+# next `npm run build:mac` has up-to-date vendor/ + we can verify Node binary
+# integrity NOW instead of finding out at build time. If prebuild fails or
+# doesn't produce the expected node binary, warn loudly so dev sees it before
+# shipping a broken .dmg.
+if [ -f "scripts/prebuild-vendor.js" ]; then
+  echo ""
+  echo "  Chuẩn bị vendor/ (Node + openclaw + 9router + openzca cho .app)..."
+  TARGET_PLATFORM=darwin node scripts/prebuild-vendor.js || {
+    echo "  ⚠  prebuild-vendor.js exit non-zero — vendor/ có thể không đầy đủ. .dmg build sau sẽ fail."
+  }
+  if [ ! -f "vendor/node/bin/node" ]; then
+    echo "  ⚠  CẢNH BÁO: vendor/node/bin/node KHÔNG tồn tại sau prebuild!"
+    echo "      Packaged .app sẽ không có Node bundled. .dmg build sẽ fail hoặc app sẽ crash."
+    echo "      Kiểm tra log prebuild-vendor ở trên."
+  else
+    echo "  ✓ vendor/node/bin/node: OK ($(./vendor/node/bin/node --version 2>/dev/null || echo 'unknown version'))"
+  fi
+  for pkg in openclaw 9router openzca; do
+    if [ ! -d "vendor/node_modules/$pkg" ]; then
+      echo "  ⚠  CẢNH BÁO: vendor/node_modules/$pkg thiếu — packaged .app sẽ không có $pkg!"
+    fi
+  done
+fi
 
 # ----------------------------------------------------------------------
 # STEP 6 — Clean stale logs from previous run

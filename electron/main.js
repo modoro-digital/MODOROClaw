@@ -29,11 +29,49 @@ let lastCrash = 0;
 const resourceDir = path.join(__dirname, '..');
 let userDataDir = path.join(__dirname, '..');  // Updated in whenReady for packaged
 
-// Writable workspace — in dev this is the source dir, in packaged it's userData
+// Writable workspace — in dev this is the source dir, in packaged it's userData.
 // Bot and Electron both use this path for all file I/O (AGENTS.md, schedules.json, etc.)
+//
+// CRITICAL ARCHITECTURAL FIX (2026-04-08):
+// Previously this checked if resourceDir was writable and if YES used resourceDir.
+// On Windows packaged installs, resourceDir = ~/AppData/Local/Programs/modoro-claw/resources
+// which IS user-writable. So workspace = install dir → NSIS installer WIPES this dir
+// on every reinstall → CEO loses all data (memory, knowledge, wizard config) every
+// time they update the app. Bug surfaced when bot replied "no Zalo data" after a
+// reinstall — workspace was empty because seedWorkspace ran but bot needed REAL
+// historical data, and the install had wiped user-state.
+//
+// FIX: in packaged mode, ALWAYS use userDataDir (~/AppData/Roaming/MODOROClaw/) which
+// NSIS uninstaller never touches. resourceDir is only for reading template files.
 let _workspaceCached = null;
+let _appPackaged = null; // cached at first call after app.isPackaged is available
 function getWorkspace() {
   if (_workspaceCached) return _workspaceCached;
+  // Detect packaged at runtime (app may not be ready yet during early calls)
+  let packaged = false;
+  try { packaged = (_appPackaged === null) ? !!(app && app.isPackaged) : _appPackaged; } catch {}
+  if (packaged) {
+    // Packaged: use userData (NSIS-safe). userDataDir is set in app.whenReady()
+    // to app.getPath('userData'). Until that runs, fall back to a sensible default.
+    _appPackaged = true;
+    if (userDataDir && userDataDir !== resourceDir) {
+      _workspaceCached = userDataDir;
+    } else {
+      // app.whenReady hasn't fired yet — compute manually so early seedWorkspace
+      // calls (e.g. from bootDiagRunFullCheck) get the right path
+      const HOMETMP = process.env.USERPROFILE || process.env.HOME || '';
+      if (process.platform === 'win32') {
+        _workspaceCached = path.join(process.env.APPDATA || path.join(HOMETMP, 'AppData', 'Roaming'), 'MODOROClaw');
+      } else if (process.platform === 'darwin') {
+        _workspaceCached = path.join(HOMETMP, 'Library', 'Application Support', 'MODOROClaw');
+      } else {
+        _workspaceCached = path.join(process.env.XDG_CONFIG_HOME || path.join(HOMETMP, '.config'), 'MODOROClaw');
+      }
+    }
+    try { fs.mkdirSync(_workspaceCached, { recursive: true }); } catch {}
+    return _workspaceCached;
+  }
+  // Dev mode: use source dir if writable
   try {
     fs.accessSync(resourceDir, fs.constants.W_OK);
     _workspaceCached = resourceDir;
@@ -42,14 +80,15 @@ function getWorkspace() {
   }
   return _workspaceCached;
 }
-function invalidateWorkspaceCache() { _workspaceCached = null; }
+function invalidateWorkspaceCache() { _workspaceCached = null; _appPackaged = null; }
 
 // Default schedules (also used as template when seeding fresh install)
 const DEFAULT_SCHEDULES_JSON = [
-  { id: 'morning', label: 'Báo cáo sáng', time: '07:30', enabled: true, icon: '☀️', description: 'Doanh thu, lịch họp, việc cần xử lý' },
-  { id: 'evening', label: 'Tóm tắt cuối ngày', time: '21:00', enabled: true, icon: '🌙', description: 'Kết quả ngày, vấn đề tồn đọng' },
-  { id: 'heartbeat', label: 'Kiểm tra tự động', time: 'Mỗi 30 phút', enabled: true, icon: '💓', description: 'Gateway, kênh liên lạc' },
-  { id: 'meditation', label: 'Tối ưu ban đêm', time: '01:00', enabled: true, icon: '🧠', description: 'Bot tự review bài học, tối ưu bộ nhớ' },
+  // `icon` legacy field kept empty — Dashboard uses lucide icons via SCHEDULE_ICON_MAP, not emoji.
+  { id: 'morning', label: 'Báo cáo sáng', time: '07:30', enabled: true, icon: '', description: 'Doanh thu, lịch họp, việc cần xử lý' },
+  { id: 'evening', label: 'Tóm tắt cuối ngày', time: '21:00', enabled: true, icon: '', description: 'Kết quả ngày, vấn đề tồn đọng' },
+  { id: 'heartbeat', label: 'Kiểm tra tự động', time: 'Mỗi 30 phút', enabled: true, icon: '', description: 'Gateway, kênh liên lạc' },
+  { id: 'meditation', label: 'Tối ưu ban đêm', time: '01:00', enabled: true, icon: '', description: 'Bot tự review bài học, tối ưu bộ nhớ' },
 ];
 
 // Seed templates from read-only bundle → writable workspace (packaged install)
@@ -120,13 +159,23 @@ function getBundledOpenClawCliJs() {
 function augmentPathWithBundledNode() {
   const v = getBundledVendorDir();
   if (!v) return;
-  const binDir = path.join(v, 'node', 'bin');
-  if (!fs.existsSync(binDir)) return;
+  // Prepend TWO dirs: (1) vendor/node/bin for the real Node binary itself,
+  // (2) vendor/node_modules/.bin for the shims of bundled npm packages
+  // (openclaw, openzca, 9router). Without the second dir, the openzalo
+  // plugin running inside the gateway calls `spawn('openzca', ...)` and gets
+  // ENOENT because the bundled openzca shim is not on PATH.
+  const pathsToAdd = [
+    path.join(v, 'node', 'bin'),
+    path.join(v, 'node_modules', '.bin'),
+  ].filter(p => fs.existsSync(p));
+  if (pathsToAdd.length === 0) return;
   const sep = process.platform === 'win32' ? ';' : ':';
   const cur = process.env.PATH || '';
-  if (cur.split(sep).some(p => p === binDir)) return; // already prepended
-  process.env.PATH = binDir + sep + cur;
-  console.log('[vendor] PATH prepended with bundled Node:', binDir);
+  const curSet = new Set(cur.split(sep));
+  const newEntries = pathsToAdd.filter(p => !curSet.has(p));
+  if (newEntries.length === 0) return;
+  process.env.PATH = newEntries.join(sep) + sep + cur;
+  for (const p of newEntries) console.log('[vendor] PATH prepended:', p);
 }
 
 function seedWorkspace() {
@@ -960,24 +1009,60 @@ function isFatalErr(stderr, exitCode) {
       || (exitCode === 127); // command not found
 }
 
-// Parse openclaw stderr for "Unrecognized key" errors and return all (path, key)
-// pairs we can heal. openclaw's error format (from validator output):
-//   - agents.defaults: Unrecognized key: "blockStreaming"
-//   - channels.telegram.foo: Unrecognized key: "bar"
-// Returns an array of { path: string[], key: string } objects.
+// Parse openclaw stderr for schema violations we can auto-heal.
+// openclaw's validator emits two different error formats depending on the
+// underlying schema library version:
+//
+//   1. Zod v3 "Unrecognized key" format:
+//        "agents.defaults: Unrecognized key: \"blockStreaming\""
+//        "channels.telegram.foo: Unrecognized key: \"bar\""
+//
+//   2. AJV / JSON-Schema-draft-07 "additional properties" format:
+//        "channels.openzalo: invalid config: must NOT have additional properties"
+//        "- channels.openzalo/streaming: must match ..."
+//
+//   3. Plain list format (sometimes wraps around):
+//        "channels.openzalo: must NOT have additional properties"
+//        followed by: "Additional property: streaming"
+//
+// For format #1 we can extract both the path AND the specific key.
+// For format #2 we only know the parent path — we need to diff against the
+// known schema whitelist to figure out which key is the offender. But that
+// whitelist is in the plugin source, not shipped to us. Fallback: return the
+// parent path only, and the caller does a targeted cleanup using known
+// "bad keys we ourselves might have added" — which catches the case where
+// WE introduced the invalid field in the first place.
+//
+// Returns an array of { path: string[], key: string | null } objects.
+// A null `key` means "parent path detected but specific field unknown — use
+// whitelist diff at caller site".
 function parseUnrecognizedKeyErrors(stderr) {
   const out = [];
   if (!stderr) return out;
-  // Match: "<dotted.path>: Unrecognized key: \"<key>\""
-  const re = /([\w.]+):\s*Unrecognized key:\s*"([^"]+)"/g;
+  // Format #1: Unrecognized key with explicit name
+  const unrecognized = /([\w.]+):\s*Unrecognized key:\s*"([^"]+)"/g;
   let m;
-  while ((m = re.exec(stderr)) !== null) {
-    const dottedPath = m[1];
-    const key = m[2];
-    out.push({ path: dottedPath.split('.'), key });
+  while ((m = unrecognized.exec(stderr)) !== null) {
+    out.push({ path: m[1].split('.'), key: m[2] });
+  }
+  // Format #2: "must NOT have additional properties" at a dotted path
+  const additionalProps = /([\w.]+):\s*(?:invalid config:\s*)?must NOT have additional properties/g;
+  while ((m = additionalProps.exec(stderr)) !== null) {
+    out.push({ path: m[1].split('.'), key: null });
+  }
+  // Format #3: "Additional property: xxx" as a separate line
+  const addlProp = /Additional propert(?:y|ies):\s*"?([^"\s,]+)"?/g;
+  while ((m = addlProp.exec(stderr)) !== null) {
+    // Without a path, we can't know which parent. Push as unscoped marker.
+    out.push({ path: null, key: m[1] });
   }
   return out;
 }
+
+// Whitelist of fields we might mistakenly have added to openzalo config that
+// are NOT in its schema. When we see "additional properties" error at the
+// openzalo path, we strip these known-offenders. Expand this list as we learn.
+const KNOWN_BAD_OPENZALO_KEYS = ['streaming', 'streamMode', 'nativeStreaming', 'blockStreamingDefault'];
 
 // Defense-in-depth: synchronously remove deprecated keys from openclaw.json so
 // `openclaw <subcommand>` stops exiting with "Config invalid". Cheap, idempotent.
@@ -1010,27 +1095,78 @@ function healOpenClawConfigInline(errStderr) {
       removed.push('agents.defaults.blockStreaming');
       changed = true;
     }
+    // Static: strip any KNOWN_BAD_OPENZALO_KEYS from openzalo root + all accounts.
+    // These are fields that LOOK like they should work (streaming, streamMode)
+    // but openzalo schema doesn't define them, so the validator hard-rejects.
+    const stripBadOpenzaloKeys = (block, pathPrefix) => {
+      if (!block || typeof block !== 'object') return;
+      for (const k of KNOWN_BAD_OPENZALO_KEYS) {
+        if (k in block) {
+          delete block[k];
+          removed.push(`${pathPrefix}.${k}`);
+          changed = true;
+        }
+      }
+    };
+    if (config?.channels?.openzalo) {
+      stripBadOpenzaloKeys(config.channels.openzalo, 'channels.openzalo');
+      if (config.channels.openzalo.accounts) {
+        for (const accId of Object.keys(config.channels.openzalo.accounts || {})) {
+          stripBadOpenzaloKeys(
+            config.channels.openzalo.accounts[accId],
+            `channels.openzalo.accounts.${accId}`
+          );
+        }
+      }
+    }
 
     // --- Dynamic removals from openclaw's own error message ---
     if (errStderr) {
       const parsed = parseUnrecognizedKeyErrors(errStderr);
       for (const { path: keyPath, key } of parsed) {
-        // Walk to the parent object
-        let parent = config;
-        let valid = true;
-        for (const segment of keyPath) {
-          if (parent && typeof parent === 'object' && segment in parent) {
-            parent = parent[segment];
-          } else {
-            valid = false;
-            break;
+        if (keyPath && key) {
+          // Format #1: explicit (path, key) — delete exactly that field
+          let parent = config;
+          let valid = true;
+          for (const segment of keyPath) {
+            if (parent && typeof parent === 'object' && segment in parent) {
+              parent = parent[segment];
+            } else { valid = false; break; }
           }
-        }
-        if (valid && parent && typeof parent === 'object' && key in parent) {
-          delete parent[key];
-          removed.push(`${keyPath.join('.')}.${key}`);
-          changed = true;
-          console.log(`[heal-inline] removed deprecated key from openclaw.json: ${keyPath.join('.')}.${key}`);
+          if (valid && parent && typeof parent === 'object' && key in parent) {
+            delete parent[key];
+            removed.push(`${keyPath.join('.')}.${key}`);
+            changed = true;
+          }
+        } else if (keyPath && !key) {
+          // Format #2: "additional properties" at parent path — we don't know
+          // WHICH field is the offender. Strategy: if path is channels.openzalo
+          // (or its accounts), strip all KNOWN_BAD_OPENZALO_KEYS. This catches
+          // the case where we ourselves added a bad field.
+          if (keyPath[0] === 'channels' && keyPath[1] === 'openzalo') {
+            let parent = config;
+            for (const segment of keyPath) {
+              if (parent && typeof parent === 'object' && segment in parent) parent = parent[segment];
+              else { parent = null; break; }
+            }
+            if (parent && typeof parent === 'object') {
+              stripBadOpenzaloKeys(parent, keyPath.join('.'));
+            }
+          }
+        } else if (!keyPath && key) {
+          // Format #3: "Additional property: xxx" without parent — scan all
+          // known channel blocks for this key and strip.
+          const channels = config?.channels;
+          if (channels) {
+            for (const chName of Object.keys(channels)) {
+              const ch = channels[chName];
+              if (ch && typeof ch === 'object' && key in ch) {
+                delete ch[key];
+                removed.push(`channels.${chName}.${key}`);
+                changed = true;
+              }
+            }
+          }
         }
       }
     }
@@ -1048,6 +1184,126 @@ function healOpenClawConfigInline(errStderr) {
   } catch (e) {
     console.error('[heal-inline] error:', e.message);
     return false;
+  }
+}
+
+// =====================================================================
+// Conversation history extractor for cron prompts
+// =====================================================================
+// THE ARCHITECTURAL PROBLEM:
+// Bot answering "tóm tắt Zalo hôm qua" had no way to read past conversations
+// because each cron fire spawns a NEW agent session — that session has no
+// memory of past Zalo/Telegram messages which live in OTHER session jsonl
+// files at ~/.openclaw/agents/main/sessions/<uuid>.jsonl. Bot would
+// hallucinate "no Zalo data" while messages existed on disk.
+//
+// THE FIX:
+// Extract messages directly from session jsonls and INJECT them into the
+// cron prompt as a structured context block. Bot doesn't need to discover
+// or guess where data lives — it sees actual messages right in the prompt.
+function extractConversationHistory({ sinceMs, maxMessages = 40, channels = ['openzalo', 'telegram'] } = {}) {
+  try {
+    const sessionsDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
+    if (!fs.existsSync(sessionsDir)) return '';
+    const jsonlFiles = fs.readdirSync(sessionsDir)
+      .filter(f => f.endsWith('.jsonl'))
+      .map(f => path.join(sessionsDir, f));
+    if (jsonlFiles.length === 0) return '';
+
+    const collected = [];
+    for (const file of jsonlFiles) {
+      let content;
+      try { content = fs.readFileSync(file, 'utf-8'); } catch { continue; }
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      let sessionChannel = null;
+      let sessionSender = null;
+      for (const line of lines) {
+        let event;
+        try { event = JSON.parse(line); } catch { continue; }
+        if (event.type === 'session' && event.origin) {
+          sessionChannel = event.origin.provider || event.origin.surface || null;
+          sessionSender = event.origin.label || null;
+          continue;
+        }
+        if (event.type !== 'message') continue;
+        const msg = event.message;
+        if (!msg || typeof msg !== 'object') continue;
+        const tsMs = typeof msg.timestamp === 'number'
+          ? msg.timestamp
+          : (event.timestamp ? Date.parse(event.timestamp) : 0);
+        if (sinceMs && tsMs < sinceMs) continue;
+        if (channels && sessionChannel && !channels.includes(sessionChannel)) continue;
+        if (!Array.isArray(msg.content)) continue;
+        const textParts = [];
+        for (const part of msg.content) {
+          if (part?.type === 'text' && typeof part.text === 'string') {
+            textParts.push(part.text);
+          }
+        }
+        if (textParts.length === 0) continue;
+        let text = textParts.join('\n').trim();
+        if (!text) continue;
+        if (msg.role === 'user') {
+          text = text.replace(/Conversation info[^]*?```\s*\n/g, '');
+          text = text.replace(/Sender[^]*?```\s*\n/g, '');
+          text = text.replace(/\[Queued messages while agent was busy\]\s*\n*---\n*Queued #\d+\n*/g, '\n');
+          text = text.trim();
+          if (!text) continue;
+        }
+        collected.push({
+          ts: tsMs,
+          role: msg.role,
+          channel: sessionChannel || 'unknown',
+          sender: sessionSender || 'unknown',
+          text: text.slice(0, 500),
+        });
+      }
+    }
+    if (collected.length === 0) return '';
+    collected.sort((a, b) => a.ts - b.ts);
+    const recent = collected.slice(-maxMessages);
+    const formatted = [];
+    let lastDate = '';
+    for (const m of recent) {
+      const dt = new Date(m.ts);
+      const dateStr = dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      const timeStr = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (dateStr !== lastDate) {
+        formatted.push(`\n--- ${dateStr} ---`);
+        lastDate = dateStr;
+      }
+      const channelLabel = m.channel === 'openzalo' ? 'Zalo' : m.channel === 'telegram' ? 'Telegram' : m.channel;
+      const roleLabel = m.role === 'user'
+        ? (m.sender ? m.sender.split(' id:')[0] : 'Khách')
+        : 'Em (bot)';
+      formatted.push(`[${timeStr}][${channelLabel}] ${roleLabel}: ${m.text}`);
+    }
+    return formatted.join('\n');
+  } catch (e) {
+    console.error('[extractConversationHistory] error:', e?.message || e);
+    return '';
+  }
+}
+
+// Write a daily memory journal at memory/YYYY-MM-DD.md so future cron fires
+// (and bot agent reads of memory/) find structured per-day history. Idempotent.
+function writeDailyMemoryJournal({ date = new Date() } = {}) {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return null;
+    const memDir = path.join(ws, 'memory');
+    fs.mkdirSync(memDir, { recursive: true });
+    const dateStr = date.toISOString().slice(0, 10);
+    const file = path.join(memDir, `${dateStr}.md`);
+    const sinceMs = date.getTime() - 24 * 60 * 60 * 1000;
+    const history = extractConversationHistory({ sinceMs, maxMessages: 100 });
+    const header = `# Memory ${dateStr}\n\n*Auto-generated. Records all Zalo + Telegram messages in the last 24h before this cron fire.*\n\n`;
+    const body = history || '_(Không có tin nhắn nào trong 24h qua.)_';
+    fs.writeFileSync(file, header + body + '\n', 'utf-8');
+    return file;
+  } catch (e) {
+    console.error('[writeDailyMemoryJournal] error:', e?.message || e);
+    return null;
   }
 }
 
@@ -1121,13 +1377,13 @@ async function runCronAgentPrompt(prompt, { label, timeoutMs = 600000 } = {}) {
     if (isFatalErr(lastErr, res.code)) {
       let userMsg;
       if (lastErr.includes('cmd-shell fallback refused')) {
-        userMsg = `⚠️ *Cron "${niceLabel}" KHÔNG chạy được — môi trường thiếu Node*\n\nKhông tìm thấy \`node\` hoặc \`openclaw.mjs\` trên máy. Cron prompt nhiều dòng KHÔNG thể chạy qua \`openclaw.cmd\` (cmd.exe sẽ truncate).\n\nCần cài Node.js và đảm bảo \`node\` chạy được từ terminal: \`node -v\`. Sau đó restart Modoro Claw.`;
+        userMsg = `*Cron "${niceLabel}" KHÔNG chạy được — môi trường thiếu Node*\n\nKhông tìm thấy \`node\` hoặc \`openclaw.mjs\` trên máy. Cron prompt nhiều dòng KHÔNG thể chạy qua \`openclaw.cmd\` (cmd.exe sẽ truncate).\n\nCần cài Node.js và đảm bảo \`node\` chạy được từ terminal: \`node -v\`. Sau đó restart Modoro Claw.`;
       } else if (lastErr.toLowerCase().includes('openclaw not found')) {
-        userMsg = `⚠️ *Cron "${niceLabel}" KHÔNG chạy được — openclaw không có trên máy*\n\nCần \`npm install -g openclaw\` rồi restart Modoro Claw.`;
+        userMsg = `*Cron "${niceLabel}" KHÔNG chạy được — openclaw không có trên máy*\n\nCần \`npm install -g openclaw\` rồi restart Modoro Claw.`;
       } else if (lastErr.toLowerCase().includes('invalid token') || lastErr.toLowerCase().includes('not authorized')) {
-        userMsg = `⚠️ *Cron "${niceLabel}" KHÔNG chạy được — auth lỗi*\n\nGateway token hoặc Telegram bot token không hợp lệ. Vào Dashboard → Cài đặt → Wizard để cấu hình lại.\n\nstderr: \`${lastErr.slice(0, 200)}\``;
+        userMsg = `*Cron "${niceLabel}" KHÔNG chạy được — auth lỗi*\n\nGateway token hoặc Telegram bot token không hợp lệ. Vào Dashboard → Cài đặt → Wizard để cấu hình lại.\n\nstderr: \`${lastErr.slice(0, 200)}\``;
       } else {
-        userMsg = `⚠️ *Cron "${niceLabel}" KHÔNG chạy được — lỗi không retry được*\n\nExit ${res.code}\n\`\`\`\n${lastErr.slice(0, 400)}\n\`\`\``;
+        userMsg = `*Cron "${niceLabel}" KHÔNG chạy được — lỗi không retry được*\n\nExit ${res.code}\n\`\`\`\n${lastErr.slice(0, 400)}\n\`\`\``;
       }
       try { await sendTelegram(userMsg); } catch {}
       journalCronRun({ phase: 'fail', label: niceLabel, code: lastCode, reason: 'fatal-no-retry', err: lastErr.slice(0, 300) });
@@ -1152,7 +1408,7 @@ async function runCronAgentPrompt(prompt, { label, timeoutMs = 600000 } = {}) {
 
   journalCronRun({ phase: 'fail', label: niceLabel, code: lastCode, err: lastErr.slice(0, 400) });
   try {
-    await sendTelegram(`⚠️ *Cron "${niceLabel}" thất bại sau 3 lần*\n\nExit code: \`${lastCode}\`\n\`\`\`\n${lastErr.slice(0, 500)}\n\`\`\``);
+    await sendTelegram(`*Cron "${niceLabel}" thất bại sau 3 lần*\n\nExit code: \`${lastCode}\`\n\`\`\`\n${lastErr.slice(0, 500)}\n\`\`\``);
   } catch {}
   return false;
 }
@@ -1220,13 +1476,13 @@ function createWindow() {
   const openclawBin = findOpenClawBinSync();
 
   mainWindow = new BrowserWindow({
-    width: 480,
-    height: 720,
-    minWidth: 400,
-    minHeight: 600,
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 700,
     title: 'MODOROClaw',
     resizable: true,
-    backgroundColor: '#0D1117',
+    backgroundColor: '#0A0A0F',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -1269,12 +1525,16 @@ function createWindow() {
     mainWindow.maximize();
     // Ensure workspace files exist BEFORE cron jobs try to read them
     try { seedWorkspace(); } catch (e) { console.error('[seedWorkspace early] error:', e.message); }
-    // ORDER MATTERS: startOpenClaw() runs ensureDefaultConfig() which heals the
-    // openclaw.json schema (deletes deprecated keys, fixes provider URL, etc.).
-    // Cron jobs MUST be scheduled AFTER that completes, otherwise the very first
-    // cron handler can spawn `openclaw agent` against an unhealed config and fail
-    // with "Config invalid". This used to be fire-and-forget; now it's awaited.
+    // ORDER MATTERS — same 3-step chain as wizard-complete:
+    //   1. ensureZaloPlugin() — copy bundled plugin / heal missing plugin
+    //      BEFORE gateway boots. Without this, the gateway config-reload
+    //      watcher races with the bundled-copy and can miss the openzalo
+    //      channel registration on cold boot.
+    //   2. startOpenClaw() — ensureDefaultConfig + gateway spawn.
+    //   3. startCronJobs() — AFTER both above so first cron fire sees a
+    //      healed config with a running gateway.
     (async () => {
+      try { await ensureZaloPlugin(); } catch (e) { console.error('[boot] ensureZaloPlugin error:', e?.message || e); }
       try { await startOpenClaw(); } catch (e) { console.error('[boot] startOpenClaw error:', e?.message || e); }
       startCronJobs();
       watchCustomCrons();
@@ -1283,6 +1543,9 @@ function createWindow() {
   } else {
     console.log('[createWindow] → wizard.html');
     mainWindow.loadFile(path.join(__dirname, 'ui', 'wizard.html'));
+    // Wizard now uses full-screen 2-column layout — maximize so business owners
+    // see the premium onboarding without scrolling.
+    mainWindow.maximize();
   }
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
@@ -1362,8 +1625,48 @@ function createTray() {
 //   2. Reads the existing file as a Buffer.
 //   3. Only writes if the byte content actually differs.
 // Returns true if a write happened.
+// Strip schema-invalid keys from a config object in-place before serialization.
+// Single chokepoint: every writer of openclaw.json goes through
+// writeOpenClawConfigIfChanged → sanitizeOpenClawConfigInPlace, so legacy
+// wizard handlers, save-zalo-manager-config, ensureDefaultConfig, and any
+// future code path get the same cleanup for free.
+//
+// This is defense-in-depth on top of ensureDefaultConfig's own cleanup —
+// catches bad writes that originate from IPC handlers which don't re-run
+// ensureDefaultConfig.
+function sanitizeOpenClawConfigInPlace(config) {
+  if (!config || typeof config !== 'object') return;
+  // openclaw 2026.4.x removed agents.defaults.blockStreaming (replaced with
+  // blockStreamingDefault). Keep the file schema-clean.
+  if (config.agents?.defaults && 'blockStreaming' in config.agents.defaults) {
+    delete config.agents.defaults.blockStreaming;
+  }
+  // openzalo schema does NOT include 'streaming', 'streamMode',
+  // 'nativeStreaming', or 'blockStreamingDefault' — writing them causes
+  // `channels.openzalo: must NOT have additional properties` which kills
+  // every `openclaw <subcommand>` call and blocks gateway reloads.
+  const stripKeys = (block) => {
+    if (!block || typeof block !== 'object') return;
+    for (const k of KNOWN_BAD_OPENZALO_KEYS) {
+      if (k in block) delete block[k];
+    }
+  };
+  if (config.channels?.openzalo) {
+    stripKeys(config.channels.openzalo);
+    if (config.channels.openzalo.accounts && typeof config.channels.openzalo.accounts === 'object') {
+      for (const accId of Object.keys(config.channels.openzalo.accounts)) {
+        stripKeys(config.channels.openzalo.accounts[accId]);
+      }
+    }
+  }
+}
+
 function writeOpenClawConfigIfChanged(configPath, config) {
   try {
+    // Sanitize FIRST — strip any schema-invalid keys that may have crept in
+    // from legacy code paths, stale wizard state, or future schema bumps.
+    // Callers get the cleaned version written even if they forgot to sanitize.
+    sanitizeOpenClawConfigInPlace(config);
     const serialized = JSON.stringify(config, null, 2) + '\n';
     if (fs.existsSync(configPath)) {
       const existing = fs.readFileSync(configPath, 'utf-8');
@@ -1520,15 +1823,35 @@ function stop9Router() {
     if (process.platform === 'win32') {
       spawn('taskkill', ['/pid', pid.toString(), '/f', '/t']);
     } else {
-      // Kill the entire process group so 9router's child Next.js server dies too.
-      // detached:true at spawn time gave the child its own group with pgid=pid.
-      // -pid (negative) targets the group; falling back to kill main pid if that
-      // fails (single-process child).
-      try { process.kill(-pid, 'SIGTERM'); }
-      catch { try { routerProcess.kill('SIGTERM'); } catch {} }
-      // Last resort: pkill any leftover 9router server.js by command line
+      // Mac/Linux: belt-and-braces process tree cleanup. The child Next.js server
+      // is a grandchild — kill -pid (process group) is the cleanest approach but
+      // RELIES on detached:true at spawn time creating a proper group. If anything
+      // about that setup is fragile (which it has been on Mac in the past), the
+      // grandchild becomes orphan and squats on port 20128 → next 9router start
+      // fails with EADDRINUSE.
+      //
+      // Strategy: do BOTH process-group kill AND pkill IMMEDIATELY (not as
+      // delayed fallback). Use SIGTERM first to allow graceful shutdown, then
+      // SIGKILL after 1.5s for anything still alive. Final pkill on
+      // server.js as the safety net catches any orphan from previous runs too.
+      try { process.kill(-pid, 'SIGTERM'); } catch {}
+      try { routerProcess.kill('SIGTERM'); } catch {}
+      // Immediate pkill — primary, not fallback
+      try {
+        require('child_process').execSync(
+          'pkill -TERM -f "9router/(app/server.js|cli\\.js)" 2>/dev/null || true',
+          { stdio: 'ignore', timeout: 3000, shell: '/bin/sh' }
+        );
+      } catch {}
+      // SIGKILL escalation if still alive after grace period
       setTimeout(() => {
-        try { require('child_process').execSync('pkill -f "9router/app/server.js" 2>/dev/null || true', { stdio: 'ignore' }); } catch {}
+        try { process.kill(-pid, 'SIGKILL'); } catch {}
+        try {
+          require('child_process').execSync(
+            'pkill -KILL -f "9router/(app/server.js|cli\\.js)" 2>/dev/null || true',
+            { stdio: 'ignore', timeout: 3000, shell: '/bin/sh' }
+          );
+        } catch {}
       }, 1500);
     }
   } catch {}
@@ -1560,30 +1883,70 @@ async function ensureDefaultConfig() {
     if (config.channels?.telegram?.botToken && !config.channels.telegram.enabled) {
       config.channels.telegram.enabled = true; changed = true;
     }
-    // Ensure OpenZalo has all policy fields set (default: reply to all DMs + all groups)
-    if (config.channels?.openzalo) {
+    // Ensure OpenZalo has all policy fields set. CRITICAL: create block if missing
+    // entirely — previously we only healed when `config.channels?.openzalo` was truthy,
+    // but openclaw 2026.4.x gateway normalization can strip fields and leave `{}`, or
+    // even remove the openzalo key altogether. Always create + heal so the block is
+    // never undefined/empty after this function.
+    if (!config.channels) config.channels = {};
+    if (!config.channels.openzalo || typeof config.channels.openzalo !== 'object') {
+      config.channels.openzalo = {};
+      changed = true;
+    }
+    // ALSO: if the openzalo plugin files exist at ~/.openclaw/extensions/openzalo/
+    // (either because bundled vendor copy placed them there, or `openclaw plugins
+    // install` did), make sure `plugins.entries.openzalo.enabled = true` so the
+    // gateway actually loads it. Without this flag the plugin dir exists but
+    // gateway skips registration → openzalo channel never registered → Zalo dead.
+    try {
+      const openzaloPluginManifest = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'openclaw.plugin.json');
+      if (fs.existsSync(openzaloPluginManifest)) {
+        if (!config.plugins) config.plugins = {};
+        if (!config.plugins.entries) config.plugins.entries = {};
+        if (!config.plugins.entries.openzalo) {
+          config.plugins.entries.openzalo = { enabled: true };
+          changed = true;
+        } else if (config.plugins.entries.openzalo.enabled !== true) {
+          config.plugins.entries.openzalo.enabled = true;
+          changed = true;
+        }
+      }
+    } catch (e) { console.warn('[config] plugin entry heal failed:', e?.message); }
+    {
       const oz = config.channels.openzalo;
-      // CRITICAL: heal `enabled = true` HERE so we never need to call
-      // `openclaw config set channels.openzalo.enabled true` from a CLI subprocess
-      // (which uses rename-based atomic write, bypasses writeOpenClawConfigIfChanged,
-      // changes the file inode, wakes the gateway's config-reload watcher, and
-      // aborts in-flight reply runs with `aborted_for_restart` → CEO sees
-      // "⚠️ Gateway is restarting"). Healing here means writeOpenClawConfigIfChanged
-      // can byte-equal-skip the write entirely once steady state is reached.
       if (oz.enabled !== true) { oz.enabled = true; changed = true; }
       if (!oz.dmPolicy) { oz.dmPolicy = 'open'; changed = true; }
       if (!oz.allowFrom) { oz.allowFrom = ['*']; changed = true; }
       if (!oz.groupPolicy) { oz.groupPolicy = 'open'; changed = true; }
       if (!oz.groupAllowFrom) { oz.groupAllowFrom = ['*']; changed = true; }
-      // FIX: disable block streaming so bot replies arrive as 1 complete message.
-      // Without this, slow models trigger coalesce idle timeout (1s) and split messages
-      // mid-word (e.g. "Dạ" → "D" + "ạ" in two separate Zalo messages).
+      // Disable BLOCK streaming — prevents coalesce idleMs flush mid-word (the
+      // root cause of "Dạ" → "D" + "ạ" split). Note: openzalo schema does NOT
+      // have a `streaming` field (only Telegram/Slack/Discord do). Adding it
+      // breaks validation: `channels.openzalo: must NOT have additional
+      // properties`. Openzalo's one-message guarantee comes from the source
+      // patch in ensureOpenzaloForceOneMessageFix (hardcoded
+      // disableBlockStreaming:true in inbound.ts).
       if (oz.blockStreaming !== false) { oz.blockStreaming = false; changed = true; }
+      // DEFENSIVE CLEANUP: remove `streaming` if it crept in from a prior buggy
+      // version of this function (2026-04-08 regression). Schema rejects it.
+      if ('streaming' in oz) { delete oz.streaming; changed = true; }
+      // DO NOT set `zcaBinary` here: the openzalo plugin's
+      // resolveOpenzcaCliJs() on Windows only searches hardcoded npm global
+      // paths and ignores the config value during resolve, then falls back to
+      // `spawn(binary, ..., {shell: true})`. On Mac it always falls back to
+      // that shell-spawn path. Either way, the resolution works via PATH
+      // lookup of plain "openzca". For bundled .dmg installs, the PATH
+      // augmentation in augmentPathWithBundledNode() prepends
+      // vendor/node_modules/.bin so the bundled openzca shim is found.
     }
-    // Same fix for Telegram — both channels use the same streaming pipeline
-    if (config.channels?.telegram) {
+    // Telegram — disable both block streaming AND preview streaming so bot
+    // replies arrive as exactly 1 complete message, never split. Telegram
+    // schema DOES support `streaming` field ("off"|"partial"|"block"|"progress").
+    if (!config.channels.telegram) config.channels.telegram = {};
+    {
       const tg = config.channels.telegram;
       if (tg.blockStreaming !== false) { tg.blockStreaming = false; changed = true; }
+      if (tg.streaming !== 'off') { tg.streaming = 'off'; changed = true; }
     }
     // Global default: openclaw 2026.4.x removed `agents.defaults.blockStreaming`
     // (boolean) and replaced it with `agents.defaults.blockStreamingDefault`
@@ -1596,6 +1959,15 @@ async function ensureDefaultConfig() {
     if (!config.agents.defaults) config.agents.defaults = {};
     if ('blockStreaming' in config.agents.defaults) {
       delete config.agents.defaults.blockStreaming;
+      changed = true;
+    }
+    // Belt-and-braces: explicitly set blockStreamingDefault="off" so even if a
+    // future channel config block forgets `blockStreaming: false`, the global
+    // default kicks in and prevents the "D" + "ạ em chào..." word-split bug.
+    // (openclaw 2026.4.x default is already "off" but writing it explicit
+    // protects against any future schema flip + makes intent clear in config.)
+    if (config.agents.defaults.blockStreamingDefault !== 'off') {
+      config.agents.defaults.blockStreamingDefault = 'off';
       changed = true;
     }
     // Remove any unknown keys that OpenClaw rejects
@@ -1762,21 +2134,151 @@ function ensureZaloBlocklistFix() {
   }
 }
 
-// MODOROClaw PATCH: OpenZalo plugin has a Windows shell:true bug that silently drops
-// multi-line messages (group bot replies never arrive). We keep a patched copy of
-// openzca.ts in electron/patches/ and restore it after any plugin (re)install.
+// MODOROClaw FORCE-ONE-MESSAGE PATCH: openzalo plugin's `dispatchReplyWithBufferedBlockDispatcher`
+// call passes `disableBlockStreaming` ONLY when `account.config.blockStreaming` is an explicit
+// boolean. When openzalo config block is missing fields (which happens because openclaw 2026.4.x
+// gateway normalizes/strips openzalo-specific fields at startup so the block becomes `{}`),
+// disableBlockStreaming falls through to `undefined` → default ENABLED → block streaming with
+// coalesceIdleMs=1000ms → model emits "D" → model pauses >1s → idle flush sends "D" standalone →
+// then "ạ em chào..." arrives → sent as second message. CEO sees "Dạ" word split into 2 messages.
+// Fix: rewrite the conditional `disableBlockStreaming: ...` expression to hardcoded `true` so it
+// NEVER depends on config. Idempotent via "MODOROClaw FORCE-ONE-MESSAGE PATCH" marker.
+function ensureOpenzaloForceOneMessageFix() {
+  try {
+    const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
+    if (!fs.existsSync(pluginFile)) {
+      console.warn('[zalo-force-one-msg] plugin file not present yet');
+      return;
+    }
+    const content = fs.readFileSync(pluginFile, 'utf-8');
+    if (content.includes('MODOROClaw FORCE-ONE-MESSAGE PATCH')) {
+      console.log('[zalo-force-one-msg] already patched');
+      return;
+    }
+    // Match the exact source form we expect. Plugin minor versions may vary whitespace
+    // so we use a flexible regex.
+    const re = /disableBlockStreaming:\s*\n?\s*typeof account\.config\.blockStreaming === "boolean"\s*\n?\s*\? !account\.config\.blockStreaming\s*\n?\s*: undefined\s*,/;
+    if (!re.test(content)) {
+      console.error('[zalo-force-one-msg] CRITICAL: conditional expression not found — plugin source has changed, pattern needs update');
+      try {
+        const diagPath = path.join(getWorkspace() || resourceDir, 'logs', 'boot-diagnostic.txt');
+        fs.mkdirSync(path.dirname(diagPath), { recursive: true });
+        fs.appendFileSync(diagPath,
+          `\n[${new Date().toISOString()}] [zalo-force-one-msg] anchor regex failed — openzalo ` +
+          `plugin source changed; Dạ/D split may reappear. Check ${pluginFile}\n`, 'utf-8');
+      } catch {}
+      return;
+    }
+    const replacement =
+      '// MODOROClaw FORCE-ONE-MESSAGE PATCH: always disable block streaming regardless of\n' +
+      '      // config — openclaw 2026.4.x gateway strips openzalo config fields to {} at startup,\n' +
+      '      // so the old conditional fell back to undefined → default enabled → "Dạ" split.\n' +
+      '      // Hardcoding true ensures Zalo ALWAYS sends one complete message per turn.\n' +
+      '      disableBlockStreaming: true,';
+    const patched = content.replace(re, replacement);
+    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    // Verify write
+    const verify = fs.readFileSync(pluginFile, 'utf-8');
+    if (verify.includes('MODOROClaw FORCE-ONE-MESSAGE PATCH')) {
+      console.log('[zalo-force-one-msg] patch applied + verified');
+    } else {
+      console.error('[zalo-force-one-msg] write verification FAILED');
+    }
+  } catch (e) {
+    console.error('[zalo-force-one-msg] error:', e?.message || e);
+  }
+}
+
+// MODOROClaw PATCH: OpenZalo plugin's `runOpenzcaStreaming` uses spawn(binary, args, {shell:true})
+// where binary defaults to "openzca" (the npm shim). On Windows packaged installs, Electron's
+// inherited PATH frequently does NOT include ~/AppData/Roaming/npm/, so cmd.exe can't find the
+// shim → spawn exits non-zero → openzca listener never starts → CEO sees "Chưa sẵn sàng" forever.
+// The patched template at electron/patches/openzalo-openzca.ts replaces all 3 spawn call sites
+// with `spawn("node", [absolutePath/cli.js, ...args], {shell:false})` which bypasses cmd.exe and
+// resolves the openzca CLI directly.
+//
+// CRITICAL: this function MUST resolve the template file in BOTH dev mode AND packaged install.
+// Previously it used `path.join(resourceDir, 'electron', 'patches', ...)` which only worked in
+// dev (resourceDir = Desktop/claw/, file at Desktop/claw/electron/patches/). In packaged install,
+// resourceDir = resources/, but `electron/patches/` is bundled INSIDE app.asar, not extracted,
+// so `resources/electron/patches/` does NOT exist → early-return silently → patch never applied
+// → bug persists permanently. Fix: use __dirname/patches which resolves correctly in both modes
+// (dev: Desktop/claw/electron/patches, packaged: app.asar/patches — Electron's fs transparently
+// reads inside asar). Plus 2 fallback paths and a loud error if all fail.
 function ensureOpenzaloShellFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'openzca.ts');
-    const templateFile = path.join(resourceDir, 'electron', 'patches', 'openzalo-openzca.ts');
-    if (!fs.existsSync(pluginFile) || !fs.existsSync(templateFile)) return;
+    if (!fs.existsSync(pluginFile)) {
+      console.warn('[openzalo-fix] plugin file does not exist yet — openzalo not installed?');
+      return;
+    }
     const currentContent = fs.readFileSync(pluginFile, 'utf-8');
-    if (currentContent.includes('MODOROClaw PATCH')) return; // already patched
-    const templateContent = fs.readFileSync(templateFile, 'utf-8');
+    // Two-tier version check: (1) MODOROClaw PATCH marker = any version patched,
+    // (2) MODORO_OPENZCA_CLI_JS = v2+ patch which supports bundled-vendor via
+    // env var override. If only (1) is present → force re-apply from newer
+    // template so bundled .dmg installs can resolve openzca.
+    const hasV1 = currentContent.includes('MODOROClaw PATCH');
+    const hasV2 = currentContent.includes('MODORO_OPENZCA_CLI_JS');
+    if (hasV1 && hasV2) {
+      console.log('[openzalo-fix] already patched (v2 marker present)');
+      return;
+    }
+    if (hasV1 && !hasV2) {
+      console.log('[openzalo-fix] legacy v1 patch detected — upgrading to v2 (bundled-vendor support)');
+    }
+    // Try multiple template paths in priority order. First match wins.
+    const candidates = [
+      // Primary: __dirname/patches works in BOTH dev (electron/patches) AND
+      // packaged install (app.asar/patches — Electron fs reads from inside asar).
+      path.join(__dirname, 'patches', 'openzalo-openzca.ts'),
+      // Fallback 1: legacy dev path (when running tests from outside electron/)
+      path.join(resourceDir, 'electron', 'patches', 'openzalo-openzca.ts'),
+      // Fallback 2: extraResources path (if we ever move patches/ to extraResources)
+      path.join(process.resourcesPath || '', 'patches', 'openzalo-openzca.ts'),
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'patches', 'openzalo-openzca.ts'),
+    ];
+    let templateContent = null;
+    let foundAt = null;
+    for (const p of candidates) {
+      try {
+        if (fs.existsSync(p)) {
+          templateContent = fs.readFileSync(p, 'utf-8');
+          foundAt = p;
+          break;
+        }
+      } catch (e) {
+        console.warn('[openzalo-fix] candidate read failed:', p, e.message);
+      }
+    }
+    if (!templateContent) {
+      // LOUD failure — this is the bug that caused weeks of "Zalo unstable".
+      // Never silent fail again. Surface to console + boot diagnostic + Telegram.
+      const msg = '[openzalo-fix] CRITICAL: patched template NOT FOUND in any candidate path. ' +
+        'openzca listener will NOT start. Tried: ' + candidates.join(' | ');
+      console.error(msg);
+      try {
+        const diagPath = path.join(getWorkspace() || resourceDir, 'logs', 'boot-diagnostic.txt');
+        fs.mkdirSync(path.dirname(diagPath), { recursive: true });
+        fs.appendFileSync(diagPath, `\n[${new Date().toISOString()}] ${msg}\n`, 'utf-8');
+      } catch {}
+      return;
+    }
+    // Verify template itself is valid before writing
+    if (!templateContent.includes('MODOROClaw PATCH')) {
+      console.error('[openzalo-fix] CRITICAL: template at ' + foundAt + ' is missing MODOROClaw PATCH marker — refusing to apply (corrupt?)');
+      return;
+    }
     fs.writeFileSync(pluginFile, templateContent, 'utf-8');
-    console.log('[openzalo-fix] Restored patched openzca.ts from template');
+    console.log('[openzalo-fix] Patched openzca.ts from template at ' + foundAt + ' (' + templateContent.length + ' bytes)');
+    // Verify write succeeded
+    const verify = fs.readFileSync(pluginFile, 'utf-8');
+    if (!verify.includes('MODOROClaw PATCH')) {
+      console.error('[openzalo-fix] CRITICAL: write verification failed — file does not contain marker after write');
+    } else {
+      console.log('[openzalo-fix] write verified — openzca.ts now has patch');
+    }
   } catch (e) {
-    console.error('[openzalo-fix] error:', e.message);
+    console.error('[openzalo-fix] error:', e?.message || e);
   }
 }
 
@@ -1811,6 +2313,9 @@ async function _startOpenClawImpl() {
   ensureOpenzaloShellFix();
   // Re-apply blocklist injection (idempotent)
   ensureZaloBlocklistFix();
+  // Force-one-message: hardcode disableBlockStreaming=true in openzalo inbound.ts
+  // so "Dạ" word never gets split between messages regardless of config drift.
+  ensureOpenzaloForceOneMessageFix();
 
   // Rebuild memory DB — use absolute node path so it works even if Electron's
   // PATH doesn't include the user's Node install (nvm/volta/scoop/etc.).
@@ -1871,9 +2376,99 @@ async function _startOpenClawImpl() {
   } else {
     console.warn('[gateway] direct node spawn unavailable (nodeBin=' + !!gwNodeBin + ' cliJs=' + !!gwCliJs + '), falling back to bin shim:', bin);
   }
+  // CRITICAL: enrich PATH so child subprocesses spawned by gateway (especially
+  // openzca via openzalo plugin) can find npm-installed shims. Electron inherits
+  // PATH from explorer.exe / Start Menu launch, which on Windows often does NOT
+  // include ~/AppData/Roaming/npm/. Without this, openzalo's `spawn("openzca", ...)`
+  // via cmd.exe fails with "openzca is not recognized" → listener never starts →
+  // CEO sees "Chưa sẵn sàng" forever.
+  // Defense in depth: even when ensureOpenzaloShellFix() patches openzca.ts to use
+  // direct `node <cli.js>` path, this PATH enrichment is still useful for any other
+  // npm-installed bin the gateway or its plugins may need to spawn.
+  const enrichedEnv = { ...process.env };
+  try {
+    const npmBinDirs = [];
+    if (process.platform === 'win32') {
+      // Windows: ~/AppData/Roaming/npm and ~/AppData/Local/npm
+      npmBinDirs.push(path.join(HOME, 'AppData', 'Roaming', 'npm'));
+      npmBinDirs.push(path.join(HOME, 'AppData', 'Local', 'npm'));
+      npmBinDirs.push('C:\\Program Files\\nodejs');
+    } else {
+      // Unix: usual npm prefixes + nvm
+      npmBinDirs.push('/usr/local/bin', '/opt/homebrew/bin', '/opt/local/bin');
+      npmBinDirs.push(path.join(HOME, '.npm-global', 'bin'));
+      npmBinDirs.push(path.join(HOME, '.local', 'bin'));
+    }
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const currentPath = enrichedEnv.PATH || enrichedEnv.Path || '';
+    const existingDirs = new Set(currentPath.split(sep).map(d => d.trim()).filter(Boolean));
+    const toAdd = npmBinDirs.filter(d => !existingDirs.has(d) && fs.existsSync(d));
+    if (toAdd.length > 0) {
+      enrichedEnv.PATH = toAdd.join(sep) + sep + currentPath;
+      console.log('[gateway] enriched PATH with:', toAdd.join(' | '));
+    }
+    // Also expose absolute openzca cli.js path so openzalo plugin (patched version)
+    // can use it directly without having to search. Search ALL platform-specific
+    // locations: Windows AppData, Mac Homebrew (both Intel + Apple Silicon),
+    // /usr/local, ~/.npm-global, nvm/volta/asdf shims. First match wins.
+    const ozCliCandidates = [];
+    if (process.platform === 'win32') {
+      ozCliCandidates.push(
+        path.join(HOME, 'AppData', 'Roaming', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'),
+        path.join(HOME, 'AppData', 'Local', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'),
+        'C:\\Program Files\\nodejs\\node_modules\\openzca\\dist\\cli.js',
+      );
+    } else {
+      // Mac + Linux: enumerate all known npm prefixes
+      ozCliCandidates.push(
+        '/opt/homebrew/lib/node_modules/openzca/dist/cli.js',     // Apple Silicon Homebrew
+        '/usr/local/lib/node_modules/openzca/dist/cli.js',         // Intel Homebrew + system Node
+        '/opt/local/lib/node_modules/openzca/dist/cli.js',         // MacPorts
+        path.join(HOME, '.npm-global/lib/node_modules/openzca/dist/cli.js'),
+        path.join(HOME, '.local/lib/node_modules/openzca/dist/cli.js'),
+      );
+      // nvm: scan all installed Node versions
+      try {
+        const nvmDir = path.join(HOME, '.nvm', 'versions', 'node');
+        if (fs.existsSync(nvmDir)) {
+          for (const v of fs.readdirSync(nvmDir)) {
+            ozCliCandidates.push(path.join(nvmDir, v, 'lib/node_modules/openzca/dist/cli.js'));
+          }
+        }
+      } catch {}
+      // volta
+      ozCliCandidates.push(path.join(HOME, '.volta/tools/image/packages/openzca/lib/node_modules/openzca/dist/cli.js'));
+      // asdf
+      try {
+        const asdfDir = path.join(HOME, '.asdf', 'installs', 'nodejs');
+        if (fs.existsSync(asdfDir)) {
+          for (const v of fs.readdirSync(asdfDir)) {
+            ozCliCandidates.push(path.join(asdfDir, v, '.npm/lib/node_modules/openzca/dist/cli.js'));
+          }
+        }
+      } catch {}
+      // Packaged Mac .app vendor bundle
+      try {
+        const vendorCli = path.join(process.resourcesPath || '', 'vendor', 'node_modules', 'openzca', 'dist', 'cli.js');
+        ozCliCandidates.push(vendorCli);
+      } catch {}
+    }
+    let foundOzCli = null;
+    for (const p of ozCliCandidates) {
+      try { if (fs.existsSync(p)) { foundOzCli = p; break; } } catch {}
+    }
+    if (foundOzCli) {
+      enrichedEnv.MODORO_OPENZCA_CLI_JS = foundOzCli;
+      console.log('[gateway] openzca CLI:', foundOzCli);
+    } else {
+      console.warn('[gateway] openzca CLI not found in any known location — Zalo listener may fail. Searched:', ozCliCandidates.length, 'paths');
+    }
+  } catch (e) {
+    console.warn('[gateway] PATH enrichment failed:', e.message);
+  }
   openclawProcess = spawn(gwSpawnCmd, gwSpawnArgs, {
     cwd: getWorkspace(),
-    env: process.env,
+    env: enrichedEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: gwSpawnShell,
     windowsHide: true,
@@ -1917,7 +2512,7 @@ async function _startOpenClawImpl() {
     global._lastBootPingAt = Date.now();
     setTimeout(() => {
       sendTelegram(
-        '✅ *MODOROClaw đã sẵn sàng*\n\n' +
+        '*MODOROClaw đã sẵn sàng*\n\n' +
         'Gateway, 9Router, Telegram đều OK. Cron tự động đang chạy.\n\n' +
         'Thử nhắn *"báo cáo"* hoặc */menu* để bắt đầu.'
       ).then(ok => console.log('[boot] Telegram ping:', ok ? 'OK' : 'FAILED'));
@@ -2089,6 +2684,49 @@ let _zaloReady = false;
 async function ensureZaloPlugin() {
   if (_zaloReady) return;
   try {
+    // FRESH-INSTALL FAST PATH: copy bundled openzalo plugin from vendor into
+    // ~/.openclaw/extensions/openzalo. This skips network-dependent
+    // `openclaw plugins install` and `npm install -g openzca`, so it works
+    // on a fresh Mac with ZERO Node.js installed.
+    const extensionsDir = path.join(HOME, '.openclaw', 'extensions', 'openzalo');
+    const vendorDir = getBundledVendorDir();
+    if (vendorDir && !fs.existsSync(path.join(extensionsDir, 'openclaw.plugin.json'))) {
+      const bundledPlugin = path.join(vendorDir, 'node_modules', '@tuyenhx', 'openzalo');
+      if (fs.existsSync(path.join(bundledPlugin, 'openclaw.plugin.json'))) {
+        try {
+          fs.mkdirSync(extensionsDir, { recursive: true });
+          // Recursive copy — use fs.cpSync (Node 16.7+). Safe on Electron 28 (Node 18).
+          fs.cpSync(bundledPlugin, extensionsDir, { recursive: true, force: true, errorOnExist: false });
+          console.log('[ensureZaloPlugin] copied bundled openzalo plugin from vendor →', extensionsDir);
+          // Also ensure plugins.entries.openzalo.enabled=true in openclaw.json
+          // so the gateway knows to load it on next boot.
+          try {
+            const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+            if (fs.existsSync(configPath)) {
+              const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+              if (!cfg.plugins) cfg.plugins = {};
+              if (!cfg.plugins.entries) cfg.plugins.entries = {};
+              if (!cfg.plugins.entries.openzalo) cfg.plugins.entries.openzalo = { enabled: true };
+              else cfg.plugins.entries.openzalo.enabled = true;
+              writeOpenClawConfigIfChanged(configPath, cfg);
+            }
+          } catch (e) { console.warn('[ensureZaloPlugin] config update failed:', e?.message); }
+          // CRITICAL: the bundled plugin ships the upstream openzca.ts (no
+          // MODOROClaw patches). We MUST apply our two runtime patches
+          // immediately after copy so the very first gateway boot reads the
+          // patched files. Without these, Windows multi-line args get
+          // truncated by cmd.exe AND Mac builds can't resolve bundled openzca
+          // via MODORO_OPENZCA_CLI_JS env var.
+          try { ensureOpenzaloShellFix(); } catch (e) { console.warn('[ensureZaloPlugin] shell fix failed:', e?.message); }
+          try { ensureZaloBlocklistFix(); } catch (e) { console.warn('[ensureZaloPlugin] blocklist fix failed:', e?.message); }
+          _zaloReady = true;
+          return;
+        } catch (e) {
+          console.error('[ensureZaloPlugin] bundled copy failed — falling back to network install:', e?.message || e);
+        }
+      }
+    }
+    // NETWORK FALLBACK: dev mode OR bundled copy unavailable.
     const bin = await findOpenClawBin();
     const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
     try { await execFilePromise(npmBin, ['install', '-g', 'openzca'], { timeout: 60000, stdio: 'pipe', shell: process.platform === 'win32', windowsHide: true }); } catch {}
@@ -2420,6 +3058,15 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
         cfg.channels.openzalo.groupPolicy = 'open';
         cfg.channels.openzalo.groupAllowFrom = ['*'];
       }
+      // CRITICAL: openzalo plugin defaults dmPolicy to "pairing" → unknown DM
+      // sender → "OpenClaw: access not configured." pairing reply. We always
+      // want CEO + their contacts to DM the bot directly without pairing dance.
+      // Force dmPolicy="open" + allowFrom=["*"] every save so wizard/manager
+      // never leaves these unset (which would re-trigger pairing on next boot).
+      cfg.channels.openzalo.dmPolicy = 'open';
+      if (!Array.isArray(cfg.channels.openzalo.allowFrom)) {
+        cfg.channels.openzalo.allowFrom = ['*'];
+      }
       writeOpenClawConfigIfChanged(configPath, cfg);
     }
     // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
@@ -2441,7 +3088,16 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
     if (!VALID_TONES.includes(tone)) tone = 'friendly';
     const VALID_PRONOUNS = ['em-anh-chi', 'toi-quy-khach', 'minh-ban'];
     if (!VALID_PRONOUNS.includes(pronouns)) pronouns = 'em-anh-chi';
-    ceoTitle = (ceoTitle || '').replace(/[\n\r]/g, '').substring(0, 50);
+    ceoTitle = (ceoTitle || '').replace(/[\n\r]/g, '').substring(0, 50).trim();
+    // Empty ceoTitle is a wizard bug — IDENTITY.md would end up with literal
+    // "gọi chủ nhân là " with no name → bot falls back to template default
+    // (which used to be hardcoded "thầy Huy" — see IDENTITY.md template fix).
+    // Refuse to write a broken file: surface error so wizard can re-prompt.
+    if (!ceoTitle) {
+      console.error('[save-personalization] empty ceoTitle — refusing to write IDENTITY.md');
+      return { success: false, error: 'ceoTitle bắt buộc — vui lòng nhập "Trợ lý gọi bạn là" trong wizard' };
+    }
+    console.log('[save-personalization] industry=' + industry + ' tone=' + tone + ' pronouns=' + pronouns + ' ceoTitle="' + ceoTitle + '"');
 
     // Industry name map for display
     const INDUSTRY_NAMES = {
@@ -2482,6 +3138,13 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
 
     // 5. Update IDENTITY.md with tone, pronouns, industry
     const identityPath = path.join(ws, 'IDENTITY.md');
+    if (!fs.existsSync(identityPath)) {
+      // seedWorkspace should have created this. If missing, the bot would
+      // fall back to whatever stale copy is in the bundle (with hardcoded
+      // example name). Log loudly and try to seed it now from the template.
+      console.error('[save-personalization] IDENTITY.md missing at ' + identityPath + ' — re-seeding');
+      try { seedWorkspace(); } catch (e) { console.error('[save-personalization] re-seed failed:', e.message); }
+    }
     if (fs.existsSync(identityPath)) {
       let content = fs.readFileSync(identityPath, 'utf-8');
       const pronounMap = {
@@ -2494,14 +3157,201 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
         'friendly': 'Thân thiện, gần gũi, nhiệt tình. Phù hợp ngành dịch vụ, bán lẻ.',
         'concise': 'Ngắn gọn, hiệu quả, đi thẳng vào vấn đề. Không dài dòng.',
       };
-      content = content.replace(/- \*\*Cách xưng hô:\*\* .*/, `- **Cách xưng hô:** ${pronounMap[pronouns] || pronounMap['em-anh-chi']}`);
-      content = content.replace(/- \*\*Phong cách:\*\* .*/, `- **Phong cách:** ${toneMap[tone] || toneMap['friendly']}`);
-      content = content.replace(/- \*\*Ngành:\*\* .*/, `- **Ngành:** ${INDUSTRY_NAMES[industry] || industry}`);
+      const xunghoLine = `- **Cách xưng hô:** ${pronounMap[pronouns] || pronounMap['em-anh-chi']}`;
+      const phongcachLine = `- **Phong cách:** ${toneMap[tone] || toneMap['friendly']}`;
+      const nganhLine = `- **Ngành:** ${INDUSTRY_NAMES[industry] || industry}`;
+      const before = content;
+      content = content.replace(/- \*\*Cách xưng hô:\*\* .*/, xunghoLine);
+      content = content.replace(/- \*\*Phong cách:\*\* .*/, phongcachLine);
+      content = content.replace(/- \*\*Ngành:\*\* .*/, nganhLine);
+      if (content === before) {
+        // Replace did nothing — IDENTITY.md is missing the expected lines.
+        // Append them so bot still gets the right ceoTitle even on a malformed
+        // template.
+        console.warn('[save-personalization] IDENTITY.md missing expected lines — appending');
+        content = content.trimEnd() + '\n\n' + xunghoLine + '\n' + phongcachLine + '\n' + nganhLine + '\n';
+      }
+      fs.writeFileSync(identityPath, content, 'utf-8');
+      // Read back to confirm the write actually persisted (catches silent
+      // permission failures on packaged Windows installs where workspace
+      // happens to be the install dir).
+      const verify = fs.readFileSync(identityPath, 'utf-8');
+      if (!verify.includes(ceoTitle)) {
+        console.error('[save-personalization] write verification FAILED — ceoTitle not in file after write');
+        return { success: false, error: 'IDENTITY.md write verification failed — file does not contain ceoTitle after write. Có thể workspace không writable.' };
+      }
+      console.log('[save-personalization] IDENTITY.md updated OK at ' + identityPath);
+    } else {
+      console.error('[save-personalization] IDENTITY.md still missing after re-seed attempt');
+      return { success: false, error: 'IDENTITY.md không tồn tại — workspace bị hỏng' };
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error('[save-personalization] error:', e?.message || e);
+    return { success: false, error: e.message };
+  }
+});
+
+// =====================================================================
+//  Save business profile (wizard step 1+1c) — enterprise onboarding
+// =====================================================================
+// Collects high-impact business context and writes:
+//   - COMPANY.md      → company name + description (bot uses to reply Zalo customers
+//                       with real context, not generic boilerplate)
+//   - IDENTITY.md     → team size note (bot knows when to escalate vs decide alone)
+//   - schedules.json  → morning cron time = workStart, evening cron time = workEnd
+//                       (instead of hardcoded 07:30 / 21:00)
+//   - memory/projects/business-goals.md → list of selected goals (bot reads on session
+//                       start to know focus area)
+ipcMain.handle('save-business-profile', async (_event, payload) => {
+  try {
+    const {
+      companyName = '',
+      companyDesc = '',
+      teamSize = 'small',
+      workStart = '07:30',
+      workEnd = '21:00',
+      goals = [],
+      ceoName = '',
+    } = payload || {};
+
+    // Sanitize inputs (file content goes into Markdown templates → strip control chars)
+    const sanitize = (s, maxLen = 500) => String(s || '').replace(/[\u0000-\u001F\u007F]/g, ' ').substring(0, maxLen).trim();
+    const cName = sanitize(companyName, 100);
+    const cDesc = sanitize(companyDesc, 500);
+    const ceoN = sanitize(ceoName, 100);
+    const VALID_TEAM = ['solo', 'small', 'medium', 'large'];
+    const tSize = VALID_TEAM.includes(teamSize) ? teamSize : 'small';
+    const VALID_GOALS = ['zalo-auto-reply', 'daily-reports', 'schedule-mgmt', 'staff-reminders', 'customer-followup', 'competitor-watch'];
+    const gList = Array.isArray(goals) ? goals.filter(g => VALID_GOALS.includes(g)) : [];
+    // Validate HH:MM format
+    const validTime = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(t || ''));
+    const wStart = validTime(workStart) ? workStart : '07:30';
+    const wEnd = validTime(workEnd) ? workEnd : '21:00';
+
+    console.log('[save-business-profile]', { cName, tSize, wStart, wEnd, goalCount: gList.length });
+
+    const ws = getWorkspace();
+    if (!ws) return { success: false, error: 'Workspace không tồn tại' };
+
+    // 1. Update COMPANY.md (overwrite "Thông tin chung" section if exists, else append)
+    const companyPath = path.join(ws, 'COMPANY.md');
+    if (!fs.existsSync(companyPath)) {
+      try { seedWorkspace(); } catch {}
+    }
+    if (fs.existsSync(companyPath)) {
+      let content = fs.readFileSync(companyPath, 'utf-8');
+      const teamSizeLabel = {
+        solo: 'Solo founder (chỉ 1 người)',
+        small: '2-10 người',
+        medium: '11-50 người',
+        large: '51+ người',
+      }[tSize];
+      const profileBlock =
+        '<!-- WIZARD AUTO-FILLED -->\n' +
+        '## Thông tin chung\n\n' +
+        '- **Tên:** ' + (cName || '[chưa điền]') + '\n' +
+        (ceoN ? '- **Người đại diện:** ' + ceoN + '\n' : '') +
+        '- **Quy mô:** ' + teamSizeLabel + '\n' +
+        '- **Giờ làm việc:** ' + wStart + ' - ' + wEnd + '\n' +
+        (cDesc ? '\n## Giới thiệu\n\n' + cDesc + '\n' : '') +
+        '<!-- /WIZARD AUTO-FILLED -->\n';
+      // Replace block if marker present, else inject after first H1 or at top
+      if (content.includes('<!-- WIZARD AUTO-FILLED -->')) {
+        content = content.replace(/<!-- WIZARD AUTO-FILLED -->[\s\S]*?<!-- \/WIZARD AUTO-FILLED -->\n?/, profileBlock);
+      } else {
+        // First run: strip the empty template "## Thông tin chung" section so we
+        // don't end up with duplicate headings (template has placeholder fields,
+        // wizard has real ones — wizard wins). Match from "## Thông tin chung"
+        // to next "## " heading or end of file.
+        content = content.replace(/## Thông tin chung[\s\S]*?(?=\n## |\n*$)/, '');
+        // Inject wizard block right after H1 + blockquote
+        const lines = content.split('\n');
+        const h1Idx = lines.findIndex(l => l.startsWith('# '));
+        if (h1Idx >= 0) {
+          let insertAt = h1Idx + 1;
+          while (insertAt < lines.length && (lines[insertAt].trim() === '' || lines[insertAt].startsWith('>') || lines[insertAt].trim() === '---')) insertAt++;
+          lines.splice(insertAt, 0, '', profileBlock);
+          content = lines.join('\n');
+        } else {
+          content = profileBlock + '\n' + content;
+        }
+      }
+      fs.writeFileSync(companyPath, content, 'utf-8');
+      console.log('[save-business-profile] COMPANY.md updated');
+    }
+
+    // 2. Update schedules.json — set morning cron = workStart, evening cron = workEnd
+    const schedPath = path.join(ws, 'schedules.json');
+    let schedules = DEFAULT_SCHEDULES_JSON.map(s => ({ ...s }));
+    if (fs.existsSync(schedPath)) {
+      try { schedules = JSON.parse(fs.readFileSync(schedPath, 'utf-8')); } catch {}
+    }
+    let schedChanged = false;
+    for (const s of schedules) {
+      if (s.id === 'morning' && s.time !== wStart) { s.time = wStart; schedChanged = true; }
+      if (s.id === 'evening' && s.time !== wEnd) { s.time = wEnd; schedChanged = true; }
+    }
+    if (schedChanged) {
+      fs.writeFileSync(schedPath, JSON.stringify(schedules, null, 2), 'utf-8');
+      console.log('[save-business-profile] schedules.json updated: morning=' + wStart + ' evening=' + wEnd);
+    }
+
+    // 3. Write business goals to memory/projects/business-goals.md
+    // Bot reads memory on session start → knows focus area without CEO restating it
+    if (gList.length > 0) {
+      const GOAL_LABELS = {
+        'zalo-auto-reply': 'Trả tin Zalo tự động cho khách hàng',
+        'daily-reports': 'Báo cáo hàng ngày (doanh thu, KPI, vấn đề)',
+        'schedule-mgmt': 'Quản lý lịch họp + nhắc lịch + follow-up',
+        'staff-reminders': 'Nhắc nhở nhân viên (báo cáo, deadline, ca trực)',
+        'customer-followup': 'Follow-up khách quan tâm chưa chốt',
+        'competitor-watch': 'Theo dõi tin tức đối thủ + biến động thị trường',
+      };
+      const goalsDir = path.join(ws, 'memory', 'projects');
+      try { fs.mkdirSync(goalsDir, { recursive: true }); } catch {}
+      const goalsPath = path.join(goalsDir, 'business-goals.md');
+      const goalsContent =
+        '# Mục tiêu CEO khi dùng MODOROClaw\n\n' +
+        '> Tự fill từ wizard onboarding. CEO chọn các việc trợ lý nên giúp nhiều nhất.\n' +
+        '> Bot đọc file này MỖI session để biết focus area.\n\n' +
+        '## Ưu tiên hỗ trợ\n\n' +
+        gList.map((g, i) => (i + 1) + '. **' + GOAL_LABELS[g] + '**').join('\n') + '\n\n' +
+        '---\n\n' +
+        '_Cập nhật: ' + new Date().toISOString().slice(0, 10) + '_\n';
+      fs.writeFileSync(goalsPath, goalsContent, 'utf-8');
+      console.log('[save-business-profile] business-goals.md written with ' + gList.length + ' goals');
+    }
+
+    // 4. Add team-size hint to IDENTITY.md (bot knows when to escalate vs decide solo)
+    const identityPath = path.join(ws, 'IDENTITY.md');
+    if (fs.existsSync(identityPath)) {
+      let content = fs.readFileSync(identityPath, 'utf-8');
+      const teamHint = {
+        solo: 'Solo founder — anh/chị tự quyết mọi việc, em báo trực tiếp, không cần hỏi ý kiến team.',
+        small: '2-10 người — em có thể nhắc nhân viên qua Zalo, nhưng quyết định lớn phải hỏi anh/chị.',
+        medium: '11-50 người — có nhiều phòng ban, em escalate đúng người chịu trách nhiệm khi cần.',
+        large: '51+ người — quy mô lớn, em ưu tiên báo cáo cấp cao, không can thiệp vận hành chi tiết.',
+      }[tSize];
+      const teamLine = '- **Quy mô đội ngũ:** ' + teamHint;
+      if (content.includes('- **Quy mô đội ngũ:**')) {
+        content = content.replace(/- \*\*Quy mô đội ngũ:\*\* .*/, teamLine);
+      } else {
+        // Insert after the Cách xưng hô line
+        content = content.replace(
+          /(- \*\*Cách xưng hô:\*\* .*)/,
+          '$1\n' + teamLine
+        );
+      }
       fs.writeFileSync(identityPath, content, 'utf-8');
     }
 
     return { success: true };
-  } catch (e) { return { success: false, error: e.message }; }
+  } catch (e) {
+    console.error('[save-business-profile] error:', e?.message || e);
+    return { success: false, error: e.message };
+  }
 });
 
 // Google Calendar + Gmail integration via `gog-cli`.
@@ -2574,8 +3424,16 @@ ipcMain.handle('save-wizard-config', async (_event, configs) => {
     if (config.channels?.telegram?.botToken && !config.channels.telegram.enabled) {
       config.channels.telegram.enabled = true;
     }
-    if (config.channels?.openzalo?.dmPolicy === 'open' && !config.channels.openzalo.allowFrom) {
-      config.channels.openzalo.allowFrom = ['*'];
+    // If wizard enabled openzalo, ensure dmPolicy="open" + allowFrom=["*"] so
+    // unknown DM senders don't get the "access not configured" pairing reply.
+    // (openzalo plugin defaults dmPolicy to "pairing" if missing.)
+    if (config.channels?.openzalo?.enabled) {
+      if (config.channels.openzalo.dmPolicy !== 'open') {
+        config.channels.openzalo.dmPolicy = 'open';
+      }
+      if (!Array.isArray(config.channels.openzalo.allowFrom)) {
+        config.channels.openzalo.allowFrom = ['*'];
+      }
     }
     // Create required dirs
     const sessDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
@@ -2734,18 +3592,45 @@ ipcMain.handle('test-cron', async (_event, { type, id }) => {
       const schedules = loadSchedules();
       const s = schedules.find(x => x.id === id);
       if (!s) return { success: false, error: 'Schedule not found' };
-      let text = '';
-      if (id === 'morning') {
-        text = `☀️ *TEST — Báo cáo sáng*\n\nĐây là tin test. Cron thật sẽ gửi vào ${s.time} mỗi ngày.\nNhắn "báo cáo" để em tổng hợp ngay.`;
-      } else if (id === 'evening') {
-        text = `🌙 *TEST — Tóm tắt cuối ngày*\n\nĐây là tin test. Cron thật sẽ gửi vào ${s.time} mỗi ngày.\nNhắn "tổng kết" để em gửi.`;
+      // Match real cron behavior: morning/evening run through agent so CEO sees
+      // a REAL report when testing — not a "type báo cáo to trigger" template.
+      if (id === 'morning' || id === 'evening') {
+        // Inject conversation history same as real cron — bot must see actual
+        // messages, not be asked to "find data" it has no way to access.
+        try { writeDailyMemoryJournal({ date: new Date(Date.now() - (id === 'morning' ? 86400000 : 0)) }); } catch {}
+        const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+        const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+        const historyBlock = history
+          ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
+          : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
+
+        const isMorning = id === 'morning';
+        const title = isMorning ? '**BÁO CÁO SÁNG**' : '**TÓM TẮT CUỐI NGÀY**';
+        const timeContext = isMorning
+          ? `Bây giờ là ${s.time || '07:30'} sáng.`
+          : `Bây giờ là ${s.time || '21:00'}, hết ngày làm việc.`;
+        const sections = isMorning
+          ? `1. Tóm tắt việc hôm qua (kết quả, deal đã chốt, vấn đề tồn đọng)\n2. Lịch họp / việc cần làm hôm nay (ưu tiên cao trước)\n3. Tin nhắn Zalo + Telegram cần xử lý (chỉ liệt kê tin có nội dung công việc, không liệt kê "hi" trống)\n4. Cảnh báo / nhắc nhở quan trọng`
+          : `1. Kết quả hôm nay so với mục tiêu (việc đã xong, deal đã chốt, doanh thu)\n2. Vấn đề tồn đọng cần xử lý\n3. Kế hoạch / ưu tiên cho ngày mai\n4. Cảnh báo / nhắc nhở quan trọng`;
+
+        const prompt =
+          `[TEST CRON — fire thủ công từ Dashboard] ${timeContext} Hãy gửi ${title.replace(/\*/g,'')} cho CEO qua Telegram.` +
+          historyBlock +
+          `Dựa trên lịch sử tin nhắn ở trên + memory/ + knowledge, tổng hợp:\n${sections}\n\n` +
+          `Trả lời tiếng Việt, ngắn gọn, dùng tiêu đề ${title} in đậm + bullet points. ` +
+          `KHÔNG dùng emoji (premium UI rule). ` +
+          `KHÔNG nói "em không có dữ liệu" — nếu lịch sử rỗng thì nói "Hôm qua/Hôm nay không có hoạt động đáng chú ý" và sang phần tiếp. ` +
+          `Thêm dòng "_(tin test thủ công)_" ở cuối. KHÔNG hỏi lại CEO. KHÔNG yêu cầu CEO gõ lệnh.`;
+        const ok = await runCronAgentPrompt(prompt, { label: `TEST — ${id === 'morning' ? 'morning-briefing' : 'evening-summary'}` });
+        return { success: ok, sent: ok };
       } else if (id === 'heartbeat') {
-        text = `💓 *TEST — Heartbeat*\n\nĐây là tin test. Hệ thống đang hoạt động bình thường.`;
+        const sent = await sendTelegram(`*TEST — Heartbeat*\n\nĐây là tin test. Hệ thống đang hoạt động bình thường.`);
+        return { success: sent === true, sent };
       } else if (id === 'meditation') {
-        text = `🧠 *TEST — Tối ưu ban đêm*\n\nĐây là tin test. Cron thật sẽ ghi queue lúc ${s.time}.`;
+        const sent = await sendTelegram(`*TEST — Tối ưu ban đêm*\n\nĐây là tin test. Cron thật sẽ ghi queue lúc ${s.time}.`);
+        return { success: sent === true, sent };
       }
-      const sent = await sendTelegram(text);
-      return { success: sent === true, sent };
+      return { success: false, error: 'Unknown schedule id' };
     } else if (type === 'custom') {
       const customs = loadCustomCrons();
       const c = customs.find(x => x.id === id);
@@ -3024,21 +3909,35 @@ function findOpenzcaListenerPid() {
         `wmic process where "name='node.exe' and CommandLine like '%%openzca%%listen%%'" get ProcessId /format:csv 2>nul`,
         { encoding: 'utf-8', timeout: 3000 }
       );
-      // CSV format: "Node,ProcessId\n<host>,<pid>"
+      // CSV format: header row "Node,ProcessId" then "<hostname>,<pid>".
+      // STRICT VALIDATION: skip header, require ≥2 cols, pid must be ≥100
+      // (filter system PIDs 0-99 + reject malformed wmic output that could
+      // otherwise return PID 0 or negative). Header row "ProcessId" string
+      // parses to NaN so it's auto-skipped by Number.isFinite check.
       for (const line of out.split('\n')) {
-        const cols = line.trim().split(',');
-        const pid = parseInt(cols[cols.length - 1], 10);
-        if (Number.isFinite(pid) && pid > 0) return pid;
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.toLowerCase().startsWith('node')) continue;
+        const cols = trimmed.split(',');
+        if (cols.length < 2) continue;
+        const pidStr = cols[cols.length - 1].trim();
+        const pid = parseInt(pidStr, 10);
+        if (Number.isFinite(pid) && pid >= 100) return pid;
       }
     } else {
+      // Mac/Linux: pgrep -f matches command line. Returns one PID per line.
+      // pgrep exit 1 = no matches → empty string. Iterate to be safe.
       const out = require('child_process').execSync(
         `pgrep -f "openzca.*listen" 2>/dev/null || true`,
         { encoding: 'utf-8', timeout: 3000, shell: '/bin/sh' }
       );
-      const pid = parseInt(out.trim().split('\n')[0], 10);
-      if (Number.isFinite(pid) && pid > 0) return pid;
+      for (const line of out.trim().split('\n')) {
+        const pid = parseInt(line.trim(), 10);
+        if (Number.isFinite(pid) && pid >= 100) return pid;
+      }
     }
-  } catch {}
+  } catch (e) {
+    if (process.env.MODORO_DEBUG) console.error('[findOpenzcaListenerPid]', e.message);
+  }
   return null;
 }
 
@@ -3046,7 +3945,20 @@ async function probeZaloReady() {
   try {
     const ozDir = path.join(HOME, '.openzca', 'profiles', 'default');
     const ownerFile = path.join(ozDir, 'listener-owner.json');
+    const credsFile = path.join(ozDir, 'credentials.json');
 
+    // CRITICAL ORDERING FIX (2026-04-08): process check MUST come before cookie
+    // expiry check. Previously we returned `session-expired` based purely on
+    // cookie file timestamps (lastAccessed + maxAge math), even when the
+    // openzca listener process was running AND actively replying to Zalo
+    // messages. Root cause: Zalo's zlogin_session has maxAge=3600 (1 hour)
+    // but openzca maintains the WebSocket via keepalive without rewriting the
+    // credentials file on every use. The file timestamp goes stale while the
+    // live session keeps working. Result: CEO saw "Zalo đã hết hạn" in
+    // Dashboard while Zalo replies arrived normally.
+    //
+    // Rule: if the listener process is alive, Zalo is READY by definition.
+    // Cookie expiry math is only a diagnostic when the process is NOT running.
     // PRIMARY check: process by name (authoritative — process IS the listener,
     // regardless of whether the lock file has been written yet). Solves the
     // race window where listener-owner.json doesn't exist for ~3-5s after the
@@ -3085,6 +3997,41 @@ async function probeZaloReady() {
     const listenerPid = processPid || ownerPid || null;
 
     if (!processPid && !ownerPid) {
+      // Listener is not running. Check WHY and return the most actionable
+      // error message. Credentials/expiry checks go HERE (fallback
+      // diagnostics), not at the top — they previously caused false-positive
+      // "expired" reports even when the process was happily maintaining the
+      // WebSocket via keepalive.
+      if (!fs.existsSync(credsFile)) {
+        return {
+          ready: false,
+          reason: 'no-credentials',
+          error: 'Chưa đăng nhập Zalo. Vào tab Zalo bấm "Đổi tài khoản" để quét QR.',
+        };
+      }
+      // Parse cookie for expiry as a hint, but only if listener is NOT running.
+      // If cookies are expired AND listener is down, user must re-login.
+      // If cookies are expired BUT listener is up, we already returned ready above.
+      try {
+        const creds = JSON.parse(fs.readFileSync(credsFile, 'utf-8'));
+        const cookies = Array.isArray(creds.cookie) ? creds.cookie : [];
+        const sessionCookie = cookies.find(c => c && /zlogin_session|zpw_sek/.test(c.key || ''));
+        if (sessionCookie) {
+          const lastAccessedMs = Date.parse(sessionCookie.lastAccessed || sessionCookie.creation || 0);
+          const maxAgeMs = (sessionCookie.maxAge || 0) * 1000;
+          if (lastAccessedMs && maxAgeMs && (Date.now() - lastAccessedMs) > maxAgeMs) {
+            const hoursAgo = Math.floor((Date.now() - lastAccessedMs) / 3600000);
+            return {
+              ready: false,
+              reason: 'session-expired',
+              error: `Phiên Zalo đã hết hạn (${hoursAgo} giờ trước) và listener không chạy. Vào tab Zalo bấm "Đổi tài khoản" để quét QR mới.`,
+              cacheAgeMin,
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('[probeZaloReady] credentials parse error:', e.message);
+      }
       return {
         ready: false,
         error: 'Listener chưa chạy. Đợi gateway khởi động openzalo channel (~10-15 giây sau khi mở app).',
@@ -3462,16 +4409,45 @@ function startCronJobs() {
         cronExpr = `${m || 30} ${h || 7} * * *`;
         handler = async () => {
           console.log('[cron] Morning briefing triggered at', new Date().toISOString());
-          // Send actionable notification to CEO — they reply "báo cáo" to trigger bot reasoning
-          const sent = await sendTelegram(
-            `☀️ *Báo cáo sáng — ${s.time || '07:30'}*\n\n` +
-            `Chào anh/chị, em sẵn sàng tổng hợp báo cáo:\n` +
-            `• Doanh thu hôm qua\n` +
-            `• Lịch họp hôm nay\n` +
-            `• Tin nhắn Zalo cần xử lý\n\n` +
-            `Nhắn *"báo cáo"* để em gửi chi tiết ngay ạ.`
-          );
-          console.log('[cron] Morning sendTelegram result:', sent !== null);
+          if (global._cronInFlight?.get('morning')) {
+            console.warn('[cron] Morning SKIPPED — previous run still in flight');
+            return;
+          }
+          global._cronInFlight?.set('morning', true);
+          try {
+            // Write daily memory journal so it exists on disk too (for future
+            // session-aware reads + manual debugging).
+            try { writeDailyMemoryJournal({ date: new Date(Date.now() - 86400000) }); } catch {}
+
+            // Extract last 24h of Zalo + Telegram messages and INJECT directly
+            // into the prompt. This is the architectural fix — bot was previously
+            // hallucinating "no Zalo data" because each cron fire spawns a fresh
+            // session that doesn't see other channels' session jsonls. Now bot
+            // sees real conversation context inline.
+            const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+            const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+            const historyBlock = history
+              ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
+              : `\n\n_(Chưa có tin nhắn nào trong 24h qua — nếu CEO mới setup hoặc chưa ai nhắn thì điều này bình thường.)_\n\n`;
+
+            const prompt =
+              `Bây giờ là ${s.time || '07:30'} sáng. Hãy gửi BÁO CÁO SÁNG cho CEO qua Telegram.` +
+              historyBlock +
+              `Dựa trên lịch sử tin nhắn ở trên + AGENTS.md + memory/ + knowledge công ty, tổng hợp:\n` +
+              `1. Tóm tắt việc hôm qua (kết quả, deal đã chốt, vấn đề tồn đọng)\n` +
+              `2. Lịch họp / việc cần làm hôm nay (ưu tiên cao trước)\n` +
+              `3. Tin nhắn Zalo + Telegram cần xử lý (chỉ liệt kê tin có nội dung công việc, không liệt kê "hi" trống)\n` +
+              `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
+              `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **BÁO CÁO SÁNG** in đậm + bullet points. ` +
+              `KHÔNG dùng emoji (premium UI rule — bot phải sang trọng, chuyên nghiệp). ` +
+              `KHÔNG hỏi lại CEO. KHÔNG yêu cầu CEO gõ lệnh. ` +
+              `KHÔNG nói "em không có dữ liệu" — nếu lịch sử trên rỗng thì nói thẳng "Hôm qua không có tin nhắn nào đáng chú ý" và chuyển sang phần lịch hôm nay.`;
+            await runCronAgentPrompt(prompt, { label: 'morning-briefing' });
+          } catch (e) {
+            console.error('[cron] Morning handler threw:', e?.message || e);
+          } finally {
+            global._cronInFlight?.delete('morning');
+          }
         };
         break;
       }
@@ -3480,15 +4456,36 @@ function startCronJobs() {
         cronExpr = `${m || 0} ${h || 21} * * *`;
         handler = async () => {
           console.log('[cron] Evening summary triggered at', new Date().toISOString());
-          const sent = await sendTelegram(
-            `🌙 *Tóm tắt cuối ngày — ${s.time || '21:00'}*\n\n` +
-            `Hết ngày làm việc rồi ạ. Em có thể tổng hợp:\n` +
-            `• Kết quả hôm nay so với mục tiêu\n` +
-            `• Vấn đề tồn đọng\n` +
-            `• Kế hoạch ngày mai\n\n` +
-            `Nhắn *"tổng kết"* để em gửi ngay ạ.`
-          );
-          console.log('[cron] Evening sendTelegram result:', sent !== null);
+          if (global._cronInFlight?.get('evening')) {
+            console.warn('[cron] Evening SKIPPED — previous run still in flight');
+            return;
+          }
+          global._cronInFlight?.set('evening', true);
+          try {
+            try { writeDailyMemoryJournal({ date: new Date() }); } catch {}
+            const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+            const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+            const historyBlock = history
+              ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
+              : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
+
+            const prompt =
+              `Bây giờ là ${s.time || '21:00'}, hết ngày làm việc. Hãy gửi TÓM TẮT CUỐI NGÀY cho CEO qua Telegram.` +
+              historyBlock +
+              `Dựa trên lịch sử tin nhắn ở trên + memory/ + knowledge, tổng hợp:\n` +
+              `1. Kết quả hôm nay so với mục tiêu (việc đã xong, deal đã chốt, doanh thu nếu có)\n` +
+              `2. Vấn đề tồn đọng cần xử lý\n` +
+              `3. Kế hoạch / ưu tiên cho ngày mai\n` +
+              `4. Cảnh báo / nhắc nhở quan trọng\n\n` +
+              `Trả lời bằng tiếng Việt, ngắn gọn, dùng tiêu đề **TÓM TẮT CUỐI NGÀY** in đậm + bullet points. ` +
+              `KHÔNG dùng emoji (premium UI rule). ` +
+              `KHÔNG hỏi lại CEO. KHÔNG nói "em không có dữ liệu" — nếu rỗng thì nói "Hôm nay không có hoạt động đáng chú ý" và liệt kê plan ngày mai.`;
+            await runCronAgentPrompt(prompt, { label: 'evening-summary' });
+          } catch (e) {
+            console.error('[cron] Evening handler threw:', e?.message || e);
+          } finally {
+            global._cronInFlight?.delete('evening');
+          }
         };
         break;
       }
@@ -3595,7 +4592,7 @@ function startCronJobs() {
         } catch (e) {
           console.error(`[cron] Custom ${c.id} handler threw (suppressed):`, e?.message || e);
           journalCronRun({ phase: 'fail', label: c.label || c.id, reason: 'handler-threw', err: String(e?.message || e).slice(0, 300) });
-          try { await sendTelegram(`⚠️ *Cron "${c.label || c.id}" lỗi nội bộ*\n\n\`${String(e?.message || e).slice(0, 300)}\``); } catch {}
+          try { await sendTelegram(`*Cron "${c.label || c.id}" lỗi nội bộ*\n\n\`${String(e?.message || e).slice(0, 300)}\``); } catch {}
         } finally {
           global._cronInFlight.delete(niceId);
         }
@@ -3618,7 +4615,7 @@ function surfaceCronConfigError(c, reason) {
     fs.appendFileSync(errFile, `\n## ${new Date().toISOString()} — custom-cron config error\n\nCron: \`${c?.label || c?.id || '?'}\` (id: \`${c?.id || '?'}\`)\nReason: ${reason}\nExpr: \`${c?.cronExpr || '?'}\`\nPrompt (first 100 chars): ${(c?.prompt || '').slice(0, 100)}\n`, 'utf-8');
   } catch (e) { console.error('[surfaceCronConfigError] write error:', e.message); }
   try {
-    sendTelegram(`⚠️ *Cron "${c?.label || c?.id || '?'}" cấu hình sai*\n\n${reason}\n\nCron sẽ KHÔNG chạy cho tới khi sửa. Vào Dashboard → Cron để fix.`);
+    sendTelegram(`*Cron "${c?.label || c?.id || '?'}" cấu hình sai*\n\n${reason}\n\nCron sẽ KHÔNG chạy cho tới khi sửa. Vào Dashboard → Cron để fix.`);
   } catch {}
 }
 
@@ -4314,10 +5311,20 @@ ipcMain.handle('wizard-complete', async () => {
   try { cleanupOrphanZaloListener(); } catch {}
   mainWindow.loadFile(path.join(__dirname, 'ui', 'dashboard.html'));
   mainWindow.maximize();
-  // ORDER MATTERS — see comment at the dashboard branch in createWindow().
-  // We MUST await startOpenClaw() (which awaits ensureDefaultConfig()) before
-  // scheduling cron jobs, otherwise the first cron fire on a fresh install can
-  // race the schema heal and fail with "Config invalid".
+  // ORDER MATTERS — three hard dependencies:
+  //   1. ensureZaloPlugin() — copies bundled openzalo plugin from vendor (Mac
+  //      .dmg) OR installs from npm (dev mode). MUST finish before gateway
+  //      starts, otherwise gateway won't register the openzalo channel and
+  //      Zalo stays silently broken. Awaited here to eliminate the race with
+  //      the parallel call from app.whenReady (which is fire-and-forget).
+  //      _zaloReady flag makes this idempotent.
+  //   2. startOpenClaw() runs ensureDefaultConfig() which heals the
+  //      openclaw.json schema (deletes deprecated keys, creates
+  //      channels.openzalo section, etc.).
+  //   3. Cron jobs scheduled AFTER — otherwise the first cron handler can
+  //      spawn `openclaw agent` against an unhealed config and fail with
+  //      "Config invalid".
+  try { await ensureZaloPlugin(); } catch (e) { console.error('[wizard-complete ensureZaloPlugin] error:', e?.message || e); }
   try { await startOpenClaw(); } catch (e) { console.error('[wizard-complete startOpenClaw] error:', e?.message || e); }
   startCronJobs();
   watchCustomCrons();
@@ -4338,6 +5345,12 @@ ipcMain.handle('install-openclaw', async (event) => {
   // log a warning but proceed; openzca's compiled output (tsup --target node22)
   // may then fail at runtime with syntax errors. Show a clear actionable error
   // BEFORE wasting 5 minutes on a doomed npm install.
+  // NOTE: This intentionally checks SYSTEM node (`node -v` via PATH), not the
+  // bundled vendor/node/bin/node. Reason: this handler runs `npm install -g`
+  // which goes through the user's npm prefix and uses their globally-installed
+  // Node. Bundled vendor node is for RUNTIME spawning of openclaw/openzca/9router
+  // by the gateway, not for installing global packages. The two roles are
+  // separate by design — vendor node never touches the user's npm tree.
   let nodeVersionMajor = 0;
   try {
     const { execSync } = require('child_process');
@@ -4410,15 +5423,25 @@ ipcMain.handle('install-openclaw', async (event) => {
     send('');
     send('--- Cài đặt OpenClaw via npm ---');
 
-    // Install OpenClaw + 9Router via npm. NOTE: --no-engine-strict so openzca's
-    // engines.node check is a warning not a failure (we already verified Node>=22).
+    // Install OpenClaw + 9Router + openzca via npm AT PINNED VERSIONS.
+    // CRITICAL: pin versions to protect against upstream schema breakage.
+    // Without pinning, fresh installs months from now will pull `latest` which
+    // may have incompatible schema → wizard fails on day 1 with "Config invalid".
+    // To upgrade pinned versions: edit MODORO_PINNED_VERSIONS table below,
+    // smoke-test, then ship a new build. Single source of truth is also in
+    // electron/scripts/prebuild-vendor.js — keep both in sync (and PINNING.md).
+    const MODORO_PINNED_VERSIONS = [
+      'openclaw@2026.4.5',
+      '9router@0.3.82',
+      'openzca@0.1.57',
+    ];
     let cmd, args;
     if (isWin) {
       cmd = 'npm.cmd';
-      args = ['install', '-g', 'openclaw', '9router', 'openzca'];
+      args = ['install', '-g', '--save-exact', ...MODORO_PINNED_VERSIONS];
     } else {
       cmd = 'npm';
-      args = ['install', '-g', 'openclaw', '9router', 'openzca'];
+      args = ['install', '-g', '--save-exact', ...MODORO_PINNED_VERSIONS];
     }
 
     const proc = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -4474,7 +5497,7 @@ ipcMain.handle('install-openclaw', async (event) => {
         if (bin) {
           send('OpenClaw binary: ' + bin);
           send('');
-          send('✅ CÀI ĐẶT THÀNH CÔNG!');
+          send('CÀI ĐẶT THÀNH CÔNG');
           safeResolve({ success: true });
         } else if (code === 0) {
           send('');

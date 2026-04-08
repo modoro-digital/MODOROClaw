@@ -58,6 +58,23 @@ Mọi fix lớn → cập nhật `docs/superpowers/sessions/` với:
 - File đã thay đổi
 - Cách verify
 
+## RULE #4: Pin third-party versions — BẮT BUỘC
+
+MODOROClaw bundles 4 npm packages we don't control: `openclaw`, `openzca`, `9router`, `@tuyenhx/openzalo`.
+
+**Versions are pinned in 4 places** — see [PINNING.md](PINNING.md) for the table + upgrade procedure. Single source of truth: PINNING.md.
+
+**Never `npm install` without explicit version.** Never use `latest`. Every fresh install MUST get the same versions we tested.
+
+**Smoke test runs before every build** (`npm run build:win` + `build:mac` chain through `npm run smoke`). It verifies:
+- Vendor packages match pinned versions
+- openclaw `--help` exits 0 with config from `ensureDefaultConfig()` (catches schema breaks)
+- Plugin patch anchors still match upstream source (catches restructured plugins)
+- Workspace templates exist + AGENTS.md has no-emoji + history-block rules
+- IDENTITY.md template has no leaked dev names
+
+If smoke fails, build is BLOCKED. Fix the failure before shipping.
+
 ---
 
 ## Current patches (cần auto-restore trên fresh install)

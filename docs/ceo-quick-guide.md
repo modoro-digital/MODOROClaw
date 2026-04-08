@@ -42,4 +42,4 @@ Trợ lý tự động theo dõi tin nhắn Zalo OA. Khi khách hàng/nhân viê
 
 ## Cần hỗ trợ?
 
-Liên hệ MODORO: quoclbit@gmail.com | Telegram: @quocmodoro
+Liên hệ MODORO Tech: support@modoro.tech | Website: https://modoro.tech

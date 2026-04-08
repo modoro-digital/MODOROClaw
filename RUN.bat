@@ -2,16 +2,34 @@
 title MODOROClaw
 cd /d "%~dp0electron"
 
+:: CRITICAL: openzca requires Node >= 22.13.0 (openzca built with tsup --target node22).
+:: Node 20 LTS is too old — openzca will throw syntax errors at runtime.
+:: If the user already has Node installed, check its major version.
 where node >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Node.js chua cai. Dang tai va cai dat...
-    powershell -ExecutionPolicy Bypass -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' -OutFile '%TEMP%\node_install.msi' }"
+if %errorlevel% equ 0 (
+    for /f "tokens=1 delims=v." %%i in ('node -v 2^>nul') do set "NODE_MAJOR=%%j"
+    :: NODE_MAJOR will be set to "22" for v22.x
+    if "%NODE_MAJOR%"=="" (
+        set NEED_NODE_INSTALL=1
+    ) else if %NODE_MAJOR% LSS 22 (
+        echo Node.js v%NODE_MAJOR% qua cu. Can Node 22+ cho openzca.
+        set NEED_NODE_INSTALL=1
+    ) else (
+        set NEED_NODE_INSTALL=0
+    )
+) else (
+    set NEED_NODE_INSTALL=1
+)
+
+if "%NEED_NODE_INSTALL%"=="1" (
+    echo Dang tai va cai dat Node.js 22 LTS...
+    powershell -ExecutionPolicy Bypass -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TEMP%\node_install.msi' }"
     if exist "%TEMP%\node_install.msi" (
         msiexec /i "%TEMP%\node_install.msi" /qn
         del "%TEMP%\node_install.msi"
         set "PATH=%PATH%;C:\Program Files\nodejs"
     ) else (
-        echo Khong tai duoc. Cai Node.js tai https://nodejs.org roi chay lai.
+        echo Khong tai duoc Node 22. Cai Node 22+ tai https://nodejs.org roi chay lai.
         pause
         exit /b 1
     )

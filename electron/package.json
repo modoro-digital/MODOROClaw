@@ -5,18 +5,19 @@
   "author": "MODORO Tech Corp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/modoro-digital/MODOROClaw-Mac.git"
+    "url": "https://github.com/modoro-digital/MODOROClaw.git"
   },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "postinstall": "node scripts/fix-better-sqlite3.js",
-    "build:win": "electron-builder --win",
+    "smoke": "node scripts/smoke-test.js",
     "prebuild:vendor": "node scripts/prebuild-vendor.js",
-    "build:mac": "npm run prebuild:vendor && electron-builder --mac",
-    "build:mac:arm": "TARGET_ARCH=arm64 node scripts/prebuild-vendor.js && electron-builder --mac --arm64",
-    "build:mac:intel": "TARGET_ARCH=x64 node scripts/prebuild-vendor.js && electron-builder --mac --x64",
-    "build:mac:universal": "electron-builder --mac --universal"
+    "build:win": "node scripts/smoke-test.js && electron-builder --win",
+    "build:mac": "npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --mac",
+    "build:mac:arm": "TARGET_ARCH=arm64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --arm64",
+    "build:mac:intel": "TARGET_ARCH=x64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --x64",
+    "build:mac:universal": "node scripts/smoke-test.js && electron-builder --mac --universal"
   },
   "build": {
     "appId": "vn.modoro.claw",
@@ -50,12 +51,10 @@
         "filter": [
           "**/*",
           "!**/{test,tests,__tests__,*.test.js,*.spec.js,*.test.mjs}",
-          "!**/{example,examples,demo,demos,docs}",
-          "!**/*.{md,markdown}",
+          "!**/{example,examples,demo,demos}",
           "!**/.github/**",
           "!**/{.DS_Store,Thumbs.db,.git,.svn,.hg,.editorconfig,.eslintrc*,.prettierrc*,.npmignore}",
-          "!**/{appveyor.yml,.travis.yml,circle.yml}",
-          "!package.json"
+          "!**/{appveyor.yml,.travis.yml,circle.yml}"
         ]
       },
       {
@@ -136,6 +135,15 @@
       {
         "from": "../.learnings",
         "to": "workspace-templates/.learnings"
+      },
+      {
+        "from": "../knowledge",
+        "to": "workspace-templates/knowledge",
+        "filter": [
+          "**/*",
+          "!**/files/*",
+          "!**/index.md"
+        ]
       }
     ],
     "asar": true,

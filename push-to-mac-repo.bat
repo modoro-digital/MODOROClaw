@@ -9,7 +9,7 @@ echo   ====================================================
 echo.
 
 :: Doi URL nay neu repo o account khac (huybt-peter, modoro-digital, v.v.)
-set REPO_URL=https://github.com/modoro-digital/MODOROClaw-Mac.git
+set REPO_URL=https://github.com/modoro-digital/MODOROClaw.git
 set BRANCH=main
 
 cd /d "%~dp0"
@@ -72,9 +72,9 @@ echo       git tag v1.0.0
 echo       git push --tags
 echo.
 echo     GitHub Actions se tu build .dmg trong ~8-10 phut.
-echo     Vao: https://github.com/modoro-digital/MODOROClaw-Mac/actions
+echo     Vao: https://github.com/modoro-digital/MODOROClaw/actions
 echo     Khi xong, file .dmg se o GitHub Releases:
-echo     https://github.com/modoro-digital/MODOROClaw-Mac/releases
+echo     https://github.com/modoro-digital/MODOROClaw/releases
 echo   ===================================================
 echo.
 pause

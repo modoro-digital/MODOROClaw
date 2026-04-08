@@ -124,8 +124,8 @@ Sau khi cài đặt xong và app khởi động lại, màn hình Wizard hiện 
 
 | Trường | Điền gì | Ví dụ |
 |---|---|---|
-| **Tên của bạn** | Tên CEO/chủ doanh nghiệp | Nguyễn Văn Huy |
-| **Tên công ty / cửa hàng** | Tên công ty (không bắt buộc) | MODORO Technology |
+| **Tên của bạn** | Tên CEO/chủ doanh nghiệp | Họ và tên đầy đủ |
+| **Tên công ty / cửa hàng** | Tên công ty (không bắt buộc) | Công ty / cửa hàng của anh/chị |
 | **Khung giờ nhận báo cáo** | Giờ CEO muốn nhận báo cáo | 07:00 (mặc định) |
 
 - Muốn thêm nhiều khung giờ báo cáo: nhấn **+ Thêm khung giờ** (tối đa 5 khung).
@@ -142,7 +142,7 @@ Nhấn **Tiếp tục**.
 | **Lĩnh vực kinh doanh** | Chọn từ dropdown: Bất động sản, F&B, Thương mại, Dịch vụ, Giáo dục, Công nghệ, Sản xuất, hoặc Khác |
 | **Phong cách giao tiếp** | Chọn 1 trong 3: "Chuyên nghiệp — lịch sự" (B2B), "Thân thiện — gần gũi" (F&B, bán lẻ), "Ngắn gọn — hiệu quả" |
 | **Xưng hô với khách hàng** | Chọn 1: "Em — Anh/Chị" (phổ biến nhất), "Tôi — Quý khách" (trang trọng), "Mình — Bạn" (trẻ trung) |
-| **Trợ lý gọi bạn là** | Nhập cách bot xưng hô với CEO | anh Huy, chị Lan, sếp |
+| **Trợ lý gọi bạn là** | Nhập cách bot xưng hô với CEO | anh, chị, sếp, thầy, cô, giám đốc |
 
 > **Gợi ý:** Hầu hết khách chọn "Thân thiện — gần gũi" + "Em — Anh/Chị". Trừ khi khách làm B2B hoặc bất động sản thì chọn "Chuyên nghiệp".
 
@@ -231,11 +231,11 @@ Vẫn trên Telegram của khách:
 
 1. Tìm kiếm **@userinfobot**.
 2. Nhấn **Start** hoặc gửi `/start`.
-3. Bot trả về thông tin, trong đó có một **dãy số** (ví dụ: `1196242919`) → **Copy dãy số đó**.
+3. Bot trả về thông tin, trong đó có một **dãy số** (ví dụ: `123456789`) → **Copy dãy số đó**.
 
 [Ảnh: Cuộc trò chuyện với @userinfobot, highlight dãy số User ID]
 
-4. Quay lại app MODOROClaw, dán vào ô **"Dán User ID vào đây"** (chỉ gồm số, ví dụ: `1196242919`).
+4. Quay lại app MODOROClaw, dán vào ô **"Dán User ID vào đây"** (chỉ gồm số, ví dụ: `123456789`).
 
 #### Bước 4.3: Test kết nối
 

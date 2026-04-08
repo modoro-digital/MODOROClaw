@@ -295,6 +295,438 @@
       content:'✓'; color:#fff; font-size:13px; font-weight:700; line-height:1;
     }
   </style>
+
+  <!-- ===== PREMIUM DASHBOARD OVERLAY (overrides above for next-level UI) ===== -->
+  <style>
+    /* === Layout: wider sidebar, generous main padding === */
+    body { background: var(--bg); }
+    .app-layout { background: var(--bg); }
+
+    /* === Sidebar === */
+    .sidebar {
+      width: 264px !important;
+      padding: 24px 18px 20px !important;
+      background: var(--bg-elevated, var(--bg)) !important;
+      border-right: 1px solid var(--border) !important;
+      gap: 4px;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px !important;
+      padding: 0 6px;
+    }
+    .sidebar-logo img {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .sidebar-logo h1 {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .sidebar-logo h1::after {
+      content: 'Trợ lý AI doanh nghiệp';
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary, var(--text-muted));
+      margin-top: 1px;
+      letter-spacing: 0;
+    }
+
+    .sidebar-status {
+      margin: 18px 0 14px !important;
+      padding: 12px 14px !important;
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      gap: 10px !important;
+      font-size: 12px !important;
+    }
+    .sidebar-status .status-dot {
+      width: 8px !important; height: 8px !important;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    }
+    .sidebar-status .status-dot.running {
+      box-shadow: 0 0 0 3px rgba(74,222,128,0.1), 0 0 8px rgba(74,222,128,0.4);
+    }
+    .sidebar-status .status-dot.stopped {
+      box-shadow: 0 0 0 3px rgba(248,113,113,0.1);
+    }
+    .sidebar-status span:not(.status-dot) {
+      font-size: 12px !important;
+      font-weight: 500;
+      color: var(--text-secondary, var(--text-muted));
+    }
+
+    .sidebar-btn {
+      margin-bottom: 8px !important;
+      padding: 11px 14px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 10px !important;
+      letter-spacing: -0.1px;
+    }
+    .sidebar-btn.btn-primary {
+      background: var(--gradient-accent, var(--accent)) !important;
+      box-shadow: 0 4px 14px var(--accent-glow, rgba(229,57,53,0.2));
+    }
+    .sidebar-btn.btn-primary:hover { transform: translateY(-1px); }
+
+    .sidebar-menu {
+      margin-top: 14px !important;
+      padding-top: 0 !important;
+      border-top: none !important;
+      gap: 1px !important;
+    }
+    .sidebar-menu-header {
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+      padding: 14px 12px 6px !important;
+    }
+    .sidebar-menu-item {
+      padding: 9px 12px !important;
+      border-radius: 9px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      color: var(--text-secondary, var(--text)) !important;
+      gap: 11px !important;
+      transition: all 0.15s ease;
+    }
+    .sidebar-menu-item:hover {
+      background: var(--surface-hover) !important;
+      color: var(--text) !important;
+    }
+    .sidebar-menu-item.active {
+      background: var(--accent-soft, rgba(229,57,53,0.1)) !important;
+      color: var(--accent) !important;
+      font-weight: 600 !important;
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .sidebar-menu-item .icon {
+      width: 18px !important; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      color: currentColor;
+      flex-shrink: 0;
+    }
+    .sidebar-menu-item .badge {
+      background: var(--surface-hover) !important;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px !important;
+      border-radius: 999px !important;
+      border: 1px solid var(--border);
+    }
+    .sidebar-menu-item .ready-dot {
+      box-shadow: 0 0 0 2px var(--bg-elevated, var(--bg));
+    }
+    #theme-toggle-btn { margin-top: 8px !important; }
+
+    /* === Main content === */
+    .main-content {
+      padding: 36px 48px !important;
+      gap: 24px !important;
+      background: var(--bg) !important;
+    }
+
+    /* === Page header === */
+    .page-header {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 18px !important;
+      margin-bottom: 32px !important;
+      padding-bottom: 24px !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .page-header .page-icon {
+      width: 48px !important; height: 48px !important;
+      border-radius: 12px;
+      background: var(--accent-soft, rgba(229,57,53,0.1));
+      display: flex !important; align-items: center; justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+      font-size: 0 !important;
+    }
+    .page-header > div {
+      flex: 1;
+      min-width: 0;
+    }
+    .page-header h2 {
+      font-size: 28px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.6px;
+      line-height: 1.2;
+      color: var(--text);
+      margin: 4px 0 6px !important;
+    }
+    .page-header .page-sub {
+      font-size: 14px !important;
+      color: var(--text-secondary, var(--text-muted)) !important;
+      line-height: 1.5;
+      margin-top: 0 !important;
+      max-width: 640px;
+    }
+
+    /* === Cards === */
+    .main-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 14px !important;
+      padding: 24px !important;
+      transition: border-color 0.2s ease;
+    }
+    .main-card:hover { border-color: var(--border-strong, var(--border)); }
+    .main-card h3 {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+      margin: 0 0 18px !important;
+    }
+    .main-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+      gap: 20px !important;
+    }
+
+    /* === Channel rows in overview card → premium === */
+    .channel-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 14px !important;
+      padding: 14px 0 !important;
+      border: none !important;
+    }
+    .channel-row + .channel-row {
+      border-top: 1px solid var(--border) !important;
+    }
+    .channel-row .channel-icon {
+      width: 36px !important; height: 36px !important;
+      border-radius: 10px;
+      background: var(--surface-hover);
+      color: var(--text-secondary, var(--text-muted));
+      display: flex !important; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 0 !important;
+    }
+    .channel-row .channel-name {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: var(--text) !important;
+      letter-spacing: -0.1px;
+    }
+    .channel-row .channel-status {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      padding: 5px 12px !important;
+      border-radius: 999px !important;
+      letter-spacing: 0.2px;
+    }
+    .channel-row .channel-status.ok {
+      background: rgba(74,222,128,0.12) !important;
+      color: #16a34a !important;
+      border: 1px solid rgba(74,222,128,0.25);
+    }
+    .channel-row .channel-status.err {
+      background: rgba(248,113,113,0.12) !important;
+      color: #dc2626 !important;
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+    .channel-row .channel-status.wait {
+      background: var(--surface-hover) !important;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+      border: 1px solid var(--border);
+    }
+
+    /* === Quick command list (overview) === */
+    .how-item {
+      display: flex !important;
+      align-items: center !important;
+      gap: 14px !important;
+      padding: 12px 0 !important;
+      border-top: 1px solid var(--border);
+    }
+    .how-item:first-child { border-top: none; padding-top: 0; }
+    .how-item strong {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px;
+      background: var(--accent-soft, rgba(229,57,53,0.08));
+      color: var(--accent) !important;
+      border-radius: 8px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px !important;
+      font-weight: 600;
+      min-width: 0 !important;
+    }
+    .how-item span {
+      font-size: 13px !important;
+      color: var(--text-secondary, var(--text-muted)) !important;
+      line-height: 1.5;
+    }
+
+    /* === Buttons === */
+    .btn {
+      border-radius: 10px !important;
+      font-weight: 600 !important;
+      transition: all 0.2s ease !important;
+      letter-spacing: -0.1px;
+    }
+    .btn-primary {
+      background: var(--gradient-accent, var(--accent)) !important;
+      box-shadow: 0 4px 14px var(--accent-glow, rgba(229,57,53,0.2));
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+    }
+    .btn-secondary:hover {
+      background: var(--surface-hover) !important;
+      border-color: var(--border-strong, var(--border)) !important;
+    }
+    .btn-small {
+      padding: 8px 14px !important;
+      font-size: 12px !important;
+      border-radius: 8px !important;
+    }
+
+    /* === Ready pill === */
+    .ready-pill {
+      padding: 6px 14px !important;
+      border-radius: 999px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.1px;
+    }
+
+    /* === Activity panel === */
+    .activity-panel {
+      width: 320px !important;
+      background: var(--bg-elevated, var(--bg)) !important;
+      border-left: 1px solid var(--border) !important;
+    }
+    .activity-header {
+      padding: 24px !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .activity-header h3 {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-tertiary, var(--text-muted));
+    }
+    .activity-list { padding: 8px 24px !important; }
+    .activity-item {
+      padding: 14px 0 !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .activity-time {
+      font-size: 10px !important;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .activity-text {
+      font-size: 13px !important;
+      color: var(--text) !important;
+      margin-top: 4px !important;
+      line-height: 1.5;
+    }
+    .activity-empty {
+      padding: 60px 20px !important;
+      font-size: 13px;
+      color: var(--text-tertiary, var(--text-muted)) !important;
+    }
+
+    /* === Modals premium === */
+    .modal-overlay {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.5) !important;
+    }
+    .modal-box, .cron-detail-box, .zalo-mgr-box {
+      border-radius: 18px !important;
+      box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.5)) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    /* === Knowledge cards === */
+    .know-folder {
+      padding: 14px !important;
+      border-radius: 12px !important;
+      gap: 14px !important;
+    }
+    .know-folder.active {
+      background: var(--accent-soft) !important;
+      color: var(--accent) !important;
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 1px var(--accent), 0 8px 24px var(--accent-glow);
+    }
+    .know-folder.active .icon-wrap {
+      background: white !important;
+      color: var(--accent) !important;
+    }
+    .know-folder.active .count { color: var(--accent) !important; opacity: 0.7; }
+
+    /* === Coming soon === */
+    .coming-soon {
+      padding: 80px 20px !important;
+    }
+    .coming-soon .big-icon { color: var(--text-tertiary, var(--text-muted)); margin-bottom: 16px; }
+    .coming-soon h3 {
+      font-size: 18px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px !important;
+    }
+    .coming-soon p { color: var(--text-tertiary, var(--text-muted)); font-size: 13px; }
+
+    /* === Embed wraps === */
+    .embed-wrap {
+      border-radius: 14px !important;
+      box-shadow: var(--shadow);
+    }
+
+    /* === Scrollbar premium === */
+    .main-content::-webkit-scrollbar,
+    .activity-list::-webkit-scrollbar,
+    .know-files-list::-webkit-scrollbar { width: 8px; }
+    .main-content::-webkit-scrollbar-track,
+    .activity-list::-webkit-scrollbar-track,
+    .know-files-list::-webkit-scrollbar-track { background: transparent; }
+    .main-content::-webkit-scrollbar-thumb,
+    .activity-list::-webkit-scrollbar-thumb,
+    .know-files-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .main-content::-webkit-scrollbar-thumb:hover {
+      background: var(--border-strong, var(--text-tertiary, var(--text-muted)));
+    }
+
+    /* === Responsive === */
+    @media (max-width: 1280px) {
+      .main-content { padding: 28px 32px !important; }
+    }
+    @media (max-width: 1024px) {
+      .sidebar { width: 220px !important; }
+      .main-content { padding: 24px 28px !important; }
+      .page-header h2 { font-size: 24px !important; }
+    }
+  </style>
 </head>
 <body>
 
@@ -381,7 +813,6 @@
             <h3>Kết nối</h3>
             <div class="channel-row"><span class="channel-icon" data-icon="send"></span><span class="channel-name">Telegram Bot</span><span class="channel-status wait" id="ch-telegram">...</span></div>
             <div class="channel-row"><span class="channel-icon" data-icon="message-circle"></span><span class="channel-name">Zalo</span><span class="channel-status wait" id="ch-zalo">...</span></div>
-            <div class="channel-row"><span class="channel-icon" data-icon="calendar"></span><span class="channel-name">Google</span><span class="channel-status wait" id="ch-google">...</span></div>
             <div class="channel-row"><span class="channel-icon" data-icon="cpu"></span><span class="channel-name">AI (9Router)</span><span class="channel-status wait" id="ch-ai">...</span></div>
             <div class="channel-row"><span class="channel-icon" data-icon="zap"></span><span class="channel-name">Gateway</span><span class="channel-status wait" id="ch-gateway">...</span></div>
           </div>
@@ -457,7 +888,7 @@
           </div>
           <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
             <button class="btn btn-secondary btn-small" onclick="recheckZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Kiểm tra</button>
-            <button class="btn btn-secondary btn-small" onclick="reconnectZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Đổi tài khoản</button>
+            <button class="btn btn-secondary btn-small" id="reconnect-zalo-btn" onclick="reconnectZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Đổi tài khoản</button>
           </div>
         </div>
 
@@ -657,15 +1088,32 @@
 
   <!-- Zalo QR Modal -->
   <div class="modal-overlay" id="zalo-modal" onclick="if(event.target===this)closeZaloModal()">
-    <div class="modal-box">
-      <h3>Quét mã QR Zalo</h3>
-      <p>Mở Zalo trên điện thoại, vào Quét QR và quét mã bên dưới</p>
-      <div id="zalo-modal-loading" style="padding:40px 0;color:var(--text-muted);font-size:13px">Đang tạo mã QR...</div>
-      <img id="zalo-modal-qr" style="display:none" alt="QR">
-      <div id="zalo-modal-success" class="modal-success" style="display:none">Đăng nhập thành công!</div>
-      <div style="margin-top:12px">
-        <button class="btn btn-secondary btn-small" onclick="refreshZaloQR()" id="zalo-modal-refresh">Làm mới mã QR</button>
-        <button class="btn btn-secondary btn-small" onclick="closeZaloModal()">Đóng</button>
+    <div class="modal-box" style="max-width:420px;padding:32px 28px">
+      <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.3px;margin:0 0 8px">Đăng nhập Zalo</h3>
+      <p style="font-size:13px;color:var(--text-secondary,var(--text-muted));margin:0 0 24px;line-height:1.6">Mở app Zalo trên điện thoại, vào <strong style="color:var(--text)">Quét QR</strong> và quét mã bên dưới</p>
+
+      <div id="zalo-modal-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;color:var(--text-tertiary,var(--text-muted));font-size:13px;gap:14px">
+        <div class="spinner"></div>
+        <div>Đang tạo mã QR...</div>
+      </div>
+
+      <div style="display:inline-block;padding:18px;background:white;border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,0.15);margin:0 auto">
+        <img id="zalo-modal-qr" style="display:none;width:220px;height:220px;background:none" alt="QR">
+      </div>
+
+      <div id="zalo-modal-success" style="display:none;padding:32px 0 16px;text-align:center">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(74,222,128,0.12);color:#16a34a;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;border:1px solid rgba(74,222,128,0.3)">
+          <span data-icon="check" data-icon-size="32"></span>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">Đăng nhập thành công</div>
+        <div style="font-size:12px;color:var(--text-tertiary,var(--text-muted))">Cửa sổ sẽ tự đóng trong 3 giây</div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+        <button class="btn btn-secondary btn-small" onclick="refreshZaloQR()" id="zalo-modal-refresh" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px">
+          <span data-icon="refresh-cw" data-icon-size="14"></span> Làm mới QR
+        </button>
+        <button class="btn btn-secondary btn-small" onclick="closeZaloModal()" style="flex:1">Đóng</button>
       </div>
     </div>
   </div>
@@ -827,7 +1275,8 @@
     }
 
     function setAllChannels(status) {
-      ['ch-telegram','ch-zalo','ch-ai','ch-google','ch-gateway'].forEach(id => setChannelStatus(id, status));
+      // Google removed from status check — integration not implemented yet.
+      ['ch-telegram','ch-zalo','ch-ai','ch-gateway'].forEach(id => setChannelStatus(id, status));
     }
 
     async function checkChannels() {
@@ -843,7 +1292,6 @@
           ['ch-ai', r.ai],
           ['ch-telegram', r.telegram],
           ['ch-zalo', r.zalo],
-          ['ch-google', r.google],
         ];
         for (let i = 0; i < channels.length; i++) {
           await new Promise(res => setTimeout(res, 200));
@@ -887,7 +1335,6 @@
               setChannelStatus('ch-telegram', r.telegram);
               setChannelStatus('ch-zalo', r.zalo);
               setChannelStatus('ch-ai', r.ai);
-              setChannelStatus('ch-google', r.google);
               setChannelStatus('ch-gateway', r.gateway);
               if (r.gateway === 'ok' && r.ai === 'ok') { addActivity('Tất cả kênh đã kết nối'); break; }
             } catch {}
@@ -906,24 +1353,46 @@
     // Zalo QR
     let zaloQRPoll = null;
     async function reconnectZalo() {
+      // Defensive null-check: button id must match markup. Previous version
+      // silently crashed on getElementById returning null → modal never opened.
       const btn = document.getElementById('reconnect-zalo-btn');
-      btn.disabled = true; btn.classList.add('loading');
-      document.getElementById('zalo-modal').classList.add('show');
-      document.getElementById('zalo-modal-loading').style.display = 'block';
-      document.getElementById('zalo-modal-qr').style.display = 'none';
-      document.getElementById('zalo-modal-success').style.display = 'none';
-      await window.claw.setupZalo();
-      btn.disabled = false; btn.classList.remove('loading');
+      if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+      // Open modal FIRST so CEO sees progress even if backend is slow
+      const modal = document.getElementById('zalo-modal');
+      if (!modal) { console.error('[reconnectZalo] zalo-modal element missing'); return; }
+      modal.classList.add('show');
+      // Ensure icons inside modal (check, refresh-cw) are mounted — they may
+      // have been added after initial mountIcons() call if markup was rewritten.
+      try { mountIcons(); } catch {}
+      const loading = document.getElementById('zalo-modal-loading');
+      const qrImg = document.getElementById('zalo-modal-qr');
+      const success = document.getElementById('zalo-modal-success');
+      if (loading) { loading.style.display = 'flex'; loading.textContent = 'Đang tạo mã QR...'; }
+      if (qrImg) qrImg.style.display = 'none';
+      if (success) success.style.display = 'none';
+      try {
+        await window.claw.setupZalo();
+      } catch (e) {
+        console.error('[reconnectZalo] setupZalo failed:', e);
+        if (loading) loading.textContent = 'Lỗi tạo QR. Thử lại.';
+      } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+      }
       startZaloQRPoll();
     }
     async function refreshZaloQR() {
       const btn = document.getElementById('zalo-modal-refresh');
-      btn.disabled = true; btn.classList.add('loading');
-      document.getElementById('zalo-modal-loading').style.display = 'block';
-      document.getElementById('zalo-modal-qr').style.display = 'none';
-      document.getElementById('zalo-modal-success').style.display = 'none';
-      await window.claw.setupZalo();
-      btn.disabled = false; btn.classList.remove('loading');
+      if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+      const loading = document.getElementById('zalo-modal-loading');
+      const qrImg = document.getElementById('zalo-modal-qr');
+      const success = document.getElementById('zalo-modal-success');
+      if (loading) { loading.style.display = 'flex'; loading.textContent = 'Đang tạo mã QR mới...'; }
+      if (qrImg) qrImg.style.display = 'none';
+      if (success) success.style.display = 'none';
+      try {
+        await window.claw.setupZalo();
+      } catch (e) { console.error('[refreshZaloQR] failed:', e); }
+      if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
       startZaloQRPoll();
     }
     function startZaloQRPoll() {
@@ -935,27 +1404,32 @@
           const qr = await window.claw.findZaloQR();
           if (qr) {
             qrFound = true;
-            document.getElementById('zalo-modal-loading').style.display = 'none';
-            document.getElementById('zalo-modal-qr').src = qr;
-            document.getElementById('zalo-modal-qr').style.display = 'block';
+            const loading = document.getElementById('zalo-modal-loading');
+            const qrImg = document.getElementById('zalo-modal-qr');
+            if (loading) loading.style.display = 'none';
+            if (qrImg) { qrImg.src = qr; qrImg.style.display = 'block'; }
           }
         }
         if (qrFound) {
           const status = await window.claw.checkZaloLogin();
-          if (status.loggedIn) {
+          if (status && status.loggedIn) {
             clearInterval(zaloQRPoll); zaloQRPoll = null;
-            document.getElementById('zalo-modal-qr').style.display = 'none';
-            document.getElementById('zalo-modal-success').style.display = 'block';
+            const qrImg = document.getElementById('zalo-modal-qr');
+            const success = document.getElementById('zalo-modal-success');
+            if (qrImg) qrImg.style.display = 'none';
+            if (success) success.style.display = 'block';
             setChannelStatus('ch-zalo', 'ok');
             addActivity('Zalo đã kết nối thành công');
-            setTimeout(closeZaloModal, 2000);
+            // Auto-close modal 3s after successful login (CEO sees confirmation)
+            setTimeout(closeZaloModal, 3000);
           }
         }
         if (attempts > 120) { clearInterval(zaloQRPoll); zaloQRPoll = null; }
       }, 1000);
     }
     function closeZaloModal() {
-      document.getElementById('zalo-modal').classList.remove('show');
+      const modal = document.getElementById('zalo-modal');
+      if (modal) modal.classList.remove('show');
       if (zaloQRPoll) { clearInterval(zaloQRPoll); zaloQRPoll = null; }
     }
 
@@ -1684,28 +2158,76 @@
       try { return new Date(iso || Date.now()).toLocaleTimeString('vi-VN', { hour12:false }); }
       catch { return ''; }
     }
+    // Track when Dashboard first loaded so we can show "starting up Xs/~25s" countdown
+    // for Zalo (which spawns openzca subprocess + needs to establish session — typically
+    // 10-20 seconds after Electron boot). Telegram is much faster (~2s for getMe probe).
+    const _dashboardLoadedAt = Date.now();
+    const ZALO_EXPECTED_STARTUP_SEC = 25; // generous bound for openzca + listener handshake
+    const TELEGRAM_EXPECTED_STARTUP_SEC = 5;
+    function elapsedSec() {
+      return Math.floor((Date.now() - _dashboardLoadedAt) / 1000);
+    }
     function applyChannelStatus(channel, info, checkedAt) {
       const dot = document.getElementById('ready-dot-' + channel);
       const pill = document.getElementById('ready-pill-' + channel);
       const pillText = document.getElementById('ready-pill-' + channel + '-text');
       if (!info) return;
-      const state = info.ready ? 'ready' : 'not-ready';
-      const checkedLabel = 'kiểm tra ' + fmtTime(checkedAt);
-      let summary;
-      if (channel === 'telegram') {
-        summary = info.ready
-          ? 'Sẵn sàng nhận tin' + (info.username ? ' · @' + info.username : '') + ' · ' + checkedLabel
-          : 'Chưa sẵn sàng — ' + (info.error || 'không rõ lỗi');
+      const elapsed = elapsedSec();
+      const expected = channel === 'zalo' ? ZALO_EXPECTED_STARTUP_SEC : TELEGRAM_EXPECTED_STARTUP_SEC;
+      const isStartingUp = !info.ready && elapsed < expected;
+
+      let state, summary;
+      if (info.ready) {
+        state = 'ready';
+        if (channel === 'telegram') {
+          summary = '✓ Sẵn sàng — anh nhắn Telegram cho bot ngay'
+            + (info.username ? ' (@' + info.username + ')' : '');
+        } else {
+          summary = '✓ Sẵn sàng — anh nhắn Zalo cho bot ngay';
+        }
+      } else if (isStartingUp) {
+        // Still within expected boot window — show progress, NOT error.
+        // No emojis (premium UI rule) — use plain text stages.
+        state = 'checking';
+        if (channel === 'telegram') {
+          summary = 'Đang kết nối Telegram (' + elapsed + 's)';
+        } else {
+          // Progressive stages: detect via listenerPid (process IS the source of
+          // truth) + elapsed time. listenerPid xuất hiện khi openzca đã spawn xong.
+          let stage;
+          if (info.listenerPid) {
+            stage = 'Đã kết nối server, đang xác thực phiên Zalo';
+          } else if (elapsed < 3) {
+            stage = 'Đang khởi động openzca';
+          } else if (elapsed < 8) {
+            stage = 'Đang nạp cookies phiên Zalo';
+          } else if (elapsed < 15) {
+            stage = 'Đang kết nối server Zalo';
+          } else {
+            stage = 'Server Zalo đang xác thực (chậm hơn bình thường)';
+          }
+          summary = stage + ' (' + elapsed + 's / ~' + expected + 's)';
+        }
       } else {
-        summary = info.ready
-          ? 'Sẵn sàng nhận tin · listener pid ' + info.listenerPid +
-            (info.lastRefreshMinAgo != null ? ' · cache ' + info.lastRefreshMinAgo + ' phút trước' : '') +
-            ' · ' + checkedLabel
-          : 'Chưa sẵn sàng — ' + (info.error || 'không rõ lỗi');
+        // Past expected window AND still not ready — show specific actionable error
+        state = 'not-ready';
+        const errMsg = info.error || 'không rõ lỗi';
+        if (channel === 'zalo') {
+          // probe.reason: 'no-credentials' | 'session-expired' | undefined (generic)
+          if (info.reason === 'no-credentials') {
+            summary = 'Chưa đăng nhập Zalo — vào tab Zalo bấm "Đổi tài khoản" để quét QR';
+          } else if (info.reason === 'session-expired') {
+            summary = errMsg; // already specific from probe
+          } else {
+            summary = 'Zalo chưa sẵn sàng — ' + errMsg;
+          }
+        } else {
+          summary = 'Telegram chưa sẵn sàng — ' + errMsg;
+        }
       }
       if (dot) {
         dot.setAttribute('data-state', state);
-        dot.setAttribute('title', summary);
+        dot.setAttribute('title', summary + ' · kiểm tra ' + fmtTime(checkedAt));
       }
       if (pill) pill.setAttribute('data-state', state);
       if (pillText) pillText.textContent = summary;
@@ -1717,14 +2239,34 @@
       applyChannelStatus('zalo', payload.zalo, payload.checkedAt);
     }
     if (window.claw.onChannelStatus) window.claw.onChannelStatus(handleChannelStatus);
+    // Re-render every 1s during boot phase so the "Xs/~25s" countdown ticks
+    // even when no new probe data arrives. Stops once both channels ready or
+    // we're well past the expected window.
+    const _statusRefreshInterval = setInterval(() => {
+      const elapsed = elapsedSec();
+      const tg = _lastChannelStatus.telegram;
+      const zl = _lastChannelStatus.zalo;
+      const tgReady = tg && tg.ready;
+      const zlReady = zl && zl.ready;
+      // Stop ticking once both ready OR past 60s (well past expected window)
+      if ((tgReady && zlReady) || elapsed > 60) {
+        clearInterval(_statusRefreshInterval);
+        return;
+      }
+      if (tg) applyChannelStatus('telegram', tg, _lastChannelStatus.checkedAt);
+      if (zl) applyChannelStatus('zalo', zl, _lastChannelStatus.checkedAt);
+    }, 1000);
     async function recheckTelegram() {
       const pill = document.getElementById('ready-pill-telegram');
       if (pill) pill.setAttribute('data-state', 'checking');
       document.getElementById('ready-pill-telegram-text').textContent = 'Đang kiểm tra...';
       try {
         const info = await window.claw.checkTelegramReady();
-        applyChannelStatus('telegram', info, new Date().toISOString());
-        showToast(info.ready ? '✓ Telegram sẵn sàng' : ('Telegram lỗi: ' + (info.error||'')), info.ready ? 'success' : 'error');
+        // Store fresh probe so the 1s tick uses new data instead of stale
+        _lastChannelStatus.telegram = info;
+        _lastChannelStatus.checkedAt = new Date().toISOString();
+        applyChannelStatus('telegram', info, _lastChannelStatus.checkedAt);
+        showToast(info.ready ? '✓ Telegram sẵn sàng — anh nhắn được rồi' : ('Telegram lỗi: ' + (info.error||'')), info.ready ? 'success' : 'error');
       } catch (e) { showToast('Lỗi kiểm tra: ' + e.message, 'error'); }
     }
     async function recheckZalo() {
@@ -1733,8 +2275,10 @@
       document.getElementById('ready-pill-zalo-text').textContent = 'Đang kiểm tra...';
       try {
         const info = await window.claw.checkZaloReady();
-        applyChannelStatus('zalo', info, new Date().toISOString());
-        showToast(info.ready ? '✓ Zalo sẵn sàng' : ('Zalo: ' + (info.error||'')), info.ready ? 'success' : 'error');
+        _lastChannelStatus.zalo = info;
+        _lastChannelStatus.checkedAt = new Date().toISOString();
+        applyChannelStatus('zalo', info, _lastChannelStatus.checkedAt);
+        showToast(info.ready ? '✓ Zalo sẵn sàng — anh nhắn được rồi' : ('Zalo: ' + (info.error||'')), info.ready ? 'success' : 'error');
       } catch (e) { showToast('Lỗi kiểm tra: ' + e.message, 'error'); }
     }
     async function testTelegramSend() {

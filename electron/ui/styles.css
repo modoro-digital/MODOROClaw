@@ -1,51 +1,81 @@
-/* MODOROClaw — Clean, professional UI */
+/* MODOROClaw — Premium UI for business owners
+   Aesthetic reference: Linear, Stripe, Apple Mail, Vercel
+   No emojis. Generous whitespace. Sophisticated typography. */
 
-/* Dark theme (default) */
+/* Dark theme (default) — deep neutrals with subtle warmth */
 :root,
 html[data-theme="dark"] {
-  --bg: #0D1117;
-  --surface: #161B22;
-  --surface-hover: #1C2128;
-  --border: rgba(48,54,82,0.5);
-  --text: #F0F6FC;
-  --text-muted: #8b949e;
+  --bg: #0A0A0F;
+  --bg-elevated: #14141B;
+  --surface: #14141B;
+  --surface-hover: #1C1C25;
+  --surface-elevated: #1C1C25;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --text: #F5F5F7;
+  --text-secondary: #A1A1A6;
+  --text-tertiary: #6E6E73;
+  --text-muted: #A1A1A6;
   --accent: #E53935;
-  --accent-hover: #C62828;
+  --accent-hover: #F44336;
+  --accent-soft: rgba(229,57,53,0.12);
+  --accent-glow: rgba(229,57,53,0.20);
   --secondary: #1A237E;
-  --success: #4CAF50;
-  --warning: #FFA726;
-  --danger: #EF5350;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --danger: #F87171;
   --radius: 12px;
-  --shadow: 0 4px 16px rgba(0,0,0,0.4);
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.6);
+  --gradient-brand: linear-gradient(135deg, #1A1A24 0%, #14141B 50%, #0F0F16 100%);
+  --gradient-accent: linear-gradient(135deg, #E53935 0%, #C62828 100%);
 }
 
-/* Light theme */
+/* Light theme — soft warm neutrals */
 html[data-theme="light"] {
-  --bg: #F5F5F7;
+  --bg: #FAFAFA;
+  --bg-elevated: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-hover: #EEEEF2;
-  --border: rgba(0,0,0,0.12);
-  --text: #1C1C1E;
-  --text-muted: #6B7280;
-  --accent: #E53935;
-  --accent-hover: #C62828;
+  --surface-hover: #F5F5F7;
+  --surface-elevated: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
+  --text: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary: #A1A1A6;
+  --text-muted: #6E6E73;
+  --accent: #C62828;
+  --accent-hover: #B71C1C;
+  --accent-soft: rgba(198,40,40,0.08);
+  --accent-glow: rgba(198,40,40,0.15);
   --secondary: #1A237E;
-  --success: #2E7D32;
-  --warning: #F57C00;
-  --danger: #C62828;
-  --shadow: 0 4px 16px rgba(0,0,0,0.08);
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.10);
+  --gradient-brand: linear-gradient(135deg, #FFFFFF 0%, #F8F8F9 50%, #F0F0F3 100%);
+  --gradient-accent: linear-gradient(135deg, #C62828 0%, #B71C1C 100%);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-app-region: no-drag;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
 }
 
 /* Title bar drag area */
