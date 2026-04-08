@@ -13,7 +13,7 @@
     "postinstall": "node scripts/fix-better-sqlite3.js",
     "smoke": "node scripts/smoke-test.js",
     "prebuild:vendor": "node scripts/prebuild-vendor.js",
-    "build:win": "node scripts/smoke-test.js && electron-builder --win",
+    "build:win": "node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --win",
     "build:mac": "npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --mac",
     "build:mac:arm": "TARGET_ARCH=arm64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --arm64",
     "build:mac:intel": "TARGET_ARCH=x64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --x64",

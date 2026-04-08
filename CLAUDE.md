@@ -79,6 +79,21 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 
 ## Current patches (cần auto-restore trên fresh install)
 
+### Full-bundled Windows EXE (Node + 4 plugins) — zero install dependency
+**Goal:** User cài MODOROClaw EXE → mở app → chạy ngay, không cần Node.js, npm, hoặc bất kỳ thứ gì cài sẵn. Trước đó, Windows EXE (89 MB) phụ thuộc system Node + npm install các plugin qua wizard. Sếp Mac đã có cách này từ trước (DMG bundles vendor/), giờ Win EXE cũng vậy.
+**Implementation:**
+- `electron/scripts/prebuild-vendor.js` extended cho `win32` (trước chỉ darwin):
+  - Download `node-v22.11.0-win-x64.zip` (hoặc arm64) từ nodejs.org, SHA256 verify, extract via Windows native `C:\Windows\System32\tar.exe` (BSD tar handle drive letters đúng — Git Bash MSYS tar interpret `C:\` như URL scheme và fail)
+  - Layout: `vendor/node/node.exe` flat (no `bin/` subdir như Mac), `vendor/npm.cmd` etc cùng cấp
+  - npm install 4 pinned packages (openclaw, openzca, 9router, @tuyenhx/openzalo) vào `vendor/node_modules/`
+- `electron/main.js` `getBundledNodeBin()` + `augmentPathWithBundledNode()` cập nhật để pick `vendor/node/node.exe` trên Windows (đã có sẵn cho Mac path `vendor/node/bin/node`)
+- `electron/scripts/smoke-test.js` đổi `isMacBuild` → `isBundledBuild` (fail nếu vendor dir tồn tại nhưng version drift, bất kể platform)
+- `package.json` `build:win` chain: `prebuild:vendor → smoke-test → electron-builder --win`
+- electron-builder `extraResources` đã có `from: vendor → to: vendor` filter copies vendor sang `resources/vendor/` cho cả Mac + Win
+**Trade-off:** EXE size 89 MB → **436 MB** (NSIS LZMA nén 1.8 GB raw). Đổi lại: zero dependency, fresh install zero network requirement (trừ ChatGPT Plus OAuth lúc dùng).
+**Auto-apply:** Đã wire vào `build:win` script — mỗi lần `npm run build:win`, prebuild auto-chạy nếu cần (skip silent nếu vendor đã extracted cho cùng target). Smoke test fail nếu version drift hoặc vendor structure sai.
+**Verify:** `dist/win-unpacked/resources/vendor/node/node.exe` exists, `dist/win-unpacked/resources/vendor/node_modules/openclaw/openclaw.mjs` exists, EXE size > 400 MB. Cài EXE trên máy KHÔNG có Node → wizard chạy xong → bot reply Telegram OK trong ~30s.
+
 ### Boot latency: bot không reply 2-3 phút sau startup (9router cold-start race)
 **Bug:** Sau khi mở MODOROClaw, Telegram + Zalo nhận được tin nhưng KHÔNG reply trong 2-3 phút. Sidebar dot xanh từ giây đầu (sai). Zalo tệ hơn Telegram.
 **Root cause** (verified bằng systematic-debugging Explore agent):

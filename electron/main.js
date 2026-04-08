@@ -139,8 +139,13 @@ function getBundledVendorDir() {
 function getBundledNodeBin() {
   const v = getBundledVendorDir();
   if (!v) return null;
+  // Layout differs per platform (set by prebuild-vendor.js):
+  //   darwin: vendor/node/bin/node     (Mac tar.gz extracts with bin/ subdir)
+  //   win32:  vendor/node/node.exe     (Windows zip is flat at top level)
   const isWin = process.platform === 'win32';
-  const candidate = path.join(v, 'node', 'bin', isWin ? 'node.exe' : 'node');
+  const candidate = isWin
+    ? path.join(v, 'node', 'node.exe')
+    : path.join(v, 'node', 'bin', 'node');
   try { if (fs.existsSync(candidate)) return candidate; } catch {}
   return null;
 }
@@ -159,13 +164,16 @@ function getBundledOpenClawCliJs() {
 function augmentPathWithBundledNode() {
   const v = getBundledVendorDir();
   if (!v) return;
-  // Prepend TWO dirs: (1) vendor/node/bin for the real Node binary itself,
+  // Prepend TWO dirs: (1) the directory containing the bundled `node` binary,
   // (2) vendor/node_modules/.bin for the shims of bundled npm packages
   // (openclaw, openzca, 9router). Without the second dir, the openzalo
   // plugin running inside the gateway calls `spawn('openzca', ...)` and gets
   // ENOENT because the bundled openzca shim is not on PATH.
+  // Layout differs: darwin has vendor/node/bin/, win32 has vendor/node/ flat.
+  const isWin = process.platform === 'win32';
+  const nodeDir = isWin ? path.join(v, 'node') : path.join(v, 'node', 'bin');
   const pathsToAdd = [
-    path.join(v, 'node', 'bin'),
+    nodeDir,
     path.join(v, 'node_modules', '.bin'),
   ].filter(p => fs.existsSync(p));
   if (pathsToAdd.length === 0) return;

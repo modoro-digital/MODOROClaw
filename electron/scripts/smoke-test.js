@@ -64,19 +64,20 @@ const PINNED = {
 // TEST 1: Vendor packages exist at pinned versions (Mac builds only)
 // =========================================================================
 section('Vendor packages');
-// Detect what we're building for. Only Mac builds need the vendor dir.
-// On Win-only builds we silently skip vendor checks (no warn noise).
-const isMacBuild = process.platform === 'darwin' || process.env.TARGET_PLATFORM === 'darwin' || process.env.MODORO_CHECK_VENDOR === '1';
+// Bundled builds (Mac .dmg AND Windows .exe) ship vendor/ with Node + plugins.
+// If vendor/node_modules exists, prebuild ran and we MUST verify versions.
+// If absent, build chain hasn't run prebuild yet (e.g. standalone smoke run) — skip silently.
+const isBundledBuild = fs.existsSync(VENDOR_NM);
 
 function checkVendorVersion(pkgName, expected) {
   const pkgJsonPath = pkgName.startsWith('@')
     ? path.join(VENDOR_NM, ...pkgName.split('/'), 'package.json')
     : path.join(VENDOR_NM, pkgName, 'package.json');
   if (!fs.existsSync(pkgJsonPath)) {
-    if (isMacBuild) {
-      fail(`vendor ${pkgName}`, `not installed at ${pkgJsonPath}. Run: npm run prebuild:vendor`);
+    if (isBundledBuild) {
+      fail(`vendor ${pkgName}`, `vendor dir present but ${pkgName} missing. Run: rm -rf vendor && npm run prebuild:vendor`);
     }
-    // Win-only build: vendor is irrelevant, skip silently
+    // No vendor dir at all — standalone smoke, skip silently
     return;
   }
   let actual;
