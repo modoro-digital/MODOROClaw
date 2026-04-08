@@ -79,6 +79,14 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 
 ## Current patches (cần auto-restore trên fresh install)
 
+### `pdf-parse` downgrade từ 2.4.5 → 1.1.1 (DOMMatrix not defined fix)
+**Bug:** Knowledge tab upload PDF báo `[PDF extract failed: DOMMatrix is not defined]`. CEO không xem được nội dung PDF đã upload.
+**Root cause:** `pdf-parse@2.4.5` là rewrite mới dựa trên pdfjs internals dùng browser-only DOM API (`DOMMatrix`, `Path2D`, ...). Khi gọi từ Electron main process (Node-only context, không có DOM), pdfjs throws ngay lúc init. Đây là known incompatibility — pdf-parse 2.x chỉ chạy trong renderer process hoặc browser, không phải main.
+**Fix:** Pin về `pdf-parse@1.1.1` — version legacy battle-tested dùng pdfjs-dist 2.x cũ, hoàn toàn compatible với Node main process. API surface giống nhau (`require('pdf-parse')(buf).then(d => d.text)`).
+**Auto-apply:** Pin trong `electron/package.json` (`"pdf-parse": "1.1.1"`, không dùng caret để tránh drift). Postinstall không cần thay đổi.
+**Verify:** `node -e "require('pdf-parse')(require('fs').readFileSync('any.pdf')).then(d => console.log(d.numpages))"` trả về số trang. Knowledge tab upload PDF → hiện text extracted, KHÔNG có dòng `[PDF extract failed]`.
+
+
 ### `electron/patches/openzalo-openzca.ts`
 **Bug:** OpenZalo plugin dùng `shell: true` trên Windows + arg có newline → `cmd.exe` silently truncate → group replies không bao giờ đến
 **Fix:** Dùng `spawn('node', [cliPath, ...args], { shell: false })` để bypass cmd.exe
