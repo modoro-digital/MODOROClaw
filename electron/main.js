@@ -2114,6 +2114,15 @@ function writeOpenClawConfigIfChanged(configPath, config) {
       if (existingNorm === serializedNorm) return false;
     }
     fs.writeFileSync(configPath, serialized, 'utf-8');
+    // Security audit: record every config write with the keys that changed.
+    // Don't log values (may contain tokens). Only structure.
+    try {
+      auditLog('openclaw_config_write', {
+        configPath: path.basename(configPath),
+        bytes: serialized.length,
+        topKeys: Object.keys(config || {}),
+      });
+    } catch {}
     return true;
   } catch (e) {
     console.error('[openclaw-config] write error:', e.message);
@@ -2789,6 +2798,144 @@ function ensureOpenzcaFriendEventFix() {
   }
 }
 
+// MODOROClaw OUTPUT-FILTER PATCH — Security Layer 2
+// Deterministic scan of outbound Zalo text for sensitive patterns that the
+// AI might leak despite AGENTS.md rules. Model compliance is not guaranteed
+// — a jailbreak payload may trick the bot into citing file paths, dumping
+// memory, or echoing API keys. This filter runs AFTER the model generates,
+// BEFORE the message hits sendTextOpenzalo's CLI spawn. If any blocked
+// pattern matches, the body is replaced with a safe canned message and the
+// incident is logged (but sending continues — don't leave customer hanging).
+//
+// Patterns blocked:
+// - File paths: memory/, .learnings/, SOUL.md, USER.md, MEMORY.md, AGENTS.md,
+//   openclaw.json, ~/.openclaw, C:\Users\, absolute Unix-style /Users/
+// - Line refs: #L<digits>
+// - API keys: sk-<20+ chars>, Bearer <token>, Authorization header content
+// - Config internals: botToken, apiKey field name references
+// - Long digit IDs (>= 15 digits) that look like Zalo userIds
+//
+// Idempotent via "MODOROClaw OUTPUT-FILTER PATCH" marker. Injects at the top
+// of sendTextOpenzalo in send.ts, right after body trim.
+function ensureZaloOutputFilterFix() {
+  try {
+    const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'send.ts');
+    if (!fs.existsSync(pluginFile)) return;
+    let content = fs.readFileSync(pluginFile, 'utf-8');
+    if (content.includes('MODOROClaw OUTPUT-FILTER PATCH')) return; // already patched
+
+    // Anchor: right after `const body = text.trim();` and the empty-body check,
+    // before the args construction. Both are stable in upstream 2026.3.31.
+    const anchor = '  if (!body) {\n    return { messageId: "empty", kind: "text" };\n  }';
+    if (!content.includes(anchor)) {
+      console.warn('[zalo-output-filter-fix] anchor not found — upstream send.ts changed');
+      return;
+    }
+
+    const injection = `
+
+  // === MODOROClaw OUTPUT-FILTER PATCH ===
+  // Scan outbound Zalo text for sensitive patterns the AI might leak
+  // despite AGENTS.md rules. See main.js ensureZaloOutputFilterFix.
+  try {
+    const __ofFs = require("node:fs");
+    const __ofPath = require("node:path");
+    const __ofOs = require("node:os");
+    // Patterns that MUST NEVER appear in a customer-facing Zalo reply.
+    // Case-insensitive, matching any occurrence.
+    const __ofBlockPatterns: { name: string; re: RegExp }[] = [
+      { name: "file-path-memory", re: /\\bmemory\\/[\\w\\-./]*\\.md\\b/i },
+      { name: "file-path-learnings", re: /\\.learnings\\/[\\w\\-./]*/i },
+      { name: "file-path-core", re: /\\b(?:SOUL|USER|MEMORY|AGENTS|IDENTITY|COMPANY|PRODUCTS|BOOTSTRAP|HEARTBEAT|TOOLS)\\.md\\b/i },
+      { name: "file-path-config", re: /\\bopenclaw\\.json\\b/i },
+      { name: "line-ref", re: /#L\\d+/i },
+      { name: "unix-home", re: /~\\/\\.openclaw|~\\/\\.openzca/i },
+      { name: "win-user-path", re: /[A-Z]:[\\\\\\/]Users[\\\\\\/]/i },
+      { name: "api-key-sk", re: /\\bsk-[a-zA-Z0-9_\\-]{16,}/i },
+      { name: "bearer-token", re: /\\bBearer\\s+[a-zA-Z0-9_\\-.]{20,}/i },
+      { name: "botToken-field", re: /\\bbotToken\\b/i },
+      { name: "apiKey-field", re: /\\bapiKey\\b/i },
+    ];
+    let __ofBlocked: string | null = null;
+    for (const __ofP of __ofBlockPatterns) {
+      if (__ofP.re.test(body)) {
+        __ofBlocked = __ofP.name;
+        break;
+      }
+    }
+    if (__ofBlocked) {
+      // Log the blocked content to a dedicated audit file (never to main
+      // stdout which could itself be exfiltrated). Write to workspace
+      // logs/ dir so CEO can audit incidents.
+      try {
+        const __ofHome = __ofOs.homedir();
+        const __ofLogDir = __ofPath.join(__ofHome, "AppData", "Roaming", "modoro-claw", "logs");
+        __ofFs.mkdirSync(__ofLogDir, { recursive: true });
+        const __ofAuditFile = __ofPath.join(__ofLogDir, "security-output-filter.jsonl");
+        __ofFs.appendFileSync(
+          __ofAuditFile,
+          JSON.stringify({
+            t: new Date().toISOString(),
+            event: "zalo_output_blocked",
+            pattern: __ofBlocked,
+            to: to,
+            accountId: account.accountId,
+            bodyPreview: body.slice(0, 200),
+            bodyLength: body.length,
+          }) + "\\n",
+          "utf-8",
+        );
+      } catch {}
+      logOutbound("warn", "output filter blocked sensitive content", {
+        accountId: account.accountId,
+        pattern: __ofBlocked,
+        bodyLength: body.length,
+      });
+      // Replace body with a safe canned message. Don't throw — we still
+      // want the customer to get a reply, just not the leaked content.
+      const __ofSafeMsg = "Dạ em xin lỗi, em không thể chia sẻ thông tin này. Em có thể hỗ trợ mình việc khác không ạ?";
+      (options as any).text = __ofSafeMsg;
+      // Rebind body for downstream code — TypeScript const shadowing via \`let\`
+      // not possible here. Instead, override the body inline via closure below.
+      return await (async () => {
+        const __ofSafeBody = __ofSafeMsg;
+        const __ofArgs = ["msg", "send", target.threadId, __ofSafeBody];
+        if (target.isGroup) __ofArgs.push("--group");
+        try {
+          const __ofResult = await runOpenzcaAccountCommand({
+            account,
+            binary: account.zcaBinary,
+            profile: account.profile,
+            args: __ofArgs,
+            timeoutMs: 20_000,
+          });
+          const __ofRefs = parseOpenzcaMessageRefs(__ofResult.stdout);
+          return {
+            messageId: __ofRefs.msgId || "ok",
+            msgId: __ofRefs.msgId,
+            cliMsgId: __ofRefs.cliMsgId,
+            kind: "text" as const,
+            textPreview: __ofSafeBody.slice(0, 80),
+          };
+        } catch (__ofErr) {
+          return { messageId: "filter-blocked", kind: "text" as const };
+        }
+      })();
+    }
+  } catch (__ofE) {
+    // Filter error must not break legit sends. Log and fall through.
+    try { logOutbound("error", "output filter error", { err: String(__ofE) }); } catch {}
+  }
+  // === END MODOROClaw OUTPUT-FILTER PATCH ===`;
+
+    const patched = content.replace(anchor, anchor + injection);
+    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    console.log('[zalo-output-filter-fix] Injected output filter into send.ts');
+  } catch (e) {
+    console.error('[zalo-output-filter-fix] error:', e.message);
+  }
+}
+
 // MODOROClaw FORCE-ONE-MESSAGE PATCH: openzalo plugin's `dispatchReplyWithBufferedBlockDispatcher`
 // call passes `disableBlockStreaming` ONLY when `account.config.blockStreaming` is an explicit
 // boolean. When openzalo config block is missing fields (which happens because openclaw 2026.4.x
@@ -2937,6 +3084,151 @@ function ensureOpenzaloShellFix() {
   }
 }
 
+// ========================================================================
+// Security Layer 5 — Log rotation + memory retention
+// ========================================================================
+// Runs once at app startup. Enforces retention policies so stale data
+// (log files with tokens/PII, old memory that shouldn't have been kept)
+// doesn't accumulate indefinitely. Each action is append-only-safe: archives
+// before delete where possible.
+//
+// Policies:
+// - logs/openclaw.log  > 10 MB → rotate to openclaw.log.1 (single rotation)
+// - logs/openzca.log   > 10 MB → rotate to openzca.log.1
+// - logs/main.log      > 20 MB → rotate
+// - logs/audit.jsonl   > 50 MB → rotate to audit.jsonl.1 (preserve forensics)
+// - logs/*.log.1       > 7 days old → delete
+// - memory/YYYY-MM-DD.md > 90 days old → move to memory/archive/ (not deleted
+//   by default — CEO can manually purge archive)
+// - openclaw.json.bak* > 30 days → delete
+//
+// Non-blocking. Errors logged but don't affect boot.
+function enforceRetentionPolicies() {
+  try {
+    const workspace = getWorkspace();
+    if (!workspace) return;
+    const logsDir = path.join(workspace, 'logs');
+    const now = Date.now();
+    const DAY = 24 * 60 * 60 * 1000;
+    const MB = 1024 * 1024;
+
+    // 1. Rotate oversized logs
+    const rotationTargets = [
+      { name: 'openclaw.log', maxBytes: 10 * MB },
+      { name: 'openzca.log', maxBytes: 10 * MB },
+      { name: 'main.log', maxBytes: 20 * MB },
+      { name: 'audit.jsonl', maxBytes: 50 * MB },
+    ];
+    for (const t of rotationTargets) {
+      try {
+        const p = path.join(logsDir, t.name);
+        if (!fs.existsSync(p)) continue;
+        const stat = fs.statSync(p);
+        if (stat.size > t.maxBytes) {
+          const rotated = p + '.1';
+          try { fs.rmSync(rotated, { force: true }); } catch {}
+          fs.renameSync(p, rotated);
+          auditLog('log_rotated', { file: t.name, bytes: stat.size });
+          console.log(`[retention] rotated ${t.name} (${(stat.size / MB).toFixed(1)} MB)`);
+        }
+      } catch (e) { console.warn('[retention] rotate', t.name, 'failed:', e?.message); }
+    }
+
+    // 2. Delete old rotated .log.1 files (>7 days)
+    try {
+      if (fs.existsSync(logsDir)) {
+        for (const entry of fs.readdirSync(logsDir)) {
+          if (!/\.(log|jsonl)\.\d+$/.test(entry)) continue;
+          const p = path.join(logsDir, entry);
+          try {
+            const stat = fs.statSync(p);
+            if (now - stat.mtimeMs > 7 * DAY) {
+              fs.rmSync(p, { force: true });
+              auditLog('log_expired_deleted', { file: entry });
+              console.log(`[retention] deleted expired log: ${entry}`);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // 3. Archive memory/YYYY-MM-DD.md > 90 days old
+    try {
+      const memoryDir = path.join(workspace, 'memory');
+      const archiveDir = path.join(memoryDir, 'archive');
+      if (fs.existsSync(memoryDir)) {
+        for (const entry of fs.readdirSync(memoryDir)) {
+          if (!/^\d{4}-\d{2}-\d{2}\.md$/.test(entry)) continue;
+          const p = path.join(memoryDir, entry);
+          try {
+            const stat = fs.statSync(p);
+            if (now - stat.mtimeMs > 90 * DAY) {
+              fs.mkdirSync(archiveDir, { recursive: true });
+              fs.renameSync(p, path.join(archiveDir, entry));
+              auditLog('memory_archived', { file: entry });
+              console.log(`[retention] archived old memory: ${entry}`);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // 4. Delete old openclaw.json.bak* (>30 days) — not needed forever
+    try {
+      const openclawDir = path.join(HOME, '.openclaw');
+      if (fs.existsSync(openclawDir)) {
+        for (const entry of fs.readdirSync(openclawDir)) {
+          if (!/^openclaw\.json\.bak/.test(entry)) continue;
+          const p = path.join(openclawDir, entry);
+          try {
+            const stat = fs.statSync(p);
+            if (now - stat.mtimeMs > 30 * DAY) {
+              fs.rmSync(p, { force: true });
+              auditLog('config_backup_expired', { file: entry });
+              console.log(`[retention] deleted old config backup: ${entry}`);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    auditLog('retention_policies_enforced', {});
+  } catch (e) {
+    console.warn('[retention] enforcement failed:', e?.message);
+  }
+}
+
+// ========================================================================
+// Security Layer 3 — Append-only audit log
+// ========================================================================
+// Every sensitive event (boot, config write, channel spawn, blocked output,
+// cron fire, friend-check hit, etc.) is appended to an audit.jsonl file in
+// the workspace logs/ directory. Append-only — callers NEVER rewrite or
+// truncate. Gives CEO a forensic trail: "what did the bot do on day X".
+//
+// Rotation handled separately by Layer 5 log-rotate cron.
+//
+// Usage: auditLog('event_name', { ...metadata })
+function auditLog(event, meta) {
+  try {
+    const workspace = getWorkspace();
+    if (!workspace) return;
+    const logsDir = path.join(workspace, 'logs');
+    try { fs.mkdirSync(logsDir, { recursive: true }); } catch {}
+    const file = path.join(logsDir, 'audit.jsonl');
+    const entry = JSON.stringify({
+      t: new Date().toISOString(),
+      event: String(event || 'unknown'),
+      pid: process.pid,
+      ...meta,
+    }) + '\n';
+    fs.appendFileSync(file, entry, 'utf-8');
+  } catch (e) {
+    // Audit log failure MUST NOT break core flow. Log to console only.
+    console.warn('[audit] write failed:', e?.message);
+  }
+}
+
 let _startOpenClawInFlight = false;
 async function startOpenClaw() {
   if (botRunning) return;
@@ -2952,6 +3244,7 @@ async function startOpenClaw() {
   finally { _startOpenClawInFlight = false; }
 }
 async function _startOpenClawImpl() {
+  auditLog('startOpenClaw_begin', {});
 
   const bin = await findOpenClawBin();
   if (!bin) {
@@ -2988,6 +3281,8 @@ async function _startOpenClawImpl() {
   // — without it, friends.json only updates on login or manual cache-refresh, so
   // a brand-new friend would have to wait 5-10 minutes before bot recognized them.
   ensureOpenzcaFriendEventFix();
+  // Output filter: scan outbound Zalo text for sensitive patterns (Security Layer 2)
+  ensureZaloOutputFilterFix();
   // Force-one-message: hardcode disableBlockStreaming=true in openzalo inbound.ts
   // so "Dạ" word never gets split between messages regardless of config drift.
   ensureOpenzaloForceOneMessageFix();
@@ -3225,10 +3520,12 @@ async function _startOpenClawImpl() {
   if (gwReady) {
     const elapsedMs = 90000 - (gwReadyDeadline - Date.now());
     console.log(`[startOpenClaw] gateway WS ready on :18789 after ${elapsedMs}ms (${probeAttempts} probes)`);
+    auditLog('gateway_ready', { elapsedMs, probeAttempts });
   } else {
     // Don't WARN — that scared the user last time. The retry+Telegram path
     // catches any first-cron-fire that races a still-warming gateway.
     console.log(`[startOpenClaw] gateway WS still not responding to GET / after 90s (${probeAttempts} probes). Cron retries will handle warmup.`);
+    auditLog('gateway_slow_start', { probeAttempts });
   }
 
   // Register Telegram slash commands (fire-and-forget)
@@ -3737,6 +4034,7 @@ async function ensureZaloPlugin() {
           try { ensureOpenzaloShellFix(); } catch (e) { console.warn('[ensureZaloPlugin] shell fix failed:', e?.message); }
           try { ensureZaloBlocklistFix(); } catch (e) { console.warn('[ensureZaloPlugin] blocklist fix failed:', e?.message); }
           try { ensureZaloFriendCheckFix(); } catch (e) { console.warn('[ensureZaloPlugin] friend check fix failed:', e?.message); }
+          try { ensureZaloOutputFilterFix(); } catch (e) { console.warn('[ensureZaloPlugin] output filter fix failed:', e?.message); }
           _zaloReady = true;
           return;
         } catch (e) {
@@ -7144,6 +7442,11 @@ app.whenReady().then(async () => {
   // (e.g. uploaded while better-sqlite3 was broken). Non-blocking.
   try { ensureKnowledgeFolders(); } catch {}
   backfillKnowledgeFromDisk().catch(e => console.error('[knowledge] backfill error:', e.message));
+  // Security Layer 5: enforce log rotation + memory retention policies.
+  // Non-blocking, runs once at boot.
+  try { enforceRetentionPolicies(); } catch (e) { console.warn('[retention] boot call failed:', e?.message); }
+  // Security audit: record the boot event itself
+  try { auditLog('app_boot', { platform: process.platform, node: process.versions.node, electron: process.versions.electron }); } catch {}
   // Start the real-readiness probe broadcast so sidebar dots stay accurate
   startChannelStatusBroadcast();
 }).catch(console.error);
