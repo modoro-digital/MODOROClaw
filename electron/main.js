@@ -4099,6 +4099,18 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       return { success: false, error: 'IDENTITY.md không tồn tại — workspace bị hỏng' };
     }
 
+    // Delete BOOTSTRAP.md — it's single-use, wizard completion means bot is
+    // bootstrapped. Leaving it wastes ~1.5k chars per session-bootstrap read.
+    // The file itself says "Sau lần chạy đầu: Xoá file này" — we enforce that
+    // here so the bot doesn't need to remember to do it.
+    try {
+      const bootstrapPath = path.join(ws, 'BOOTSTRAP.md');
+      if (fs.existsSync(bootstrapPath)) {
+        fs.unlinkSync(bootstrapPath);
+        console.log('[save-personalization] BOOTSTRAP.md deleted (wizard complete)');
+      }
+    } catch (e) { console.warn('[save-personalization] BOOTSTRAP.md cleanup failed:', e?.message); }
+
     return { success: true };
   } catch (e) {
     console.error('[save-personalization] error:', e?.message || e);
