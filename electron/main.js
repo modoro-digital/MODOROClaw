@@ -2837,6 +2837,16 @@ async function _startOpenClawImpl() {
     // locations: Windows AppData, Mac Homebrew (both Intel + Apple Silicon),
     // /usr/local, ~/.npm-global, nvm/volta/asdf shims. First match wins.
     const ozCliCandidates = [];
+    // HIGHEST PRIORITY (all platforms): bundled vendor. On fresh installs the
+    // user has NO npm-installed openzca, only what we ship. Before this fix,
+    // Windows fresh install logged "openzca CLI not found in any known
+    // location" because candidates only listed %APPDATA%/npm/... paths.
+    try {
+      const bundledVendorDir = getBundledVendorDir();
+      if (bundledVendorDir) {
+        ozCliCandidates.push(path.join(bundledVendorDir, 'node_modules', 'openzca', 'dist', 'cli.js'));
+      }
+    } catch {}
     if (process.platform === 'win32') {
       ozCliCandidates.push(
         path.join(HOME, 'AppData', 'Roaming', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'),
