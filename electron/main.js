@@ -295,20 +295,74 @@ async function ensureVendorExtracted({ onProgress } = {}) {
 
   if (onProgress) onProgress({ percent: 0, message: 'Đang chuẩn bị giải nén...' });
 
-  // Clean up any partial extract from a previous failed launch
-  try { if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true }); } catch {}
+  // CRITICAL: if an old vendor dir exists (from a previous install with a
+  // different bundle version), we MUST NOT call fs.rmSync here — Windows can
+  // take 5-15 minutes to sync-delete 126k+ small files while Defender scans
+  // each one, which blocks the Electron main thread → splash freezes with
+  // "not responding". Instead rename the old dir to a stale suffix (instant
+  // atomic NTFS rename) and delete it in background AFTER the main thread
+  // is free. Next launch will also clean up any leftover stale dirs.
+  try {
+    if (fs.existsSync(targetDir)) {
+      const stale = targetDir + '.stale-' + Date.now();
+      try {
+        fs.renameSync(targetDir, stale);
+        console.log('[vendor-extract] old vendor renamed to', stale, '(will be deleted in background)');
+        // Background delete — doesn't block main thread. Errors ignored
+        // because the rename already freed the target path for fresh extract.
+        setTimeout(() => {
+          fs.rm(stale, { recursive: true, force: true }, (err) => {
+            if (err) console.warn('[vendor-extract] background cleanup failed:', err.message);
+            else console.log('[vendor-extract] background cleanup done:', stale);
+          });
+        }, 10000);
+      } catch (renameErr) {
+        // Rename can fail if the old dir has locked files. Fall back to
+        // cleaning known-bad subdirs only, leaving the rest for tar overwrite.
+        console.warn('[vendor-extract] rename failed, tar will overwrite in place:', renameErr.message);
+      }
+    }
+  } catch {}
+  // Also clean up any stale dirs from prior interrupted runs (background,
+  // doesn't block).
+  try {
+    setTimeout(() => {
+      try {
+        const entries = fs.readdirSync(userData);
+        for (const e of entries) {
+          if (e.startsWith('vendor.stale-')) {
+            fs.rm(path.join(userData, e), { recursive: true, force: true }, () => {});
+          }
+        }
+      } catch {}
+    }, 15000);
+  } catch {}
   try { fs.mkdirSync(userData, { recursive: true }); } catch {}
 
   // Verify SHA256 BEFORE extraction — defends against corrupted install, disk
   // bit rot, MITM at download (if future version streams from network).
   if (meta.sha256 && onProgress) {
-    onProgress({ percent: 2, message: 'Đang kiểm tra tính toàn vẹn...' });
+    onProgress({ percent: 1, message: 'Đang kiểm tra tính toàn vẹn...' });
     try {
       const crypto = require('crypto');
       const hash = crypto.createHash('sha256');
-      const stream = fs.createReadStream(tarPath);
+      const stream = fs.createReadStream(tarPath, { highWaterMark: 4 * 1024 * 1024 });
+      const totalBytes = meta.archive_bytes || 0;
+      let readBytes = 0;
+      let lastSha256Percent = 1;
       await new Promise((resolve, reject) => {
-        stream.on('data', (chunk) => hash.update(chunk));
+        stream.on('data', (chunk) => {
+          hash.update(chunk);
+          readBytes += chunk.length;
+          if (totalBytes > 0) {
+            // 1-4% range during SHA256 check so splash shows steady progress
+            const pct = 1 + Math.floor((readBytes / totalBytes) * 3);
+            if (pct > lastSha256Percent) {
+              lastSha256Percent = pct;
+              onProgress({ percent: pct, message: 'Đang kiểm tra tính toàn vẹn...' });
+            }
+          }
+        });
         stream.on('end', resolve);
         stream.on('error', reject);
       });
