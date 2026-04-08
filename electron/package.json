@@ -214,11 +214,17 @@
         }
       ]
     },
+    "compression": "normal",
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MODOROClaw"
+      "shortcutName": "MODOROClaw",
+      "deleteAppDataOnUninstall": false
     }
   },
   "devDependencies": {
