@@ -2745,6 +2745,9 @@ async function _startOpenClawImpl() {
   // Ensure config is valid before anything (patches run in parallel with 9router warmup)
   await ensureDefaultConfig();
 
+  // Heal missing node_modules link (plugin copied out of vendor → ESM deps
+  // unreachable → "Cannot find module 'zod'"). Must run BEFORE gateway spawn.
+  ensureOpenzaloNodeModulesLink();
   // Re-apply OpenZalo shell fix in case plugin was reinstalled
   ensureOpenzaloShellFix();
   // Re-apply blocklist injection (idempotent)
@@ -3295,6 +3298,53 @@ ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
 // Setup Zalo via OpenZalo (openzca CLI for QR login)
 // Pre-install openzalo plugin + patch (runs once in background at startup)
 let _zaloReady = false;
+// Idempotent heal: ensure <plugin>/node_modules exists and points at
+// vendor/node_modules. Runs on EVERY boot, independent of whether the plugin
+// was freshly copied or already present. Without this, users who installed
+// a previous build (where we copied the plugin but NOT the deps link) are
+// permanently broken on "Cannot find module 'zod'" even after upgrading.
+function ensureOpenzaloNodeModulesLink() {
+  try {
+    const extensionsDir = path.join(HOME, '.openclaw', 'extensions', 'openzalo');
+    if (!fs.existsSync(path.join(extensionsDir, 'openclaw.plugin.json'))) return;
+    const pluginNodeModules = path.join(extensionsDir, 'node_modules');
+    // Already linked/present? Verify it has zod (the critical dep) to be sure
+    // it's not an empty or partial dir from a previous broken attempt.
+    if (fs.existsSync(path.join(pluginNodeModules, 'zod'))) return;
+    const vendorDir = getBundledVendorDir();
+    if (!vendorDir) return;
+    const vendorNodeModules = path.join(vendorDir, 'node_modules');
+    if (!fs.existsSync(vendorNodeModules)) return;
+    // Clean up broken state if exists
+    if (fs.existsSync(pluginNodeModules)) {
+      try { fs.rmSync(pluginNodeModules, { recursive: true, force: true }); } catch {}
+    }
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+    try {
+      fs.symlinkSync(vendorNodeModules, pluginNodeModules, linkType);
+      console.log('[ensureOpenzaloNodeModulesLink] linked →', vendorNodeModules, `(${linkType})`);
+    } catch (linkErr) {
+      console.warn('[ensureOpenzaloNodeModulesLink] symlink failed, copying deps:', linkErr?.message);
+      fs.mkdirSync(pluginNodeModules, { recursive: true });
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(extensionsDir, 'package.json'), 'utf-8'));
+        for (const dep of Object.keys(pkg.dependencies || {})) {
+          const src = path.join(vendorNodeModules, dep);
+          const dst = path.join(pluginNodeModules, dep);
+          if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            fs.cpSync(src, dst, { recursive: true, force: false, errorOnExist: false });
+            console.log('[ensureOpenzaloNodeModulesLink] copied', dep);
+          }
+        }
+      } catch (copyErr) {
+        console.error('[ensureOpenzaloNodeModulesLink] CRITICAL fallback copy failed:', copyErr?.message);
+      }
+    }
+  } catch (e) {
+    console.error('[ensureOpenzaloNodeModulesLink] error:', e?.message || e);
+  }
+}
+
 async function ensureZaloPlugin() {
   if (_zaloReady) return;
   try {
@@ -3304,6 +3354,9 @@ async function ensureZaloPlugin() {
     // on a fresh Mac with ZERO Node.js installed.
     const extensionsDir = path.join(HOME, '.openclaw', 'extensions', 'openzalo');
     const vendorDir = getBundledVendorDir();
+    // Heal missing node_modules link even when plugin is already present
+    // (upgrade path from prior build that copied plugin without linking deps).
+    ensureOpenzaloNodeModulesLink();
     if (vendorDir && !fs.existsSync(path.join(extensionsDir, 'openclaw.plugin.json'))) {
       const bundledPlugin = path.join(vendorDir, 'node_modules', '@tuyenhx', 'openzalo');
       if (fs.existsSync(path.join(bundledPlugin, 'openclaw.plugin.json'))) {
@@ -3325,6 +3378,48 @@ async function ensureZaloPlugin() {
               writeOpenClawConfigIfChanged(configPath, cfg);
             }
           } catch (e) { console.warn('[ensureZaloPlugin] config update failed:', e?.message); }
+          // CRITICAL: after copying the plugin OUT of vendor/node_modules, its
+          // hoisted dependencies (zod etc) are no longer reachable via Node's
+          // normal module resolution. The plugin is "type": "module" (ESM) so
+          // NODE_PATH fallback doesn't apply either. Without this, the gateway
+          // logs "Cannot find module 'zod'" forever and the openzalo plugin
+          // never loads → Zalo is completely dead even though openzca session
+          // is fine. Fix: create a directory junction (Windows) / symlink
+          // (Mac/Linux) from <plugin>/node_modules → vendor/node_modules. One
+          // link, zero file copies, plugin sees all hoisted deps.
+          try {
+            const pluginNodeModules = path.join(extensionsDir, 'node_modules');
+            const vendorNodeModules = path.join(vendorDir, 'node_modules');
+            if (fs.existsSync(vendorNodeModules) && !fs.existsSync(pluginNodeModules)) {
+              const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+              try {
+                fs.symlinkSync(vendorNodeModules, pluginNodeModules, linkType);
+                console.log('[ensureZaloPlugin] linked node_modules →', vendorNodeModules, `(${linkType})`);
+              } catch (linkErr) {
+                // Junction can fail on rare Windows setups (non-NTFS, permission
+                // edge cases). Fall back to copying ONLY the declared deps from
+                // the plugin's package.json. Zero-dep libs like zod are tiny.
+                console.warn('[ensureZaloPlugin] junction failed, copying deps explicitly:', linkErr?.message);
+                try {
+                  fs.mkdirSync(pluginNodeModules, { recursive: true });
+                  const pkgPath = path.join(extensionsDir, 'package.json');
+                  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+                  const deps = Object.keys(pkg.dependencies || {});
+                  for (const dep of deps) {
+                    const src = path.join(vendorNodeModules, dep);
+                    const dst = path.join(pluginNodeModules, dep);
+                    if (fs.existsSync(src) && !fs.existsSync(dst)) {
+                      fs.cpSync(src, dst, { recursive: true, force: false, errorOnExist: false });
+                      console.log('[ensureZaloPlugin] copied dep', dep);
+                    }
+                  }
+                } catch (copyErr) {
+                  console.error('[ensureZaloPlugin] CRITICAL: dep copy fallback ALSO failed:', copyErr?.message);
+                  console.error('[ensureZaloPlugin] Zalo plugin WILL fail to load with "Cannot find module"');
+                }
+              }
+            }
+          } catch (e) { console.warn('[ensureZaloPlugin] node_modules link setup failed:', e?.message); }
           // CRITICAL: the bundled plugin ships the upstream openzca.ts (no
           // MODOROClaw patches). We MUST apply our two runtime patches
           // immediately after copy so the very first gateway boot reads the
