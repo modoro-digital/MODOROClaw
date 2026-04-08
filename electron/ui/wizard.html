@@ -625,9 +625,30 @@
             </div>
 
             <div class="wz-field">
-              <label class="wz-label">Mô tả ngắn doanh nghiệp</label>
-              <textarea class="wz-textarea" id="company-desc" rows="3" placeholder="1-2 câu mô tả công ty, sản phẩm chính, khách hàng mục tiêu. Ví dụ: Chúng tôi bán cà phê specialty cho dân văn phòng, có 3 chi nhánh ở Sài Gòn."></textarea>
-              <p class="wz-help">Bot dùng đoạn này để trả lời khách Zalo có ngữ cảnh đúng — không generic.</p>
+              <label class="wz-label">Mô tả doanh nghiệp</label>
+              <p class="wz-help" style="margin-top: -2px; margin-bottom: 10px;">Trả lời 3 câu hỏi ngắn — em sẽ tự ghép thành đoạn mô tả cho bot dùng. Không cần viết văn dài.</p>
+
+              <div class="wz-field" style="margin-bottom: 10px;">
+                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Bán gì? (sản phẩm hoặc dịch vụ chính)</label>
+                <input type="text" class="wz-input" id="biz-product" placeholder="Ví dụ: cà phê specialty và máy pha gia đình">
+              </div>
+
+              <div class="wz-field" style="margin-bottom: 10px;">
+                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Bán cho ai? (khách hàng mục tiêu)</label>
+                <input type="text" class="wz-input" id="biz-audience" placeholder="Ví dụ: dân văn phòng và cafe lover ở Sài Gòn">
+              </div>
+
+              <div class="wz-field" style="margin-bottom: 10px;">
+                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Điểm nổi bật / quy mô (tùy chọn)</label>
+                <input type="text" class="wz-input" id="biz-highlight" placeholder="Ví dụ: 3 chi nhánh, giao tận nơi trong 1 giờ">
+              </div>
+
+              <div id="biz-preview-wrap" class="wz-hidden" style="margin-top: 12px; padding: 12px 14px; background: var(--surface-2, #f5f5f7); border-radius: 10px; border: 1px solid var(--border, #e5e5ea);">
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary, #888); margin-bottom: 6px;">Bot sẽ thấy</div>
+                <div id="biz-preview" style="font-size: 14px; line-height: 1.5; color: var(--text-primary, #1d1d1f);"></div>
+              </div>
+
+              <textarea id="company-desc" style="display: none;"></textarea>
             </div>
 
             <div class="wz-field">
@@ -1449,6 +1470,48 @@
       await window.claw.wizardComplete();
     }
 
+    // ===== Business description auto-assembly =====
+    // User fills 3 short fields (product, audience, highlight). We assemble
+    // a natural Vietnamese sentence and stuff it into the hidden #company-desc
+    // textarea so the existing save handler works unchanged.
+    function assembleBusinessDesc() {
+      const product = (document.getElementById('biz-product').value || '').trim();
+      const audience = (document.getElementById('biz-audience').value || '').trim();
+      const highlight = (document.getElementById('biz-highlight').value || '').trim();
+      const hidden = document.getElementById('company-desc');
+      const previewWrap = document.getElementById('biz-preview-wrap');
+      const previewEl = document.getElementById('biz-preview');
+
+      // Need at least one field to show preview
+      if (!product && !audience && !highlight) {
+        if (hidden) hidden.value = '';
+        if (previewWrap) previewWrap.classList.add('wz-hidden');
+        return;
+      }
+
+      const parts = [];
+      if (product && audience) {
+        parts.push(`Chúng tôi cung cấp ${product} cho ${audience}.`);
+      } else if (product) {
+        parts.push(`Chúng tôi cung cấp ${product}.`);
+      } else if (audience) {
+        parts.push(`Khách hàng của chúng tôi: ${audience}.`);
+      }
+      if (highlight) parts.push(highlight.endsWith('.') ? highlight : highlight + '.');
+      const assembled = parts.join(' ');
+
+      if (hidden) hidden.value = assembled;
+      if (previewEl) previewEl.textContent = assembled;
+      if (previewWrap) previewWrap.classList.remove('wz-hidden');
+    }
+
+    function bindBusinessDescAssembly() {
+      ['biz-product', 'biz-audience', 'biz-highlight'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', assembleBusinessDesc);
+      });
+    }
+
     // ===== Init =====
     document.addEventListener('DOMContentLoaded', () => {
       // Restore theme
@@ -1458,6 +1521,7 @@
 
       mountIcons();
       bindChoices();
+      bindBusinessDescAssembly();
       setProgress(1);
 
       // Theme toggle
