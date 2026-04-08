@@ -84,6 +84,24 @@ if exist "%~dp0knowledge\nhan-vien\index.md" del "%~dp0knowledge\nhan-vien\index
 echo   Xoa better-sqlite3 binary (postinstall se tai lai dung ABI)...
 if exist "%~dp0electron\node_modules\better-sqlite3\build" rmdir /s /q "%~dp0electron\node_modules\better-sqlite3\build"
 
+:: ==========================================================================
+:: OPTIONAL: wipe bundled vendor/ (Node.exe + 4 plugins ~1.8 GB)
+:: ==========================================================================
+:: Vendor folder contains the pre-bundled Node.exe + openclaw + openzca +
+:: 9router + @tuyenhx/openzalo that ships INSIDE the EXE (resources/vendor/).
+:: Wiping it forces the next `npm run build:win` to re-download Node from
+:: nodejs.org and re-run npm install (~3-5 phut, 1.8 GB disk).
+::
+:: Default: KEEP vendor (faster rebuilds during normal dev workflow).
+:: Pass argument "--full" to also wipe vendor (true fresh-install simulation).
+::   Usage: RESET.bat --full
+:: ==========================================================================
+if /i "%~1"=="--full" (
+  echo   --full flag: xoa vendor bundled Node.exe + plugins...
+  if exist "%~dp0electron\vendor" rmdir /s /q "%~dp0electron\vendor"
+  echo   Vendor da xoa. Lan build:win tiep theo se re-download Node + npm install ~3-5 phut.
+)
+
 :: Force RUN.bat to trigger npm install (which fires postinstall fix-better-sqlite3.js).
 :: We don't wipe the whole node_modules because that's slow (~5 min). Instead, mark
 :: a sentinel that RUN.bat checks; OR just rely on RUN.bat's `if not exist node_modules`
@@ -96,5 +114,7 @@ popd
 echo.
 echo   Done! May sach nhu moi.
 echo   Chay RUN.bat de test tu dau.
+echo.
+echo   Tip: chay "RESET.bat --full" de wipe ca vendor (re-download Node + plugins).
 echo.
 pause
