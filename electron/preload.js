@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('claw', {
 
   // Dashboard
   getDashboard: () => ipcRenderer.invoke('get-dashboard'),
+  getOverviewData: () => ipcRenderer.invoke('get-overview-data'),
   checkAllChannels: () => ipcRenderer.invoke('check-all-channels'),
   getBotStatus: () => ipcRenderer.invoke('get-bot-status'),
   toggleBot: () => ipcRenderer.invoke('toggle-bot'),

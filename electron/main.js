@@ -7666,6 +7666,273 @@ ipcMain.handle('get-dashboard', async () => {
   return data;
 });
 
+// =========================================================================
+// Overview page data — single round-trip for the redesigned home page.
+// Returns greeting (CEO name + date), recent activity feed, upcoming cron
+// firings, action items (alerts), and today-stats. CEO opens dashboard,
+// sees this in <100ms — no separate IPCs needed.
+// =========================================================================
+
+// Map raw audit event names to human-readable Vietnamese labels for CEO.
+// Boring system events (config_write, log_rotated) are filtered out.
+const _OVERVIEW_EVENT_LABELS = {
+  app_boot: { label: 'Khởi động bot', icon: 'zap', show: true },
+  gateway_ready: { label: 'Bot sẵn sàng nhận tin', icon: 'check', show: true },
+  gateway_slow_start: { label: 'Bot khởi động chậm', icon: 'clock', show: true },
+  zalo_output_blocked: { label: 'Bộ lọc chặn 1 tin Zalo', icon: 'shield', show: true },
+  cron_fired: { label: 'Cron đã chạy', icon: 'calendar', show: true },
+  cron_failed: { label: 'Cron lỗi', icon: 'alert', show: true },
+  zalo_owner_set: { label: 'Đã đặt chủ Zalo', icon: 'user', show: true },
+  system_resume: { label: 'Mac thức dậy', icon: 'power', show: true },
+  system_suspend: { label: 'Mac đang ngủ', icon: 'moon', show: true },
+};
+
+function _readJsonlTail(filePath, maxLines) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const stat = fs.statSync(filePath);
+    // For small files just read all. For larger, read last 64KB to keep this fast.
+    const SIZE = stat.size;
+    if (SIZE === 0) return [];
+    const READ_BYTES = Math.min(SIZE, 64 * 1024);
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(READ_BYTES);
+    fs.readSync(fd, buf, 0, READ_BYTES, SIZE - READ_BYTES);
+    fs.closeSync(fd);
+    const text = buf.toString('utf-8');
+    const lines = text.split('\n').filter(Boolean);
+    // If we sliced mid-line, drop the first (likely partial) line
+    if (SIZE > READ_BYTES && lines.length > 1) lines.shift();
+    const out = [];
+    for (let i = lines.length - 1; i >= 0 && out.length < maxLines; i--) {
+      try { out.push(JSON.parse(lines[i])); } catch {}
+    }
+    return out; // newest first
+  } catch (e) {
+    console.warn('[overview] readJsonlTail error:', e?.message);
+    return [];
+  }
+}
+
+function _readCeoNameFromIdentity() {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return '';
+    const idPath = path.join(ws, 'IDENTITY.md');
+    if (!fs.existsSync(idPath)) return '';
+    const content = fs.readFileSync(idPath, 'utf-8');
+    // Look for "Cách xưng hô" line. Wizard fills this with "anh/chị <name>".
+    const match = content.match(/Cách xưng hô:\*\*\s*([^\n\[]+)/i)
+               || content.match(/Cách xưng hô:\s*([^\n\[]+)/i);
+    if (!match) return '';
+    let name = match[1].trim();
+    // Extract just the human name from "em — gọi chủ nhân là anh Huy"
+    // or "anh/chị Tên" — strip prefixes
+    name = name.replace(/^(em|tôi|mình)[\s—-]*gọi chủ nhân là\s+/i, '');
+    name = name.replace(/^(anh|chị|anh\/chị|quý Sếp)\s+/i, '');
+    name = name.split(/[,(]/)[0].trim();
+    return name.slice(0, 40);
+  } catch { return ''; }
+}
+
+// Compute the next firing time for a schedule item with `time: "HH:MM"` or
+// `time: "Mỗi N phút"`. Returns ISO timestamp or null.
+function _nextFireTime(timeStr, now = new Date()) {
+  if (!timeStr) return null;
+  const everyMatch = String(timeStr).match(/Mỗi\s+(\d+)\s*phút/i);
+  if (everyMatch) {
+    const n = parseInt(everyMatch[1], 10);
+    if (!isFinite(n) || n < 1) return null;
+    const next = new Date(now.getTime() + n * 60 * 1000);
+    return next.toISOString();
+  }
+  const hhmm = String(timeStr).match(/^(\d{1,2}):(\d{2})$/);
+  if (hhmm) {
+    const h = parseInt(hhmm[1], 10), m = parseInt(hhmm[2], 10);
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    const next = new Date(now);
+    next.setHours(h, m, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next.toISOString();
+  }
+  return null;
+}
+
+ipcMain.handle('get-overview-data', async () => {
+  try {
+    const ws = getWorkspace();
+    const now = new Date();
+    const todayISO = now.toISOString().slice(0, 10);
+
+    // 1. GREETING — CEO name + date + bot status
+    const ceoName = _readCeoNameFromIdentity();
+    const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const dayName = dayNames[now.getDay()];
+    const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    const hour = now.getHours();
+    const greeting = hour < 11 ? 'Chào sáng' : hour < 14 ? 'Chào trưa' : hour < 18 ? 'Chào chiều' : 'Chào tối';
+
+    // 2. RECENT ACTIVITY — last 50 audit entries, mapped to display labels
+    const auditFile = ws ? path.join(ws, 'logs', 'audit.jsonl') : null;
+    const rawAudit = auditFile ? _readJsonlTail(auditFile, 50) : [];
+    const activity = [];
+    for (const e of rawAudit) {
+      const meta = _OVERVIEW_EVENT_LABELS[e.event];
+      if (!meta || !meta.show) continue;
+      activity.push({
+        ts: e.t,
+        label: meta.label,
+        icon: meta.icon,
+        event: e.event,
+      });
+      if (activity.length >= 8) break;
+    }
+
+    // 3. UPCOMING — compute next firings for built-in schedules + custom crons
+    const upcoming = [];
+    try {
+      const schedFile = path.join(ws, 'schedules.json');
+      if (fs.existsSync(schedFile)) {
+        const sched = JSON.parse(fs.readFileSync(schedFile, 'utf-8'));
+        if (Array.isArray(sched)) {
+          for (const s of sched) {
+            if (!s || s.enabled === false) continue;
+            const next = _nextFireTime(s.time, now);
+            if (next) upcoming.push({ label: s.label || s.id, time: next, kind: 'built-in' });
+          }
+        }
+      }
+    } catch {}
+    try {
+      const cronsFile = path.join(ws, 'custom-crons.json');
+      if (fs.existsSync(cronsFile)) {
+        const crons = JSON.parse(fs.readFileSync(cronsFile, 'utf-8'));
+        if (Array.isArray(crons)) {
+          for (const c of crons) {
+            if (!c || c.enabled === false) continue;
+            // Custom crons store either `time` (HH:MM or "Mỗi N phút") or
+            // `cronExpr` (raw cron). Display friendly time when possible.
+            const next = _nextFireTime(c.time, now);
+            if (next) upcoming.push({ label: c.label || c.name || 'Cron tuỳ chỉnh', time: next, kind: 'custom' });
+          }
+        }
+      }
+    } catch {}
+    upcoming.sort((a, b) => new Date(a.time) - new Date(b.time));
+    const upcomingTrimmed = upcoming.slice(0, 6);
+
+    // 4. ACTION ITEMS — things CEO should look at
+    const actions = [];
+
+    // 4a. Output filter blocked count today
+    try {
+      const filterFile = ws ? path.join(ws, 'logs', 'security-output-filter.jsonl') : null;
+      if (filterFile && fs.existsSync(filterFile)) {
+        const entries = _readJsonlTail(filterFile, 100);
+        const todayCount = entries.filter(e => e.t && e.t.slice(0, 10) === todayISO).length;
+        if (todayCount > 0) {
+          actions.push({
+            severity: 'medium',
+            text: `${todayCount} tin Zalo bị bộ lọc chặn hôm nay`,
+            cta: 'Xem log',
+            ctaPage: null, // CTA opens log folder via tray
+            kind: 'filter-blocked',
+          });
+        }
+      }
+    } catch {}
+
+    // 4b. Zalo cookie age — warn if > 14 days since last refresh
+    try {
+      const credFile = path.join(HOME, '.openzca', 'profiles', 'default', 'credentials.json');
+      if (fs.existsSync(credFile)) {
+        const ageMs = Date.now() - fs.statSync(credFile).mtimeMs;
+        const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+        if (ageDays > 14) {
+          actions.push({
+            severity: ageDays > 25 ? 'high' : 'medium',
+            text: `Cookie Zalo đã ${ageDays} ngày — sắp hết hạn`,
+            cta: 'Quét QR mới',
+            ctaPage: 'zalo',
+            kind: 'cookie-stale',
+          });
+        }
+      } else {
+        // No credentials → user hasn't logged in Zalo yet
+        actions.push({
+          severity: 'low',
+          text: 'Chưa đăng nhập Zalo',
+          cta: 'Đăng nhập',
+          ctaPage: 'zalo',
+          kind: 'no-zalo-login',
+        });
+      }
+    } catch {}
+
+    // 4c. Strangers DMing today (count Zalo user memories created today)
+    try {
+      const zaloMemDir = ws ? path.join(ws, 'memory', 'zalo-users') : null;
+      if (zaloMemDir && fs.existsSync(zaloMemDir)) {
+        const files = fs.readdirSync(zaloMemDir).filter(f => f.endsWith('.md'));
+        let newToday = 0;
+        for (const f of files) {
+          try {
+            const mtime = fs.statSync(path.join(zaloMemDir, f)).mtimeMs;
+            const ageH = (Date.now() - mtime) / (60 * 60 * 1000);
+            if (ageH < 24) newToday++;
+          } catch {}
+        }
+        if (newToday > 0) {
+          actions.push({
+            severity: 'low',
+            text: `${newToday} khách Zalo mới tương tác hôm nay`,
+            cta: 'Mở Zalo',
+            ctaPage: 'zalo',
+            kind: 'new-zalo-customers',
+          });
+        }
+      }
+    } catch {}
+
+    // 4d. Bot stopped warning
+    if (!botRunning) {
+      actions.push({
+        severity: 'high',
+        text: 'Bot đang dừng — khách nhắn sẽ không có ai trả lời',
+        cta: 'Khởi động',
+        ctaPage: null,
+        kind: 'bot-stopped',
+      });
+    }
+
+    // 5. STATS — count of audit events today (rough proxy for "bot was busy")
+    let eventsToday = 0;
+    for (const e of rawAudit) {
+      if (e.t && e.t.slice(0, 10) === todayISO) eventsToday++;
+    }
+
+    return {
+      success: true,
+      greeting: {
+        salutation: greeting,
+        ceoName: ceoName || '',
+        dayName,
+        dateStr,
+        botRunning,
+      },
+      activity,
+      upcoming: upcomingTrimmed,
+      actions,
+      stats: {
+        eventsToday,
+      },
+    };
+  } catch (e) {
+    console.error('[get-overview-data] error:', e?.message);
+    return { success: false, error: e?.message };
+  }
+});
+
 ipcMain.handle('wizard-complete', async () => {
   if (!mainWindow || mainWindow.isDestroyed()) return { success: false };
   // Fresh install: seed workspace files with defaults + cleanup any stale listener

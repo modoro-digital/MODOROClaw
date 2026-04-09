@@ -525,6 +525,169 @@
       max-width: 640px;
     }
 
+    /* === Overview page (redesigned home) === */
+    .ov-hero {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .ov-hero-text { flex: 1; min-width: 0; }
+    .ov-hero-greeting {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.25;
+    }
+    .ov-hero-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .ov-hero-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .ov-hero-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #94a3b8;
+    }
+    .ov-hero-status[data-state="running"] { color: #16a34a; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); }
+    .ov-hero-status[data-state="running"] .ov-hero-dot { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+    .ov-hero-status[data-state="stopped"] { color: #dc2626; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+    .ov-hero-status[data-state="stopped"] .ov-hero-dot { background: #ef4444; }
+
+    .ov-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 980px) { .ov-grid { grid-template-columns: 1fr; } }
+
+    .ov-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: border-color 0.2s ease;
+    }
+    .ov-card:hover { border-color: var(--border-strong, var(--border)); }
+    .ov-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .ov-card-head h3 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-tertiary, var(--text-muted));
+    }
+    .ov-card-action {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .ov-card-action:hover { color: var(--text); border-color: var(--text-muted); }
+
+    .ov-list { display: flex; flex-direction: column; gap: 2px; }
+    .ov-list-empty {
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 24px 4px;
+      text-align: center;
+    }
+    .ov-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .ov-row:last-child { border-bottom: none; }
+    .ov-row-icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent, #4ea1ff);
+      flex-shrink: 0;
+    }
+    .ov-row-body { flex: 1; min-width: 0; }
+    .ov-row-label {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ov-row-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ov-actions-card { margin-bottom: 16px; }
+    .ov-actions { display: flex; flex-direction: column; gap: 8px; }
+    .ov-action-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--text-muted);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .ov-action-row[data-sev="high"] { border-left-color: #ef4444; background: rgba(239,68,68,0.05); }
+    .ov-action-row[data-sev="medium"] { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
+    .ov-action-row[data-sev="low"] { border-left-color: var(--accent, #4ea1ff); }
+    .ov-action-text { flex: 1; color: var(--text); }
+    .ov-action-cta {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .ov-action-cta:hover { border-color: var(--accent, #4ea1ff); color: var(--accent, #4ea1ff); }
+
     /* === Cards === */
     .main-card {
       background: var(--surface) !important;
@@ -857,28 +1020,53 @@
 
       <!-- PAGE: Overview -->
       <div class="page active" id="page-overview">
-        <div class="page-header">
-          <span class="page-icon" data-icon="home" data-icon-size="26"></span>
-          <div><h2>Tổng quan</h2><div class="page-sub">Trạng thái hệ thống và lệnh nhanh</div></div>
-        </div>
-        <div class="main-grid">
-          <div class="main-card">
-            <h3>Kết nối</h3>
-            <div class="channel-row"><span class="channel-icon" data-icon="send"></span><span class="channel-name">Telegram Bot</span><span class="channel-status wait" id="ch-telegram">...</span></div>
-            <div class="channel-row"><span class="channel-icon" data-icon="message-circle"></span><span class="channel-name">Zalo</span><span class="channel-status wait" id="ch-zalo">...</span></div>
-            <div class="channel-row"><span class="channel-icon" data-icon="cpu"></span><span class="channel-name">AI (9Router)</span><span class="channel-status wait" id="ch-ai">...</span></div>
-            <div class="channel-row"><span class="channel-icon" data-icon="zap"></span><span class="channel-name">Gateway</span><span class="channel-status wait" id="ch-gateway">...</span></div>
+        <!-- Greeting hero card -->
+        <div class="ov-hero">
+          <div class="ov-hero-text">
+            <div class="ov-hero-greeting" id="ov-greeting">Đang tải...</div>
+            <div class="ov-hero-sub" id="ov-greeting-sub"></div>
           </div>
-          <div class="main-card">
-            <h3>Lệnh nhanh (Telegram)</h3>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"menu"</strong> <span style="font-size:12px;color:var(--text-muted)">Mẫu giao việc theo ngành</span></div>
-              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"báo cáo"</strong> <span style="font-size:12px;color:var(--text-muted)">Báo cáo tổng hợp ngay</span></div>
-              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"hướng dẫn"</strong> <span style="font-size:12px;color:var(--text-muted)">Hướng dẫn sử dụng</span></div>
-              <div class="how-item"><strong style="color:var(--accent);min-width:100px">"skill"</strong> <span style="font-size:12px;color:var(--text-muted)">Kỹ năng đã cài</span></div>
+          <div class="ov-hero-status" id="ov-bot-status">
+            <span class="ov-hero-dot" id="ov-bot-dot"></span>
+            <span id="ov-bot-text">...</span>
+          </div>
+        </div>
+
+        <!-- 2-column main grid -->
+        <div class="ov-grid">
+          <!-- Recent activity -->
+          <div class="ov-card">
+            <div class="ov-card-head">
+              <h3>Hoạt động gần đây</h3>
+              <button class="ov-card-action" onclick="loadOverview()" title="Làm mới"><span data-icon="refresh-cw" data-icon-size="14"></span></button>
+            </div>
+            <div class="ov-list" id="ov-activity">
+              <div class="ov-list-empty">Đang tải...</div>
+            </div>
+          </div>
+
+          <!-- Upcoming -->
+          <div class="ov-card">
+            <div class="ov-card-head">
+              <h3>Sắp tới</h3>
+              <button class="ov-card-action" onclick="setActivePage('schedules')" title="Mở Lịch tự động"><span data-icon="calendar" data-icon-size="14"></span></button>
+            </div>
+            <div class="ov-list" id="ov-upcoming">
+              <div class="ov-list-empty">Đang tải...</div>
             </div>
           </div>
         </div>
+
+        <!-- Action items / alerts -->
+        <div class="ov-card ov-actions-card" id="ov-actions-card">
+          <div class="ov-card-head">
+            <h3>Cần anh để ý</h3>
+          </div>
+          <div class="ov-actions" id="ov-actions">
+            <div class="ov-list-empty">Mọi thứ đều ổn</div>
+          </div>
+        </div>
+
         <div id="error-display" style="display:none;font-size:11px;font-family:monospace;color:var(--danger);background:rgba(239,68,68,0.1);padding:8px 12px;border-radius:8px;white-space:pre-wrap;max-height:80px;overflow-y:auto;margin-top:12px"></div>
       </div>
 
@@ -1757,7 +1945,158 @@
       if (page === '9router' || page === 'openclaw') {
         ensureEmbedLoaded(page);
       }
+      if (page === 'overview') {
+        loadOverview();
+      }
     }
+    // Alias used by overview card buttons (matches what onclick handlers call)
+    function setActivePage(page) { switchPage(page); }
+
+    // ============================================
+    //  OVERVIEW PAGE — redesigned home (v2.2.9)
+    // ============================================
+    let _overviewTimer = null;
+
+    function _formatRelativeTime(iso) {
+      if (!iso) return '';
+      const now = Date.now();
+      const t = new Date(iso).getTime();
+      const diff = t - now; // negative = past, positive = future
+      const abs = Math.abs(diff);
+      const min = Math.floor(abs / 60000);
+      const hour = Math.floor(abs / 3600000);
+      const day = Math.floor(abs / 86400000);
+      if (diff < 0) {
+        if (min < 1) return 'vừa xong';
+        if (min < 60) return min + ' phút trước';
+        if (hour < 24) return hour + ' giờ trước';
+        if (day === 1) return 'hôm qua';
+        return day + ' ngày trước';
+      } else {
+        if (min < 1) return 'sắp tới';
+        if (min < 60) return 'sau ' + min + ' phút';
+        if (hour < 24) return 'sau ' + hour + ' giờ';
+        const dt = new Date(iso);
+        const hh = String(dt.getHours()).padStart(2, '0');
+        const mm = String(dt.getMinutes()).padStart(2, '0');
+        return hh + ':' + mm + (day === 1 ? ' (mai)' : '');
+      }
+    }
+
+    function _formatClockTime(iso) {
+      if (!iso) return '';
+      const dt = new Date(iso);
+      const hh = String(dt.getHours()).padStart(2, '0');
+      const mm = String(dt.getMinutes()).padStart(2, '0');
+      return hh + ':' + mm;
+    }
+
+    async function loadOverview() {
+      try {
+        const data = await window.claw.getOverviewData();
+        if (!data || !data.success) {
+          console.warn('[overview] no data', data);
+          return;
+        }
+        // === GREETING ===
+        const g = data.greeting;
+        const greetEl = document.getElementById('ov-greeting');
+        const subEl = document.getElementById('ov-greeting-sub');
+        const namePart = g.ceoName ? ' anh ' + g.ceoName : '';
+        greetEl.textContent = g.salutation + namePart + '. Hôm nay ' + g.dayName.toLowerCase() + ', ' + g.dateStr + '.';
+        const evCount = data.stats && data.stats.eventsToday ? data.stats.eventsToday : 0;
+        subEl.textContent = evCount > 0
+          ? 'Bot đã ghi nhận ' + evCount + ' sự kiện hôm nay.'
+          : 'Chưa có sự kiện nào hôm nay.';
+        // Bot status pill
+        const botBox = document.getElementById('ov-bot-status');
+        const botText = document.getElementById('ov-bot-text');
+        if (g.botRunning) {
+          botBox.dataset.state = 'running';
+          botText.textContent = 'Đang chạy';
+        } else {
+          botBox.dataset.state = 'stopped';
+          botText.textContent = 'Đã dừng';
+        }
+
+        // === ACTIVITY ===
+        const actEl = document.getElementById('ov-activity');
+        if (!data.activity || data.activity.length === 0) {
+          actEl.innerHTML = '<div class="ov-list-empty">Chưa có hoạt động nào</div>';
+        } else {
+          actEl.innerHTML = data.activity.map(a => {
+            const icon = (a.icon || 'circle');
+            const time = _formatRelativeTime(a.ts);
+            return '<div class="ov-row">'
+              + '<div class="ov-row-icon"><span data-icon="' + _esc(icon) + '" data-icon-size="14"></span></div>'
+              + '<div class="ov-row-body">'
+              +   '<div class="ov-row-label">' + _esc(a.label) + '</div>'
+              +   '<div class="ov-row-time">' + _esc(time) + '</div>'
+              + '</div>'
+              + '</div>';
+          }).join('');
+        }
+
+        // === UPCOMING ===
+        const upEl = document.getElementById('ov-upcoming');
+        if (!data.upcoming || data.upcoming.length === 0) {
+          upEl.innerHTML = '<div class="ov-list-empty">Không có lịch nào sắp chạy</div>';
+        } else {
+          upEl.innerHTML = data.upcoming.map(u => {
+            const time = _formatClockTime(u.time);
+            const rel = _formatRelativeTime(u.time);
+            return '<div class="ov-row">'
+              + '<div class="ov-row-icon"><span data-icon="clock" data-icon-size="14"></span></div>'
+              + '<div class="ov-row-body">'
+              +   '<div class="ov-row-label">' + _esc(u.label) + '</div>'
+              +   '<div class="ov-row-time">' + _esc(time) + ' · ' + _esc(rel) + '</div>'
+              + '</div>'
+              + '</div>';
+          }).join('');
+        }
+
+        // === ACTIONS ===
+        const acEl = document.getElementById('ov-actions');
+        if (!data.actions || data.actions.length === 0) {
+          acEl.innerHTML = '<div class="ov-list-empty">Mọi thứ đều ổn — không có gì cần xử lý</div>';
+        } else {
+          acEl.innerHTML = data.actions.map(a => {
+            const sev = a.severity || 'low';
+            const ctaAction = a.kind === 'bot-stopped'
+              ? 'window.claw.toggleBot(); setTimeout(loadOverview, 1500);'
+              : (a.ctaPage ? "switchPage('" + a.ctaPage + "');" : "window.claw.openLogFolder();");
+            return '<div class="ov-action-row" data-sev="' + _esc(sev) + '">'
+              + '<div class="ov-action-text">' + _esc(a.text) + '</div>'
+              + (a.cta ? '<button class="ov-action-cta" onclick="' + ctaAction + '">' + _esc(a.cta) + '</button>' : '')
+              + '</div>';
+          }).join('');
+        }
+
+        // Re-render lucide icons in dynamically inserted markup
+        if (typeof renderIcons === 'function') renderIcons();
+      } catch (e) {
+        console.error('[overview] load error', e);
+      }
+    }
+
+    function _esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function startOverviewAutoRefresh() {
+      if (_overviewTimer) clearInterval(_overviewTimer);
+      _overviewTimer = setInterval(() => {
+        if (currentPage === 'overview') loadOverview();
+      }, 30000);
+    }
+
+    // Initial load — fire on DOM ready (overview is the active page on first launch)
+    document.addEventListener('DOMContentLoaded', () => {
+      loadOverview();
+      startOverviewAutoRefresh();
+    });
 
     // ============================================
     //  EMBEDDED WEB UI (9Router + OpenClaw)
