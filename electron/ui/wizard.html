@@ -1258,30 +1258,39 @@
       const btn = document.getElementById('auto-9router-btn');
       const result = document.getElementById('router-auto-result');
       btn.disabled = true; btn.classList.add('loading');
-      result.classList.add('wz-hidden');
+      result.classList.remove('wz-hidden');
+      // Show checking state — we now do a direct API call to ollama.com first
+      // to validate the key (≤10s), then 9router restart + model detect (15s).
+      result.className = 'wz-alert';
+      result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('refresh-cw',18)}</span><div><strong>Đang kiểm tra Ollama API key...</strong><br>Bước 1: gọi trực tiếp ollama.com để verify key (≤10 giây).<br>Bước 2: cấu hình + restart 9Router (≤15 giây).</div>`;
       const res = await window.claw.setup9RouterAuto({ ollamaKey });
       btn.disabled = false; btn.classList.remove('loading');
-      result.classList.remove('wz-hidden');
       if (res.success) {
         document.getElementById('router-api-key').value = res.apiKey;
         if (res.selectedModel) {
           // Auto-detect picked a real model from the connected provider
           window._aiModelReady = true;
           result.className = 'wz-alert success';
-          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('check',18)}</span><div><strong>Thiết lập thành công.</strong> Đã tự động chọn model <code>${esc(res.selectedModel)}</code> cho combo <code>main</code>. Có thể đổi model trong tab <strong>9Router</strong> của Dashboard sau này nếu muốn.</div>`;
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('check',18)}</span><div><strong>Thiết lập thành công.</strong> Ollama API key hợp lệ, đã tự động chọn model <code>${esc(res.selectedModel)}</code> cho combo <code>main</code>. Có thể đổi model trong tab <strong>9Router</strong> của Dashboard sau này nếu muốn.</div>`;
         } else {
-          // Auto-detect failed (no models returned) — HARD BLOCK: wizard will not
-          // allow proceeding until combo has a model. Bot will 404 on first
-          // message otherwise. Zero-risk demo rule.
+          // Key verified OK by Ollama (else we'd have errored earlier), but
+          // 9router didn't return any models. Means 9router config issue, not
+          // an Ollama issue. Hard block until fixed.
           window._aiModelReady = false;
-          const errDetail = res.autoDetectError ? ' (chi tiết: ' + esc(res.autoDetectError) + ')' : '';
+          const errDetail = res.autoDetectError ? ' (' + esc(res.autoDetectError) + ')' : '';
           result.className = 'wz-alert error';
-          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div><strong>KHÔNG detect được model</strong>${errDetail}<br><br>Kiểm tra: (1) Ollama API key còn hiệu lực không? (2) Có kết nối internet không? Nhấn <strong>"Thiết lập AI"</strong> lại để thử. Wizard sẽ không cho qua bước này đến khi combo AI có ít nhất 1 model — để tránh bot 404 lúc demo.</div>`;
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div><strong>Ollama key OK nhưng 9Router không detect được model</strong>${errDetail}<br><br>Có thể 9Router chưa khởi động kịp. Đợi 30 giây rồi nhấn <strong>"Thiết lập AI"</strong> lại để thử. Wizard sẽ không cho qua bước này đến khi combo AI có ít nhất 1 model — để tránh bot 404 lúc demo.</div>`;
         }
       } else {
         window._aiModelReady = false;
         result.className = 'wz-alert error';
-        result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div>Lỗi: ${esc(res.error || 'Không xác định')}</div>`;
+        // If validationFailed flag is set, the error came from direct Ollama
+        // validation — show the precise error message (key sai, mạng, etc.)
+        if (res.validationFailed) {
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div><strong>Ollama API key không hoạt động</strong><br><br>${esc(res.error)}<br><br>Sửa lỗi rồi nhấn <strong>"Thiết lập AI"</strong> lại.</div>`;
+        } else {
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div>Lỗi: ${esc(res.error || 'Không xác định')}</div>`;
+        }
       }
     }
 

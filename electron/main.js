@@ -4048,8 +4048,139 @@ ipcMain.handle('start-9router', async () => {
 });
 
 // Auto-setup 9Router: write db.json directly (most reliable), then restart
+// Direct Ollama Cloud API key validation. Calls Ollama's own API (not via
+// 9router proxy) so we can fail-fast with a CLEAR error message before
+// writing the key to db.json + restarting 9router (which takes ~15s).
+//
+// Endpoint: https://ollama.com/api/ps — list running processes, USER-SCOPED
+// (requires auth). We picked this specifically because:
+//   - /api/tags is PUBLIC (returns global model catalog regardless of key)
+//   - /v1/models is PUBLIC (same)
+//   - /api/version is PUBLIC
+//   - /api/ps returns 401 for missing or invalid key, 200 with JSON
+//     (possibly empty array) for valid key. Verified by curling with
+//     empty Bearer + fake Bearer — both got 401. A real key would get 200.
+//
+// Failure modes:
+//   - 401/403 → invalid or expired key
+//   - 200 but non-JSON → captive portal returning HTML
+//   - 5xx → ollama outage
+//   - Network errors → no internet, DNS, firewall
+//   - Timeout (10s) → slow connection
+async function validateOllamaKeyDirect(apiKey) {
+  return new Promise((resolve) => {
+    const https = require('https');
+    const req = https.request({
+      hostname: 'ollama.com',
+      port: 443,
+      path: '/api/ps',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+        'User-Agent': 'MODOROClaw-Wizard/1.0',
+      },
+      timeout: 10000,
+    }, (res) => {
+      let buf = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => { buf += c; });
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          // Parse to verify it's actually JSON (defensive — captive portal
+          // might return 200 with HTML login page)
+          try {
+            const parsed = JSON.parse(buf);
+            // /api/ps returns { models: [...] } (running processes). Empty
+            // array is fine — means key valid but no active processes.
+            // Just verify we got an object.
+            if (parsed && typeof parsed === 'object') {
+              resolve({ valid: true, statusCode: 200, raw: parsed });
+            } else {
+              resolve({
+                valid: false,
+                statusCode: 200,
+                error: 'Phản hồi từ Ollama không đúng định dạng — có thể đang ở mạng captive portal (Wi-Fi khách sạn / quán cafe). Thử lại với mạng khác.',
+              });
+            }
+          } catch {
+            resolve({
+              valid: false,
+              statusCode: 200,
+              error: 'Phản hồi từ Ollama không phải JSON — có thể anh đang ở mạng captive portal (Wi-Fi khách sạn / quán cafe). Thử lại với mạng khác.',
+            });
+          }
+        } else if (res.statusCode === 401 || res.statusCode === 403) {
+          resolve({
+            valid: false,
+            statusCode: res.statusCode,
+            error: 'Ollama API key sai hoặc đã hết hạn. Vào ollama.com/settings/keys → tạo key mới → paste lại.',
+          });
+        } else if (res.statusCode === 429) {
+          resolve({
+            valid: false,
+            statusCode: 429,
+            error: 'Ollama trả về 429 (rate limit). Đợi 1 phút rồi thử lại.',
+          });
+        } else if (res.statusCode >= 500) {
+          resolve({
+            valid: false,
+            statusCode: res.statusCode,
+            error: `Ollama đang gặp sự cố (HTTP ${res.statusCode}). Thử lại sau vài phút hoặc check status.ollama.com.`,
+          });
+        } else {
+          resolve({
+            valid: false,
+            statusCode: res.statusCode,
+            error: `Ollama trả về HTTP ${res.statusCode} — không xác định: ${buf.slice(0, 200)}`,
+          });
+        }
+      });
+    });
+    req.on('error', (e) => {
+      const msg = e?.message || String(e);
+      if (/ENOTFOUND|EAI_AGAIN/i.test(msg)) {
+        resolve({ valid: false, error: 'Không kết nối được ollama.com — kiểm tra mạng Internet.' });
+      } else if (/ECONNREFUSED|ECONNRESET/i.test(msg)) {
+        resolve({ valid: false, error: 'Kết nối tới ollama.com bị từ chối — có thể firewall hoặc proxy chặn.' });
+      } else if (/CERT|SSL|TLS/i.test(msg)) {
+        resolve({ valid: false, error: 'Lỗi chứng chỉ SSL — máy có thể có MITM/antivirus chặn HTTPS.' });
+      } else {
+        resolve({ valid: false, error: 'Lỗi mạng: ' + msg });
+      }
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ valid: false, error: 'Timeout kết nối ollama.com (>10s) — mạng chậm hoặc bị chặn.' });
+    });
+    req.end();
+  });
+}
+
 ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
   try {
+    // STEP 0: Direct-validate Ollama key BEFORE touching db.json or restarting
+    // 9router. Fail-fast with a clear error if the key is invalid — saves the
+    // user a 15-second restart cycle just to learn "no models returned".
+    if (opts.ollamaKey) {
+      const trimmedKey = String(opts.ollamaKey).trim();
+      if (trimmedKey.length < 20) {
+        return { success: false, error: 'Ollama API key quá ngắn — kiểm tra lại đã paste đủ chưa.' };
+      }
+      console.log('[setup-9router-auto] validating Ollama key directly...');
+      const validation = await validateOllamaKeyDirect(trimmedKey);
+      if (!validation.valid) {
+        console.warn('[setup-9router-auto] Ollama key validation failed:', validation.error);
+        return {
+          success: false,
+          error: validation.error,
+          validationFailed: true,
+          httpStatus: validation.statusCode,
+        };
+      }
+      console.log('[setup-9router-auto] Ollama key validated OK (HTTP 200)');
+    }
+
     const { randomUUID, randomBytes } = require('crypto');
     const dbPath = path.join(appDataDir(), '9router', 'db.json');
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
