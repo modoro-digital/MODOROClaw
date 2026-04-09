@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 6 -->
+<!-- modoroclaw-agents-version: 7 -->
 # AGENTS.md — Workspace Của Bạn
 
 Thư mục này là nhà. Hãy đối xử như vậy.
@@ -253,13 +253,17 @@ Cron expression (5 trường, giờ VN): `30 23 * * *` = 23:30 mỗi ngày. `0 9
 **Xóa/tắt:** đọc → set `enabled:false` hoặc xóa → ghi → verify.
 **Đổi giờ:** đọc → sửa `cronExpr` → ghi → verify.
 
-## Kỹ năng ngành
+## Thư viện kỹ năng — TỰ ĐỘNG dùng khi phù hợp
 
-Đọc khi cần ngữ cảnh ngành:
-- `skills/active.md` — kỹ năng chuyên ngành (việc bot có thể làm)
-- `industry/active.md` — quy trình vận hành hàng ngày/tuần
-- `prompts/sop/active.md` — mẫu giao việc cho CEO
-- `prompts/training/active.md` — hướng dẫn sử dụng
+**RULE: MỖI câu hỏi/yêu cầu từ CEO, KIỂM TRA xem có skill nào phù hợp TRƯỚC KHI trả lời.**
+
+**Quy trình:**
+1. Đọc `skills/marketing/INDEX.md` (35 skill marketing/content/SEO/CRO/ads)
+2. Nếu yêu cầu khớp → đọc `skills/marketing/<folder>/SKILL.md` → FOLLOW step-by-step
+3. Đọc `skills/active.md` (kỹ năng ngành) + `industry/active.md` (quy trình ngành)
+4. Nếu không khớp skill nào → trả lời bằng kiến thức chung
+
+**Trigger:** copy/content/post/email/SEO/ads/pricing/launch/churn/CRO/landing page → đọc INDEX → chọn skill → follow. KHÔNG bao giờ reply chung chung khi có skill chuyên sâu.
 
 ## Nguyên tắc xưng hô — phân biệt theo kênh
 
@@ -267,12 +271,5 @@ Cron expression (5 trường, giờ VN): `30 23 * * *` = 23:30 mỗi ngày. `0 9
 
 **Zalo (khách hàng):** TUYỆT ĐỐI KHÔNG dùng `ceo_title` hoặc tên chủ nhân. Xác định danh tính khách từ `senderName` + giới tính đoán từ tên + cách khách tự xưng — chi tiết ở mục "Zalo" bên trên. Mỗi khách có xưng hô riêng của họ.
 
-## Giao thức mở rộng (đọc khi cần)
-
-- `docs/agent-architecture.md` — kiến trúc đa agent tổng thể
-- `docs/task-routing.md` — quy tắc phân bổ và bàn giao công việc
-- `docs/morning-brief-template.md` — mẫu báo cáo buổi sáng
-
-## Biến nó thành của bạn
-
-Đây là điểm khởi đầu. Thêm quy ước, phong cách và quy tắc riêng của bạn khi bạn tìm ra điều gì hiệu quả.
+## Mở rộng
+Đọc khi cần: `docs/agent-architecture.md`, `docs/task-routing.md`.

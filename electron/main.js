@@ -549,7 +549,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 6;
+const CURRENT_AGENTS_MD_VERSION = 7;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -3965,8 +3965,18 @@ async function _startOpenClawImpl() {
     auditLog('gateway_slow_start', { probeAttempts });
   }
 
-  // Register Telegram slash commands (fire-and-forget)
-  registerTelegramCommands().catch(e => console.error('[telegram] registerCommands failed:', e.message));
+  // Register Telegram slash commands. DELAYED 15s so it runs AFTER OpenClaw
+  // gateway's own boot sequence (which may register default openclaw commands).
+  // Our call is the LAST one → overwrites defaults with our custom commands.
+  // Also re-register every 5 minutes in case gateway restarts and re-registers its own.
+  setTimeout(() => {
+    registerTelegramCommands().catch(e => console.error('[telegram] registerCommands failed:', e.message));
+  }, 15000);
+  if (!global._telegramCmdInterval) {
+    global._telegramCmdInterval = setInterval(() => {
+      registerTelegramCommands().catch(() => {});
+    }, 5 * 60 * 1000);
+  }
 
   // Boot ping removed — it was a FAKE readiness signal. Gateway WS responding
   // to GET / (the probe above) does NOT prove Telegram can actually receive
