@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('claw', {
   listZaloFriends: () => ipcRenderer.invoke('list-zalo-friends'),
   listZaloGroups: () => ipcRenderer.invoke('list-zalo-groups'),
   refreshZaloCache: () => ipcRenderer.invoke('refresh-zalo-cache'),
+  onZaloCacheRefreshed: (cb) => ipcRenderer.on('zalo-cache-refreshed', cb),
   getZaloManagerConfig: () => ipcRenderer.invoke('get-zalo-manager-config'),
   saveZaloManagerConfig: (config) => ipcRenderer.invoke('save-zalo-manager-config', config),
 

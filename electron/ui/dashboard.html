@@ -1260,9 +1260,12 @@
               <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
                 <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Tài khoản Zalo cá nhân của chủ nhân</div>
                 <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">Bot nhận diện tài khoản này là chủ doanh nghiệp (như Telegram), trả lời theo persona CEO và nhận lệnh quản trị.</div>
-                <select id="zalo-owner-dashboard-select" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
-                  <option value="">— Chưa chọn —</option>
-                </select>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select id="zalo-owner-dashboard-select" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
+                    <option value="">— Chưa chọn —</option>
+                  </select>
+                  <button class="btn btn-secondary btn-small" onclick="refreshZaloOwnerList()" style="flex-shrink:0;padding:6px 12px;font-size:11px">Refresh</button>
+                </div>
                 <div id="zalo-owner-dashboard-status" style="display:none;font-size:11px;margin-top:6px"></div>
               </div>
             </div>
@@ -2971,6 +2974,23 @@
       } catch (e) {
         console.warn('loadDashboardZaloOwner error:', e);
       }
+    }
+    async function refreshZaloOwnerList() {
+      const status = document.getElementById('zalo-owner-dashboard-status');
+      if (status) { status.style.display = 'block'; status.textContent = 'Đang refresh danh sách bạn bè...'; status.style.color = 'var(--text-muted)'; }
+      try {
+        await window.claw.refreshZaloCache();
+        // Wait a moment for cache file to be written
+        await new Promise(r => setTimeout(r, 1500));
+        await loadDashboardZaloOwner();
+        if (status) { status.textContent = 'Danh sách đã cập nhật.'; status.style.color = 'var(--success,#16a34a)'; }
+      } catch (e) {
+        if (status) { status.textContent = 'Lỗi refresh: ' + e.message; status.style.color = 'var(--danger)'; }
+      }
+    }
+    // Auto-reload owner list when cache refreshes in background
+    if (window.claw.onZaloCacheRefreshed) {
+      window.claw.onZaloCacheRefreshed(() => { if (currentPage === 'zalo') loadDashboardZaloOwner(); });
     }
     // Load when Zalo tab opens (call from switchPage if zalo) — also load once at boot
     setTimeout(() => loadDashboardZaloOwner(), 2000);
