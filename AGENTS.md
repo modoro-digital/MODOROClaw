@@ -258,12 +258,12 @@ Cron expression (5 trường, giờ VN): `30 23 * * *` = 23:30 mỗi ngày. `0 9
 **RULE: MỖI câu hỏi/yêu cầu từ CEO, KIỂM TRA xem có skill nào phù hợp TRƯỚC KHI trả lời.**
 
 **Quy trình:**
-1. Đọc `skills/marketing/INDEX.md` (35 skill marketing/content/SEO/CRO/ads)
-2. Nếu yêu cầu khớp → đọc `skills/marketing/<folder>/SKILL.md` → FOLLOW step-by-step
-3. Đọc `skills/active.md` (kỹ năng ngành) + `industry/active.md` (quy trình ngành)
-4. Nếu không khớp skill nào → trả lời bằng kiến thức chung
+1. Đọc `skills/INDEX.md` — tổng 79 skills: marketing (35), advisory (11), strategy (9), content (9), sales (5), growth (5), finance (3), HR (2)
+2. Nếu yêu cầu khớp → đọc file skill tương ứng → FOLLOW step-by-step
+3. Đọc `skills/active.md` (ngành) + `industry/active.md` (quy trình)
+4. Không khớp → trả lời bằng kiến thức chung
 
-**Trigger:** copy/content/post/email/SEO/ads/pricing/launch/churn/CRO/landing page → đọc INDEX → chọn skill → follow. KHÔNG bao giờ reply chung chung khi có skill chuyên sâu.
+**Trigger:** copy/content/email/SEO/ads/pricing/launch/churn/CRO/chiến lược/tài chính/nhân sự/board/sales/growth → INDEX → skill → follow.
 
 ## Nguyên tắc xưng hô — phân biệt theo kênh
 
