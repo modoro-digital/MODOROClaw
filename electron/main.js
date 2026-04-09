@@ -8381,22 +8381,68 @@ function _readJsonlTail(filePath, maxLines) {
 function _readCeoNameFromIdentity() {
   try {
     const ws = getWorkspace();
-    if (!ws) return '';
+    if (!ws) return { name: '', title: '' };
     const idPath = path.join(ws, 'IDENTITY.md');
-    if (!fs.existsSync(idPath)) return '';
+    if (!fs.existsSync(idPath)) return { name: '', title: '' };
     const content = fs.readFileSync(idPath, 'utf-8');
     // Look for "Cách xưng hô" line. Wizard fills this with "anh/chị <name>".
     const match = content.match(/Cách xưng hô:\*\*\s*([^\n\[]+)/i)
                || content.match(/Cách xưng hô:\s*([^\n\[]+)/i);
-    if (!match) return '';
-    let name = match[1].trim();
-    // Extract just the human name from "em — gọi chủ nhân là anh Huy"
-    // or "anh/chị Tên" — strip prefixes
-    name = name.replace(/^(em|tôi|mình)[\s—-]*gọi chủ nhân là\s+/i, '');
-    name = name.replace(/^(anh|chị|anh\/chị|quý Sếp)\s+/i, '');
-    name = name.split(/[,(]/)[0].trim();
-    return name.slice(0, 40);
-  } catch { return ''; }
+    if (!match) return { name: '', title: '' };
+    let raw = match[1].trim();
+    // Handle "em — gọi chủ nhân là anh Huy" form
+    raw = raw.replace(/^(em|tôi|mình)[\s—-]*gọi chủ nhân là\s+/i, '');
+    raw = raw.split(/[,(]/)[0].trim();
+    // `raw` is now the full honorific+name like "anh Quốc" or "thầy Quốc" or "chị Lan"
+    const title = raw.slice(0, 40); // full "anh Quốc" — used in greeting directly
+    // Extract bare name by stripping Vietnamese title prefixes
+    let name = raw.replace(/^(anh|chị|anh\/chị|quý Sếp|thầy|cô|bác|chú)\s+/i, '');
+    name = name.slice(0, 40);
+    return { name, title };
+  } catch { return { name: '', title: '' }; }
+}
+
+// Read recent Zalo customers from memory/zalo-users/*.md
+function _readRecentZaloCustomers(ws, limit = 5) {
+  try {
+    const dir = path.join(ws, 'memory', 'zalo-users');
+    if (!fs.existsSync(dir)) return [];
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+    const customers = [];
+    for (const f of files) {
+      try {
+        const fp = path.join(dir, f);
+        const stat = fs.statSync(fp);
+        const content = fs.readFileSync(fp, 'utf-8');
+        // Parse YAML frontmatter
+        let name = '', lastSeen = '', msgCount = 0;
+        const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const fm = fmMatch[1];
+          const nameM = fm.match(/name:\s*(.+)/i);
+          if (nameM) name = nameM[1].trim().replace(/^["']|["']$/g, '');
+          const lsM = fm.match(/lastSeen:\s*(.+)/i);
+          if (lsM) lastSeen = lsM[1].trim().replace(/^["']|["']$/g, '');
+          const mcM = fm.match(/msgCount:\s*(\d+)/i);
+          if (mcM) msgCount = parseInt(mcM[1], 10);
+        }
+        // Parse summary section
+        let summary = '';
+        const sumMatch = content.match(/##\s*Tóm tắt\s*\n+([\s\S]*?)(?:\n##|\n---|\s*$)/i);
+        if (sumMatch) {
+          summary = sumMatch[1].trim().split('\n')[0].replace(/^[-*]\s*/, '').trim();
+          if (summary.length > 80) summary = summary.slice(0, 77) + '...';
+        }
+        const senderId = f.replace(/\.md$/, '');
+        // Use lastSeen from frontmatter, fall back to file mtime
+        const sortTime = lastSeen ? new Date(lastSeen).getTime() : stat.mtimeMs;
+        if (!name) name = senderId; // fallback to filename
+        customers.push({ name, lastSeen: lastSeen || stat.mtime.toISOString(), summary, senderId, msgCount, _sortTime: sortTime });
+      } catch {}
+    }
+    customers.sort((a, b) => b._sortTime - a._sortTime);
+    return customers.slice(0, limit).map(c => ({ name: c.name, lastSeen: c.lastSeen, summary: c.summary, senderId: c.senderId, msgCount: c.msgCount }));
+  } catch { return []; }
 }
 
 // Compute the next firing time for a schedule item with `time: "HH:MM"` or
@@ -8429,7 +8475,9 @@ ipcMain.handle('get-overview-data', async () => {
     const todayISO = now.toISOString().slice(0, 10);
 
     // 1. GREETING — CEO name + date + bot status
-    const ceoName = _readCeoNameFromIdentity();
+    const ceoInfo = _readCeoNameFromIdentity();
+    const ceoName = ceoInfo.name || '';
+    const ceoTitle = ceoInfo.title || '';
     const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const dayName = dayNames[now.getDay()];
     const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
@@ -8575,11 +8623,42 @@ ipcMain.handle('get-overview-data', async () => {
       if (e.t && e.t.slice(0, 10) === todayISO) eventsToday++;
     }
 
+    // 5b. New Zalo customers today (reuse actions computation)
+    let newZaloCustomersToday = 0;
+    try {
+      const zaloMemDir2 = ws ? path.join(ws, 'memory', 'zalo-users') : null;
+      if (zaloMemDir2 && fs.existsSync(zaloMemDir2)) {
+        const files2 = fs.readdirSync(zaloMemDir2).filter(f => f.endsWith('.md'));
+        for (const f of files2) {
+          try {
+            const mtime = fs.statSync(path.join(zaloMemDir2, f)).mtimeMs;
+            if ((Date.now() - mtime) / (60 * 60 * 1000) < 24) newZaloCustomersToday++;
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // 5c. Cron OK count today
+    let cronOkToday = 0;
+    try {
+      const cronRunsFile = ws ? path.join(ws, 'logs', 'cron-runs.jsonl') : null;
+      if (cronRunsFile && fs.existsSync(cronRunsFile)) {
+        const cronEntries = _readJsonlTail(cronRunsFile, 200);
+        for (const e of cronEntries) {
+          if (e.t && e.t.slice(0, 10) === todayISO && e.phase === 'ok') cronOkToday++;
+        }
+      }
+    } catch {}
+
+    // 6. RECENT ZALO CUSTOMERS — from memory/zalo-users/*.md
+    const recentCustomers = ws ? _readRecentZaloCustomers(ws, 5) : [];
+
     return {
       success: true,
       greeting: {
         salutation: greeting,
         ceoName: ceoName || '',
+        ceoTitle: ceoTitle || '',
         dayName,
         dateStr,
         botRunning,
@@ -8587,8 +8666,11 @@ ipcMain.handle('get-overview-data', async () => {
       activity,
       upcoming: upcomingTrimmed,
       actions,
+      recentCustomers,
       stats: {
         eventsToday,
+        newZaloCustomersToday,
+        cronOkToday,
       },
     };
   } catch (e) {

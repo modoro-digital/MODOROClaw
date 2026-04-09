@@ -39,7 +39,7 @@
     .main-content { flex:1; padding:20px 24px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
 
     /* Activity panel */
-    .activity-panel { width:300px; background:var(--bg); border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+    .activity-panel { width:300px; background:var(--bg); border-left:1px solid var(--border); display:none; flex-direction:column; flex-shrink:0; }
     .activity-header { padding:16px; border-bottom:1px solid var(--border); }
     .activity-header h3 { margin:0; font-size:14px; }
     .activity-list { flex:1; overflow-y:auto; padding:8px 16px; }
@@ -571,6 +571,36 @@
     .ov-hero-status[data-state="stopped"] { color: #dc2626; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
     .ov-hero-status[data-state="stopped"] .ov-hero-dot { background: #ef4444; }
 
+    .ov-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 700px) { .ov-stats { grid-template-columns: 1fr; } }
+    .ov-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      transition: border-color 0.2s ease;
+    }
+    .ov-stat:hover { border-color: var(--border-strong, var(--border)); }
+    .ov-stat-num {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .ov-stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
     .ov-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -631,17 +661,6 @@
       font-size: 13px;
     }
     .ov-row:last-child { border-bottom: none; }
-    .ov-row-icon {
-      width: 30px; height: 30px;
-      border-radius: 8px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--accent, #4ea1ff);
-      flex-shrink: 0;
-    }
     .ov-row-body { flex: 1; min-width: 0; }
     .ov-row-label {
       color: var(--text);
@@ -657,7 +676,41 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .ov-actions-card { margin-bottom: 16px; }
+    .ov-customer-row {
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ov-customer-row:last-child { border-bottom: none; }
+    .ov-customer-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ov-customer-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ov-customer-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .ov-customer-summary {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.4;
+    }
+
     .ov-actions { display: flex; flex-direction: column; gap: 8px; }
     .ov-action-row {
       display: flex;
@@ -687,6 +740,36 @@
       transition: all 0.15s;
     }
     .ov-action-cta:hover { border-color: var(--accent, #4ea1ff); color: var(--accent, #4ea1ff); }
+
+    .ov-schedule-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 4px;
+      font-size: 13px;
+    }
+    .ov-schedule-time {
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      min-width: 44px;
+    }
+    .ov-schedule-label {
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ov-schedule-rel {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .ov-schedule-done {
+      color: var(--text-muted);
+    }
+    .ov-schedule-done .ov-schedule-label { color: var(--text-muted); text-decoration: line-through; }
 
     /* === Cards === */
     .main-card {
@@ -1032,38 +1115,54 @@
           </div>
         </div>
 
-        <!-- 2-column main grid -->
+        <!-- Stat cards -->
+        <div class="ov-stats" id="ov-stats">
+          <div class="ov-stat">
+            <div class="ov-stat-num" id="ov-stat-customers">--</div>
+            <div class="ov-stat-label">Khách mới Zalo hôm nay</div>
+          </div>
+          <div class="ov-stat">
+            <div class="ov-stat-num" id="ov-stat-events">--</div>
+            <div class="ov-stat-label">Sự kiện hôm nay</div>
+          </div>
+          <div class="ov-stat">
+            <div class="ov-stat-num" id="ov-stat-cron">--</div>
+            <div class="ov-stat-label">Cron OK hôm nay</div>
+          </div>
+        </div>
+
+        <!-- 2-column: Alerts + Recent customers -->
         <div class="ov-grid">
-          <!-- Recent activity -->
-          <div class="ov-card">
+          <!-- Alerts (above fold) -->
+          <div class="ov-card" id="ov-actions-card">
             <div class="ov-card-head">
-              <h3>Hoạt động gần đây</h3>
-              <button class="ov-card-action" onclick="loadOverview()" title="Làm mới"><span data-icon="refresh-cw" data-icon-size="14"></span></button>
+              <h3>Cần xử lý</h3>
             </div>
-            <div class="ov-list" id="ov-activity">
-              <div class="ov-list-empty">Đang tải...</div>
+            <div class="ov-actions" id="ov-actions">
+              <div class="ov-list-empty">Mọi thứ đều ổn</div>
             </div>
           </div>
 
-          <!-- Upcoming -->
+          <!-- Recent Zalo customers -->
           <div class="ov-card">
             <div class="ov-card-head">
-              <h3>Sắp tới</h3>
-              <button class="ov-card-action" onclick="setActivePage('schedules')" title="Mở Lịch tự động"><span data-icon="calendar" data-icon-size="14"></span></button>
+              <h3>Khách Zalo gần đây</h3>
+              <button class="ov-card-action" onclick="switchPage('zalo')" title="Mở trang Zalo"><span data-icon="message-circle" data-icon-size="14"></span></button>
             </div>
-            <div class="ov-list" id="ov-upcoming">
-              <div class="ov-list-empty">Đang tải...</div>
+            <div id="ov-customers">
+              <div class="ov-list-empty">Chưa có khách nào</div>
             </div>
           </div>
         </div>
 
-        <!-- Action items / alerts -->
-        <div class="ov-card ov-actions-card" id="ov-actions-card">
+        <!-- Schedule today -->
+        <div class="ov-card">
           <div class="ov-card-head">
-            <h3>Cần anh để ý</h3>
+            <h3>Lịch hôm nay</h3>
+            <button class="ov-card-action" onclick="switchPage('schedules')" title="Mở Lịch tự động"><span data-icon="calendar" data-icon-size="14"></span></button>
           </div>
-          <div class="ov-actions" id="ov-actions">
-            <div class="ov-list-empty">Mọi thứ đều ổn</div>
+          <div id="ov-schedule">
+            <div class="ov-list-empty">Không có lịch nào</div>
           </div>
         </div>
 
@@ -2006,12 +2105,10 @@
         const g = data.greeting;
         const greetEl = document.getElementById('ov-greeting');
         const subEl = document.getElementById('ov-greeting-sub');
-        const namePart = g.ceoName ? ' anh ' + g.ceoName : '';
-        greetEl.textContent = g.salutation + namePart + '. Hôm nay ' + g.dayName.toLowerCase() + ', ' + g.dateStr + '.';
-        const evCount = data.stats && data.stats.eventsToday ? data.stats.eventsToday : 0;
-        subEl.textContent = evCount > 0
-          ? 'Bot đã ghi nhận ' + evCount + ' sự kiện hôm nay.'
-          : 'Chưa có sự kiện nào hôm nay.';
+        // Use ceoTitle directly (already includes honorific like "anh Quốc" or "thầy Quốc")
+        const namePart = g.ceoTitle ? (' ' + g.ceoTitle) : (g.ceoName ? (' ' + g.ceoName) : '');
+        greetEl.textContent = g.salutation + namePart;
+        subEl.textContent = g.dayName + ', ' + g.dateStr;
         // Bot status pill
         const botBox = document.getElementById('ov-bot-status');
         const botText = document.getElementById('ov-bot-text');
@@ -2023,46 +2120,17 @@
           botText.textContent = 'Đã dừng';
         }
 
-        // === ACTIVITY ===
-        const actEl = document.getElementById('ov-activity');
-        if (!data.activity || data.activity.length === 0) {
-          actEl.innerHTML = '<div class="ov-list-empty">Chưa có hoạt động nào</div>';
-        } else {
-          actEl.innerHTML = data.activity.map(a => {
-            const icon = (a.icon || 'circle');
-            const time = _formatRelativeTime(a.ts);
-            return '<div class="ov-row">'
-              + '<div class="ov-row-icon"><span data-icon="' + _esc(icon) + '" data-icon-size="14"></span></div>'
-              + '<div class="ov-row-body">'
-              +   '<div class="ov-row-label">' + _esc(a.label) + '</div>'
-              +   '<div class="ov-row-time">' + _esc(time) + '</div>'
-              + '</div>'
-              + '</div>';
-          }).join('');
-        }
+        // === STAT CARDS ===
+        const st = data.stats || {};
+        document.getElementById('ov-stat-customers').textContent = String(st.newZaloCustomersToday || 0);
+        document.getElementById('ov-stat-events').textContent = String(st.eventsToday || 0);
+        document.getElementById('ov-stat-cron').textContent = String(st.cronOkToday || 0);
 
-        // === UPCOMING ===
-        const upEl = document.getElementById('ov-upcoming');
-        if (!data.upcoming || data.upcoming.length === 0) {
-          upEl.innerHTML = '<div class="ov-list-empty">Không có lịch nào sắp chạy</div>';
-        } else {
-          upEl.innerHTML = data.upcoming.map(u => {
-            const time = _formatClockTime(u.time);
-            const rel = _formatRelativeTime(u.time);
-            return '<div class="ov-row">'
-              + '<div class="ov-row-icon"><span data-icon="clock" data-icon-size="14"></span></div>'
-              + '<div class="ov-row-body">'
-              +   '<div class="ov-row-label">' + _esc(u.label) + '</div>'
-              +   '<div class="ov-row-time">' + _esc(time) + ' · ' + _esc(rel) + '</div>'
-              + '</div>'
-              + '</div>';
-          }).join('');
-        }
-
-        // === ACTIONS ===
+        // === ACTIONS (above fold) ===
         const acEl = document.getElementById('ov-actions');
         if (!data.actions || data.actions.length === 0) {
-          acEl.innerHTML = '<div class="ov-list-empty">Mọi thứ đều ổn — không có gì cần xử lý</div>';
+          acEl.innerHTML = '<div class="ov-list-empty">Mọi thứ đều ổn</div>';
+          document.getElementById('ov-actions-card').style.display = '';
         } else {
           acEl.innerHTML = data.actions.map(a => {
             const sev = a.severity || 'low';
@@ -2076,8 +2144,46 @@
           }).join('');
         }
 
+        // === RECENT ZALO CUSTOMERS ===
+        const custEl = document.getElementById('ov-customers');
+        if (!data.recentCustomers || data.recentCustomers.length === 0) {
+          custEl.innerHTML = '<div class="ov-list-empty">Chưa có khách nào</div>';
+        } else {
+          custEl.innerHTML = data.recentCustomers.map(c => {
+            const time = _formatRelativeTime(c.lastSeen);
+            const summary = c.summary || '';
+            return '<div class="ov-customer-row">'
+              + '<div class="ov-customer-top">'
+              +   '<span class="ov-customer-name">' + _esc(c.name) + '</span>'
+              +   '<span class="ov-customer-time">' + _esc(time) + '</span>'
+              + '</div>'
+              + (summary ? '<div class="ov-customer-summary">' + _esc(summary) + '</div>' : '')
+              + '</div>';
+          }).join('');
+        }
+
+        // === SCHEDULE TODAY ===
+        const schedEl = document.getElementById('ov-schedule');
+        if (!data.upcoming || data.upcoming.length === 0) {
+          schedEl.innerHTML = '<div class="ov-list-empty">Không có lịch nào hôm nay</div>';
+        } else {
+          const nowMs = Date.now();
+          schedEl.innerHTML = data.upcoming.map(u => {
+            const clockTime = _formatClockTime(u.time);
+            const fireMs = new Date(u.time).getTime();
+            const isPast = fireMs < nowMs;
+            const rel = isPast ? '' : _formatRelativeTime(u.time);
+            const doneClass = isPast ? ' ov-schedule-done' : '';
+            return '<div class="ov-schedule-row' + doneClass + '">'
+              + '<span class="ov-schedule-time">' + _esc(clockTime) + '</span>'
+              + '<span class="ov-schedule-label">' + _esc(u.label) + '</span>'
+              + (rel ? '<span class="ov-schedule-rel">' + _esc(rel) + '</span>' : '')
+              + '</div>';
+          }).join('');
+        }
+
         // Re-render lucide icons in dynamically inserted markup
-        if (typeof renderIcons === 'function') renderIcons();
+        if (typeof mountIcons === 'function') mountIcons();
       } catch (e) {
         console.error('[overview] load error', e);
       }
