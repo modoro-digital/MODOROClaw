@@ -79,6 +79,55 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 
 ## Current patches (cần auto-restore trên fresh install)
 
+### Dashboard Tổng quan redesign (v2.2.9) — actually useful for CEO
+**Trước:** 2 cards tĩnh — channel status (đã có ở sidebar) + lệnh nhanh tĩnh (đã có ở tab Telegram). CEO mở vào không học được gì.
+**Sau:** 4 section trả lời 4 câu hỏi cụ thể CEO cần biết:
+1. **Greeting hero** — "Chào sáng anh [tên]. Hôm nay thứ 5, 09/04. Bot đã ghi nhận N sự kiện hôm nay." + pill xanh/đỏ "Đang chạy/Đã dừng".
+2. **Hoạt động gần đây** — last 8 events từ `audit.jsonl` mapped sang label tiếng Việt (Khởi động bot, Bộ lọc chặn 1 tin Zalo, Cron đã chạy, Mac thức dậy, ...).
+3. **Sắp tới** — next 6 cron firings từ `schedules.json` + `custom-crons.json`, compute qua `_nextFireTime("HH:MM"|"Mỗi N phút")`, hiển thị clock + relative time.
+4. **Cần anh để ý** — alerts với severity (HIGH/MED/LOW) và CTA 1-click: bot dừng, cookie Zalo cũ, tin bị filter chặn, khách Zalo mới.
+**Backend:** new IPC `get-overview-data` reads tất cả nguồn trong 1 round-trip:
+- `IDENTITY.md` → CEO name (parse "Cách xưng hô:" line)
+- `logs/audit.jsonl` tail (last 64KB) → activity feed
+- `schedules.json` + `custom-crons.json` → upcoming
+- `logs/security-output-filter.jsonl` → filter blocked count
+- `~/.openzca/.../credentials.json` mtime → cookie age (warn > 14 days)
+- `memory/zalo-users/*.md` mtime → new customers today
+**Cron audit log emission added** ([main.js morning/evening/custom handlers](electron/main.js)) — handlers giờ gọi `auditLog('cron_fired', ...)` khi success và `auditLog('cron_failed', ...)` khi exception. Trước đó cron chạy nhưng không ghi audit nên dashboard activity feed sẽ rỗng phần cron.
+**JS:** auto-refresh mỗi 30s khi user đang ở tab Overview. Empty state graceful (fresh install không có audit.jsonl → "Chưa có hoạt động nào", không có alerts → "Mọi thứ đều ổn").
+**Verify:** mở Dashboard fresh install → trang đầu hiển thị greeting + 4 section. Nếu activity feed trống sau khi gateway boot xong, kiểm tra `logs/audit.jsonl` có entry `gateway_ready` không.
+
+### OpenClaw webview blocked by XFO — stripper missed partition session (v2.2.8)
+**Bug:** User báo v2.0.0: "không view được openclaw trong app, bật web thì bt, view 9router bt". OpenClaw webview trong dashboard hiển thị blank; mở openclaw trong browser bình thường; 9Router webview hoạt động.
+**Root cause:** `dashboard.html` dùng `<webview partition="persist:embed-openclaw">`. Mỗi `partition` value tạo 1 Electron session RIÊNG. `installEmbedHeaderStripper()` chỉ register `onHeadersReceived` trên `session.defaultSession.webRequest` — KHÔNG fire cho partition session. Kết quả:
+- openclaw gateway respond `X-Frame-Options: DENY` + `Content-Security-Policy: ... frame-ancestors 'none'` (verified `curl -I http://127.0.0.1:18789/`)
+- partition session không strip → Chromium honor headers → blank webview
+- 9Router không gửi 2 headers đó (verified `curl -I http://127.0.0.1:20128/`) nên embed luôn work, mask bug.
+**Fix:** Refactor `installEmbedHeaderStripper()` thành per-session `attach()` helper, register trên 3 sessions: `defaultSession`, `session.fromPartition('persist:embed-openclaw')`, `session.fromPartition('persist:embed-9router')`.
+
+### Mac App Nap kills cron — powerSaveBlocker required (v2.2.7)
+**Bug:** macOS aggressively suspend background app sau ~30s không có UI focus (App Nap policy). Khi suspended, JS event loop bị freeze — bao gồm cả `node-cron` setInterval timer wheel. CEO morning report 7:30am sẽ KHÔNG fire trên Mac nếu lid đóng overnight.
+**Fix** ([main.js after createWindow](electron/main.js)):
+1. `powerSaveBlocker.start('prevent-app-suspension')` — power blocker nhẹ nhất, KHÔNG prevent display sleep, chỉ prevent OS freeze JS timers. No-op trên Windows. Idempotent qua `global.__powerBlockerId`.
+2. `powerMonitor.on('resume', ...)` + `on('suspend', ...)` listeners — ghi `system_resume` / `system_suspend` events vào `audit.jsonl`. Khi cron có vẻ skip, có forensic trail biết được Mac đã sleep lúc nào.
+
+### MODORO_WORKSPACE shell-env poisoning + ensureZaloPlugin race (v2.2.7)
+**Bug 1:** Gateway env builder `enrichedEnv = {...process.env}; if (ws) enrichedEnv.MODORO_WORKSPACE = ws`. Nếu user shell env có sẵn `MODORO_WORKSPACE=/tmp` (hoặc bất kỳ giá trị nào) AND `getWorkspace()` throw vì lý do gì đó, gateway inherit poisoned value. Plugin patches sau đó write `zalo-owner.json` lookup vào sai path → CEO recognition fail im lặng.
+**Fix:** explicit `delete enrichedEnv.MODORO_WORKSPACE` BEFORE attempt set giá trị mới. Nếu getWorkspace fail, env unset (patch dùng platform fallback) thay vì kế thừa giá trị độc.
+**Bug 2:** `ensureZaloPlugin` có 3 call site (boot path await, wizard-complete await, fire-and-forget tail call). Guard `if (_zaloReady) return` chỉ fire SAU khi patches complete (set `_zaloReady = true` ở line ~4296). Concurrent callers all bypass guard, all run patch injection logic, all `fs.writeFileSync` cùng `inbound.ts` → last-writer-wins race có thể để lại file half-patched.
+**Fix:** in-flight promise pattern. Caller đầu tiên start work + store promise vào `_zaloPluginInFlight`; subsequent callers attach vào cùng promise. Cleared khi complete. Verified: 5 concurrent callers → runCount=1.
+
+### initFileLogger lowercase modoro-claw (v2.2.7)
+**Bug:** `initFileLogger()` chạy ở app boot TRƯỚC `app.whenReady()` fire, không thể dùng `app.getPath('userData')`. Hardcode `'MODOROClaw'` capital — nhưng Electron `app.getName()` reads `package.json` top-level `name` field = `"modoro-claw"` (LOWERCASE). `build.productName` ("MODOROClaw") chỉ là electron-builder installer metadata, KHÔNG phải runtime concept.
+**Symptom:** Phantom `%APPDATA%/MODOROClaw/logs/main.log` directory while real workspace + every other log lives in `%APPDATA%/modoro-claw/`. Trên Mac cùng class bug split logs giữa `~/Library/Application Support/MODOROClaw/` vs `.../modoro-claw/`.
+**Detection:** smoking gun là TWO directories tồn tại side-by-side trên dev machine, observed via `ls -la ~/AppData/Roaming/`.
+**Fix:** Hardcode `'modoro-claw'` (lowercase) ở `initFileLogger` AND `getWorkspace()` manual fallback.
+
+### Zalo owner [ZALO_CHU_NHAN] marker patch — cross-platform paths (v2.2.7)
+**Bug:** `ensureZaloOwnerFix()` injected hardcoded path `~/AppData/Roaming/modoro-claw/zalo-owner.json` (Windows-only) + legacy `~/.openclaw/workspace/`. Trên packaged Mac, `getWorkspace()` returns `~/Library/Application Support/modoro-claw/` (lowercase). Patch không bao giờ tìm thấy file → `[ZALO_CHU_NHAN]` marker không bao giờ được inject → CEO recognition broken trên mọi packaged install (cả Win lẫn Mac).
+**Fix:** Inject platform-aware path resolution mirroring `getWorkspace()` (darwin/win32/linux branches), PLUS `process.env.MODORO_WORKSPACE` env var as highest-priority lookup (set bởi main.js gateway spawn). Auto-strip OLD broken patch on upgrade qua version-pin `ZALO-OWNER-PATCH-V2` trong patch BLOCK (không scan whole-file fingerprint vì sẽ false-positive với content của patch khác như friend-check).
+**Plus:** `build-mac.yml` workflow giờ pass `TARGET_ARCH`/`npm_config_arch`/`npm_config_target_arch`/`npm_config_target_platform` cho `npm install` step. Trước đó npm install chạy không có arch hint → postinstall `fix-better-sqlite3.js` fetch HOST arch (arm64) cho cả x64 build → x64 .dmg ship arm64 binary → "Bad CPU type" trên Intel Mac. Add explicit Mach-O CPU verification step in CI.
+
 ### Vendor tar-and-extract-on-first-launch (Win only) — fix slow install on low-end SSDs
 **Bug:** Ship `vendor/` với **126,644 file nhỏ** qua NSIS = pathological. Mỗi file tốn 3-5 ms (MFT + NTFS journal + Defender real-time scan + inode create). Tổng overhead = **5-10 phút install trên máy khách có SSD trung bình** (Micron 2200V entry-level, older OEM SSDs, laptop văn phòng). CEO không kỹ thuật sẽ thấy installer im lặng 10 phút và tưởng stuck.
 

@@ -2077,10 +2077,16 @@ function createTray() {
     if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); }
   };
 
+  // Pick a platform-appropriate label for "open log file in editor". On Mac
+  // this opens TextEdit; calling it "Notepad" was Win-only and confusing.
+  const openLogFileLabel = process.platform === 'win32'
+    ? 'Mở file log trong Notepad'
+    : 'Mở file log trong trình soạn thảo';
+
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '🦞 Mở', click: show },
+    { label: 'Mở MODOROClaw', click: show },
     { type: 'separator' },
-    { label: botRunning ? '● Đang chạy' : '○ Đã dừng', enabled: false },
+    { label: botRunning ? 'Đang chạy' : 'Đã dừng', enabled: false },
     { label: botRunning ? 'Dừng' : 'Khởi động', click: () => { if (botRunning) stopOpenClaw(); else startOpenClaw(); createTray(); } },
     { type: 'separator' },
     { label: 'Mở thư mục log (chẩn đoán)', click: () => {
@@ -2094,7 +2100,7 @@ function createTray() {
         } catch (e) { console.error('[tray] open log folder failed:', e?.message || e); }
       }
     },
-    { label: 'Mở file log trong Notepad', click: () => {
+    { label: openLogFileLabel, click: () => {
         try {
           const logPath = getLogFilePath();
           if (logPath && fs.existsSync(logPath)) shell.openPath(logPath);
@@ -6806,8 +6812,10 @@ function startCronJobs() {
           try {
             const prompt = buildMorningBriefingPrompt(s.time);
             await runCronAgentPrompt(prompt, { label: 'morning-briefing' });
+            try { auditLog('cron_fired', { id: 'morning', label: s.label || 'Báo cáo sáng' }); } catch {}
           } catch (e) {
             console.error('[cron] Morning handler threw:', e?.message || e);
+            try { auditLog('cron_failed', { id: 'morning', label: s.label || 'Báo cáo sáng', error: String(e?.message || e).slice(0, 200) }); } catch {}
           } finally {
             global._cronInFlight?.delete('morning');
           }
@@ -6827,8 +6835,10 @@ function startCronJobs() {
           try {
             const prompt = buildEveningSummaryPrompt(s.time);
             await runCronAgentPrompt(prompt, { label: 'evening-summary' });
+            try { auditLog('cron_fired', { id: 'evening', label: s.label || 'Tóm tắt cuối ngày' }); } catch {}
           } catch (e) {
             console.error('[cron] Evening handler threw:', e?.message || e);
+            try { auditLog('cron_failed', { id: 'evening', label: s.label || 'Tóm tắt cuối ngày', error: String(e?.message || e).slice(0, 200) }); } catch {}
           } finally {
             global._cronInFlight?.delete('evening');
           }
@@ -6935,9 +6945,11 @@ function startCronJobs() {
           // wrap here too so an unexpected throw doesn't crash node-cron's task.
           const ok = await runCronAgentPrompt(c.prompt, { label: c.label || c.id });
           console.log(`[cron] Custom ${c.id} agent run result:`, ok);
+          try { auditLog('cron_fired', { id: c.id, label: c.label || c.id, kind: 'custom' }); } catch {}
         } catch (e) {
           console.error(`[cron] Custom ${c.id} handler threw (suppressed):`, e?.message || e);
           journalCronRun({ phase: 'fail', label: c.label || c.id, reason: 'handler-threw', err: String(e?.message || e).slice(0, 300) });
+          try { auditLog('cron_failed', { id: c.id, label: c.label || c.id, kind: 'custom', error: String(e?.message || e).slice(0, 200) }); } catch {}
           try { await sendTelegram(`*Cron "${c.label || c.id}" lỗi nội bộ*\n\n\`${String(e?.message || e).slice(0, 300)}\``); } catch {}
         } finally {
           global._cronInFlight.delete(niceId);
