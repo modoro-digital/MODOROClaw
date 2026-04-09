@@ -5585,7 +5585,7 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
 });
 
 // Save personalization (industry, tone, pronouns)
-ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns, ceoTitle }) => {
+ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns, ceoTitle, botName }) => {
   try {
     // Validate inputs
     const VALID_INDUSTRIES = ['bat-dong-san', 'fnb', 'thuong-mai', 'dich-vu', 'giao-duc', 'cong-nghe', 'san-xuat', 'tong-quat'];
@@ -5595,6 +5595,9 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
     const VALID_PRONOUNS = ['em-anh-chi', 'toi-quy-khach', 'minh-ban'];
     if (!VALID_PRONOUNS.includes(pronouns)) pronouns = 'em-anh-chi';
     ceoTitle = (ceoTitle || '').replace(/[\n\r]/g, '').substring(0, 50).trim();
+    // Bot name is optional — if provided, replace the placeholder in IDENTITY.md.
+    // If empty, the bot self-refers as "em" (from pronouns config) without a personal name.
+    botName = (botName || '').replace(/[\n\r]/g, '').substring(0, 30).trim();
     // Empty ceoTitle is a wizard bug — IDENTITY.md would end up with literal
     // "gọi chủ nhân là " with no name → bot falls back to template default
     // (which used to be hardcoded "thầy Huy" — see IDENTITY.md template fix).
@@ -5603,7 +5606,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       console.error('[save-personalization] empty ceoTitle — refusing to write IDENTITY.md');
       return { success: false, error: 'ceoTitle bắt buộc — vui lòng nhập "Trợ lý gọi bạn là" trong wizard' };
     }
-    console.log('[save-personalization] industry=' + industry + ' tone=' + tone + ' pronouns=' + pronouns + ' ceoTitle="' + ceoTitle + '"');
+    console.log('[save-personalization] industry=' + industry + ' tone=' + tone + ' pronouns=' + pronouns + ' ceoTitle="' + ceoTitle + '" botName="' + botName + '"');
 
     // Industry name map for display
     const INDUSTRY_NAMES = {
@@ -5667,6 +5670,11 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       const phongcachLine = `- **Phong cách:** ${toneMap[tone] || toneMap['friendly']}`;
       const nganhLine = `- **Ngành:** ${INDUSTRY_NAMES[industry] || industry}`;
       const before = content;
+      // Bot name — replace the "[Tên trợ lý của bạn]" placeholder or update
+      // an existing name. If botName is empty, write a sensible default so the
+      // template placeholder doesn't show up in bot introductions.
+      const botNameLine = `- **Tên:** ${botName || 'Trợ lý MODOROClaw'}`;
+      content = content.replace(/- \*\*Tên:\*\* .*/, botNameLine);
       content = content.replace(/- \*\*Cách xưng hô:\*\* .*/, xunghoLine);
       content = content.replace(/- \*\*Phong cách:\*\* .*/, phongcachLine);
       content = content.replace(/- \*\*Ngành:\*\* .*/, nganhLine);

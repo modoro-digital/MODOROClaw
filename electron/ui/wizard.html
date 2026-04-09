@@ -614,13 +614,18 @@
 
             <div class="wz-field-row">
               <div class="wz-field">
-                <label class="wz-label">Họ và tên</label>
-                <input type="text" class="wz-input" id="ceo-name" placeholder="Họ và tên đầy đủ">
+                <label class="wz-label">Họ và tên anh/chị (chủ doanh nghiệp)</label>
+                <input type="text" class="wz-input" id="ceo-name" placeholder="Ví dụ: Nguyễn Văn A">
               </div>
               <div class="wz-field">
                 <label class="wz-label">Tên công ty / cửa hàng</label>
                 <input type="text" class="wz-input" id="company" placeholder="Không bắt buộc">
               </div>
+            </div>
+            <div class="wz-field">
+              <label class="wz-label">Tên trợ lý ảo (không bắt buộc)</label>
+              <input type="text" class="wz-input" id="bot-name" placeholder="Để trống = bot tự xưng 'em'. Ví dụ: Momo, Linh, Claw">
+              <p class="wz-help">Đây là tên riêng của trợ lý AI. Khách Zalo sẽ thấy bot tự giới thiệu bằng tên này.</p>
             </div>
 
             <div class="wz-field">
@@ -1527,7 +1532,8 @@
           showStep('1b');
           return;
         }
-        const personResult = await withTimeout(window.claw.savePersonalization({ industry, tone: selectedTone, pronouns: selectedPronouns, ceoTitle }));
+        const botName = (document.getElementById('bot-name')?.value || '').trim();
+        const personResult = await withTimeout(window.claw.savePersonalization({ industry, tone: selectedTone, pronouns: selectedPronouns, ceoTitle, botName }));
         if (personResult && personResult.success === false) {
           showError('Lưu cá nhân hóa thất bại: ' + (personResult.error || 'không rõ lỗi'));
         }
