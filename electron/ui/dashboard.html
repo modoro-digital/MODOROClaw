@@ -221,6 +221,11 @@
     .know-folder .name { font-weight:600; font-size:13px; }
     .know-folder .count { font-size:11px; color:var(--text-muted); }
     .know-folder.active .count { color:rgba(255,255,255,0.8); }
+    .know-folder-delete { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; border-radius:4px; flex-shrink:0; opacity:0; transition:opacity 0.15s; }
+    .know-folder:hover .know-folder-delete { opacity:1; }
+    .know-folder-delete:hover { color:var(--danger); background:rgba(239,68,68,0.1); }
+    .know-folder.active .know-folder-delete { color:rgba(255,255,255,0.7); }
+    .know-folder.active .know-folder-delete:hover { color:#fff; background:rgba(255,255,255,0.2); }
     .know-files-list { flex:1; overflow-y:auto; min-height:0; }
     .know-file { display:flex; gap:12px; padding:12px; border-bottom:1px solid var(--border); font-size:13px; }
     .know-file:last-child { border-bottom:none; }
@@ -1318,29 +1323,20 @@
 
         <div class="know-columns">
           <div class="know-col">
-            <h4>Thư mục</h4>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <h4 style="margin:0">Thư mục</h4>
+              <button class="btn btn-secondary btn-small" onclick="showAddKnowledgeFolder()" style="padding:4px 10px;font-size:11px">+ Thêm</button>
+            </div>
             <div id="know-folders-list">
-              <div class="know-folder active" data-cat="cong-ty" onclick="selectKnowledgeFolder('cong-ty')">
-                <div class="icon-wrap" data-icon="building"></div>
-                <div class="info">
-                  <div class="name">Công ty</div>
-                  <div class="count" id="know-count-cong-ty">0 tài liệu</div>
-                </div>
+              <div class="know-empty">Đang tải...</div>
+            </div>
+            <div id="know-add-folder-form" style="display:none;margin-top:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+              <input id="know-new-folder-name" type="text" placeholder="Tên thư mục mới" style="width:100%;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:6px;box-sizing:border-box">
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-primary btn-small" onclick="createKnowledgeFolder()" style="flex:1;padding:4px 8px;font-size:11px">Tạo</button>
+                <button class="btn btn-secondary btn-small" onclick="hideAddKnowledgeFolder()" style="padding:4px 8px;font-size:11px">Hủy</button>
               </div>
-              <div class="know-folder" data-cat="san-pham" onclick="selectKnowledgeFolder('san-pham')">
-                <div class="icon-wrap" data-icon="shopping-bag"></div>
-                <div class="info">
-                  <div class="name">Sản phẩm</div>
-                  <div class="count" id="know-count-san-pham">0 tài liệu</div>
-                </div>
-              </div>
-              <div class="know-folder" data-cat="nhan-vien" onclick="selectKnowledgeFolder('nhan-vien')">
-                <div class="icon-wrap" data-icon="users"></div>
-                <div class="info">
-                  <div class="name">Nhân viên</div>
-                  <div class="count" id="know-count-nhan-vien">0 tài liệu</div>
-                </div>
-              </div>
+              <div id="know-add-folder-error" style="display:none;font-size:11px;color:var(--danger);margin-top:4px"></div>
             </div>
             <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.5">
               Bot tự đọc và nhớ nội dung file. Khi anh/chị hoặc khách hỏi, bot sẽ tìm trong knowledge để trả lời.
@@ -2287,23 +2283,41 @@
     // ============================================
     let knowledgeInitialized = false;
     let currentKnowledgeCategory = 'cong-ty';
-    const KNOW_LABELS = { 'cong-ty': 'Công ty', 'san-pham': 'Sản phẩm', 'nhan-vien': 'Nhân viên' };
+    let _knowFolders = [];
+    const KNOW_ICONS = { 'cong-ty': 'building', 'san-pham': 'shopping-bag', 'nhan-vien': 'users' };
 
     async function initKnowledge() {
       knowledgeInitialized = true;
       setupKnowledgeDragDrop();
-      await refreshKnowledgeCounts();
+      await renderKnowledgeFolders();
       await refreshKnowledgeFiles();
     }
 
-    async function refreshKnowledgeCounts() {
+    async function renderKnowledgeFolders() {
       try {
-        const counts = await window.claw.getKnowledgeCounts();
-        for (const cat of ['cong-ty', 'san-pham', 'nhan-vien']) {
-          const el = document.getElementById('know-count-' + cat);
-          if (el) el.textContent = (counts[cat] || 0) + ' tài liệu';
+        const [folders, counts] = await Promise.all([
+          window.claw.listKnowledgeFolders(),
+          window.claw.getKnowledgeCounts(),
+        ]);
+        _knowFolders = folders;
+        const list = document.getElementById('know-folders-list');
+        if (!folders || folders.length === 0) {
+          list.innerHTML = '<div class="know-empty">Chưa có thư mục</div>';
+          return;
         }
-      } catch (e) { console.error('refreshKnowledgeCounts:', e); }
+        list.innerHTML = folders.map(f => {
+          const iconName = KNOW_ICONS[f.id] || 'book-open';
+          const count = counts[f.id] || 0;
+          const isActive = f.id === currentKnowledgeCategory ? ' active' : '';
+          const deleteBtn = f.isDefault ? '' : '<button class="know-folder-delete" onclick="event.stopPropagation();deleteKnowledgeFolder(\'' + esc(f.id) + '\')" title="Xóa thư mục">&times;</button>';
+          return '<div class="know-folder' + isActive + '" data-cat="' + esc(f.id) + '" onclick="selectKnowledgeFolder(\'' + esc(f.id) + '\')">'
+            + '<div class="icon-wrap" data-icon="' + iconName + '"></div>'
+            + '<div class="info"><div class="name">' + esc(f.label) + '</div><div class="count">' + count + ' tài liệu</div></div>'
+            + deleteBtn
+            + '</div>';
+        }).join('');
+        mountIcons();
+      } catch (e) { console.error('renderKnowledgeFolders:', e); }
     }
 
     function selectKnowledgeFolder(cat) {
@@ -2311,8 +2325,53 @@
       document.querySelectorAll('.know-folder').forEach(f => {
         f.classList.toggle('active', f.dataset.cat === cat);
       });
-      document.getElementById('know-files-title').textContent = 'Tài liệu — ' + KNOW_LABELS[cat];
+      const folder = _knowFolders.find(f => f.id === cat);
+      document.getElementById('know-files-title').textContent = 'Tài liệu — ' + (folder ? folder.label : cat);
       refreshKnowledgeFiles();
+    }
+
+    function showAddKnowledgeFolder() {
+      document.getElementById('know-add-folder-form').style.display = 'block';
+      document.getElementById('know-new-folder-name').focus();
+    }
+    function hideAddKnowledgeFolder() {
+      document.getElementById('know-add-folder-form').style.display = 'none';
+      document.getElementById('know-new-folder-name').value = '';
+      document.getElementById('know-add-folder-error').style.display = 'none';
+    }
+    async function createKnowledgeFolder() {
+      const name = document.getElementById('know-new-folder-name').value.trim();
+      if (!name) return;
+      const errEl = document.getElementById('know-add-folder-error');
+      try {
+        const res = await window.claw.createKnowledgeFolder(name);
+        if (res.success) {
+          hideAddKnowledgeFolder();
+          await renderKnowledgeFolders();
+          selectKnowledgeFolder(res.id);
+          addActivity('Tạo thư mục Knowledge: ' + name);
+        } else {
+          errEl.textContent = res.error || 'Lỗi';
+          errEl.style.display = 'block';
+        }
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+      }
+    }
+    async function deleteKnowledgeFolder(id) {
+      if (!confirm('Xóa thư mục này và tất cả tài liệu bên trong?')) return;
+      try {
+        const res = await window.claw.deleteKnowledgeFolder(id);
+        if (res.success) {
+          if (currentKnowledgeCategory === id) currentKnowledgeCategory = 'cong-ty';
+          await renderKnowledgeFolders();
+          refreshKnowledgeFiles();
+          addActivity('Xóa thư mục Knowledge: ' + id);
+        } else {
+          alert(res.error || 'Lỗi xóa thư mục');
+        }
+      } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
     async function refreshKnowledgeFiles() {

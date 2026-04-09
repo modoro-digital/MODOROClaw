@@ -7796,29 +7796,60 @@ function getDocumentsDb() {
 //  KNOWLEDGE TAB — categorized document store
 // ============================================
 
-const KNOWLEDGE_CATEGORIES = ['cong-ty', 'san-pham', 'nhan-vien'];
+const DEFAULT_KNOWLEDGE_CATEGORIES = ['cong-ty', 'san-pham', 'nhan-vien'];
 const KNOWLEDGE_LABELS = {
   'cong-ty': 'Công ty',
   'san-pham': 'Sản phẩm',
   'nhan-vien': 'Nhân viên',
 };
 
+// Dynamic: read all subdirectories under knowledge/ as categories
+function getKnowledgeCategories() {
+  const ws = getWorkspace();
+  const knowDir = path.join(ws, 'knowledge');
+  if (!fs.existsSync(knowDir)) return [...DEFAULT_KNOWLEDGE_CATEGORIES];
+  try {
+    const dirs = fs.readdirSync(knowDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+    // Ensure defaults always present
+    const set = new Set(dirs);
+    for (const d of DEFAULT_KNOWLEDGE_CATEGORIES) set.add(d);
+    return [...set].sort();
+  } catch { return [...DEFAULT_KNOWLEDGE_CATEGORIES]; }
+}
+
+// Compat shim — old code references KNOWLEDGE_CATEGORIES
+const KNOWLEDGE_CATEGORIES = new Proxy(DEFAULT_KNOWLEDGE_CATEGORIES, {
+  get(target, prop) {
+    if (prop === 'includes') return (cat) => {
+      // Accept any folder that exists on disk OR is a default
+      if (DEFAULT_KNOWLEDGE_CATEGORIES.includes(cat)) return true;
+      const dir = path.join(getWorkspace(), 'knowledge', cat);
+      return fs.existsSync(dir);
+    };
+    return target[prop];
+  }
+});
+
 function getKnowledgeDir(category) {
-  if (!KNOWLEDGE_CATEGORIES.includes(category)) throw new Error('Invalid category: ' + category);
+  // Allow any alphanumeric + dash folder name
+  if (!/^[a-z0-9-]+$/.test(category)) throw new Error('Invalid category name: ' + category);
   return path.join(getWorkspace(), 'knowledge', category);
 }
 
 function ensureKnowledgeFolders() {
   const ws = getWorkspace();
-  for (const cat of KNOWLEDGE_CATEGORIES) {
+  for (const cat of getKnowledgeCategories()) {
     const dir = path.join(ws, 'knowledge', cat, 'files');
     try { fs.mkdirSync(dir, { recursive: true }); } catch {}
     const indexFile = path.join(ws, 'knowledge', cat, 'index.md');
     if (!fs.existsSync(indexFile)) {
+      const label = KNOWLEDGE_LABELS[cat] || cat;
       try {
         fs.writeFileSync(
           indexFile,
-          `# Knowledge — ${KNOWLEDGE_LABELS[cat]}\n\n*Chưa có tài liệu nào. CEO upload file qua Dashboard → Knowledge.*\n`,
+          `# Knowledge — ${label}\n\n*Chưa có tài liệu nào. CEO upload file qua Dashboard → Knowledge.*\n`,
           'utf-8'
         );
       } catch {}
@@ -7834,7 +7865,7 @@ async function backfillKnowledgeFromDisk() {
   const db = getDocumentsDb();
   if (!db) return; // DB still broken — nothing to backfill into
   let inserted = 0;
-  for (const cat of KNOWLEDGE_CATEGORIES) {
+  for (const cat of getKnowledgeCategories()) {
     let existing = new Set();
     try {
       for (const r of db.prepare('SELECT filename FROM documents WHERE category = ?').all(cat)) existing.add(r.filename);
@@ -8125,17 +8156,17 @@ ipcMain.handle('delete-knowledge-file', async (_event, { category, filename }) =
 
 ipcMain.handle('get-knowledge-counts', async () => {
   try {
+    const cats = getKnowledgeCategories();
     const db = getDocumentsDb();
-    const counts = { 'cong-ty': 0, 'san-pham': 0, 'nhan-vien': 0 };
+    const counts = {};
+    for (const cat of cats) counts[cat] = 0;
     if (!db) {
-      // Fallback to disk count when DB unavailable.
-      for (const cat of KNOWLEDGE_CATEGORIES) counts[cat] = listKnowledgeFilesFromDisk(cat).length;
+      for (const cat of cats) counts[cat] = listKnowledgeFilesFromDisk(cat).length;
       return counts;
     }
-    for (const cat of KNOWLEDGE_CATEGORIES) {
+    for (const cat of cats) {
       let n = 0;
       try { n = db.prepare('SELECT COUNT(*) as n FROM documents WHERE category = ?').get(cat)?.n || 0; } catch {}
-      // Also count disk-only files (uploaded while DB was broken)
       const diskFiles = listKnowledgeFilesFromDisk(cat);
       const dbNames = new Set();
       try {
@@ -8147,7 +8178,62 @@ ipcMain.handle('get-knowledge-counts', async () => {
     db.close();
     return counts;
   } catch {
-    return { 'cong-ty': 0, 'san-pham': 0, 'nhan-vien': 0 };
+    const counts = {};
+    for (const cat of getKnowledgeCategories()) counts[cat] = 0;
+    return counts;
+  }
+});
+
+// List all knowledge folders with labels
+ipcMain.handle('list-knowledge-folders', async () => {
+  const cats = getKnowledgeCategories();
+  return cats.map(cat => ({
+    id: cat,
+    label: KNOWLEDGE_LABELS[cat] || cat.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    isDefault: DEFAULT_KNOWLEDGE_CATEGORIES.includes(cat),
+  }));
+});
+
+// Create custom knowledge folder
+ipcMain.handle('create-knowledge-folder', async (_event, { name }) => {
+  try {
+    // Sanitize: lowercase, replace spaces with dash, remove non-alphanumeric
+    const id = String(name).toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip diacritics
+      .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    if (!id || id.length < 2) return { success: false, error: 'Tên thư mục quá ngắn' };
+    if (id.length > 30) return { success: false, error: 'Tên thư mục quá dài (tối đa 30 ký tự)' };
+    const dir = path.join(getWorkspace(), 'knowledge', id, 'files');
+    fs.mkdirSync(dir, { recursive: true });
+    const label = String(name).trim();
+    KNOWLEDGE_LABELS[id] = label;
+    const indexFile = path.join(getWorkspace(), 'knowledge', id, 'index.md');
+    if (!fs.existsSync(indexFile)) {
+      fs.writeFileSync(indexFile, `# Knowledge — ${label}\n\n*Chưa có tài liệu nào.*\n`, 'utf-8');
+    }
+    return { success: true, id, label };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// Delete custom knowledge folder (only non-default)
+ipcMain.handle('delete-knowledge-folder', async (_event, { id }) => {
+  try {
+    if (DEFAULT_KNOWLEDGE_CATEGORIES.includes(id)) return { success: false, error: 'Không thể xóa thư mục mặc định' };
+    const dir = path.join(getWorkspace(), 'knowledge', id);
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    // Clean DB entries
+    try {
+      const db = getDocumentsDb();
+      if (db) { db.prepare('DELETE FROM documents WHERE category = ?').run(id); db.close(); }
+    } catch {}
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 });
 

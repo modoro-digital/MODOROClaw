@@ -93,6 +93,9 @@ contextBridge.exposeInMainWorld('claw', {
   deleteKnowledgeFile: (category, filename) => ipcRenderer.invoke('delete-knowledge-file', { category, filename }),
   getKnowledgeCounts: () => ipcRenderer.invoke('get-knowledge-counts'),
   pickKnowledgeFile: () => ipcRenderer.invoke('pick-knowledge-file'),
+  listKnowledgeFolders: () => ipcRenderer.invoke('list-knowledge-folders'),
+  createKnowledgeFolder: (name) => ipcRenderer.invoke('create-knowledge-folder', { name }),
+  deleteKnowledgeFolder: (id) => ipcRenderer.invoke('delete-knowledge-folder', { id }),
 
   // Document Library
   indexDocument: (opts) => ipcRenderer.invoke('index-document', opts),
