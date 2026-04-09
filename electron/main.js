@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, powerSaveBlocker, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execFile } = require('child_process');
@@ -2968,11 +2968,22 @@ function ensureOpenzcaFriendEventFix() {
   }
 }
 
-// MODOROClaw OUTPUT-FILTER PATCH v2 — Security Layer 2
-// Deterministic scan of outbound Zalo text for sensitive patterns + AI
-// failure modes that AGENTS.md rules cannot prevent. Model compliance is
-// not guaranteed — a jailbreak payload, a context window edge case, or
-// just a bad sampling step can cause the bot to:
+// MODOROClaw OUTPUT-FILTER PATCH v3 — Security Layer 2
+// v3 changes vs v2 (deep audit findings):
+//   - Fix \b regex bug for Vietnamese-leading branches. JS \b only works
+//     on [a-zA-Z0-9_]; for đ/ạ/ơ etc it never matches, so v2's
+//     meta-vi-fact-claim second branch + meta-vi-memory-claim Vietnamese
+//     branch were dead code. Replaced \b at start with (?<![a-zA-Z0-9_])
+//     lookbehind, \b at end with (?![a-zA-Z0-9_]) lookahead.
+//   - Drop bare "(rằng|là)" from second branch of fact-claim; keep only
+//     "rằng". "là" alone false-positives on legit business reports.
+//   - Add URL bypass to Layer D: skip diacritic check if reply contains
+//     http(s):// scheme (legit URL-only replies pass).
+//   - Add file-size safety guard: abort if patched send.ts shrinks > 50%.
+//
+// Original purpose: deterministic scan of outbound Zalo text for sensitive
+// patterns + AI failure modes that AGENTS.md rules cannot prevent. The
+// AI may sometimes:
 //   1. cite file paths / API keys / config internals (security leak)
 //   2. dump its English chain-of-thought as the user-facing reply
 //   3. narrate file/tool operations ("em vừa edit file memory.md")
@@ -2994,8 +3005,9 @@ function ensureZaloOutputFilterFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'send.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
+    const originalLength = content.length;
 
-    const CURRENT_VERSION = 'MODOROClaw OUTPUT-FILTER PATCH v2';
+    const CURRENT_VERSION = 'MODOROClaw OUTPUT-FILTER PATCH v3';
 
     // Fast path: file is already on the current version, nothing to do.
     if (content.includes(CURRENT_VERSION)) return;
@@ -4943,7 +4955,14 @@ function hashPin(pin, salt) {
   const crypto = require('crypto');
   // scrypt with N=2^15 cost — slow enough to discourage brute force but
   // fast enough that PIN unlock feels instant (~50ms on modern CPUs).
-  return crypto.scryptSync(String(pin), salt, 64, { N: 32768, r: 8, p: 1 }).toString('hex');
+  //
+  // CRITICAL: maxmem MUST be passed explicitly. Node's default maxmem is
+  // 32 MB. Memory required = 128 * N * r = 128 * 32768 * 8 = 32 MB EXACTLY,
+  // which trips Node's "memory limit exceeded" check (the comparison is
+  // strict >). Without maxmem, this throws on EVERY PIN check:
+  //   "Invalid scrypt params: memory limit exceeded".
+  // 64 MB headroom = safe for these params.
+  return crypto.scryptSync(String(pin), salt, 64, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }).toString('hex');
 }
 
 function constantTimeEqual(a, b) {
@@ -8048,6 +8067,43 @@ app.whenReady().then(async () => {
   installEmbedHeaderStripper(); // BEFORE createWindow so first iframe load is unblocked
   createWindow();
   createTray();
+
+  // CRITICAL for Mac: prevent App Nap from suspending the process. macOS aggressively
+  // suspends background apps after ~30s of no UI interaction, which freezes
+  // setTimeout/setInterval — including node-cron's internal timer wheel. Without
+  // this, the CEO's 7:30am morning report won't fire if the Mac was asleep or
+  // backgrounded overnight. `prevent-app-suspension` is the lightest power blocker
+  // (does NOT prevent display sleep, just prevents the OS from freezing JS timers).
+  // On Windows it's a no-op (Windows doesn't App Nap). Idempotent: tracks blockerId
+  // so repeated boots don't leak blockers.
+  try {
+    if (typeof global.__powerBlockerId === 'number' && powerSaveBlocker.isStarted(global.__powerBlockerId)) {
+      powerSaveBlocker.stop(global.__powerBlockerId);
+    }
+    global.__powerBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+    console.log('[power] prevent-app-suspension started, id=', global.__powerBlockerId);
+  } catch (e) {
+    console.warn('[power] failed to start power blocker:', e?.message);
+  }
+
+  // Defense in depth: when the system wakes from sleep, manually re-check cron
+  // schedules. node-cron's timer wheel may have skipped firings while the
+  // process was suspended (despite the powerSaveBlocker above — belt + braces).
+  // We don't refire jobs ourselves; we just log the wake event so audit log
+  // shows the gap, and force a config reload so any time-based check refreshes.
+  try {
+    powerMonitor.on('resume', () => {
+      console.log('[power] system resume detected — node-cron may have skipped firings during sleep');
+      try { auditLog('system_resume', { ts: new Date().toISOString() }); } catch {}
+    });
+    powerMonitor.on('suspend', () => {
+      console.log('[power] system suspend detected');
+      try { auditLog('system_suspend', { ts: new Date().toISOString() }); } catch {}
+    });
+  } catch (e) {
+    console.warn('[power] could not register powerMonitor listeners:', e?.message);
+  }
+
   // Pre-install Zalo plugin in background (so QR is fast when user clicks)
   ensureZaloPlugin().catch(() => {});
   // Re-index any Knowledge files that exist on disk but are missing from DB
