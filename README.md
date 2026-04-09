@@ -4,7 +4,7 @@
 
 Ứng dụng desktop bundle sẵn mọi thứ — Telegram bot, Zalo bot (qua plugin OpenZalo), AI router (9Router), engine OpenClaw. CEO chỉ cần tải file cài, chạy wizard 4 bước, là có ngay 1 trợ lý 24/7 trên Telegram + Zalo. Không cần biết Node, Python, Docker, terminal.
 
-Phiên bản hiện tại: **v2.2.17** · Hỗ trợ **Windows 10+** và **macOS 11+** (arm64 + Intel).
+Phiên bản hiện tại: **v2.2.19** · Hỗ trợ **Windows 10+** và **macOS 11+** (arm64 + Intel).
 
 ---
 
@@ -51,9 +51,9 @@ Sau wizard: dashboard mở, bot bắt đầu nhận tin nhắn ngay.
 
 ## Dashboard — 7 tab
 
-### Tổng quan (redesigned v2.2.9)
+### Tổng quan (redesigned v2.2.9+)
 4 section thật sự helpful:
-- **Greeting** — Chào sáng/trưa/tối anh [tên]. Hôm nay [thứ], [ngày]. Bot đã ghi nhận N sự kiện hôm nay. Pill xanh/đỏ "Đang chạy / Đã dừng".
+- **Greeting** — Chào buổi sáng/chiều/tối anh [tên]. Hôm nay [thứ], [ngày]. Bot đã ghi nhận N sự kiện hôm nay. Pill xanh/đỏ "Đang chạy / Đã dừng".
 - **Hoạt động gần đây** — last 8 sự kiện từ audit log mapped sang tiếng Việt: Khởi động bot, Bot sẵn sàng, Cron đã chạy, Bộ lọc chặn 1 tin Zalo, Mac thức dậy...
 - **Sắp tới** — next 6 cron firings tính từ schedules.json + custom-crons.json
 - **Cần anh để ý** — alerts với severity (HIGH/MED/LOW) + CTA 1-click: bot đang dừng → Khởi động; cookie Zalo > 14 ngày → Quét QR mới; tin bị filter chặn → Xem log; khách Zalo mới → Mở Zalo
@@ -76,7 +76,7 @@ Sau wizard: dashboard mở, bot bắt đầu nhận tin nhắn ngay.
 - 3 chế độ: auto (tự reply + escalate phức tạp qua Telegram) / read (chỉ đọc, báo Telegram) / daily (tóm tắt cuối ngày qua Telegram)
 
 ### Knowledge
-3 folder cố định: cong-ty (hợp đồng/SOP), san-pham (catalog/giá), nhan-vien (danh sách/ca làm). Upload PDF/Word/Excel/CSV/TXT/ảnh. Bot AI tự tóm tắt mỗi file 1-2 câu vào `index.md` của folder. Backend SQLite FTS5 cho full-text search.
+3 folder mặc định: cong-ty (hợp đồng/SOP), san-pham (catalog/giá), nhan-vien (danh sách/ca làm). Upload PDF/Word/Excel/CSV/TXT/ảnh. Bot AI tự tóm tắt mỗi file 1-2 câu vào `index.md` của folder. Backend SQLite FTS5 cho full-text search.
 
 ### 9Router
 Embed inline tab quản lý 9Router (login mật khẩu mặc định `123456`, JWT cookie persist).
@@ -150,6 +150,29 @@ Mac App Nap có thể freeze cron — fix bằng `powerSaveBlocker.start('preven
 | Telegram chatId mất | 3-tier recovery: openclaw.json → sticky-chatid.json → getUpdates parse |
 | Stale group/friend cache | Auto `openzca auth cache-refresh` mỗi 10 phút |
 | openzca friend_event không subscribe | Inject patch trong cli.js để auto-accept friend request + refresh cache → stranger thêm bạn → bot reply trong vài giây |
+| "Gateway is restarting" mid-reply | Root cause: CLI subprocess `openclaw config set` bypass byte-equal helper → inode change → watcher trigger restart. Fix: heal config in-process via `ensureDefaultConfig()`, remove CLI calls |
+| Cross-channel Zalo messaging denied | Bot dùng `exec` + `openzca msg send <groupId> "<text>" --group` thay vì `message` tool (bị gateway block cross-context) |
+
+---
+
+## 79 Expert Skills Library (v2.2.19+)
+
+Bot không chỉ trả lời chung chung — mà kích hoạt quy trình chuyên gia phù hợp cho từng yêu cầu.
+
+**Cách hoạt động:** CEO ra lệnh → bot đọc `skills/INDEX.md` → match keyword → load SKILL.md → follow step-by-step. CEO không cần biết skill nào tồn tại.
+
+| Category | Skills | Nguồn |
+|----------|--------|-------|
+| Marketing (copywriting, SEO, ads, CRO, email, growth) | 35 | coreyhaines31/marketingskills (19.8k stars) |
+| Advisory (CEO, CFO, CTO, CMO, COO, CHRO, CPO, CRO, CISO) | 11 | alirezarezvani/claude-skills |
+| Strategy (board, pricing, launch, growth, change mgmt) | 9 | alirezarezvani/claude-skills |
+| Content (creator, humanizer, brand, video, social) | 9 | alirezarezvani/claude-skills |
+| Sales (engineer, revenue ops, customer success, cold email) | 5 | alirezarezvani/claude-skills |
+| Growth (marketer, ops, demand, analytics, email builder) | 5 | alirezarezvani/claude-skills |
+| Finance (bundle, lead, SOC2) | 3 | alirezarezvani/claude-skills |
+| HR (CHRO, change management) | 2 | alirezarezvani/claude-skills |
+
+Cross-channel: CEO yêu cầu qua Telegram hoặc Zalo đều trigger skill. Bot tự chọn skill phù hợp bất kể ngành đã chọn ở wizard.
 
 ---
 
@@ -175,7 +198,7 @@ Wizard chọn ngành → copy:
 
 ```
 +--------------------------------------------------------+
-|              Electron Desktop App (v2.2.9)              |
+|              Electron Desktop App (v2.2.19)             |
 |  Wizard (4 steps)  |  Dashboard (7 tabs)  |  Tray      |
 +------------------------+-------------------------------+
                          | IPC (preload.js)
@@ -235,7 +258,7 @@ claw/
 │   ├── cong-ty/{index.md, files/}
 │   ├── san-pham/{index.md, files/}
 │   └── nhan-vien/{index.md, files/}
-├── skills/                    # 8 industry skill files
+├── skills/                    # 79 expert skills (marketing, advisory, strategy, content, sales, growth, finance, hr)
 ├── industry/                  # 8 industry workflow files
 ├── prompts/sop/, prompts/training/
 ├── .learnings/                # LEARNINGS.md, ERRORS.md (pre-loaded)

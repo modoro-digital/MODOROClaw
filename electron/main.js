@@ -3892,18 +3892,18 @@ async function _startOpenClawImpl() {
         const nvmDir = path.join(HOME, '.nvm', 'versions', 'node');
         if (fs.existsSync(nvmDir)) {
           for (const v of fs.readdirSync(nvmDir)) {
-            ozCliCandidates.push(path.join(nvmDir, v, 'lib/node_modules/openzca/dist/cli.js'));
+            ozCliCandidates.push(path.join(nvmDir, v, 'lib', 'node_modules', 'openzca', 'dist', 'cli.js'));
           }
         }
       } catch {}
       // volta
-      ozCliCandidates.push(path.join(HOME, '.volta/tools/image/packages/openzca/lib/node_modules/openzca/dist/cli.js'));
+      ozCliCandidates.push(path.join(HOME, '.volta', 'tools', 'image', 'packages', 'openzca', 'lib', 'node_modules', 'openzca', 'dist', 'cli.js'));
       // asdf
       try {
         const asdfDir = path.join(HOME, '.asdf', 'installs', 'nodejs');
         if (fs.existsSync(asdfDir)) {
           for (const v of fs.readdirSync(asdfDir)) {
-            ozCliCandidates.push(path.join(asdfDir, v, '.npm/lib/node_modules/openzca/dist/cli.js'));
+            ozCliCandidates.push(path.join(asdfDir, v, '.npm', 'lib', 'node_modules', 'openzca', 'dist', 'cli.js'));
           }
         }
       } catch {}
