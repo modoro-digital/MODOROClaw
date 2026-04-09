@@ -46,7 +46,36 @@ jobs:
 
       - name: Install electron app deps
         working-directory: electron
+        env:
+          # CRITICAL: matrix builds BOTH arm64 + x64 on the same macos-14
+          # (arm64) runner. Without these env vars, postinstall fix-better-sqlite3
+          # fetches HOST arch (arm64) for both targets → x64 .dmg ships an arm64
+          # native binary → "Bad CPU type in executable" on Intel Macs.
+          # fix-better-sqlite3.js reads npm_config_arch + TARGET_ARCH to pick
+          # the right prebuilt binary.
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_target_platform: darwin
         run: npm install --no-audit --no-fund
+
+      - name: Verify better-sqlite3 binary arch matches target
+        working-directory: electron
+        run: |
+          node -e "
+            const fs=require('fs'),p='node_modules/better-sqlite3/build/Release/better_sqlite3.node';
+            if(!fs.existsSync(p)){console.error('FAIL: binary missing');process.exit(1);}
+            const fd=fs.openSync(p,'r'),buf=Buffer.alloc(16);
+            fs.readSync(fd,buf,0,16,0);fs.closeSync(fd);
+            const magicBE=buf.readUInt32BE(0),magicLE=buf.readUInt32LE(0);
+            if(magicBE!==0xfeedfacf&&magicLE!==0xfeedfacf){console.error('FAIL: not Mach-O 64');process.exit(1);}
+            const cpu=buf.readUInt32LE(4);
+            const detected=cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown';
+            const want='${{ matrix.arch }}';
+            console.log('better-sqlite3 binary arch:',detected,'target:',want);
+            if(detected!==want){console.error('FAIL: arch mismatch');process.exit(1);}
+            console.log('OK');
+          "
 
       - name: Pre-bake vendor (real Node + openclaw + 9router)
         working-directory: electron

@@ -297,6 +297,14 @@ for (const c of openzaloSrcCandidates) {
   if (fs.existsSync(c)) { openzaloSrc = c; break; }
 }
 
+// In CI Mac builds the vendor MUST contain openzalo (no user-installed
+// fallback exists in CI). Fail loudly if vendor is empty so the build doesn't
+// silently ship a DMG with no plugin patches applied at runtime.
+const isCiBuild = !!process.env.CI || !!process.env.GITHUB_ACTIONS;
+if (!openzaloSrc && isCiBuild && process.platform === 'darwin') {
+  fail('openzalo vendor source', 'CI Mac build requires vendor/node_modules/@tuyenhx/openzalo/src — prebuild-vendor failed silently');
+}
+
 if (openzaloSrc) {
   // Anchor 1: ensureOpenzaloShellFix anchor or already-patched marker
   checkPatchAnchor(

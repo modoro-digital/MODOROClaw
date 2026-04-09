@@ -2727,7 +2727,25 @@ function ensureZaloOwnerFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    if (content.includes('MODOROCLAW ZALO-OWNER PATCH')) return; // already patched
+
+    // Migration: strip old (broken on Mac) versions of this patch. Old patch
+    // hardcoded "AppData/Roaming/modoro-claw" which is Windows-only AND wrong
+    // case. Detect old patch by content fingerprint and strip before re-injecting.
+    if (content.includes('MODOROCLAW ZALO-OWNER PATCH')) {
+      const isOldBroken = content.includes('"AppData", "Roaming", "modoro-claw"')
+        || !content.includes('MODORO_WORKSPACE');
+      if (!isOldBroken) return; // already on current version
+      const stripStart = content.indexOf('\n\n  // === MODOROCLAW ZALO-OWNER PATCH ===');
+      const stripEnd = content.indexOf('// === END MODOROCLAW ZALO-OWNER PATCH ===');
+      if (stripStart >= 0 && stripEnd > stripStart) {
+        const endLine = content.indexOf('\n', stripEnd);
+        content = content.slice(0, stripStart) + content.slice(endLine >= 0 ? endLine : stripEnd + 50);
+        console.log('[zalo-owner-fix] stripped old broken patch — re-injecting current version');
+      } else {
+        console.warn('[zalo-owner-fix] old marker present but could not locate boundaries — skipping');
+        return;
+      }
+    }
 
     // Anchor: end of friend-check patch. Owner check must run AFTER friend
     // check (non-friends already short-circuited) and BEFORE agent dispatch
@@ -2751,10 +2769,28 @@ function ensureZaloOwnerFix() {
       const __zoOs = require("node:os");
       const __zoSender = String(message.senderId || "").trim();
       if (__zoSender) {
-        const __zoOwnerPaths = [
-          __zoPath.join(__zoOs.homedir(), "AppData", "Roaming", "modoro-claw", "zalo-owner.json"),
-          __zoPath.join(__zoOs.homedir(), ".openclaw", "workspace", "zalo-owner.json"),
-        ];
+        // Path resolution mirrors getWorkspace() in electron/main.js so the
+        // patch finds zalo-owner.json wherever main.js wrote it. We accept
+        // every plausible location across dev + packaged on all 3 platforms
+        // and let fs.existsSync pick the first hit.
+        const __zoOwnerPaths = [];
+        // HIGHEST PRIORITY: env var injected by main.js gateway spawn (covers
+        // dev mode where workspace = source tree, AND any future workspace move).
+        if (process.env.MODORO_WORKSPACE) {
+          __zoOwnerPaths.push(__zoPath.join(process.env.MODORO_WORKSPACE, "zalo-owner.json"));
+        }
+        // Packaged-app userData (matches getWorkspace() in main.js)
+        if (process.platform === "darwin") {
+          __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), "Library", "Application Support", "MODOROClaw", "zalo-owner.json"));
+        } else if (process.platform === "win32") {
+          const __zoAppData = process.env.APPDATA || __zoPath.join(__zoOs.homedir(), "AppData", "Roaming");
+          __zoOwnerPaths.push(__zoPath.join(__zoAppData, "MODOROClaw", "zalo-owner.json"));
+        } else {
+          const __zoConfig = process.env.XDG_CONFIG_HOME || __zoPath.join(__zoOs.homedir(), ".config");
+          __zoOwnerPaths.push(__zoPath.join(__zoConfig, "MODOROClaw", "zalo-owner.json"));
+        }
+        // Legacy fallback (older builds wrote here)
+        __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), ".openclaw", "workspace", "zalo-owner.json"));
         for (const __zoOp of __zoOwnerPaths) {
           try {
             if (!__zoFs.existsSync(__zoOp)) continue;
@@ -3552,6 +3588,13 @@ async function _startOpenClawImpl() {
   // direct `node <cli.js>` path, this PATH enrichment is still useful for any other
   // npm-installed bin the gateway or its plugins may need to spawn.
   const enrichedEnv = { ...process.env };
+  // Expose workspace path so plugin patches (e.g. ensureZaloOwnerFix) can find
+  // workspace files regardless of dev vs packaged. main.js getWorkspace()
+  // already resolved the correct location at this point.
+  try {
+    const __ws = getWorkspace();
+    if (__ws) enrichedEnv.MODORO_WORKSPACE = __ws;
+  } catch {}
   try {
     const npmBinDirs = [];
     if (process.platform === 'win32') {
@@ -4501,7 +4544,14 @@ function getOpenclawAgentWorkspace() {
     if (!fs.existsSync(cfgPath)) return null;
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
     const ws = cfg && cfg.agents && cfg.agents.defaults && cfg.agents.defaults.workspace;
-    if (typeof ws === 'string' && ws.trim()) return path.normalize(ws.trim());
+    if (typeof ws === 'string' && ws.trim()) {
+      // path.resolve() promotes relative paths to absolute (defensive — in
+      // practice openclaw always writes absolute paths, but a misconfigured
+      // wizard or hand-edit could leave a relative path which would then
+      // resolve against process.cwd() and silently split bot/Electron paths
+      // again — the exact bug we just fixed).
+      return path.resolve(ws.trim());
+    }
     return null;
   } catch (e) {
     console.warn('[getOpenclawAgentWorkspace] read failed:', e && e.message ? e.message : String(e));
