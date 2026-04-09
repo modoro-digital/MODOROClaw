@@ -535,6 +535,23 @@ function augmentPathWithBundledNode() {
   for (const p of newEntries) console.log('[vendor] PATH prepended:', p);
 }
 
+// Bump this constant whenever AGENTS.md gets a meaningful rule change.
+// On install/launch, seedWorkspace() compares this to the version stamp
+// in the user's existing AGENTS.md and FORCE-OVERWRITES from template if
+// the user is on a stale version. The old AGENTS.md is backed up to
+// .learnings/AGENTS-backup-v<old>-<timestamp>.md so any user customizations
+// are preserved as audit trail.
+//
+// Version history:
+//   1 — initial v2.2.5 baseline
+//   2 — v2.2.6 added Vệ sinh tin nhắn + Hồ sơ khách Zalo silent rules
+//   3 — v2.2.7 added pronoun 3-step fallback + reply-length style + rule
+//       contradiction fix
+//   4 — v2.2.8 (current) — bumped after audit, no new rules but the
+//       version-stamp mechanism itself was added
+const CURRENT_AGENTS_MD_VERSION = 4;
+const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
+
 function seedWorkspace() {
   const ws = getWorkspace();
   try { fs.mkdirSync(ws, { recursive: true }); } catch {}
@@ -551,8 +568,45 @@ function seedWorkspace() {
     }
   };
 
-  // Only seed from bundle if workspace differs from template source (packaged)
+  // BUG #2 FIX: AGENTS.md version-aware overwrite. Without this, users
+  // upgrading from any prior version keep their stale AGENTS.md because
+  // the copy logic below only writes when destination is missing. Means
+  // new rules never reach runtime workspace on upgrade installs.
+  //
+  // Strategy: read existing AGENTS.md → parse version stamp → if older
+  // than current, back up to .learnings/ and DELETE so the copy logic
+  // below repopulates from template.
   const templateRoot = getWorkspaceTemplateRoot();
+  const existingAgents = path.join(ws, 'AGENTS.md');
+  if (ws !== templateRoot && fs.existsSync(existingAgents)) {
+    try {
+      const existingContent = fs.readFileSync(existingAgents, 'utf-8');
+      const m = existingContent.match(AGENTS_MD_VERSION_RE);
+      const existingVersion = m ? parseInt(m[1], 10) : 0;
+      if (existingVersion < CURRENT_AGENTS_MD_VERSION) {
+        // Back up the stale file to .learnings/ so any user-added custom
+        // rules (or bot self-improvement promotions) survive the overwrite.
+        try {
+          const backupDir = path.join(ws, '.learnings');
+          fs.mkdirSync(backupDir, { recursive: true });
+          const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const backupName = 'AGENTS-backup-v' + existingVersion + '-' + ts + '.md';
+          fs.writeFileSync(path.join(backupDir, backupName), existingContent, 'utf-8');
+          console.log('[seedWorkspace] AGENTS.md upgrade ' + existingVersion + ' → ' +
+            CURRENT_AGENTS_MD_VERSION + ' (backup: .learnings/' + backupName + ')');
+        } catch (be) {
+          console.warn('[seedWorkspace] AGENTS.md backup failed:', be && be.message ? be.message : String(be));
+          // Continue with overwrite anyway — the rule update is more
+          // important than preserving the backup.
+        }
+        try { fs.unlinkSync(existingAgents); } catch {}
+      }
+    } catch (e) {
+      console.warn('[seedWorkspace] AGENTS.md version check failed:', e && e.message ? e.message : String(e));
+    }
+  }
+
+  // Only seed from bundle if workspace differs from template source (packaged)
   if (ws !== templateRoot) {
     const templateFiles = [
       'AGENTS.md', 'BOOTSTRAP.md', 'SOUL.md', 'IDENTITY.md', 'USER.md',
@@ -3032,9 +3086,9 @@ function ensureZaloOutputFilterFix() {
 
     const injection = `
 
-  // === MODOROClaw OUTPUT-FILTER PATCH v2 ===
-  // Scan outbound Zalo text for sensitive patterns + AI failure modes that
-  // AGENTS.md rules cannot fully prevent. See main.js ensureZaloOutputFilterFix.
+  // === MODOROClaw OUTPUT-FILTER PATCH v3 ===
+  // Scan outbound Zalo text for sensitive patterns + AI failure modes.
+  // See main.js ensureZaloOutputFilterFix for v3 changelog vs v2.
   try {
     const __ofFs = require("node:fs");
     const __ofPath = require("node:path");
@@ -3042,8 +3096,14 @@ function ensureZaloOutputFilterFix() {
     // Patterns that MUST NEVER appear in a customer-facing Zalo reply.
     // Case-insensitive, matching any occurrence. Order matters: more
     // specific patterns first so audit log shows the most informative match.
+    //
+    // REGEX ANCHOR NOTE: \\b only works for ASCII-word transitions
+    // ([a-zA-Z0-9_]). For patterns with branches starting with Vietnamese
+    // chars (đã, đọc, ạ, ơ, ...), use (?<![a-zA-Z0-9_]) lookbehind at
+    // start and (?![a-zA-Z0-9_]) lookahead at end. \\b is fine for
+    // English-only or "em-prefix" branches.
     const __ofBlockPatterns: { name: string; re: RegExp }[] = [
-      // --- Layer A: file paths + secrets (original v1 patterns) ---
+      // --- Layer A: file paths + secrets ---
       { name: "file-path-memory", re: /\\bmemory\\/[\\w\\-./]*\\.md\\b/i },
       { name: "file-path-learnings", re: /\\.learnings\\/[\\w\\-./]*/i },
       { name: "file-path-core", re: /\\b(?:SOUL|USER|MEMORY|AGENTS|IDENTITY|COMPANY|PRODUCTS|BOOTSTRAP|HEARTBEAT|TOOLS)\\.md\\b/i },
@@ -3055,35 +3115,30 @@ function ensureZaloOutputFilterFix() {
       { name: "bearer-token", re: /\\bBearer\\s+[a-zA-Z0-9_\\-.]{20,}/i },
       { name: "botToken-field", re: /\\bbotToken\\b/i },
       { name: "apiKey-field", re: /\\bapiKey\\b/i },
-      // --- Layer B: English chain-of-thought leakage (v2) ---
-      // High-signal English phrases that ALMOST never appear in legit
-      // Vietnamese customer support but DO appear when the model dumps
-      // its planning text. False-positive risk: very low.
+      // --- Layer B: English chain-of-thought leakage ---
       { name: "cot-en-the-actor", re: /\\bthe (user|assistant|bot|model|customer)\\b/i },
       { name: "cot-en-we-modal", re: /\\b(we need to|we have to|we should|we can|let me|let's|i'll|i will|i need to|i should)\\b/i },
       { name: "cot-en-meta", re: /\\b(internal reasoning|chain of thought|system prompt|instructions|prompt injection|tool call)\\b/i },
       { name: "cot-en-narration", re: /\\b(based on (the|our)|according to (the|my)|as (you|i) (can|mentioned)|in (the|this) conversation)\\b/i },
       { name: "cot-en-reasoning-verbs", re: /\\b(let me think|hmm,? let|first,? (i|let|we)|okay,? (so|let|i)|alright,? (so|let|i))\\b/i },
-      // --- Layer C: meta-commentary about file/tool operations (v2) ---
-      // Even in Vietnamese, the bot must NEVER narrate that it edited a
-      // file, called a tool, or updated memory. These all leak internals.
-      { name: "meta-vi-file-ops", re: /\\b(edit file|ghi (vào )?file|lưu (vào )?file|update file|append file|read file|đọc file|cập nhật file|sửa file|tạo file|xóa file)\\b/i },
+      // --- Layer C: meta-commentary about file/tool operations ---
+      { name: "meta-vi-file-ops", re: /(?<![a-zA-Z0-9_])(edit file|ghi (vào )?file|lưu (vào )?file|update file|append file|read file|đọc file|cập nhật file|sửa file|tạo file|xóa file)(?![a-zA-Z0-9_])/i },
       { name: "meta-vi-tool-name", re: /\\b(tool (Edit|Write|Read|Bash|Grep|Glob)|use the (Edit|Write|Read) tool|công cụ (Edit|Write|Read|Bash))\\b/i },
-      { name: "meta-vi-memory-claim", re: /\\b(đã (lưu|ghi|cập nhật|update) (vào |trong )?(bộ nhớ|memory|hồ sơ|file|database)|stored (in|to) memory|saved to (file|memory))\\b/i },
+      // v3 fix: lookbehind/lookahead instead of \\b. Vietnamese branch
+      // (đã ...) was DEAD CODE in v2 because \\b can't anchor on đ.
+      { name: "meta-vi-memory-claim", re: /(?<![a-zA-Z0-9_])(đã (lưu|ghi|cập nhật|update) (vào |trong )?(bộ nhớ|memory|hồ sơ|file|database)|stored (in|to) memory|saved to (file|memory))(?![a-zA-Z0-9_])/i },
       { name: "meta-vi-tool-action", re: /\\b(em (vừa|đã) (edit|write|read|chạy|gọi) (file|tool|công cụ)|em (vừa|đã) (cập nhật|sửa|đọc) (file|memory|database))\\b/i },
-      // Hallucinated fact-claim: bot says "em đã ghi nhận RẰNG X" or
-      // "em đã cập nhật SỞ THÍCH" — these are the bot pretending to be a
-      // database when it isn't. The RẰNG / sở thích / preference markers
-      // distinguish lying-about-memory from legit "em đã ghi nhận yêu cầu".
-      { name: "meta-vi-fact-claim", re: /\\b(em đã (cập nhật|ghi (nhận|chú)|lưu( lại)?) (rằng|là|thêm rằng|thêm là|sở thích|preference|là anh|là chị|là mình)|đã (cập nhật|ghi nhận|lưu) (thêm )?(rằng|là))\\b/i },
-      // --- Layer D: all-Latin / no-Vietnamese-diacritic message (v2) ---
-      // Vietnamese always contains at least one diacritic char in any
-      // non-trivial message ("dạ", "anh", "em", "chị" all have them).
-      // A long message with ZERO diacritics is almost certainly English
-      // CoT or hallucinated content the bot meant to internalize.
-      // Skip if message is short (< 40 chars) — could be a phone number,
-      // ID, link, or single-word reply.
-      { name: "no-vietnamese-diacritic", re: /^(?=[\\s\\S]{40,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
+      // v3 fix: lookbehind/lookahead instead of \\b. Second branch (đã ...)
+      // was DEAD CODE in v2. Also dropped bare "(rằng|là)" — keep only
+      // "rằng" because "là" alone false-positives on legit business reports
+      // like "đã cập nhật là 5 sản phẩm còn".
+      { name: "meta-vi-fact-claim", re: /(?<![a-zA-Z0-9_])(em đã (cập nhật|ghi (nhận|chú)|lưu( lại)?) (rằng|thêm rằng|sở thích|preference|là anh|là chị|là mình)|đã (cập nhật|ghi nhận|lưu) (thêm )?rằng)(?![a-zA-Z0-9_])/i },
+      // --- Layer D: all-Latin / no-Vietnamese-diacritic message ---
+      // Vietnamese always contains at least one diacritic in non-trivial
+      // messages. A long message with ZERO diacritics is almost certainly
+      // an English CoT dump. Skipped if < 40 chars (phones/IDs/links) OR
+      // if message contains http(s):// (legit URL replies pass).
+      { name: "no-vietnamese-diacritic", re: /^(?!.*https?:\\/\\/)(?=[\\s\\S]{40,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
     ];
     let __ofBlocked: string | null = null;
     for (const __ofP of __ofBlockPatterns) {
@@ -3180,8 +3235,34 @@ function ensureZaloOutputFilterFix() {
   // === END MODOROClaw OUTPUT-FILTER PATCH ===`;
 
     const patched = content.replace(anchor, anchor + injection);
+
+    // SAFETY GUARD (v3): if patched content shrinks more than 50% vs the
+    // original file size, the strip regex must have over-matched and would
+    // corrupt send.ts. Abort the write rather than ship a broken plugin.
+    // The injection ADDS ~150 lines, so a healthy patch should be LARGER
+    // than the original; smaller-than-50% means we destroyed valid code.
+    if (patched.length < originalLength * 0.5) {
+      console.error(
+        '[zalo-output-filter-fix] ABORT: patched send.ts shrank from ' +
+        originalLength + ' to ' + patched.length + ' bytes (>50% loss). ' +
+        'Strip regex likely over-matched. Leaving file untouched.'
+      );
+      return;
+    }
+    // Sanity check: marker must be present in patched output. If not, the
+    // anchor.replace() did nothing (anchor was missing or matched zero
+    // times) and we'd ship the unpatched file silently.
+    if (!patched.includes(CURRENT_VERSION)) {
+      console.error(
+        '[zalo-output-filter-fix] ABORT: ' + CURRENT_VERSION +
+        ' marker missing from patched output. Anchor replace failed.'
+      );
+      return;
+    }
+
     fs.writeFileSync(pluginFile, patched, 'utf-8');
-    console.log('[zalo-output-filter-fix] Injected output filter v2 into send.ts');
+    console.log('[zalo-output-filter-fix] Injected output filter v3 into send.ts (' +
+      originalLength + ' → ' + patched.length + ' bytes)');
   } catch (e) {
     console.error('[zalo-output-filter-fix] error:', e.message);
   }
