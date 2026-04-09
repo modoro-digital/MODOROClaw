@@ -2678,10 +2678,21 @@ function ensureZaloFriendCheckFix() {
           runtime.log?.(\`openzalo: non-friend \${__fcSender} — sending friend-request prompt\`);
           let __fcText = 'Chào bạn! Để mình có thể hỗ trợ tốt nhất, bạn vui lòng bấm nút "Kết bạn" phía trên nhé.\\n\\nSau khi kết bạn, gõ lại lệnh mình sẽ trả lời ngay.';
           try {
-            const __fcCustomPaths = [
-              __fcPath.join(__fcHome, "AppData", "Roaming", "modoro-claw", "zalo-friend-request-message.txt"),
-              __fcPath.join(__fcHome, ".openclaw", "workspace", "zalo-friend-request-message.txt"),
-            ];
+            const __fcAppDir = "modoro-claw";
+            const __fcCustomPaths = [];
+            if (process.env.MODORO_WORKSPACE) {
+              __fcCustomPaths.push(__fcPath.join(process.env.MODORO_WORKSPACE, "zalo-friend-request-message.txt"));
+            }
+            if (process.platform === "darwin") {
+              __fcCustomPaths.push(__fcPath.join(__fcHome, "Library", "Application Support", __fcAppDir, "zalo-friend-request-message.txt"));
+            } else if (process.platform === "win32") {
+              const __fcAppData = process.env.APPDATA || __fcPath.join(__fcHome, "AppData", "Roaming");
+              __fcCustomPaths.push(__fcPath.join(__fcAppData, __fcAppDir, "zalo-friend-request-message.txt"));
+            } else {
+              const __fcConfig = process.env.XDG_CONFIG_HOME || __fcPath.join(__fcHome, ".config");
+              __fcCustomPaths.push(__fcPath.join(__fcConfig, __fcAppDir, "zalo-friend-request-message.txt"));
+            }
+            __fcCustomPaths.push(__fcPath.join(__fcHome, ".openclaw", "workspace", "zalo-friend-request-message.txt"));
             for (const __fcCp of __fcCustomPaths) {
               try {
                 if (__fcFs.existsSync(__fcCp)) {
