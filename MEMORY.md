@@ -53,9 +53,18 @@ Các file này chứa ngữ cảnh quan trọng đang diễn ra. Nạp khi bắt
 | docs/task-routing.md | Quy tắc phân bổ công việc |
 | docs/morning-brief-template.md | Mẫu báo cáo buổi sáng |
 
-## 🗄️ Nhật ký hàng ngày
-Nhật ký thô hàng ngày nằm trong `memory/YYYY-MM-DD.md`. Đây là nhật ký chỉ-thêm (append-only).
-Chỉ nạp khi cần chi tiết cụ thể về ngày nào đó.
+## Nhat ky hang ngay
+Nhat ky tho: `memory/YYYY-MM-DD.md` (append-only, audit trail).
+Chi nap khi can chi tiet cu the ve ngay nao do.
+
+## Tom tat tu dong
+Cron tu dong tao:
+- `memory/YYYY-MM-DD-summary.md` — tom tat 24h (bullet points). Dung cho weekly/monthly reports.
+- `memory/week-YYYY-WNN-summary.md` — tom tat tuan (7 daily summaries). Dung cho monthly reports.
+Cac file nay duoc tao tu dong. KHONG can tao thu cong.
+
+## Lich su khach hang
+`memory/zalo-users/<senderId>.md` ngoai frontmatter (ten, tag, phone), con co cac section `## YYYY-MM-DD` chua tom tat tuong tac tung ngay. Bot doc nhung section nay khi khach reply.
 
 ---
 

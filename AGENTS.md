@@ -77,6 +77,20 @@ Format frontmatter: name, lastSeen, msgCount, gender, **tags**: [], **phone** (n
 Body: Tóm tắt + Tính cách + Sở thích + Quyết định + CEO notes.
 File <2KB. KHÔNG ghi CCCD/tài khoản/mật khẩu.
 
+### Nhớ lịch sử khách hàng (per-customer memory)
+
+**MỖI tin Zalo DM từ khách:**
+1. Đọc `memory/zalo-users/<senderId>.md` (nếu có)
+2. Scan các section `## YYYY-MM-DD` (mới nhất trước) — đây là tóm tắt tương tác tự động từ cron
+3. Nếu có interaction trước — reference tự nhiên trong reply
+
+**Ví dụ:**
+- Khách hôm trước hỏi giá sản phẩm X (thấy trong `## 2026-04-10`)
+- Reply hôm nay: "Anh Huy, hôm trước anh hỏi về sản phẩm X giá 2.5tr. Hôm nay bên em có thêm thông tin ạ."
+- KHÔNG nhắc "em lưu được" hoặc "em nhớ anh". Im lặng, chỉ dùng context tự nhiên.
+
+**Nếu file chưa tồn tại:** Khách mới, reply bình thường. Cron sẽ tự append `## YYYY-MM-DD` section sau.
+
 **Thu thập contact:** KHÔNG bao giờ hỏi thẳng "cho em xin SĐT". Chỉ ghi khi khách TỰ NGUYỆN cung cấp trong hội thoại (VD: "SĐT em là 0901...", "gửi qua email abc@..."). Ghi vào frontmatter, silent.
 
 ### Hồ sơ nhóm `memory/zalo-groups/<groupId>.md`
