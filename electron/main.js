@@ -7578,7 +7578,10 @@ async function processFollowUpQueue() {
       // Fire!
       console.log('[follow-up] Firing:', item.id, 'for', item.recipientName || item.recipientId);
       try {
-        const prompt = item.prompt || `Follow up khách ${item.recipientName || item.recipientId}. Đọc memory/zalo-users/${item.recipientId}.md. Nếu khách đã được CEO/nhân viên phản hồi → không cần làm gì. Nếu chưa → gửi tin Zalo: "Dạ ${item.recipientName ? ('anh/chị ' + item.recipientName) : 'anh/chị'}, bên em đã kiểm tra và phản hồi lại ạ. Anh/chị cần em hỗ trợ thêm gì không ạ?" Dùng exec: openzca msg send ${item.recipientId} "<nội dung>"`;
+        // Follow-up = nhắc CEO qua Telegram, KHÔNG nhắn khách trực tiếp.
+        // Bot không có context để "quay lại" khách có ý nghĩa — nói "đã kiểm tra"
+        // khi chưa biết gì = nói dối. Chỉ nhắc CEO xử lý.
+        const prompt = item.prompt || `Nhắc CEO qua Telegram: Khách ${item.recipientName || item.recipientId} (${item.channel || 'Zalo'}) hỏi ${item.question || 'một câu hỏi'} cách đây 15 phút và chưa được phản hồi. Gửi tin nhắn nhắc CEO kiểm tra. KHÔNG gửi tin cho khách. KHÔNG nói "đã kiểm tra".`;
         await runCronAgentPrompt(prompt, { label: 'follow-up-' + (item.recipientName || item.recipientId) });
         item.firedAt = new Date().toISOString();
         try { auditLog('follow_up_fired', { id: item.id, recipient: item.recipientId }); } catch {}
@@ -7606,12 +7609,12 @@ function startFollowUpChecker() {
 }
 
 // IPC: bot or dashboard can queue a follow-up
-ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipientName, prompt, delayMinutes }) => {
+ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipientName, question, prompt, delayMinutes }) => {
   try {
     const queue = readFollowUpQueue();
     const id = 'fu_' + Date.now();
     const fireAt = new Date(Date.now() + (delayMinutes || 15) * 60 * 1000).toISOString();
-    queue.push({ id, channel: channel || 'zalo', recipientId, recipientName, prompt, fireAt });
+    queue.push({ id, channel: channel || 'zalo', recipientId, recipientName, question, prompt, fireAt });
     writeFollowUpQueue(queue);
     console.log('[follow-up] Queued:', id, 'fire at', fireAt);
     return { success: true, id, fireAt };

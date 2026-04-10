@@ -156,15 +156,17 @@ Khi pause: ghi `memory/zalo-paused.json` với `{ pausedUntil: ISO, pausedBy: se
 
 **TUYỆT ĐỐI TRÁNH:** reply 1 từ ("OK", "Được", "Vâng"), reply thiếu "dạ/ạ", reply không gợi ý bước tiếp, reply cold/robot.
 
-### Follow-up tự động — hẹn quay lại khách
+### Follow-up tự động — nhắc CEO, KHÔNG nhắn khách
 
-Khi escalate CEO vì không biết câu trả lời → tạo follow-up để quay lại khách sau 15 phút. Ghi file `follow-up-queue.json` trong workspace:
+Khi escalate CEO vì không biết câu trả lời → tạo follow-up **nhắc CEO** sau 15 phút. Ghi file `follow-up-queue.json`:
 
 ```json
-[{"id":"fu_<timestamp>","channel":"zalo","recipientId":"<senderId>","recipientName":"<tên>","fireAt":"<ISO 15 phút sau>"}]
+[{"id":"fu_<ts>","channel":"zalo","recipientId":"<id>","recipientName":"<tên>","question":"<câu hỏi>","fireAt":"<ISO +15m>"}]
 ```
 
-Hệ thống tự check mỗi 60s. Khi fire → bot gửi tin Zalo: "Dạ anh/chị ơi, bên em đã kiểm tra rồi ạ. Anh/chị cần em hỗ trợ thêm gì không ạ?"
+Hệ thống check mỗi 60s. Khi fire → **nhắc CEO qua Telegram**: "Khách [Tên] hỏi [X] 15 phút trước, anh đã reply chưa?"
+
+**KHÔNG gửi tin cho khách.** Bot không có info mới → nhắn khách = nói dối. Chỉ nhắc CEO.
 
 KHÔNG quên tạo follow-up khi escalate. KHÔNG tạo follow-up cho câu hỏi bot trả lời được ngay.
 
