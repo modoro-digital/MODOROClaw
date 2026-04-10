@@ -9355,6 +9355,81 @@ ipcMain.handle('toggle-bot', async () => {
 });
 
 // ============================================
+//  GOOGLE CALENDAR
+// ============================================
+
+const gcalAuth = require('./gcal/auth');
+const gcalCalendar = require('./gcal/calendar');
+const gcalConfig = require('./gcal/config');
+
+ipcMain.handle('gcal-connect', async () => {
+  try {
+    const authUrl = gcalAuth.getAuthUrl();
+    // Start callback server BEFORE opening browser so it's ready when redirect arrives
+    const tokenPromise = gcalAuth.startCallbackServer();
+    // Open Google OAuth in user's default browser
+    const { shell } = require('electron');
+    shell.openExternal(authUrl);
+    // Wait for callback (max 5 min)
+    const tokens = await tokenPromise;
+    return { success: true, email: tokens.email || null };
+  } catch (e) {
+    gcalAuth.stopCallbackServer();
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('gcal-disconnect', async () => {
+  gcalAuth.disconnect();
+  return { success: true };
+});
+
+ipcMain.handle('gcal-get-status', async () => {
+  return { connected: gcalAuth.isConnected(), email: gcalAuth.getEmail() };
+});
+
+ipcMain.handle('gcal-list-events', async (_event, { maxResults } = {}) => {
+  try {
+    return { success: true, events: await gcalCalendar.listEvents(maxResults || 10) };
+  } catch (e) {
+    return { success: false, error: e.message, events: [] };
+  }
+});
+
+ipcMain.handle('gcal-get-freebusy', async (_event, { dateFrom, dateTo }) => {
+  try {
+    return { success: true, ...(await gcalCalendar.getFreeBusy(dateFrom, dateTo)) };
+  } catch (e) {
+    return { success: false, error: e.message, busy: [] };
+  }
+});
+
+ipcMain.handle('gcal-create-event', async (_event, opts) => {
+  try {
+    return await gcalCalendar.createEvent(opts);
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('gcal-get-free-slots', async (_event, { date }) => {
+  try {
+    const config = gcalConfig.read();
+    const slots = await gcalCalendar.getFreeSlotsForDay(date, config.slotDurationMinutes);
+    return { success: true, slots };
+  } catch (e) {
+    return { success: false, error: e.message, slots: [] };
+  }
+});
+
+ipcMain.handle('gcal-get-config', async () => gcalConfig.read());
+
+ipcMain.handle('gcal-save-config', async (_event, cfg) => {
+  gcalConfig.write(cfg);
+  return { success: true };
+});
+
+// ============================================
 //  APP LIFECYCLE
 // ============================================
 
@@ -9423,6 +9498,7 @@ function installEmbedHeaderStripper() {
     // partition session doesn't go through defaultSession's webRequest hooks.
     attach(session.fromPartition('persist:embed-openclaw'), 'persist:embed-openclaw');
     attach(session.fromPartition('persist:embed-9router'), 'persist:embed-9router');
+    attach(session.fromPartition('persist:embed-gcal'), 'persist:embed-gcal');
   } catch (e) {
     console.error('[embed] Failed to install header stripper:', e.message);
   }

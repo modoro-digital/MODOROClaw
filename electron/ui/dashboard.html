@@ -1222,6 +1222,9 @@
         <div class="sidebar-menu-item" data-page="knowledge" onclick="switchPage('knowledge')">
           <span class="icon" data-icon="book-open"></span><span class="label">Tài liệu</span>
         </div>
+        <div class="sidebar-menu-item" data-page="calendar" onclick="switchPage('calendar')">
+          <span class="icon" data-icon="calendar"></span><span class="label">Lịch hẹn</span>
+        </div>
 
         <div class="sidebar-menu-header">Kênh</div>
         <div class="sidebar-menu-item" data-page="telegram" onclick="switchPage('telegram')">
@@ -1526,6 +1529,90 @@
               Ảnh (JPG, PNG)<br><br>
               <strong>Tối đa:</strong> 20MB / file
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: Google Calendar -->
+      <div class="page" id="page-calendar">
+        <div class="page-header">
+          <span class="page-icon" data-icon="calendar" data-icon-size="26"></span>
+          <div>
+            <h2>Lich hen</h2>
+            <div class="page-sub">Quan ly lich hen voi khach -- ket noi Google Calendar</div>
+          </div>
+          <div style="margin-left:auto">
+            <button class="btn btn-secondary btn-small" id="gcal-connect-btn" onclick="connectGoogleCalendar()">Ket noi Google Calendar</button>
+          </div>
+        </div>
+
+        <!-- Connected state -->
+        <div id="gcal-connected" style="display:none">
+          <!-- Calendar embed -->
+          <div class="main-card" style="padding:0;overflow:hidden;margin-bottom:16px">
+            <webview id="gcal-embed" class="embed-frame" src="about:blank" partition="persist:embed-gcal" allowpopups style="width:100%;height:500px;border:none"></webview>
+          </div>
+
+          <!-- Upcoming events -->
+          <div class="main-card" style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Lich hen sap toi</h3>
+              <button class="btn btn-secondary btn-small" onclick="loadGcalEvents()" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px"><span data-icon="refresh-cw" data-icon-size="12"></span>Refresh</button>
+            </div>
+            <div id="gcal-upcoming" style="font-size:13px;color:var(--text-muted)">Dang tai...</div>
+          </div>
+
+          <!-- Config -->
+          <div class="main-card">
+            <h3 style="margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Cai dat</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+              <div>
+                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Gio bat dau</label>
+                <input type="time" id="gcal-work-start" value="08:00" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Gio ket thuc</label>
+                <input type="time" id="gcal-work-end" value="18:00" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Thoi luong moi slot</label>
+                <select id="gcal-slot-duration" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
+                  <option value="15">15 phut</option>
+                  <option value="30" selected>30 phut</option>
+                  <option value="45">45 phut</option>
+                  <option value="60">60 phut</option>
+                </select>
+              </div>
+              <div>
+                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Nhac truoc</label>
+                <select id="gcal-reminder" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
+                  <option value="5">5 phut</option>
+                  <option value="10">10 phut</option>
+                  <option value="15" selected>15 phut</option>
+                  <option value="30">30 phut</option>
+                  <option value="60">1 gio</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between">
+              <span id="gcal-email-display" style="font-size:11px;color:var(--text-muted)"></span>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary btn-small" onclick="saveGcalConfig()">Luu cai dat</button>
+                <button class="btn btn-secondary btn-small" style="color:var(--danger)" onclick="disconnectGcal()">Ngat ket noi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Not connected state -->
+        <div id="gcal-not-connected">
+          <div class="main-card" style="text-align:center;padding:48px 24px">
+            <div style="font-size:48px;margin-bottom:16px;opacity:0.15"><span data-icon="calendar" data-icon-size="48"></span></div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:8px">Chua ket noi Google Calendar</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.6">
+              Ket noi de bot tu check lich trong va dat hen cho khach. Anh/chi nhin thay lich ngay trong app, khong can mo browser.
+            </div>
+            <button class="btn btn-primary" onclick="connectGoogleCalendar()">Ket noi Google Calendar</button>
           </div>
         </div>
       </div>
@@ -2231,6 +2318,9 @@
       if (page === 'knowledge') {
         if (!knowledgeInitialized) initKnowledge();
         else refreshKnowledgeFiles();
+      }
+      if (page === 'calendar') {
+        loadCalendarPage();
       }
       if (page === '9router' || page === 'openclaw') {
         ensureEmbedLoaded(page);
@@ -3647,6 +3737,133 @@
     }
     function escHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ============================================
+    //  GOOGLE CALENDAR TAB
+    // ============================================
+
+    async function loadCalendarPage() {
+      try {
+        const status = await window.claw.gcalGetStatus();
+        const connected = status && status.connected;
+        document.getElementById('gcal-connected').style.display = connected ? 'block' : 'none';
+        document.getElementById('gcal-not-connected').style.display = connected ? 'none' : 'block';
+        const btn = document.getElementById('gcal-connect-btn');
+        if (btn) btn.textContent = connected ? 'Da ket noi' : 'Ket noi Google Calendar';
+        if (btn) btn.disabled = connected;
+        if (connected) {
+          // Show email
+          const emailEl = document.getElementById('gcal-email-display');
+          if (emailEl && status.email) emailEl.textContent = 'Tai khoan: ' + status.email;
+          loadGcalEmbed();
+          loadGcalEvents();
+          loadGcalConfig();
+        }
+      } catch (e) {
+        console.error('[gcal] loadCalendarPage error:', e);
+      }
+    }
+
+    function loadGcalEmbed() {
+      const wv = document.getElementById('gcal-embed');
+      if (wv && (!wv.src || wv.src === 'about:blank')) {
+        wv.src = 'https://calendar.google.com/calendar/embed?mode=AGENDA';
+      }
+    }
+
+    async function loadGcalEvents() {
+      const container = document.getElementById('gcal-upcoming');
+      if (!container) return;
+      container.innerHTML = '<span style="color:var(--text-muted)">Dang tai...</span>';
+      try {
+        const res = await window.claw.gcalListEvents({ maxResults: 10 });
+        if (!res.success || !res.events || res.events.length === 0) {
+          container.innerHTML = '<span style="color:var(--text-muted)">Khong co lich hen sap toi</span>';
+          return;
+        }
+        let html = '';
+        for (const ev of res.events) {
+          const startDate = ev.start ? new Date(ev.start) : null;
+          const dateStr = startDate ? startDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric' }) : '';
+          const timeStr = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+          html += '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">';
+          html += '<div style="min-width:80px;font-size:11px;color:var(--text-muted);text-align:right">';
+          html += '<div>' + _esc(dateStr) + '</div><div style="font-weight:600;color:var(--text)">' + _esc(timeStr) + '</div></div>';
+          html += '<div style="flex:1"><div style="font-weight:500">' + _esc(ev.summary) + '</div>';
+          if (ev.location) html += '<div style="font-size:11px;color:var(--text-muted)">' + _esc(ev.location) + '</div>';
+          html += '</div>';
+          if (ev.htmlLink) html += '<a href="#" onclick="window.claw.openExternal(\'' + _esc(ev.htmlLink) + '\');return false" style="font-size:11px;color:var(--accent);text-decoration:none">Mo</a>';
+          html += '</div>';
+        }
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<span style="color:var(--danger)">Loi: ' + _esc(e.message || 'Unknown') + '</span>';
+      }
+    }
+
+    async function connectGoogleCalendar() {
+      const btn = document.getElementById('gcal-connect-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Dang ket noi...'; }
+      try {
+        const res = await window.claw.gcalConnect();
+        if (res && res.success) {
+          if (typeof showToast === 'function') showToast('Da ket noi Google Calendar!');
+          loadCalendarPage();
+        } else {
+          alert('Ket noi that bai: ' + (res?.error || 'Unknown error'));
+          if (btn) { btn.disabled = false; btn.textContent = 'Ket noi Google Calendar'; }
+        }
+      } catch (e) {
+        alert('Loi: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Ket noi Google Calendar'; }
+      }
+    }
+
+    async function disconnectGcal() {
+      if (!confirm('Ngat ket noi Google Calendar? Bot se khong the check lich hoac dat hen cho khach.')) return;
+      try {
+        await window.claw.gcalDisconnect();
+        if (typeof showToast === 'function') showToast('Da ngat ket noi Google Calendar');
+        loadCalendarPage();
+      } catch (e) {
+        alert('Loi: ' + e.message);
+      }
+    }
+
+    async function loadGcalConfig() {
+      try {
+        const cfg = await window.claw.gcalGetConfig();
+        const startEl = document.getElementById('gcal-work-start');
+        const endEl = document.getElementById('gcal-work-end');
+        const slotEl = document.getElementById('gcal-slot-duration');
+        const reminderEl = document.getElementById('gcal-reminder');
+        if (startEl && cfg.workingHours) startEl.value = cfg.workingHours.start || '08:00';
+        if (endEl && cfg.workingHours) endEl.value = cfg.workingHours.end || '18:00';
+        if (slotEl) slotEl.value = String(cfg.slotDurationMinutes || 30);
+        if (reminderEl) reminderEl.value = String(cfg.reminderMinutes || 15);
+      } catch (e) {
+        console.error('[gcal] loadGcalConfig error:', e);
+      }
+    }
+
+    async function saveGcalConfig() {
+      try {
+        const cfg = {
+          workingHours: {
+            start: document.getElementById('gcal-work-start')?.value || '08:00',
+            end: document.getElementById('gcal-work-end')?.value || '18:00',
+          },
+          slotDurationMinutes: parseInt(document.getElementById('gcal-slot-duration')?.value || '30', 10),
+          reminderMinutes: parseInt(document.getElementById('gcal-reminder')?.value || '15', 10),
+        };
+        const res = await window.claw.gcalSaveConfig(cfg);
+        if (res && res.success) {
+          if (typeof showToast === 'function') showToast('Da luu cai dat lich hen');
+        }
+      } catch (e) {
+        alert('Loi luu cai dat: ' + e.message);
+      }
     }
 
     // ============================================

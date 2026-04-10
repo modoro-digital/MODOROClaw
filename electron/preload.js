@@ -112,6 +112,17 @@ contextBridge.exposeInMainWorld('claw', {
     ipcRenderer.on('channel-status', (_, data) => callback(data));
   },
 
+  // Google Calendar
+  gcalConnect: () => ipcRenderer.invoke('gcal-connect'),
+  gcalDisconnect: () => ipcRenderer.invoke('gcal-disconnect'),
+  gcalGetStatus: () => ipcRenderer.invoke('gcal-get-status'),
+  gcalListEvents: (opts) => ipcRenderer.invoke('gcal-list-events', opts || {}),
+  gcalGetFreeSlots: (opts) => ipcRenderer.invoke('gcal-get-free-slots', opts),
+  gcalCreateEvent: (opts) => ipcRenderer.invoke('gcal-create-event', opts),
+  gcalGetFreeBusy: (opts) => ipcRenderer.invoke('gcal-get-freebusy', opts),
+  gcalGetConfig: () => ipcRenderer.invoke('gcal-get-config'),
+  gcalSaveConfig: (cfg) => ipcRenderer.invoke('gcal-save-config', cfg),
+
   // Diagnostic log export — lets Dashboard grab main.log without DevTools
   getDiagnosticLog: (opts) => ipcRenderer.invoke('get-diagnostic-log', opts || {}),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
