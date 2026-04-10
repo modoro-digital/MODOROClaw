@@ -1730,21 +1730,31 @@ function _extractConversationHistoryImpl({ sinceMs, maxMessages = 40, channels =
 
   const collected = [];
   for (const file of candidates) {
-    // Tail-read: for large files, read first 1KB (session event) + last 64KB.
+    // Tail-read: for large files, read first 4KB (session event) + last 64KB.
+    // 4KB covers session events with long customer names / metadata.
     let content;
     try {
       if (file.size > 65536) {
         const fd = fs.openSync(file.path, 'r');
-        const headBuf = Buffer.alloc(1024);
-        fs.readSync(fd, headBuf, 0, 1024, 0);
-        const headStr = headBuf.toString('utf-8').split('\n')[0] + '\n';
-        const tailBuf = Buffer.alloc(65536);
-        fs.readSync(fd, tailBuf, 0, 65536, file.size - 65536);
-        fs.closeSync(fd);
-        let tailStr = tailBuf.toString('utf-8');
-        const firstNl = tailStr.indexOf('\n');
-        if (firstNl > 0) tailStr = tailStr.slice(firstNl + 1);
-        content = headStr + tailStr;
+        const HEAD_SIZE = 4096;
+        const headBuf = Buffer.alloc(HEAD_SIZE);
+        fs.readSync(fd, headBuf, 0, HEAD_SIZE, 0);
+        const headRaw = headBuf.toString('utf-8');
+        const firstNl = headRaw.indexOf('\n');
+        // If no newline found in 4KB, session line is abnormally long — read full file
+        if (firstNl < 0) {
+          fs.closeSync(fd);
+          content = fs.readFileSync(file.path, 'utf-8');
+        } else {
+          const headStr = headRaw.slice(0, firstNl + 1);
+          const tailBuf = Buffer.alloc(65536);
+          fs.readSync(fd, tailBuf, 0, 65536, file.size - 65536);
+          fs.closeSync(fd);
+          let tailStr = tailBuf.toString('utf-8');
+          const tailFirstNl = tailStr.indexOf('\n');
+          if (tailFirstNl > 0) tailStr = tailStr.slice(tailFirstNl + 1);
+          content = headStr + tailStr;
+        }
       } else {
         content = fs.readFileSync(file.path, 'utf-8');
       }
@@ -1815,9 +1825,16 @@ function _extractConversationHistoryImpl({ sinceMs, maxMessages = 40, channels =
       if (msgs.length <= maxPerSender) {
         capped.push(...msgs);
       } else {
-        const head = msgs.slice(0, 2);
-        const tail = msgs.slice(-(maxPerSender - 2));
-        capped.push(...head, ...tail);
+        // Keep first 2 + last (cap - 2) to show conversation start + recent.
+        // Guard: when maxPerSender <= 2, just take first N (no tail to avoid
+        // slice(-0) which returns ALL elements instead of none).
+        if (maxPerSender <= 2) {
+          capped.push(...msgs.slice(0, maxPerSender));
+        } else {
+          const head = msgs.slice(0, 2);
+          const tail = msgs.slice(-(maxPerSender - 2));
+          capped.push(...head, ...tail);
+        }
       }
     }
     capped.sort((a, b) => a.ts - b.ts);
@@ -6815,9 +6832,12 @@ async function generateWeeklySummary() {
   if (!ws) return null;
   const memDir = path.join(ws, 'memory');
   const now = new Date();
-  const jan1 = new Date(now.getFullYear(), 0, 1);
-  const weekNum = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-  const weekLabel = `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+  // ISO 8601 week number: week 1 contains the first Thursday of the year.
+  const thu = new Date(now);
+  thu.setDate(thu.getDate() + 3 - ((thu.getDay() + 6) % 7)); // nearest Thursday
+  const jan4 = new Date(thu.getFullYear(), 0, 4); // Jan 4 is always in week 1
+  const weekNum = 1 + Math.round(((thu - jan4) / 86400000 - 3 + ((jan4.getDay() + 6) % 7)) / 7);
+  const weekLabel = `${thu.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
   const weekFile = path.join(memDir, `week-${weekLabel}-summary.md`);
   try {
     if (fs.existsSync(weekFile)) return fs.readFileSync(weekFile, 'utf-8');
@@ -6848,9 +6868,11 @@ function loadWeeklySummaries() {
   const parts = [];
   for (let w = 4; w >= 1; w--) {
     const d = new Date(Date.now() - w * 7 * 86400000);
-    const jan1 = new Date(d.getFullYear(), 0, 1);
-    const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-    const weekLabel = `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+    const thu = new Date(d);
+    thu.setDate(thu.getDate() + 3 - ((thu.getDay() + 6) % 7));
+    const jan4 = new Date(thu.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((thu - jan4) / 86400000 - 3 + ((jan4.getDay() + 6) % 7)) / 7);
+    const weekLabel = `${thu.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
     const weekFile = path.join(memDir, `week-${weekLabel}-summary.md`);
     try {
       if (fs.existsSync(weekFile)) {
@@ -9178,8 +9200,9 @@ async function rerankSearchResults(query, results) {
 }
 
 ipcMain.handle('search-documents', async (_event, query) => {
+  let db;
   try {
-    const db = getDocumentsDb();
+    db = getDocumentsDb();
     if (!db) return [];
     // Layer 1: expand query for better recall.
     const expandedQuery = await expandSearchQuery(query);
@@ -9208,11 +9231,11 @@ ipcMain.handle('search-documents', async (_event, query) => {
         LIMIT 10
       `).all(query);
     }
-    db.close();
     if (results.length === 0) return results;
     // Layer 3: rerank for semantic relevance.
     return await rerankSearchResults(query, results);
   } catch (e) { return []; }
+  finally { try { if (db) db.close(); } catch {} }
 });
 
 ipcMain.handle('list-documents', async () => {
