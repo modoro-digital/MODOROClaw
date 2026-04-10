@@ -374,6 +374,18 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 **Files:** `electron/main.js` (`webviewTag:true`), `electron/ui/dashboard.html` (2 webview tag + CSS + ensureEmbedLoaded/reloadEmbed cập nhật cho webview API).
 **Verify:** Mở tab 9Router → login form → nhập `123456` → vào dashboard 9Router thành công, refresh tab vẫn còn session. Backend smoke test: `curl -X POST http://127.0.0.1:20128/api/auth/login -H "Content-Type: application/json" -d '{"password":"123456"}'` → 200.
 
+### Telegram + Zalo channel parity (output filter, pause, cron delivery)
+**Problem:** 3 asymmetries giữa Telegram và Zalo: (1) Zalo có output filter 19 patterns, Telegram gửi raw; (2) Zalo có /pause, Telegram không; (3) Cron chỉ deliver qua Telegram, Zalo không nhận.
+**Fix:**
+- **Shared output filter:** `filterSensitiveOutput(text)` trong main.js — cùng 19 block patterns (file paths, API keys, English CoT, meta-commentary, compaction). Apply cho cả `sendTelegram()` và `sendZalo()`. Audit log ghi vào `security-output-filter.jsonl`.
+- **Channel pause:** `pauseChannel(channel, minutes)` / `resumeChannel(channel)` / `isChannelPaused(channel)` / `getChannelPauseStatus(channel)` — file-based (`{channel}-paused.json`), symmetric cho cả 2 kênh. IPC handlers: `pause-telegram`, `resume-telegram`, `get-telegram-pause-status`, `pause-zalo`, `resume-zalo`, `get-zalo-pause-status`. Dashboard có nút "Tạm dừng" / "Tiếp tục" trên cả 2 page. `sendTelegram()` và `sendZalo()` check pause state trước khi gửi.
+- **Zalo send:** `sendZalo(text)` — gửi tin nhắn trực tiếp cho CEO qua openzca CLI (`openzca msg send <ownerUserId> <text>`). Output filter + pause check đầy đủ.
+- **Cron dual delivery:** `sendCeoAlert(text)` gửi song song cả Telegram + Zalo. Cron error alerts dùng `sendCeoAlert` thay vì `sendTelegram`.
+- **AGENTS.md v13:** Pause rule áp dụng cả Telegram (AI-level: bot check `telegram-paused.json`) + Zalo (code-level: inbound.ts patch).
+- **Channel status broadcast:** Thêm `paused` field vào broadcast data để Dashboard hiện trạng thái pause.
+**Auto-apply:** Tất cả trong `electron/main.js` source — chạy mỗi startup. Preload bridges mới cho 6 IPC handlers.
+**Verify:** Dashboard → Telegram/Zalo page → bấm "Tạm dừng" → banner hiện → bấm "Tiếp tục" → banner ẩn. Cron thất bại → CEO nhận alert trên cả Telegram + Zalo.
+
 ### Embed 9Router + OpenClaw web UI in dashboard
 **Bug:** OpenClaw gateway dùng `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` → không thể embed iframe
 **Fix:** `installEmbedHeaderStripper()` trong main.js — qua `session.defaultSession.webRequest.onHeadersReceived`, strip 2 headers CHỈ cho 4 trusted local origins (`127.0.0.1:18789`, `localhost:18789`, `127.0.0.1:20128`, `localhost:20128`)

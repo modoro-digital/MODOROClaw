@@ -123,6 +123,14 @@ contextBridge.exposeInMainWorld('claw', {
   gcalGetConfig: () => ipcRenderer.invoke('gcal-get-config'),
   gcalSaveConfig: (cfg) => ipcRenderer.invoke('gcal-save-config', cfg),
 
+  // Channel pause/resume (symmetric for Telegram + Zalo)
+  pauseTelegram: (minutes) => ipcRenderer.invoke('pause-telegram', { minutes }),
+  resumeTelegram: () => ipcRenderer.invoke('resume-telegram'),
+  getTelegramPauseStatus: () => ipcRenderer.invoke('get-telegram-pause-status'),
+  pauseZalo: (minutes) => ipcRenderer.invoke('pause-zalo', { minutes }),
+  resumeZalo: () => ipcRenderer.invoke('resume-zalo'),
+  getZaloPauseStatus: () => ipcRenderer.invoke('get-zalo-pause-status'),
+
   // Diagnostic log export — lets Dashboard grab main.log without DevTools
   getDiagnosticLog: (opts) => ipcRenderer.invoke('get-diagnostic-log', opts || {}),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),

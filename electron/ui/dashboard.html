@@ -1362,7 +1362,12 @@
           <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
             <button class="btn btn-secondary btn-small" onclick="recheckTelegram()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Kiểm tra</button>
             <button class="btn btn-secondary btn-small" onclick="testTelegramSend()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="send" data-icon-size="14"></span>Gửi tin test</button>
+            <button class="btn btn-secondary btn-small" id="telegram-pause-btn" onclick="toggleTelegramPause()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="pause-circle" data-icon-size="14"></span><span id="telegram-pause-label">Tạm dừng</span></button>
           </div>
+        </div>
+        <div id="telegram-pause-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#2a2017;border:1px solid #5c4a1e;border-radius:8px;font-size:12px;color:#e8c66a;align-items:center;gap:8px">
+          <span data-icon="pause-circle" data-icon-size="16"></span>
+          <span>Bot Telegram đang tạm dừng. <span id="telegram-pause-until"></span></span>
         </div>
         <div class="main-card">
           <h3>Giới thiệu</h3>
@@ -1396,7 +1401,12 @@
           <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
             <button class="btn btn-secondary btn-small" onclick="recheckZaloFull()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Refresh</button>
             <button class="btn btn-secondary btn-small" id="reconnect-zalo-btn" onclick="reconnectZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Đổi tài khoản</button>
+            <button class="btn btn-secondary btn-small" id="zalo-pause-btn" onclick="toggleZaloPause()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="pause-circle" data-icon-size="14"></span><span id="zalo-pause-label">Tạm dừng</span></button>
           </div>
+        </div>
+        <div id="zalo-pause-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#2a2017;border:1px solid #5c4a1e;border-radius:8px;font-size:12px;color:#e8c66a;align-items:center;gap:8px">
+          <span data-icon="pause-circle" data-icon-size="16"></span>
+          <span>Bot Zalo đang tạm dừng. <span id="zalo-pause-until"></span></span>
         </div>
 
         <div class="zalo-columns">
@@ -1841,6 +1851,9 @@
       'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>',
       upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
       'help-circle': '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+      'pause-circle': '<circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/>',
+      'trash-2': '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+      'user-x': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/>',
     };
 
     function icon(name, size = 18) {
@@ -3263,6 +3276,71 @@
         }
       } catch (e) { showToast('Lỗi: ' + e.message, 'error'); }
     }
+    // --- Channel pause/resume (symmetric Telegram + Zalo) ---
+    async function toggleTelegramPause() {
+      const status = await window.claw.getTelegramPauseStatus();
+      if (status.paused) {
+        await window.claw.resumeTelegram();
+        showToast('Telegram đã tiếp tục hoạt động', 'success');
+      } else {
+        await window.claw.pauseTelegram(30);
+        showToast('Telegram tạm dừng 30 phút', 'info');
+      }
+      refreshPauseUI();
+    }
+    async function toggleZaloPause() {
+      const status = await window.claw.getZaloPauseStatus();
+      if (status.paused) {
+        await window.claw.resumeZalo();
+        showToast('Zalo đã tiếp tục hoạt động', 'success');
+      } else {
+        await window.claw.pauseZalo(30);
+        showToast('Zalo tạm dừng 30 phút', 'info');
+      }
+      refreshPauseUI();
+    }
+    async function refreshPauseUI() {
+      try {
+        const [tg, zl] = await Promise.all([
+          window.claw.getTelegramPauseStatus(),
+          window.claw.getZaloPauseStatus(),
+        ]);
+        // Telegram
+        const tgBtn = document.getElementById('telegram-pause-label');
+        const tgBanner = document.getElementById('telegram-pause-banner');
+        if (tg.paused) {
+          if (tgBtn) tgBtn.textContent = 'Tiếp tục';
+          if (tgBanner) { tgBanner.style.display = 'flex'; }
+          const tgUntil = document.getElementById('telegram-pause-until');
+          if (tgUntil && tg.until) {
+            const d = new Date(tg.until);
+            tgUntil.textContent = 'Đến ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          }
+        } else {
+          if (tgBtn) tgBtn.textContent = 'Tạm dừng';
+          if (tgBanner) tgBanner.style.display = 'none';
+        }
+        // Zalo
+        const zlBtn = document.getElementById('zalo-pause-label');
+        const zlBanner = document.getElementById('zalo-pause-banner');
+        if (zl.paused) {
+          if (zlBtn) zlBtn.textContent = 'Tiếp tục';
+          if (zlBanner) { zlBanner.style.display = 'flex'; }
+          const zlUntil = document.getElementById('zalo-pause-until');
+          if (zlUntil && zl.until) {
+            const d = new Date(zl.until);
+            zlUntil.textContent = 'Đến ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          }
+        } else {
+          if (zlBtn) zlBtn.textContent = 'Tạm dừng';
+          if (zlBanner) zlBanner.style.display = 'none';
+        }
+      } catch (e) { console.error('[pause-ui]', e); }
+    }
+    // Refresh pause state on load + every 30s
+    refreshPauseUI();
+    setInterval(refreshPauseUI, 30000);
+
     refreshDashboard();
     loadZaloMode();
     loadSchedules();
