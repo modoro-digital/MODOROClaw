@@ -9122,21 +9122,96 @@ ipcMain.handle('index-document', async (_event, { filepath, filename }) => {
   } catch (e) { return { success: false, error: e.message }; }
 });
 
+// Expand a search query into Vietnamese synonyms via 9Router.
+// Returns FTS5-safe expanded query string, or original on failure.
+async function expandSearchQuery(query) {
+  if (!query || query.length < 2) return query;
+  try {
+    const result = await call9Router(
+      `Mở rộng truy vấn tìm kiếm sau thành 3-5 từ khóa đồng nghĩa tiếng Việt (và tiếng Anh nếu phù hợp). ` +
+      `Chỉ trả về các từ khóa cách nhau bằng dấu phẩy, không giải thích.\n\nTruy vấn: "${query}"`,
+      { maxTokens: 50, temperature: 0, timeoutMs: 2000 }
+    );
+    if (!result) return query;
+    // Sanitize: strip FTS5 special chars, build OR query.
+    const terms = result.split(/[,\n]/)
+      .map(t => t.trim().replace(/[\"*()^+\-]/g, '').replace(/\b(NEAR|AND|NOT)\b/gi, ''))
+      .filter(t => t.length > 1);
+    if (terms.length === 0) return query;
+    const allTerms = [query, ...terms];
+    return allTerms.map(t => `"${t.replace(/"/g, '')}"`).join(' OR ');
+  } catch { return query; }
+}
+
+// Rerank FTS5 results using 9Router for semantic relevance.
+// Returns reordered subset, or original results on failure.
+async function rerankSearchResults(query, results) {
+  if (!results || results.length <= 1) return results;
+  try {
+    const candidateList = results.map((r, i) =>
+      `${i + 1}. ${r.filename} — ${(r.snippet || '').replace(/\*\*/g, '').substring(0, 200)}`
+    ).join('\n');
+    const result = await call9Router(
+      `Người dùng tìm: "${query}"\n\n` +
+      `Kết quả tìm được:\n${candidateList}\n\n` +
+      `Xếp hạng lại theo mức độ liên quan. Trả về CHỈ các số thứ tự (VD: 3,1,5,2,4), ` +
+      `kết quả liên quan nhất trước. Không giải thích.`,
+      { maxTokens: 50, temperature: 0, timeoutMs: 3000 }
+    );
+    if (!result) return results;
+    const ranks = result.match(/\d+/g);
+    if (!ranks || ranks.length === 0) return results;
+    const reordered = [];
+    const seen = new Set();
+    for (const r of ranks) {
+      const idx = parseInt(r, 10) - 1;
+      if (idx >= 0 && idx < results.length && !seen.has(idx)) {
+        reordered.push(results[idx]);
+        seen.add(idx);
+      }
+    }
+    for (let i = 0; i < results.length; i++) {
+      if (!seen.has(i)) reordered.push(results[i]);
+    }
+    return reordered;
+  } catch { return results; }
+}
+
 ipcMain.handle('search-documents', async (_event, query) => {
   try {
     const db = getDocumentsDb();
     if (!db) return [];
-    const results = db.prepare(`
-      SELECT d.filename, d.filetype, d.word_count, d.created_at,
-             snippet(documents_fts, 1, '**', '**', '...', 32) as snippet
-      FROM documents_fts f
-      JOIN documents d ON d.filename = f.filename
-      WHERE documents_fts MATCH ?
-      ORDER BY rank
-      LIMIT 10
-    `).all(query);
+    // Layer 1: expand query for better recall.
+    const expandedQuery = await expandSearchQuery(query);
+    if (expandedQuery !== query) console.log(`[search] expanded "${query}" → "${expandedQuery}"`);
+    // Layer 2: FTS5 search with expanded query.
+    let results;
+    try {
+      results = db.prepare(`
+        SELECT d.filename, d.filetype, d.word_count, d.created_at,
+               snippet(documents_fts, 1, '**', '**', '...', 32) as snippet
+        FROM documents_fts f
+        JOIN documents d ON d.filename = f.filename
+        WHERE documents_fts MATCH ?
+        ORDER BY rank
+        LIMIT 10
+      `).all(expandedQuery);
+    } catch {
+      // Expanded query may have FTS5 syntax issues — fall back to original.
+      results = db.prepare(`
+        SELECT d.filename, d.filetype, d.word_count, d.created_at,
+               snippet(documents_fts, 1, '**', '**', '...', 32) as snippet
+        FROM documents_fts f
+        JOIN documents d ON d.filename = f.filename
+        WHERE documents_fts MATCH ?
+        ORDER BY rank
+        LIMIT 10
+      `).all(query);
+    }
     db.close();
-    return results;
+    if (results.length === 0) return results;
+    // Layer 3: rerank for semantic relevance.
+    return await rerankSearchResults(query, results);
   } catch (e) { return []; }
 });
 
