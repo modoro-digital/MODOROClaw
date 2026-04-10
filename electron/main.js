@@ -1844,9 +1844,11 @@ function _extractConversationHistoryImpl({ sinceMs, maxMessages = 40, channels =
   return { collected: recent, formatted: formatted.join('\n') };
 }
 
-// Write a daily memory journal at memory/YYYY-MM-DD.md so future cron fires
-// (and bot agent reads of memory/) find structured per-day history. Idempotent.
-function writeDailyMemoryJournal({ date = new Date() } = {}) {
+// Write raw daily journal + AI summary + per-customer interaction append.
+// Raw journal: memory/YYYY-MM-DD.md (unchanged, audit trail).
+// Summary: memory/YYYY-MM-DD-summary.md (cached, for weekly/monthly prompts).
+// Per-customer: appends to memory/zalo-users/<id>.md dated sections.
+async function writeDailyMemoryJournal({ date = new Date() } = {}) {
   try {
     const ws = getWorkspace();
     if (!ws) return null;
@@ -1855,14 +1857,113 @@ function writeDailyMemoryJournal({ date = new Date() } = {}) {
     const dateStr = date.toISOString().slice(0, 10);
     const file = path.join(memDir, `${dateStr}.md`);
     const sinceMs = date.getTime() - 24 * 60 * 60 * 1000;
+
+    // 1. Raw journal (same as before — full history, no cap)
     const history = extractConversationHistory({ sinceMs, maxMessages: 100 });
     const header = `# Memory ${dateStr}\n\n*Auto-generated. Records all Zalo + Telegram messages in the last 24h before this cron fire.*\n\n`;
     const body = history || '_(Không có tin nhắn nào trong 24h qua.)_';
     fs.writeFileSync(file, header + body + '\n', 'utf-8');
+
+    // 2. Daily summary via 9Router (cached — skip if already exists)
+    const summaryFile = path.join(memDir, `${dateStr}-summary.md`);
+    if (!fs.existsSync(summaryFile) && history) {
+      try {
+        const summaryText = await call9Router(
+          `Dưới đây là tất cả tin nhắn Zalo + Telegram trong ngày ${dateStr}. ` +
+          `Tóm tắt thành bullet points ngắn gọn bằng tiếng Việt:\n` +
+          `- Ai đã nhắn gì (tên khách, kênh)\n` +
+          `- Kết quả / outcome của mỗi cuộc trò chuyện\n` +
+          `- Việc gì còn tồn đọng / cần follow-up\n` +
+          `Chỉ trả về bullet points, không thêm giải thích.\n\n` +
+          `---\n${history}`,
+          { maxTokens: 600, temperature: 0.2, timeoutMs: 15000 }
+        );
+        if (summaryText) {
+          fs.writeFileSync(summaryFile, `# Tóm tắt ${dateStr}\n\n${summaryText}\n`, 'utf-8');
+          console.log(`[journal] summary written: ${dateStr}-summary.md`);
+        } else {
+          auditLog('summary_generation_failed', { date: dateStr, reason: '9Router returned null' });
+          console.warn(`[journal] 9Router summary failed for ${dateStr} — raw journal still available`);
+        }
+      } catch (e) {
+        auditLog('summary_generation_failed', { date: dateStr, reason: e?.message });
+        console.warn(`[journal] summary error for ${dateStr}:`, e?.message);
+      }
+    }
+
+    // 3. Per-customer interaction summary (append to zalo-users/<id>.md)
+    if (history) {
+      try {
+        await appendPerCustomerSummaries(ws, dateStr, sinceMs);
+      } catch (e) {
+        console.warn(`[journal] per-customer summary error:`, e?.message);
+      }
+    }
+
     return file;
   } catch (e) {
     console.error('[writeDailyMemoryJournal] error:', e?.message || e);
     return null;
+  }
+}
+
+// Group messages by Zalo customer, summarize each, append to their profile.
+// Only processes openzalo messages (Telegram is CEO-only, no customer profiles).
+async function appendPerCustomerSummaries(ws, dateStr, sinceMs) {
+  const collected = extractConversationHistoryRaw({ sinceMs, maxMessages: 500, channels: ['openzalo'], maxPerSender: 0 });
+  if (!collected || collected.length === 0) return;
+
+  const bySender = new Map();
+  for (const m of collected) {
+    if (m.role !== 'user') continue;
+    const idMatch = m.sender.match(/id:(\d+)/);
+    if (!idMatch) continue;
+    const senderId = idMatch[1];
+    if (!bySender.has(senderId)) bySender.set(senderId, { name: m.sender.split(' id:')[0], msgs: [] });
+    bySender.get(senderId).msgs.push(m);
+  }
+
+  const usersDir = path.join(ws, 'memory', 'zalo-users');
+
+  for (const [senderId, { name, msgs }] of bySender) {
+    if (msgs.length === 0) continue;
+
+    const profilePath = path.join(usersDir, `${senderId}.md`);
+    if (!fs.existsSync(profilePath)) continue;
+
+    try {
+      const existing = fs.readFileSync(profilePath, 'utf-8');
+      if (existing.includes(`## ${dateStr}`)) continue;
+    } catch { continue; }
+
+    const customerHistory = msgs.map(m => {
+      const dt = new Date(m.ts);
+      const time = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `[${time}] ${name}: ${m.text}`;
+    }).join('\n');
+    let summary = null;
+    try {
+      summary = await call9Router(
+        `Dưới đây là cuộc trò chuyện Zalo với khách "${name}" trong ngày ${dateStr}. ` +
+        `Tóm tắt trong 2-4 bullet points ngắn gọn bằng tiếng Việt:\n` +
+        `- Khách hỏi/yêu cầu gì\n` +
+        `- Bot trả lời gì / kết quả\n` +
+        `- Trạng thái: đã xong / chờ phản hồi / cần follow-up\n` +
+        `Chỉ trả về bullet points.\n\n---\n${customerHistory}`,
+        { maxTokens: 300, temperature: 0.2, timeoutMs: 10000 }
+      );
+    } catch {}
+
+    const appendContent = summary
+      ? `\n\n## ${dateStr}\n${summary}\n`
+      : `\n\n## ${dateStr}\n${customerHistory}\n`;
+
+    try {
+      fs.appendFileSync(profilePath, appendContent, 'utf-8');
+      console.log(`[journal] appended ${dateStr} summary to zalo-users/${senderId}.md`);
+    } catch (e) {
+      console.warn(`[journal] append to ${senderId}.md failed:`, e?.message);
+    }
   }
 }
 
