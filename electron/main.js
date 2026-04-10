@@ -1682,88 +1682,166 @@ function healOpenClawConfigInline(errStderr) {
 // Extract messages directly from session jsonls and INJECT them into the
 // cron prompt as a structured context block. Bot doesn't need to discover
 // or guess where data lives — it sees actual messages right in the prompt.
-function extractConversationHistory({ sinceMs, maxMessages = 40, channels = ['openzalo', 'telegram'] } = {}) {
+// Returns raw structured array of messages. Used by appendPerCustomerSummaries.
+function extractConversationHistoryRaw({ sinceMs, maxMessages = 40, channels = ['openzalo', 'telegram'], maxPerSender = 0 } = {}) {
   try {
-    const sessionsDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
-    if (!fs.existsSync(sessionsDir)) return '';
-    const jsonlFiles = fs.readdirSync(sessionsDir)
-      .filter(f => f.endsWith('.jsonl'))
-      .map(f => path.join(sessionsDir, f));
-    if (jsonlFiles.length === 0) return '';
+    const result = _extractConversationHistoryImpl({ sinceMs, maxMessages, channels, maxPerSender });
+    return result.collected;
+  } catch (e) {
+    console.error('[extractConversationHistoryRaw] error:', e?.message || e);
+    return [];
+  }
+}
 
-    const collected = [];
-    for (const file of jsonlFiles) {
-      let content;
-      try { content = fs.readFileSync(file, 'utf-8'); } catch { continue; }
-      const lines = content.split(/\r?\n/).filter(l => l.trim());
-      let sessionChannel = null;
-      let sessionSender = null;
-      for (const line of lines) {
-        let event;
-        try { event = JSON.parse(line); } catch { continue; }
-        if (event.type === 'session' && event.origin) {
-          sessionChannel = event.origin.provider || event.origin.surface || null;
-          sessionSender = event.origin.label || null;
-          continue;
-        }
-        if (event.type !== 'message') continue;
-        const msg = event.message;
-        if (!msg || typeof msg !== 'object') continue;
-        const tsMs = typeof msg.timestamp === 'number'
-          ? msg.timestamp
-          : (event.timestamp ? Date.parse(event.timestamp) : 0);
-        if (sinceMs && tsMs < sinceMs) continue;
-        if (channels && sessionChannel && !channels.includes(sessionChannel)) continue;
-        if (!Array.isArray(msg.content)) continue;
-        const textParts = [];
-        for (const part of msg.content) {
-          if (part?.type === 'text' && typeof part.text === 'string') {
-            textParts.push(part.text);
-          }
-        }
-        if (textParts.length === 0) continue;
-        let text = textParts.join('\n').trim();
-        if (!text) continue;
-        if (msg.role === 'user') {
-          text = text.replace(/Conversation info[^]*?```\s*\n/g, '');
-          text = text.replace(/Sender[^]*?```\s*\n/g, '');
-          text = text.replace(/\[Queued messages while agent was busy\]\s*\n*---\n*Queued #\d+\n*/g, '\n');
-          text = text.trim();
-          if (!text) continue;
-        }
-        collected.push({
-          ts: tsMs,
-          role: msg.role,
-          channel: sessionChannel || 'unknown',
-          sender: sessionSender || 'unknown',
-          text: text.slice(0, 500),
-        });
-      }
-    }
-    if (collected.length === 0) return '';
-    collected.sort((a, b) => a.ts - b.ts);
-    const recent = collected.slice(-maxMessages);
-    const formatted = [];
-    let lastDate = '';
-    for (const m of recent) {
-      const dt = new Date(m.ts);
-      const dateStr = dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-      const timeStr = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-      if (dateStr !== lastDate) {
-        formatted.push(`\n--- ${dateStr} ---`);
-        lastDate = dateStr;
-      }
-      const channelLabel = m.channel === 'openzalo' ? 'Zalo' : m.channel === 'telegram' ? 'Telegram' : m.channel;
-      const roleLabel = m.role === 'user'
-        ? (m.sender ? m.sender.split(' id:')[0] : 'Khách')
-        : 'Em (bot)';
-      formatted.push(`[${timeStr}][${channelLabel}] ${roleLabel}: ${m.text}`);
-    }
-    return formatted.join('\n');
+// Returns formatted string. Used by prompt builders.
+function extractConversationHistory({ sinceMs, maxMessages = 40, channels = ['openzalo', 'telegram'], maxPerSender = 0 } = {}) {
+  try {
+    const result = _extractConversationHistoryImpl({ sinceMs, maxMessages, channels, maxPerSender });
+    return result.formatted;
   } catch (e) {
     console.error('[extractConversationHistory] error:', e?.message || e);
     return '';
   }
+}
+
+// Shared implementation — returns { collected: [...], formatted: 'string' }.
+function _extractConversationHistoryImpl({ sinceMs, maxMessages = 40, channels = ['openzalo', 'telegram'], maxPerSender = 0 } = {}) {
+  const _t0 = Date.now();
+  const sessionsDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
+  if (!fs.existsSync(sessionsDir)) return { collected: [], formatted: '' };
+  const allFiles = fs.readdirSync(sessionsDir).filter(f => f.endsWith('.jsonl'));
+  if (allFiles.length === 0) return { collected: [], formatted: '' };
+
+  // mtime pre-filter: skip files not modified since sinceMs.
+  const candidates = [];
+  for (const f of allFiles) {
+    const fp = path.join(sessionsDir, f);
+    try {
+      const stat = fs.statSync(fp);
+      if (sinceMs && stat.mtimeMs < sinceMs) continue;
+      candidates.push({ path: fp, mtimeMs: stat.mtimeMs, size: stat.size });
+    } catch { continue; }
+  }
+  if (candidates.length === 0) return { collected: [], formatted: '' };
+
+  // Sort newest first — early-exit once we have enough messages.
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  const collectTarget = maxMessages * 2;
+
+  const collected = [];
+  for (const file of candidates) {
+    // Tail-read: for large files, read first 1KB (session event) + last 64KB.
+    let content;
+    try {
+      if (file.size > 65536) {
+        const fd = fs.openSync(file.path, 'r');
+        const headBuf = Buffer.alloc(1024);
+        fs.readSync(fd, headBuf, 0, 1024, 0);
+        const headStr = headBuf.toString('utf-8').split('\n')[0] + '\n';
+        const tailBuf = Buffer.alloc(65536);
+        fs.readSync(fd, tailBuf, 0, 65536, file.size - 65536);
+        fs.closeSync(fd);
+        let tailStr = tailBuf.toString('utf-8');
+        const firstNl = tailStr.indexOf('\n');
+        if (firstNl > 0) tailStr = tailStr.slice(firstNl + 1);
+        content = headStr + tailStr;
+      } else {
+        content = fs.readFileSync(file.path, 'utf-8');
+      }
+    } catch { continue; }
+
+    const lines = content.split(/\r?\n/).filter(l => l.trim());
+    let sessionChannel = null;
+    let sessionSender = null;
+    for (const line of lines) {
+      let event;
+      try { event = JSON.parse(line); } catch { continue; }
+      if (event.type === 'session' && event.origin) {
+        sessionChannel = event.origin.provider || event.origin.surface || null;
+        sessionSender = event.origin.label || null;
+        continue;
+      }
+      if (event.type !== 'message') continue;
+      const msg = event.message;
+      if (!msg || typeof msg !== 'object') continue;
+      const tsMs = typeof msg.timestamp === 'number'
+        ? msg.timestamp
+        : (event.timestamp ? Date.parse(event.timestamp) : 0);
+      if (sinceMs && tsMs < sinceMs) continue;
+      if (channels && sessionChannel && !channels.includes(sessionChannel)) continue;
+      if (!Array.isArray(msg.content)) continue;
+      const textParts = [];
+      for (const part of msg.content) {
+        if (part?.type === 'text' && typeof part.text === 'string') {
+          textParts.push(part.text);
+        }
+      }
+      if (textParts.length === 0) continue;
+      let text = textParts.join('\n').trim();
+      if (!text) continue;
+      if (msg.role === 'user') {
+        text = text.replace(/Conversation info[^]*?```\s*\n/g, '');
+        text = text.replace(/Sender[^]*?```\s*\n/g, '');
+        text = text.replace(/\[Queued messages while agent was busy\]\s*\n*---\n*Queued #\d+\n*/g, '\n');
+        text = text.trim();
+        if (!text) continue;
+      }
+      collected.push({
+        ts: tsMs,
+        role: msg.role,
+        channel: sessionChannel || 'unknown',
+        sender: sessionSender || 'unknown',
+        text: text.slice(0, 500),
+      });
+    }
+
+    if (collected.length >= collectTarget) break;
+  }
+  if (collected.length === 0) return { collected: [], formatted: '' };
+
+  collected.sort((a, b) => a.ts - b.ts);
+
+  // Per-customer cap
+  let capped = collected;
+  if (maxPerSender > 0) {
+    const bySender = new Map();
+    for (const m of collected) {
+      const key = m.sender;
+      if (!bySender.has(key)) bySender.set(key, []);
+      bySender.get(key).push(m);
+    }
+    capped = [];
+    for (const [, msgs] of bySender) {
+      if (msgs.length <= maxPerSender) {
+        capped.push(...msgs);
+      } else {
+        const head = msgs.slice(0, 2);
+        const tail = msgs.slice(-(maxPerSender - 2));
+        capped.push(...head, ...tail);
+      }
+    }
+    capped.sort((a, b) => a.ts - b.ts);
+  }
+
+  const recent = capped.slice(-maxMessages);
+  const formatted = [];
+  let lastDate = '';
+  for (const m of recent) {
+    const dt = new Date(m.ts);
+    const dateStr = dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    const timeStr = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (dateStr !== lastDate) {
+      formatted.push(`\n--- ${dateStr} ---`);
+      lastDate = dateStr;
+    }
+    const channelLabel = m.channel === 'openzalo' ? 'Zalo' : m.channel === 'telegram' ? 'Telegram' : m.channel;
+    const roleLabel = m.role === 'user'
+      ? (m.sender ? m.sender.split(' id:')[0] : 'Khách')
+      : 'Em (bot)';
+    formatted.push(`[${timeStr}][${channelLabel}] ${roleLabel}: ${m.text}`);
+  }
+  console.log(`[extract] ${candidates.length}/${allFiles.length} files read, ${collected.length} msgs collected, ${recent.length} returned in ${Date.now() - _t0}ms`);
+  return { collected: recent, formatted: formatted.join('\n') };
 }
 
 // Write a daily memory journal at memory/YYYY-MM-DD.md so future cron fires
@@ -6613,7 +6691,7 @@ ipcMain.handle('cron-diagnostic', async () => {
 function buildMorningBriefingPrompt(timeStr) {
   try { writeDailyMemoryJournal({ date: new Date(Date.now() - 86400000) }); } catch {}
   const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+  const history = extractConversationHistory({ sinceMs, maxMessages: 50, maxPerSender: 10 });
   const historyBlock = history
     ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
     : `\n\n_(Chưa có tin nhắn nào trong 24h qua — nếu CEO mới setup hoặc chưa ai nhắn thì điều này bình thường.)_\n\n`;
@@ -6635,7 +6713,7 @@ function buildMorningBriefingPrompt(timeStr) {
 function buildEveningSummaryPrompt(timeStr) {
   try { writeDailyMemoryJournal({ date: new Date() }); } catch {}
   const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 50 });
+  const history = extractConversationHistory({ sinceMs, maxMessages: 50, maxPerSender: 10 });
   const historyBlock = history
     ? `\n\n--- LỊCH SỬ TIN NHẮN 24H QUA (đã trích từ session storage, KHÔNG cần em đi tìm thêm) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
     : `\n\n_(Chưa có tin nhắn nào trong 24h qua.)_\n\n`;
@@ -6655,7 +6733,7 @@ function buildEveningSummaryPrompt(timeStr) {
 
 function buildWeeklyReportPrompt() {
   const sinceMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 100 });
+  const history = extractConversationHistory({ sinceMs, maxMessages: 100, maxPerSender: 10 });
   const historyBlock = history
     ? `\n\n--- LỊCH SỬ TIN NHẮN 7 NGÀY QUA ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
     : `\n\n_(Không có tin nhắn nào trong 7 ngày qua.)_\n\n`;
@@ -6675,7 +6753,7 @@ function buildWeeklyReportPrompt() {
 
 function buildMonthlyReportPrompt() {
   const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 200 });
+  const history = extractConversationHistory({ sinceMs, maxMessages: 200, maxPerSender: 10 });
   const historyBlock = history
     ? `\n\n--- LỊCH SỬ TIN NHẮN 30 NGÀY QUA (tóm tắt) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
     : `\n\n_(Không có tin nhắn trong 30 ngày qua.)_\n\n`;
