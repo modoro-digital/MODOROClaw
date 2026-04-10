@@ -6785,6 +6785,95 @@ ipcMain.handle('cron-diagnostic', async () => {
   }
 });
 
+// Load daily summaries for a date range. Falls back to raw journals for days
+// where summary is missing (9Router was down). Returns combined text.
+function loadDailySummaries(days) {
+  const ws = getWorkspace();
+  if (!ws) return '';
+  const memDir = path.join(ws, 'memory');
+  const parts = [];
+  for (let i = days; i >= 1; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const summaryPath = path.join(memDir, `${dateStr}-summary.md`);
+    const rawPath = path.join(memDir, `${dateStr}.md`);
+    try {
+      if (fs.existsSync(summaryPath)) {
+        parts.push(fs.readFileSync(summaryPath, 'utf-8'));
+      } else if (fs.existsSync(rawPath)) {
+        parts.push(fs.readFileSync(rawPath, 'utf-8'));
+      }
+    } catch { continue; }
+  }
+  return parts.join('\n\n');
+}
+
+// Generate weekly summary from 7 daily summaries. Called on Monday by
+// buildWeeklyReportPrompt. Cached to memory/week-YYYY-WNN-summary.md.
+async function generateWeeklySummary() {
+  const ws = getWorkspace();
+  if (!ws) return null;
+  const memDir = path.join(ws, 'memory');
+  const now = new Date();
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  const weekLabel = `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+  const weekFile = path.join(memDir, `week-${weekLabel}-summary.md`);
+  try {
+    if (fs.existsSync(weekFile)) return fs.readFileSync(weekFile, 'utf-8');
+  } catch {}
+  const dailies = loadDailySummaries(7);
+  if (!dailies) return null;
+  const summary = await call9Router(
+    `Dưới đây là tóm tắt hoạt động 7 ngày qua. Tổng hợp thành BÁO CÁO TUẦN ngắn gọn:\n` +
+    `- Tổng quan hoạt động\n- Khách hàng nổi bật\n- Vấn đề tồn đọng\n- Số liệu tổng hợp\n` +
+    `Chỉ trả về bullet points.\n\n---\n${dailies.substring(0, 6000)}`,
+    { maxTokens: 800, temperature: 0.2, timeoutMs: 20000 }
+  );
+  if (summary) {
+    try {
+      fs.writeFileSync(weekFile, `# Tóm tắt tuần ${weekLabel}\n\n${summary}\n`, 'utf-8');
+      console.log(`[journal] weekly summary written: week-${weekLabel}-summary.md`);
+    } catch {}
+    return `# Tóm tắt tuần ${weekLabel}\n\n${summary}\n`;
+  }
+  return dailies;
+}
+
+// Load the 4 most recent weekly summaries for monthly report.
+function loadWeeklySummaries() {
+  const ws = getWorkspace();
+  if (!ws) return '';
+  const memDir = path.join(ws, 'memory');
+  const parts = [];
+  for (let w = 4; w >= 1; w--) {
+    const d = new Date(Date.now() - w * 7 * 86400000);
+    const jan1 = new Date(d.getFullYear(), 0, 1);
+    const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    const weekLabel = `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+    const weekFile = path.join(memDir, `week-${weekLabel}-summary.md`);
+    try {
+      if (fs.existsSync(weekFile)) {
+        parts.push(fs.readFileSync(weekFile, 'utf-8'));
+        continue;
+      }
+    } catch {}
+    const weekDailies = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(d.getTime() + i * 86400000);
+      const dateStr = day.toISOString().slice(0, 10);
+      const sp = path.join(memDir, `${dateStr}-summary.md`);
+      const rp = path.join(memDir, `${dateStr}.md`);
+      try {
+        if (fs.existsSync(sp)) weekDailies.push(fs.readFileSync(sp, 'utf-8'));
+        else if (fs.existsSync(rp)) weekDailies.push(fs.readFileSync(rp, 'utf-8'));
+      } catch {}
+    }
+    if (weekDailies.length > 0) parts.push(weekDailies.join('\n'));
+  }
+  return parts.join('\n\n');
+}
+
 // Build prompts used by BOTH the real scheduled cron AND the Dashboard "Test"
 // button. Keeping them in one place guarantees test fires are byte-identical to
 // what customers receive from scheduled runs — no test markers, no template
@@ -6832,16 +6921,21 @@ function buildEveningSummaryPrompt(timeStr) {
   );
 }
 
-function buildWeeklyReportPrompt() {
-  const sinceMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 100, maxPerSender: 10 });
-  const historyBlock = history
-    ? `\n\n--- LỊCH SỬ TIN NHẮN 7 NGÀY QUA ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
-    : `\n\n_(Không có tin nhắn nào trong 7 ngày qua.)_\n\n`;
+async function buildWeeklyReportPrompt() {
+  await generateWeeklySummary();
+  const sinceMs24h = Date.now() - 24 * 60 * 60 * 1000;
+  const recentRaw = extractConversationHistory({ sinceMs: sinceMs24h, maxMessages: 50, maxPerSender: 10 });
+  const dailySummaries = loadDailySummaries(7);
+  const recentBlock = recentRaw
+    ? `\n\n--- TIN NHẮN 24H GẦN NHẤT (chi tiết) ---\n${recentRaw}\n--- HẾT ---\n\n`
+    : '';
+  const summaryBlock = dailySummaries
+    ? `\n\n--- TÓM TẮT 7 NGÀY QUA (từ daily summaries, cover 100% tin nhắn) ---\n${dailySummaries}\n--- HẾT TÓM TẮT ---\n\n`
+    : `\n\n_(Không có tóm tắt ngày nào trong 7 ngày qua.)_\n\n`;
   return (
     `Hôm nay là thứ 2. Hãy gửi BÁO CÁO TUẦN cho CEO qua Telegram.` +
-    historyBlock +
-    `Dựa trên lịch sử tin nhắn + memory/ + knowledge + audit log, tổng hợp:\n` +
+    recentBlock + summaryBlock +
+    `Dựa trên tóm tắt hàng ngày ở trên + tin nhắn 24h gần nhất + memory/ + knowledge + audit log, tổng hợp:\n` +
     `1. Tổng kết tuần qua: việc đã xong, deal đã chốt, khách mới qua Zalo/Telegram\n` +
     `2. Vấn đề tồn đọng / chưa giải quyết\n` +
     `3. Số liệu: tổng tin nhắn xử lý, cron đã chạy, khách Zalo mới kết bạn\n` +
@@ -6853,15 +6947,19 @@ function buildWeeklyReportPrompt() {
 }
 
 function buildMonthlyReportPrompt() {
-  const sinceMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const history = extractConversationHistory({ sinceMs, maxMessages: 200, maxPerSender: 10 });
-  const historyBlock = history
-    ? `\n\n--- LỊCH SỬ TIN NHẮN 30 NGÀY QUA (tóm tắt) ---\n${history}\n--- HẾT LỊCH SỬ ---\n\n`
-    : `\n\n_(Không có tin nhắn trong 30 ngày qua.)_\n\n`;
+  const sinceMs24h = Date.now() - 24 * 60 * 60 * 1000;
+  const recentRaw = extractConversationHistory({ sinceMs: sinceMs24h, maxMessages: 50, maxPerSender: 10 });
+  const weeklySummaries = loadWeeklySummaries();
+  const recentBlock = recentRaw
+    ? `\n\n--- TIN NHẮN 24H GẦN NHẤT (chi tiết) ---\n${recentRaw}\n--- HẾT ---\n\n`
+    : '';
+  const summaryBlock = weeklySummaries
+    ? `\n\n--- TÓM TẮT 4 TUẦN QUA (từ weekly summaries, cover 100% tin nhắn) ---\n${weeklySummaries}\n--- HẾT TÓM TẮT ---\n\n`
+    : `\n\n_(Không có tóm tắt trong 30 ngày qua.)_\n\n`;
   return (
     `Ngày 1 tháng mới. Hãy gửi BÁO CÁO THÁNG cho CEO qua Telegram.` +
-    historyBlock +
-    `Dựa trên lịch sử + memory/ + knowledge, tổng hợp:\n` +
+    recentBlock + summaryBlock +
+    `Dựa trên tóm tắt hàng tuần + memory/ + knowledge, tổng hợp:\n` +
     `1. Tổng kết tháng: kết quả nổi bật, milestone đạt được\n` +
     `2. Khách hàng: khách mới, khách quay lại, khách mất (nếu có data)\n` +
     `3. Hoạt động bot: tổng tin xử lý, cron runs, errors (nếu có)\n` +
@@ -6927,7 +7025,7 @@ ipcMain.handle('test-cron', async (_event, { type, id }) => {
         const sent = await sendTelegram(`*Tối ưu ban đêm*\n\nCron thật sẽ ghi queue lúc ${s.time}.`);
         return { success: sent === true, sent };
       } else if (id === 'weekly') {
-        const prompt = buildWeeklyReportPrompt();
+        const prompt = await buildWeeklyReportPrompt();
         const ok = await runCronAgentPrompt(prompt, { label: 'TEST — weekly-report' });
         return { success: ok, sent: ok };
       } else if (id === 'monthly') {
@@ -8195,7 +8293,7 @@ function startCronJobs() {
           if (global._cronInFlight?.get('weekly')) return;
           global._cronInFlight?.set('weekly', true);
           try {
-            const prompt = buildWeeklyReportPrompt();
+            const prompt = await buildWeeklyReportPrompt();
             await runCronAgentPrompt(prompt, { label: 'weekly-report' });
             try { auditLog('cron_fired', { id: 'weekly', label: s.label || 'Báo cáo tuần' }); } catch {}
           } catch (e) {
