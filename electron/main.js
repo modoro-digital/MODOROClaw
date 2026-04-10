@@ -2533,6 +2533,13 @@ async function ensureDefaultConfig() {
       config.agents.defaults.blockStreamingDefault = 'off';
       changed = true;
     }
+    // Suppress compaction notices to customers. OpenClaw sends "🧹 Compacting context..."
+    // and "⚠️ Context limit exceeded" to the chat — CEO/khách should never see these.
+    if (!config.agents.defaults.compaction) config.agents.defaults.compaction = {};
+    if (config.agents.defaults.compaction.notifyUser !== false) {
+      config.agents.defaults.compaction.notifyUser = false;
+      changed = true;
+    }
     // Remove any unknown keys that OpenClaw rejects
     const validKeys = ['plugins', 'meta', 'channels', 'gateway', 'models', 'agents', 'wizard', 'security'];
     for (const key of Object.keys(config)) {
@@ -3246,6 +3253,9 @@ function ensureZaloOutputFilterFix() {
       { name: "bearer-token", re: /\\bBearer\\s+[a-zA-Z0-9_\\-.]{20,}/i },
       { name: "botToken-field", re: /\\bbotToken\\b/i },
       { name: "apiKey-field", re: /\\bapiKey\\b/i },
+      // --- Layer A2: OpenClaw system messages (compaction, context reset) ---
+      { name: "compaction-notice", re: /(?:Auto-compaction|Compacting context|Context limit exceeded|reset our conversation)/i },
+      { name: "compaction-emoji", re: /🧹/ },
       // --- Layer B: English chain-of-thought leakage ---
       { name: "cot-en-the-actor", re: /\\bthe (user|assistant|bot|model|customer)\\b/i },
       { name: "cot-en-we-modal", re: /\\b(we need to|we have to|we should|we can|let me|let's|i'll|i will|i need to|i should)\\b/i },
