@@ -871,13 +871,42 @@
     }
     .ov-action-cta:hover { border-color: var(--accent, #4ea1ff); color: var(--accent, #4ea1ff); }
 
+    .ov-schedule-timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+    .ov-schedule-timeline::before {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--border);
+      border-radius: 1px;
+    }
     .ov-schedule-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 4px;
+      padding: 8px 0;
       font-size: 13px;
+      position: relative;
     }
+    .ov-schedule-dot {
+      position: absolute;
+      left: -20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 2px solid var(--surface);
+      z-index: 1;
+      flex-shrink: 0;
+    }
+    .ov-schedule-dot.done { background: #22c55e; }
+    .ov-schedule-dot.next { background: var(--accent, #4ea1ff); box-shadow: 0 0 0 3px rgba(78,161,255,0.2); }
+    .ov-schedule-dot.upcoming { background: var(--border); }
     .ov-schedule-time {
       font-weight: 600;
       color: var(--text);
@@ -891,15 +920,23 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .ov-schedule-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .ov-schedule-badge.done { background: rgba(34,197,94,0.1); color: #16a34a; }
+    .ov-schedule-badge.next { background: rgba(78,161,255,0.1); color: var(--accent, #4ea1ff); }
+    .ov-schedule-badge.custom { background: rgba(245,158,11,0.1); color: #d97706; }
     .ov-schedule-rel {
       font-size: 11px;
       color: var(--text-muted);
       flex-shrink: 0;
     }
-    .ov-schedule-done {
-      color: var(--text-muted);
-    }
-    .ov-schedule-done .ov-schedule-label { color: var(--text-muted); text-decoration: line-through; }
+    .ov-schedule-done .ov-schedule-time { color: var(--text-muted); }
+    .ov-schedule-done .ov-schedule-label { color: var(--text-muted); }
 
     /* === Cards === */
     .main-card {
@@ -2326,24 +2363,35 @@
           }).join('');
         }
 
-        // === SCHEDULE TODAY ===
+        // === SCHEDULE TODAY (timeline view) ===
         const schedEl = document.getElementById('ov-schedule');
         if (!data.upcoming || data.upcoming.length === 0) {
           schedEl.innerHTML = '<div class="ov-list-empty">Không có lịch nào hôm nay</div>';
         } else {
           const nowMs = Date.now();
-          schedEl.innerHTML = data.upcoming.map(u => {
+          // Find first upcoming (not past) to mark as "next"
+          let foundNext = false;
+          const rows = data.upcoming.map(u => {
             const clockTime = _formatClockTime(u.time);
             const fireMs = new Date(u.time).getTime();
             const isPast = fireMs < nowMs;
+            const isNext = !isPast && !foundNext;
+            if (isNext) foundNext = true;
             const rel = isPast ? '' : _formatRelativeTime(u.time);
-            const doneClass = isPast ? ' ov-schedule-done' : '';
-            return '<div class="ov-schedule-row' + doneClass + '">'
+            const rowClass = isPast ? ' ov-schedule-done' : '';
+            const dotClass = isPast ? 'done' : (isNext ? 'next' : 'upcoming');
+            const badge = isPast
+              ? '<span class="ov-schedule-badge done">Xong</span>'
+              : (isNext ? '<span class="ov-schedule-badge next">' + _esc(rel) + '</span>' : '');
+            const kindBadge = u.kind === 'custom' ? ' <span class="ov-schedule-badge custom">Tự tạo</span>' : '';
+            return '<div class="ov-schedule-row' + rowClass + '">'
+              + '<span class="ov-schedule-dot ' + dotClass + '"></span>'
               + '<span class="ov-schedule-time">' + _esc(clockTime) + '</span>'
-              + '<span class="ov-schedule-label">' + _esc(u.label) + '</span>'
-              + (rel ? '<span class="ov-schedule-rel">' + _esc(rel) + '</span>' : '')
+              + '<span class="ov-schedule-label">' + _esc(u.label) + kindBadge + '</span>'
+              + badge
               + '</div>';
           }).join('');
+          schedEl.innerHTML = '<div class="ov-schedule-timeline">' + rows + '</div>';
         }
 
         // Re-render lucide icons in dynamically inserted markup
