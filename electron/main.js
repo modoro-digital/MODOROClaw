@@ -751,10 +751,12 @@ function seedWorkspace() {
   // on a fresh install (the agent-workspace one is the canonical one that
   // bot will actually use after wizard).
   try { fs.mkdirSync(path.join(ws, 'memory', 'zalo-users'), { recursive: true }); } catch {}
+  try { fs.mkdirSync(path.join(ws, 'memory', 'zalo-groups'), { recursive: true }); } catch {}
   try {
     const agentWs = (typeof getOpenclawAgentWorkspace === 'function') ? getOpenclawAgentWorkspace() : null;
     if (agentWs && agentWs !== ws) {
       fs.mkdirSync(path.join(agentWs, 'memory', 'zalo-users'), { recursive: true });
+      fs.mkdirSync(path.join(agentWs, 'memory', 'zalo-groups'), { recursive: true });
     }
   } catch {}
 
@@ -2076,9 +2078,46 @@ async function appendPerCustomerSummaries(ws, dateStr, sinceMs) {
     try {
       fs.appendFileSync(profilePath, appendContent, 'utf-8');
       console.log(`[journal] appended ${dateStr} summary to zalo-users/${senderId}.md`);
+      // Size cap: keep file ≤ 50KB by dropping oldest dated sections
+      trimZaloMemoryFile(profilePath, 50 * 1024);
     } catch (e) {
       console.warn(`[journal] append to ${senderId}.md failed:`, e?.message);
     }
+  }
+}
+
+// Trim a zalo-users/<id>.md file to at most maxBytes by removing the oldest
+// ## YYYY-MM-DD sections from the top. The front-matter header (between first
+// two --- markers) is always preserved. No-op if file is under the cap.
+function trimZaloMemoryFile(filePath, maxBytes) {
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.size <= maxBytes) return;
+
+    let content = fs.readFileSync(filePath, 'utf-8');
+    // Preserve everything up to and including the closing --- of front-matter
+    const fmEnd = content.indexOf('\n---\n', content.indexOf('---\n') + 1);
+    const header = fmEnd >= 0 ? content.slice(0, fmEnd + 5) : '';
+    const body = fmEnd >= 0 ? content.slice(fmEnd + 5) : content;
+
+    // Split body into dated sections (split on \n\n## YYYY-MM-DD)
+    const sectionRe = /(?=\n\n## \d{4}-\d{2}-\d{2})/g;
+    const sections = body.split(sectionRe).filter(Boolean);
+
+    // Drop oldest sections until under cap
+    while (sections.length > 1) {
+      const trimmed = header + sections.join('');
+      if (Buffer.byteLength(trimmed, 'utf-8') <= maxBytes) break;
+      sections.shift(); // remove oldest
+    }
+
+    const newContent = header + sections.join('');
+    if (newContent.length < content.length) {
+      fs.writeFileSync(filePath, newContent, 'utf-8');
+      console.log(`[journal] trimmed ${path.basename(filePath)} from ${stat.size} → ${Buffer.byteLength(newContent, 'utf-8')} bytes`);
+    }
+  } catch (e) {
+    console.warn(`[journal] trimZaloMemoryFile failed for ${filePath}:`, e?.message);
   }
 }
 
@@ -2092,7 +2131,21 @@ async function sendCeoAlert(text) {
     sendTelegram(text, opts),
     sendZalo(text, opts),
   ]);
-  return results.some(r => r.status === 'fulfilled' && r.value === true);
+  const delivered = results.some(r => r.status === 'fulfilled' && r.value === true);
+  if (!delivered) {
+    // Both channels failed — write to disk as last resort so nothing is silently lost
+    try {
+      const logsDir = path.join(getWorkspace(), 'logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+      const missedFile = path.join(logsDir, 'ceo-alerts-missed.log');
+      const entry = `${new Date().toISOString()} — UNDELIVERED: ${text.slice(0, 500)}\n`;
+      fs.appendFileSync(missedFile, entry, 'utf-8');
+      console.error('[sendCeoAlert] BOTH channels failed — wrote to ceo-alerts-missed.log');
+    } catch (e) {
+      console.error('[sendCeoAlert] BOTH channels failed AND disk write failed:', e?.message);
+    }
+  }
+  return delivered;
 }
 
 // Run an agent turn from a cron handler and deliver the reply to the CEO via Telegram.
@@ -2982,7 +3035,16 @@ async function ensureDefaultConfig() {
     // Create required dirs
     fs.mkdirSync(path.join(HOME, '.openclaw', 'agents', 'main', 'sessions'), { recursive: true });
     console.log('[config] workspace =', ws);
-  } catch (e) { console.error('ensureDefaultConfig error:', e.message); }
+  } catch (e) {
+    console.error('ensureDefaultConfig error:', e.message);
+    // Surface write errors prominently — silent failure means bot runs with broken config
+    try {
+      const logsDir = path.join(HOME, '.openclaw', 'logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+      const errFile = path.join(logsDir, 'config-errors.log');
+      fs.appendFileSync(errFile, `${new Date().toISOString()} ensureDefaultConfig: ${e?.message || e}\n`, 'utf-8');
+    } catch {}
+  }
 }
 
 // Check if gateway is already running on port 18789
@@ -3051,6 +3113,57 @@ function cleanupOrphanZaloListener() {
 }
 
 // MODOROClaw PATCH: Drop Zalo group system event notifications (member join/leave,
+// Per-sender message dedup guard: drop exact-text duplicates from the same sender
+// arriving within 3 seconds. This prevents "double-tap" Zalo quirk (where Zalo sometimes
+// delivers the same message event twice within milliseconds) from generating two bot replies.
+// Uses a module-level global Map in Node.js so the dedup state persists across calls.
+// Idempotent via "MODOROClaw SENDER-DEDUP PATCH" marker.
+// Injection anchor: RIGHT AFTER system-msg END marker (runs AFTER system-msg filter, BEFORE dispatch).
+function ensureZaloSenderDedupFix() {
+  try {
+    const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
+    if (!fs.existsSync(pluginFile)) return;
+    let content = fs.readFileSync(pluginFile, 'utf-8');
+    if (content.includes('MODOROClaw SENDER-DEDUP PATCH')) return; // already patched
+
+    const anchor = '  // === END MODOROClaw SYSTEM-MSG PATCH ===';
+    if (!content.includes(anchor)) {
+      console.warn('[zalo-sender-dedup] system-msg anchor missing — system-msg fix must run first');
+      return;
+    }
+
+    const injection = `
+  // === MODOROClaw SENDER-DEDUP PATCH ===
+  // Drop exact-text duplicates from same sender within 3s (Zalo double-delivery quirk).
+  // Uses a process-global Map so state persists across invocations without module-level vars.
+  try {
+    const __ddMap = ((global as any).__mcSenderDedup ??= new Map<string, number>());
+    const __ddKey = String(message.senderId || '') + ':' + rawBody;
+    const __ddNow = Date.now();
+    const __ddLast = __ddMap.get(__ddKey) ?? 0;
+    if (__ddNow - __ddLast < 3000) {
+      runtime.log?.(\`openzalo: drop sender-dedup \${message.senderId} (\${__ddNow - __ddLast}ms gap, same text)\`);
+      return;
+    }
+    __ddMap.set(__ddKey, __ddNow);
+    // Prune entries older than 60s to prevent unbounded growth
+    if (__ddMap.size > 500) {
+      const __ddCutoff = __ddNow - 60000;
+      for (const [k, v] of __ddMap) { if (v < __ddCutoff) __ddMap.delete(k); }
+    }
+  } catch (__ddErr) {
+    runtime.log?.('openzalo: sender-dedup check error: ' + String(__ddErr));
+  }
+  // === END MODOROClaw SENDER-DEDUP PATCH ===
+`;
+    content = content.replace(anchor, anchor + injection);
+    fs.writeFileSync(pluginFile, content, 'utf-8');
+    console.log('[zalo-sender-dedup] Injected per-sender dedup guard into inbound.ts');
+  } catch (e) {
+    console.error('[zalo-sender-dedup] error:', e?.message || e);
+  }
+}
+
 // rename, avatar change, etc.) before they reach the AI. Without this filter the bot
 // occasionally replies to "X đã thêm Y vào nhóm" in customer groups — very embarrassing.
 // Code-level gate is more reliable than AGENTS.md LLM rule alone.
@@ -3868,8 +3981,11 @@ function ensureZaloOutputFilterFix() {
       { name: "compaction-notice", re: /(?:Auto-compaction|Compacting context|Context limit exceeded|reset our conversation)/i },
       { name: "compaction-emoji", re: /🧹/ },
       // --- Layer B: English chain-of-thought leakage ---
-      { name: "cot-en-the-actor", re: /\\bthe (user|assistant|bot|model|customer)\\b/i },
-      { name: "cot-en-we-modal", re: /\\b(we need to|we have to|we should|we can|let me|let's|i'll|i will|i need to|i should)\\b/i },
+      // NOTE: "customer" removed from cot-en-the-actor — CS replies legitimately say "the customer".
+      { name: "cot-en-the-actor", re: /\\bthe (assistant|bot|model)\\b/i },
+      // NOTE: "we can / let me / let's / i'll" removed — code-switched Vietnamese CS replies
+      // routinely include these. Only block patterns with zero CS use case.
+      { name: "cot-en-we-modal", re: /\\b(we need to|we have to|we should|i need to|i should)\\b/i },
       { name: "cot-en-meta", re: /\\b(internal reasoning|chain of thought|system prompt|instructions|prompt injection|tool call)\\b/i },
       { name: "cot-en-narration", re: /\\b(based on (the|our)|according to (the|my)|as (you|i) (can|mentioned)|in (the|this) conversation)\\b/i },
       { name: "cot-en-reasoning-verbs", re: /\\b(let me think|hmm,? let|first,? (i|let|we)|okay,? (so|let|i)|alright,? (so|let|i))\\b/i },
@@ -3886,11 +4002,9 @@ function ensureZaloOutputFilterFix() {
       // like "đã cập nhật là 5 sản phẩm còn".
       { name: "meta-vi-fact-claim", re: /(?<![a-zA-Z0-9_])(em đã (cập nhật|ghi (nhận|chú)|lưu( lại)?) (rằng|thêm rằng|sở thích|preference|là anh|là chị|là mình)|đã (cập nhật|ghi nhận|lưu) (thêm )?rằng)(?![a-zA-Z0-9_])/i },
       // --- Layer D: all-Latin / no-Vietnamese-diacritic message ---
-      // Vietnamese always contains at least one diacritic in non-trivial
-      // messages. A long message with ZERO diacritics is almost certainly
-      // an English CoT dump. Skipped if < 40 chars (phones/IDs/links) OR
-      // if message contains http(s):// (legit URL replies pass).
-      { name: "no-vietnamese-diacritic", re: /^(?!.*https?:\\/\\/)(?=[\\s\\S]{40,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
+      // Threshold raised 40→200: product listings like "iPhone 15 Pro 256GB: 25,900,000 VND"
+      // are all-Latin but legitimate CS replies. CoT leaks are long walls of English (>200c).
+      { name: "no-vietnamese-diacritic", re: /^(?!.*https?:\\/\\/)(?=[\\s\\S]{200,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
     ];
     let __ofBlocked: string | null = null;
     for (const __ofP of __ofBlockPatterns) {
@@ -4640,8 +4754,11 @@ async function _startOpenClawImpl() {
   // Output filter: scan outbound Zalo text for sensitive patterns (Security Layer 2)
   ensureZaloOutputFilterFix();
   // System-msg filter: drop Zalo group event notifications (join/leave/rename/avatar)
-  // before they reach the AI. Called LAST so it inserts FIRST (closest to blocklist end anchor).
+  // before they reach the AI. Called LAST-1 so it inserts after blocklist end anchor.
   ensureZaloSystemMsgFix();
+  // Sender dedup guard: drop exact-text duplicates from same sender within 3s.
+  // Must run AFTER ensureZaloSystemMsgFix (depends on SYSTEM-MSG END anchor).
+  ensureZaloSenderDedupFix();
   // Force-one-message: hardcode disableBlockStreaming=true in openzalo inbound.ts
   // so "Dạ" word never gets split between messages regardless of config drift.
   ensureOpenzaloForceOneMessageFix();
@@ -8240,15 +8357,22 @@ const _outputFilterPatterns = [
   { name: 'compaction-notice', re: /(?:Auto-compaction|Compacting context|Context limit exceeded|reset our conversation)/i },
   { name: 'compaction-emoji', re: /🧹/ },
   // Layer B: English chain-of-thought leakage
-  { name: 'cot-en-the-actor', re: /\bthe (user|assistant|bot|model|customer)\b/i },
-  { name: 'cot-en-we-modal', re: /\b(we need to|we have to|we should|we can|let me|let's|i'll|i will|i need to|i should)\b/i },
+  // NOTE: cot-en-the-actor intentionally excludes "customer" — legitimate CS replies
+  // routinely reference "the customer" in English phrases. "assistant/bot/model" are CoT.
+  { name: 'cot-en-the-actor', re: /\bthe (assistant|bot|model)\b/i },
+  // NOTE: cot-en-we-modal excludes "we can / let me / let's / i'll" — these appear in
+  // code-switched Vietnamese CS replies ("Let me check for you", "We can arrange that").
+  // Only block the obvious CoT patterns that have no CS use case.
+  { name: 'cot-en-we-modal', re: /\b(we need to|we have to|we should|i need to|i should)\b/i },
   { name: 'cot-en-meta', re: /\b(internal reasoning|chain of thought|system prompt|instructions|prompt injection|tool call)\b/i },
   // Layer C: meta-commentary about file/tool operations
   { name: 'meta-vi-file-ops', re: /(?<![a-zA-Z0-9_])(edit file|ghi (?:vào )?file|lưu (?:vào )?file|update file|đọc file|cập nhật file|sửa file|tạo file|xóa file)(?![a-zA-Z0-9_])/i },
   { name: 'meta-vi-tool-name', re: /\b(tool (?:Edit|Write|Read|Bash|Grep|Glob)|use the (?:Edit|Write|Read) tool)\b/i },
   { name: 'meta-vi-memory-claim', re: /(?<![a-zA-Z0-9_])(đã (?:lưu|ghi|cập nhật|update) (?:vào |trong )?(?:bộ nhớ|memory|hồ sơ|file|database)|stored (?:in|to) memory|saved to (?:file|memory))(?![a-zA-Z0-9_])/i },
-  // Layer D: all-Latin / no-Vietnamese-diacritic (>40 chars, no URL)
-  { name: 'no-vietnamese-diacritic', re: /^(?!.*https?:\/\/)(?=[\s\S]{40,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
+  // Layer D: all-Latin / no-Vietnamese-diacritic (>200 chars, no URL)
+  // Threshold raised 40→200: product listings like "iPhone 15 Pro 256GB: 25,900,000 VND"
+  // are all-Latin but legitimate CS replies. CoT leaks are long walls of English text (>200c).
+  { name: 'no-vietnamese-diacritic', re: /^(?!.*https?:\/\/)(?=[\s\S]{200,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
   // Layer E: brand + internal name leakage
   { name: 'brand-modoroclaw', re: /\bMODOROClaw\b/i },
   { name: 'brand-openclaw', re: /\bOpenClaw\b/i },
@@ -8467,11 +8591,6 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
       text = filtered.text;
     }
   }
-  // Hard length cap 800 chars for Zalo (shape-based guardrail)
-  if (!skipFilter && text.length > 800) {
-    console.warn(`[sendZalo] output too long (${text.length} chars), truncating`);
-    text = text.slice(0, 780) + '...';
-  }
   const owner = readZaloOwner();
   if (!owner || !owner.ownerUserId) {
     console.error('[sendZalo] no Zalo owner configured — cannot send');
@@ -8483,34 +8602,71 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
     return null;
   }
   const nodeBin = findNodeBin() || 'node';
-  return new Promise((resolve) => {
+
+  // Split text into ≤780-char chunks at paragraph/sentence boundaries
+  const ZALO_CHUNK = 780;
+  const chunks = [];
+  if (!skipFilter && text.length > ZALO_CHUNK) {
+    let remaining = text;
+    while (remaining.length > ZALO_CHUNK) {
+      let cut = ZALO_CHUNK;
+      // Prefer paragraph break
+      const paraBreak = remaining.lastIndexOf('\n\n', ZALO_CHUNK);
+      if (paraBreak > 200) { cut = paraBreak + 2; }
+      else {
+        // Prefer sentence end
+        const sentBreak = remaining.slice(0, ZALO_CHUNK).search(/[.!?][^.!?]*$/);
+        if (sentBreak > 200) { cut = sentBreak + 1; }
+        else {
+          // Prefer word boundary
+          const spaceBreak = remaining.lastIndexOf(' ', ZALO_CHUNK);
+          if (spaceBreak > 200) { cut = spaceBreak + 1; }
+        }
+      }
+      chunks.push(remaining.slice(0, cut).trimEnd());
+      remaining = remaining.slice(cut).trimStart();
+    }
+    if (remaining.length > 0) chunks.push(remaining);
+  } else {
+    chunks.push(text);
+  }
+
+  const sendOneChunk = (chunk) => new Promise((resolve) => {
     try {
       const child = require('child_process').spawn(
         nodeBin,
-        [zcaBin, 'msg', 'send', owner.ownerUserId, text],
+        [zcaBin, 'msg', 'send', owner.ownerUserId, chunk],
         { shell: false, timeout: 20000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] }
       );
       let stdout = '', stderr = '';
       child.stdout.on('data', (d) => { stdout += d; });
       child.stderr.on('data', (d) => { stderr += d; });
       child.on('close', (code) => {
-        if (code === 0) {
-          console.log('[sendZalo] sent OK');
-          resolve(true);
-        } else {
-          console.error(`[sendZalo] exit ${code}: ${stderr.slice(0, 200)}`);
-          resolve(null);
-        }
+        if (code === 0) { resolve(true); }
+        else { console.error(`[sendZalo] exit ${code}: ${stderr.slice(0, 200)}`); resolve(null); }
       });
-      child.on('error', (e) => {
-        console.error('[sendZalo] spawn error:', e.message);
-        resolve(null);
-      });
+      child.on('error', (e) => { console.error('[sendZalo] spawn error:', e.message); resolve(null); });
     } catch (e) {
       console.error('[sendZalo] error:', e.message);
       resolve(null);
     }
   });
+
+  if (chunks.length === 1) {
+    const result = await sendOneChunk(chunks[0]);
+    if (result) console.log('[sendZalo] sent OK');
+    return result;
+  }
+
+  console.log(`[sendZalo] splitting into ${chunks.length} chunks (total ${text.length} chars)`);
+  let lastResult = null;
+  for (let i = 0; i < chunks.length; i++) {
+    lastResult = await sendOneChunk(chunks[i]);
+    if (!lastResult) { console.error(`[sendZalo] chunk ${i+1}/${chunks.length} failed`); break; }
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 800)); // 800ms gap between chunks
+  }
+  if (lastResult) console.log(`[sendZalo] sent OK (${chunks.length} chunks)`);
+  return lastResult;
 }
 
 // ============================================
@@ -10002,10 +10158,17 @@ function startFollowUpChecker() {
 }
 
 // IPC: bot or dashboard can queue a follow-up.
-// Uses readFollowUpQueue+push+writeFollowUpQueue atomically (single-threaded Node,
-// no await between read and write, so processFollowUpQueue can't interleave).
+// IMPORTANT: must check _followUpQueueLock. processFollowUpQueue is async — between
+// its `readFollowUpQueue()` and `writeFollowUpQueue()` calls, Node may yield to the
+// event loop and this IPC handler can fire. Without the lock check, the IPC write
+// would be overwritten by processFollowUpQueue's subsequent write (last-writer-wins
+// = lost follow-up entry). With the lock check we retry once after a short yield.
 ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipientName, question, prompt, delayMinutes }) => {
   try {
+    // Retry once if queue is being processed — wait for current process to finish
+    if (_followUpQueueLock) {
+      await new Promise(r => setTimeout(r, 150));
+    }
     const queue = readFollowUpQueue();
     const id = 'fu_' + Date.now();
     const fireAt = new Date(Date.now() + (delayMinutes || 15) * 60 * 1000).toISOString();

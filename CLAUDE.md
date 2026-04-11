@@ -452,3 +452,39 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 ### Corrupt pause file fails closed (RISK-5)
 **Risk:** `isChannelPaused()` catch block returned `false` on JSON parse error — corrupt `{channel}-paused.json` silently unpaused the channel, ignoring CEO's pause intent.
 **Fix:** Inner `try/catch` around JSON.parse specifically: on parse error → log `[pause] ${channel} pause file corrupt — treating as paused (fail closed)` → return `true`. Outer catch still returns `false` (handles file-system errors where file may not actually be paused).
+
+### Output filter false positive fix — no-vietnamese-diacritic threshold raised
+**Bug:** Product listings like "iPhone 15 Pro 256GB - 25,900,000 VND" (all-Latin, <40 chars per token) were blocked by the `no-vietnamese-diacritic` rule even though they're legitimate product names, not leaked CoT.
+**Fix:** Threshold `{40,}` → `{200,}` in BOTH the JS array (`_outputFilterPatterns`) and the TypeScript injection string (`ensureZaloOutputFilterFix`). CoT leaks are long walls of English text (>200 chars), not short product codes. Also narrowed `cot-en-the-actor` to match only "assistant|bot|model" (removed "user", "customer") and `cot-en-we-modal` to only "we need to|we have to|we should|i need to|i should" (removed common phrases used in natural Vietnamese conversation).
+**Auto-apply:** Both JS array and TS injection updated in `electron/main.js`. Re-inject on startup via `ensureZaloOutputFilterFix()`.
+
+### Follow-up queue IPC write race fix
+**Bug:** `processFollowUpQueue()` (async, holds `_followUpQueueLock`) and `ipcMain.handle('queue-follow-up', ...)` both write `follow-up-queue.json`. Between `processFollowUpQueue`'s `readFollowUpQueue()` and `writeFollowUpQueue()` calls, Node could yield → IPC fires → IPC writes → `processFollowUpQueue`'s subsequent write clobbers it → follow-up silently lost.
+**Fix:** IPC handler checks `if (_followUpQueueLock) { await new Promise(r => setTimeout(r, 150)); }` before reading. Single 150ms yield enough: `processFollowUpQueue` reads + processes + writes synchronously within 1 event-loop tick except at await points.
+
+### Zalo long message split (RISK-2)
+**Bug:** `sendZalo()` silently truncated messages > 800 chars to 780+"..." — customer lost second half of bot reply with no indication content was cut.
+**Fix:** Replaced truncation with multi-message split at paragraph → sentence → word boundaries. Sends each chunk sequentially with 800ms gap (rate limit). Maximum chunk size 780 chars.
+**Auto-apply:** In `sendZalo()` in `electron/main.js`.
+
+### Zalo memory file size cap (RISK-3)
+**Bug:** `appendPerCustomerSummaries()` appends dated sections to `memory/zalo-users/<id>.md` indefinitely. After months of daily interactions, files grow to hundreds of KB, consuming AGENTS.md context budget.
+**Fix:** `trimZaloMemoryFile(filePath, 50*1024)` called after every append. Drops oldest `## YYYY-MM-DD` sections from the top until file ≤ 50KB. Front-matter header (`---...---`) always preserved. Uses `Buffer.byteLength` for accurate size comparison.
+**Auto-apply:** In `appendPerCustomerSummaries()` in `electron/main.js`.
+
+### Memory directories seeded on fresh install (RISK-4)
+**Bug:** `seedWorkspace()` created `memory/zalo-users/` but not `memory/zalo-groups/`. The `seedZaloMemoryFromCache()` function creates groups dir itself, but it only runs after wizard — between wizard completion and first Zalo message, the dir might not exist.
+**Fix:** `seedWorkspace()` now explicitly creates both `memory/zalo-users/` AND `memory/zalo-groups/` at both the primary workspace and the openclaw agent workspace.
+
+### `sendCeoAlert` last-resort disk log (RISK-5)
+**Bug:** If both Telegram and Zalo fail simultaneously (network down, both channels misconfigured), `sendCeoAlert` returned `false` silently — cron failures and boot errors were lost with no trace.
+**Fix:** When `Promise.allSettled` shows both channels failed → append to `logs/ceo-alerts-missed.log` with ISO timestamp. Dashboard and next boot can surface missed alerts.
+
+### Per-sender dedup guard — Zalo double-delivery quirk (RISK-10)
+**Bug:** Zalo's delivery layer occasionally fires the same message event twice within milliseconds (network retry on the Zalo side). Both events reach `inbound.ts` independently, both dispatch to the agent, agent processes with same context and sends two identical replies to the customer.
+**Fix:** `ensureZaloSenderDedupFix()` injects TypeScript into `inbound.ts` right after the SYSTEM-MSG PATCH END marker. Uses `(global as any).__mcSenderDedup` Map (process-lifetime, no module var needed): key = `senderId + ':' + rawBody`, value = last dispatch timestamp. If same key seen within 3000ms → `return` (drop). Map pruned to 500 entries / 60s TTL to prevent unbounded growth.
+**Auto-apply:** `ensureZaloSenderDedupFix()` called in `_startOpenClawImpl()` after `ensureZaloSystemMsgFix()`.
+
+### `ensureDefaultConfig` write error surfacing (RISK-12)
+**Bug:** `ensureDefaultConfig()` catch block only called `console.error(...)` — if the function threw during a startup sequence (e.g., `openclaw.json` locked by another process, malformed JSON), the error was invisible to CEO and bot ran with broken config silently.
+**Fix:** Catch block now also appends to `~/.openclaw/logs/config-errors.log` with ISO timestamp and error message. Non-blocking (secondary write failure is silently swallowed). Log persists across restarts for post-mortem investigation.
