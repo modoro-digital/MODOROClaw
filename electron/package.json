@@ -1,6 +1,6 @@
 {
   "name": "modoro-claw",
-  "version": "2.2.21",
+  "version": "2.2.41",
   "description": "MODOROClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
   "author": "MODORO Tech Corp",
   "repository": {
@@ -97,6 +97,10 @@
           "**/*",
           "!**/{*.test.js,node_modules}"
         ]
+      },
+      {
+        "from": "../personas",
+        "to": "workspace-templates/personas"
       },
       {
         "from": "../industry",

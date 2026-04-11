@@ -553,7 +553,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 13;
+const CURRENT_AGENTS_MD_VERSION = 21;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -624,11 +624,107 @@ function seedWorkspace() {
         try { fs.copyFileSync(src, dst); } catch {}
       }
     }
-    const templateDirs = ['skills', 'industry', 'prompts', 'memory', 'tools', 'docs', '.learnings', 'config'];
+    const templateDirs = ['skills', 'industry', 'prompts', 'memory', 'tools', 'docs', '.learnings', 'config', 'personas'];
     for (const d of templateDirs) {
       copyDirRecursive(path.join(templateRoot, d), path.join(ws, d));
     }
+    // Copy knowledge/sales-playbook.md explicitly (rest of knowledge/ is CEO-owned).
+    try {
+      const playbookSrc = path.join(templateRoot, 'knowledge', 'sales-playbook.md');
+      const playbookDstDir = path.join(ws, 'knowledge');
+      const playbookDst = path.join(playbookDstDir, 'sales-playbook.md');
+      if (fs.existsSync(playbookSrc) && !fs.existsSync(playbookDst)) {
+        fs.mkdirSync(playbookDstDir, { recursive: true });
+        fs.copyFileSync(playbookSrc, playbookDst);
+      }
+    } catch {}
   }
+
+  // Seed empty shop-state.json (daily state file) if missing
+  try {
+    const shopStatePath = path.join(ws, 'shop-state.json');
+    if (!fs.existsSync(shopStatePath)) {
+      fs.writeFileSync(shopStatePath, JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'seed',
+        outOfStock: [],
+        staffAbsent: [],
+        shippingDelay: { active: false, reason: '', estimatedDelayHours: 0 },
+        activePromotions: [],
+        earlyClosing: { active: false, time: null },
+        specialNotes: '',
+      }, null, 2), 'utf-8');
+    }
+  } catch {}
+
+  // Seed default active-persona mix if missing (wizard overwrites later).
+  // Format: active-persona.json (structured config) + active-persona.md
+  // (compiled prompt bot reads on bootstrap).
+  //
+  // Upgrade migration: if user had v2.2.35 with active-persona.txt (single
+  // archetype id), map that to a matching mix config before seeding default.
+  // Otherwise silently losing their wizard choice would change bot voice
+  // without warning.
+  try {
+    const mixJsonPath = path.join(ws, 'active-persona.json');
+    const compiledPath = path.join(ws, 'active-persona.md');
+    const legacyPath = path.join(ws, 'active-persona.txt');
+
+    // Archetype id → mix config map (mirrors PERSONA_PRESETS in wizard.html).
+    // Traits use the 15 scientific slugs (Big Five + service-specific).
+    const ARCHETYPE_TO_MIX = {
+      'chi-ban-hang-mien-tay': { region: 'tay',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['am-ap','thuc-te','kien-nhan','chu-dao'],            formality: 4 },
+      'em-sale-bds-sg':        { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['nang-dong','chu-dong','chuyen-nghiep','chu-dao'],   formality: 6 },
+      'co-giao-ha-noi':        { region: 'bac',         voice: 'chi-trung-nien',  customer: 'anh-chi',   traits: ['chin-chu','kien-nhan','chu-dao','tinh-te'],         formality: 8 },
+      'duoc-si-an-can':        { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['chin-chu','dong-cam','diem-tinh','chu-dao'],        formality: 6 },
+      'chi-spa-nhe-nhang':     { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['tinh-te','am-ap','diem-tinh','linh-hoat'],          formality: 7 },
+      'anh-tho-sua-xe':        { region: 'nam',         voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['thang-than','thuc-te','chu-dao','than-thien'],      formality: 4 },
+      'co-le-tan-khach-san':   { region: 'bac',         voice: 'em-nu-tre',       customer: 'quy-khach', traits: ['tinh-te','chuyen-nghiep','chin-chu','linh-hoat'],  formality: 10 },
+      'anh-sale-oto':          { region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','chu-dong','chu-dao','linh-hoat'],  formality: 7 },
+      'chi-chu-boutique':      { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['sang-tao','tinh-te','am-ap','linh-hoat'],           formality: 6 },
+      'anh-ky-thuat-cong-nghe':{ region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','kien-nhan','thuc-te','chu-dao'],   formality: 6 },
+    };
+
+    if (!fs.existsSync(mixJsonPath)) {
+      let mixToSeed = null;
+
+      // Try migration from v2.2.35 legacy format
+      try {
+        if (fs.existsSync(legacyPath)) {
+          const oldId = fs.readFileSync(legacyPath, 'utf-8').trim();
+          if (ARCHETYPE_TO_MIX[oldId]) {
+            mixToSeed = Object.assign({ greeting: '', closing: '', phrases: '' }, ARCHETYPE_TO_MIX[oldId]);
+            console.log('[seedWorkspace] migrated legacy persona "' + oldId + '" → mix config');
+          }
+        }
+      } catch (e) {
+        console.warn('[seedWorkspace] legacy persona migration failed:', e?.message);
+      }
+
+      // Fresh install default
+      if (!mixToSeed) {
+        mixToSeed = {
+          region: 'trung-tinh',
+          voice: 'em-nu-tre',
+          customer: 'anh-chi',
+          traits: ['am-ap', 'chu-dao', 'chuyen-nghiep'],
+          formality: 5,
+          greeting: '',
+          closing: '',
+          phrases: '',
+        };
+      }
+
+      fs.writeFileSync(mixJsonPath, JSON.stringify(mixToSeed, null, 2), 'utf-8');
+      if (typeof compilePersonaMix === 'function') {
+        fs.writeFileSync(compiledPath, compilePersonaMix(mixToSeed), 'utf-8');
+      }
+    }
+    // Legacy cleanup — only delete AFTER migration above had a chance to run
+    try {
+      if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
+    } catch {}
+  } catch {}
 
   // ALWAYS ensure runtime files exist (dev + packaged)
   const schedulesFile = path.join(ws, 'schedules.json');
@@ -2244,11 +2340,17 @@ function createWindow() {
     //      healed config with a running gateway.
     (async () => {
       try { await ensureZaloPlugin(); } catch (e) { console.error('[boot] ensureZaloPlugin error:', e?.message || e); }
+      // Seed customer profiles from openzca cache AFTER plugin is ready but
+      // BEFORE startOpenClaw so gateway's first message sees populated memory.
+      try { seedZaloCustomersFromCache(); } catch (e) { console.error('[boot] seedZaloCustomers error:', e?.message || e); }
       try { await startOpenClaw(); } catch (e) { console.error('[boot] startOpenClaw error:', e?.message || e); }
       startCronJobs();
       startFollowUpChecker();
       watchCustomCrons();
       startZaloCacheAutoRefresh();
+      startAppointmentDispatcher();
+      // Warm cookie age check 30s after boot, then broadcast loop handles daily cadence.
+      setTimeout(() => { try { checkZaloCookieAge(); } catch {} }, 30000);
     })();
   } else {
     console.log('[createWindow] → wizard.html');
@@ -2798,6 +2900,14 @@ async function ensureDefaultConfig() {
       const tg = config.channels.telegram;
       if (tg.blockStreaming !== false) { tg.blockStreaming = false; changed = true; }
       if (tg.streaming !== 'off') { tg.streaming = 'off'; changed = true; }
+      // Group policy: "open" lets bot reply in ANY group it's added to (no
+      // allowlist gate). Default openclaw is "allowlist" which blocks all groups
+      // until manually configured → CEO adds bot to group, @mentions, bot
+      // silently drops message. Same UX as Zalo (open by default).
+      if (tg.groupPolicy !== 'open') { tg.groupPolicy = 'open'; changed = true; }
+      // Require @mention in groups so bot only replies when explicitly called.
+      // Otherwise bot would forward every group message to AI → huge token waste.
+      if (tg.requireMention !== true) { tg.requireMention = true; changed = true; }
     }
     // Global default: openclaw 2026.4.x removed `agents.defaults.blockStreaming`
     // (boolean) and replaced it with `agents.defaults.blockStreamingDefault`
@@ -3010,7 +3120,13 @@ function ensureZaloPauseFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    if (content.includes('MODOROClaw PAUSE PATCH')) return;
+    // v2: owner-only /pause (was: anyone could /pause). Force re-inject if old version.
+    if (content.includes('MODOROClaw PAUSE PATCH')) {
+      if (content.includes('__pzIsOwner')) return; // v2 already applied
+      // Strip old patch so we can inject v2
+      content = content.replace(/\n\n  \/\/ === MODOROClaw PAUSE PATCH ===[\s\S]*?\/\/ === END MODOROClaw PAUSE PATCH ===/m, '');
+      console.log('[zalo-pause-fix] Removed old pause patch (upgrading to v2 owner-only)');
+    }
 
     // Inject after blocklist patch (or after the rawBody anchor if blocklist absent)
     const anchor = content.includes('END MODOROClaw BLOCKLIST PATCH')
@@ -3125,13 +3241,13 @@ function ensureZaloFriendCheckFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    // Version pin: V2 = don't block stranger messages (reply + friend request together)
-    const FRIEND_CHECK_VERSION = 'FRIEND-CHECK-V2';
+    // Version pin: V3 = fix vendor CLI path on Mac (was APPDATA fallback = wrong dir)
+    const FRIEND_CHECK_VERSION = 'FRIEND-CHECK-V3';
     if (content.includes(FRIEND_CHECK_VERSION)) return; // already patched with latest version
-    // Strip old patch if exists (V1 had return; that blocked messages)
+    // Strip old patch if exists (V1 blocked messages, V2 had Mac path bug)
     if (content.includes('MODOROClaw FRIEND-CHECK PATCH')) {
       content = content.replace(/\n\s*\/\/ === MODOROClaw FRIEND-CHECK PATCH ===[\s\S]*?\/\/ === END MODOROClaw FRIEND-CHECK PATCH ===/g, '');
-      console.log('[zalo-friend-check] stripped old V1 patch — re-injecting V2');
+      console.log('[zalo-friend-check] stripped old patch — re-injecting V3');
     }
 
     // Anchor: right after the blocklist patch's END marker. Ensures friend
@@ -3146,7 +3262,7 @@ function ensureZaloFriendCheckFix() {
 
     const injection = `
 
-  // === MODOROClaw FRIEND-CHECK PATCH === FRIEND-CHECK-V2
+  // === MODOROClaw FRIEND-CHECK PATCH === FRIEND-CHECK-V3
   // For DM messages from non-friends, send a one-time "please add friend"
   // reply and short-circuit. Reads openzca's friend cache to determine
   // friend status. Groups skip this check. See main.js ensureZaloFriendCheckFix.
@@ -3208,9 +3324,18 @@ function ensureZaloFriendCheckFix() {
             const __fcHome2 = require("node:os").homedir();
             // Find openzca CLI — check bundled vendor first, then PATH
             const __fcAppDir = "modoro-claw";
-            const __fcAppData = process.env.APPDATA || __fcPath.join(__fcHome2, "AppData", "Roaming");
-            const __fcVendorCli = __fcPath.join(__fcAppData, __fcAppDir, "vendor", "node_modules", "openzca", "dist", "cli.js");
-            const __fcNodeBin = __fcPath.join(__fcAppData, __fcAppDir, "vendor", "node", process.platform === "win32" ? "node.exe" : "bin/node");
+            let __fcAppBase;
+            if (process.env.MODORO_WORKSPACE) {
+              __fcAppBase = __fcPath.dirname(process.env.MODORO_WORKSPACE);
+            } else if (process.platform === "darwin") {
+              __fcAppBase = __fcPath.join(__fcHome2, "Library", "Application Support");
+            } else if (process.platform === "win32") {
+              __fcAppBase = process.env.APPDATA || __fcPath.join(__fcHome2, "AppData", "Roaming");
+            } else {
+              __fcAppBase = process.env.XDG_CONFIG_HOME || __fcPath.join(__fcHome2, ".config");
+            }
+            const __fcVendorCli = __fcPath.join(__fcAppBase, __fcAppDir, "vendor", "node_modules", "openzca", "dist", "cli.js");
+            const __fcNodeBin = __fcPath.join(__fcAppBase, __fcAppDir, "vendor", "node", process.platform === "win32" ? "node.exe" : "bin/node");
             if (__fcFs.existsSync(__fcVendorCli) && __fcFs.existsSync(__fcNodeBin)) {
               __fcExec(__fcNodeBin, [__fcVendorCli, "friend", "request", __fcSender, "--message", "Xin chao, minh la tro ly AI. Ket ban de minh ho tro ban nhe!"], { timeout: 10000, windowsHide: true, stdio: "ignore" });
               runtime.log?.(\`openzalo: friend request sent via CLI to \${__fcSender}\`);
@@ -3304,15 +3429,18 @@ function ensureZaloOwnerFix() {
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
 
-    // Migration: strip OLD versions of this patch on upgrade. Detect by
-    // checking the patch BLOCK ONLY (between markers) for the version-pin
-    // string we embed in current versions. If the version-pin is missing,
-    // the patch is from an older build with broken Mac paths and must be
-    // re-injected. We can NOT scan whole-file fingerprints (they false-positive
-    // on text from other patches like the friend-request patch).
-    const PATCH_VERSION_PIN = 'ZALO-OWNER-PATCH-V2';
+    // ZALO-OWNER-PATCH-V4: mutates rawBody DIRECTLY (not message.text).
+    // V2/V3 mutated `message.text` but openzalo captures `const rawBody = message.text.trim()`
+    // at line 392 and forwards rawBody to agent — so text mutation did nothing.
+    // V4 does two things:
+    //   1. Change `const rawBody` → `let rawBody` so we can reassign
+    //   2. Inject owner check IMMEDIATELY after rawBody declaration, mutating rawBody
+    //      directly via string concat before blocklist/friend-check/dispatch runs.
+    const PATCH_VERSION_PIN = 'ZALO-OWNER-PATCH-V4';
     const startMarker = '// === MODOROCLAW ZALO-OWNER PATCH ===';
     const endMarker = '// === END MODOROCLAW ZALO-OWNER PATCH ===';
+
+    // Strip any old patch version (V2, V3, V4) first
     if (content.includes(startMarker)) {
       const blockStart = content.indexOf(startMarker);
       const blockEnd = content.indexOf(endMarker, blockStart);
@@ -3321,106 +3449,104 @@ function ensureZaloOwnerFix() {
         return;
       }
       const block = content.slice(blockStart, blockEnd);
-      if (block.includes(PATCH_VERSION_PIN)) return; // already current
-      // Old version present — strip it. Find the leading whitespace so we
-      // remove the leading "\n\n  " that was prepended at injection time.
+      if (block.includes(PATCH_VERSION_PIN)) {
+        // Already V4, but verify the `let rawBody` declaration is also in place
+        if (!content.includes('let rawBody = message.text.trim();')) {
+          console.warn('[zalo-owner-fix] V4 marker present but `let rawBody` missing — restoring');
+          // Fall through to re-patch
+        } else {
+          return; // fully patched
+        }
+      }
+      // Strip old block (any version)
       let stripStart = blockStart;
       while (stripStart > 0 && (content[stripStart - 1] === ' ' || content[stripStart - 1] === '\n')) {
         stripStart--;
-        // Stop when we've consumed up to (but not past) the trailing newline
-        // of the friend-check anchor line.
         if (content.slice(stripStart, stripStart + 2) === '\n\n') break;
       }
       const stripEndPos = blockEnd + endMarker.length;
       content = content.slice(0, stripStart) + content.slice(stripEndPos);
-      console.log('[zalo-owner-fix] stripped old patch (no version pin) — re-injecting current');
+      console.log('[zalo-owner-fix] stripped old patch block — re-injecting V4');
     }
 
-    // Anchor: end of friend-check patch. Owner check must run AFTER friend
-    // check (non-friends already short-circuited) and BEFORE agent dispatch
-    // so the marker is in the body the agent sees.
-    const anchor = '  // === END MODOROClaw FRIEND-CHECK PATCH ===';
+    // STEP 1: Change `const rawBody` → `let rawBody` so we can reassign.
+    // Idempotent: replace both forms.
+    if (content.includes('const rawBody = message.text.trim();')) {
+      content = content.replace('const rawBody = message.text.trim();', 'let rawBody = message.text.trim();');
+      console.log('[zalo-owner-fix] changed const rawBody → let rawBody');
+    } else if (!content.includes('let rawBody = message.text.trim();')) {
+      console.warn('[zalo-owner-fix] CRITICAL: rawBody declaration not found — plugin source changed');
+      return;
+    }
+
+    // STEP 2: Inject owner check RIGHT AFTER rawBody declaration + hasMedia check.
+    // Anchor: the line AFTER `if (!rawBody && !hasMedia) { return; }`
+    const anchor = '  if (!rawBody && !hasMedia) {\n    return;\n  }';
     if (!content.includes(anchor)) {
-      console.warn('[zalo-owner-fix] friend-check anchor missing — friend-check fix must run first');
+      console.warn('[zalo-owner-fix] rawBody anchor missing — plugin source changed');
       return;
     }
 
     const injection = `
 
   // === MODOROCLAW ZALO-OWNER PATCH ===
-  // ZALO-OWNER-PATCH-V2 — version pin (used by main.js for upgrade detection)
-  // Mark messages from CEO's personal Zalo with [ZALO_CHU_NHAN] prefix.
-  // AGENTS.md tells bot to switch to CEO mode when it sees this marker.
+  // ZALO-OWNER-PATCH-V4 — mutates rawBody directly (not message.text).
+  // Works in BOTH DMs and groups. Runs BEFORE blocklist + friend-check + dispatch.
   // See electron/main.js ensureZaloOwnerFix.
-  if (!message.isGroup) {
-    try {
-      const __zoFs = require("node:fs");
-      const __zoPath = require("node:path");
-      const __zoOs = require("node:os");
-      const __zoSender = String(message.senderId || "").trim();
-      if (__zoSender) {
-        // Path resolution mirrors getWorkspace() in electron/main.js. The
-        // canonical answer comes from MODORO_WORKSPACE env (set at gateway
-        // spawn). Platform branches are fallbacks for the unlikely case the
-        // env var is missing. CRITICAL: app dir name is "modoro-claw"
-        // (lowercase) — matches Electron's app.getName() reading package.json
-        // \`name\` field. NOT "MODOROClaw" (build.productName is installer
-        // metadata only, not used for runtime userData).
-        const __zoOwnerPaths = [];
-        if (process.env.MODORO_WORKSPACE) {
-          __zoOwnerPaths.push(__zoPath.join(process.env.MODORO_WORKSPACE, "zalo-owner.json"));
-        }
-        const __zoAppDir = "modoro-claw";
-        if (process.platform === "darwin") {
-          __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), "Library", "Application Support", __zoAppDir, "zalo-owner.json"));
-        } else if (process.platform === "win32") {
-          const __zoAppData = process.env.APPDATA || __zoPath.join(__zoOs.homedir(), "AppData", "Roaming");
-          __zoOwnerPaths.push(__zoPath.join(__zoAppData, __zoAppDir, "zalo-owner.json"));
-        } else {
-          const __zoConfig = process.env.XDG_CONFIG_HOME || __zoPath.join(__zoOs.homedir(), ".config");
-          __zoOwnerPaths.push(__zoPath.join(__zoConfig, __zoAppDir, "zalo-owner.json"));
-        }
-        // Legacy fallback (older builds wrote here)
-        __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), ".openclaw", "workspace", "zalo-owner.json"));
-        for (const __zoOp of __zoOwnerPaths) {
-          try {
-            if (!__zoFs.existsSync(__zoOp)) continue;
-            const __zoData = JSON.parse(__zoFs.readFileSync(__zoOp, "utf-8"));
-            const __zoOwner = String(__zoData?.ownerUserId || "").trim();
-            if (!__zoOwner) break;
-            if (__zoSender === __zoOwner) {
-              const __zoName = String(__zoData?.ownerName || "").trim();
-              const __zoTag = __zoName
-                ? \`[ZALO_CHU_NHAN tên="\${__zoName.replace(/"/g, '')}"]\`
-                : "[ZALO_CHU_NHAN]";
-              // Prepend marker into the actual content the agent will read.
-              // We mutate the runtime message text + structured content so
-              // both code paths (text-only + media+caption) see the marker.
-              if (typeof message.text === "string" && message.text) {
-                (message as any).text = __zoTag + "\\n" + message.text;
-              } else if (typeof message.text === "string") {
-                (message as any).text = __zoTag;
-              }
-              if ((message as any).body && typeof (message as any).body === "string") {
-                (message as any).body = __zoTag + "\\n" + (message as any).body;
-              }
-              runtime.log?.(\`openzalo: ZALO_CHU_NHAN marker injected for sender \${__zoSender}\`);
-            }
-            break; // first existing owner file wins
-          } catch (__zoReadErr) {
-            runtime.log?.(\`openzalo: zalo-owner read error: \${String(__zoReadErr)}\`);
+  try {
+    const __zoFs = require("node:fs");
+    const __zoPath = require("node:path");
+    const __zoOs = require("node:os");
+    const __zoSender = String(message.senderId || "").trim();
+    if (__zoSender) {
+      const __zoOwnerPaths: string[] = [];
+      if (process.env.MODORO_WORKSPACE) {
+        __zoOwnerPaths.push(__zoPath.join(process.env.MODORO_WORKSPACE, "zalo-owner.json"));
+      }
+      const __zoAppDir = "modoro-claw";
+      if (process.platform === "darwin") {
+        __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), "Library", "Application Support", __zoAppDir, "zalo-owner.json"));
+      } else if (process.platform === "win32") {
+        const __zoAppData = process.env.APPDATA || __zoPath.join(__zoOs.homedir(), "AppData", "Roaming");
+        __zoOwnerPaths.push(__zoPath.join(__zoAppData, __zoAppDir, "zalo-owner.json"));
+      } else {
+        const __zoConfig = process.env.XDG_CONFIG_HOME || __zoPath.join(__zoOs.homedir(), ".config");
+        __zoOwnerPaths.push(__zoPath.join(__zoConfig, __zoAppDir, "zalo-owner.json"));
+      }
+      __zoOwnerPaths.push(__zoPath.join(__zoOs.homedir(), ".openclaw", "workspace", "zalo-owner.json"));
+      for (const __zoOp of __zoOwnerPaths) {
+        try {
+          if (!__zoFs.existsSync(__zoOp)) continue;
+          const __zoData = JSON.parse(__zoFs.readFileSync(__zoOp, "utf-8"));
+          const __zoOwner = String(__zoData?.ownerUserId || "").trim();
+          if (!__zoOwner) break;
+          if (__zoSender === __zoOwner) {
+            const __zoName = String(__zoData?.ownerName || "").trim();
+            const __zoTag = __zoName
+              ? \`[ZALO_CHU_NHAN tên="\${__zoName.replace(/"/g, '')}"]\`
+              : "[ZALO_CHU_NHAN]";
+            // Mutate rawBody directly — this is what gets forwarded to agent.
+            rawBody = __zoTag + "\\n" + rawBody;
+            runtime.log?.(\`openzalo: ZALO_CHU_NHAN marker prepended to rawBody for sender \${__zoSender}\`);
           }
+          break;
+        } catch (__zoReadErr) {
+          runtime.log?.(\`openzalo: zalo-owner read error: \${String(__zoReadErr)}\`);
         }
       }
-    } catch (__zoErr) {
-      runtime.log?.(\`openzalo: zalo-owner check error: \${String(__zoErr)}\`);
     }
+  } catch (__zoErr) {
+    runtime.log?.(\`openzalo: zalo-owner check error: \${String(__zoErr)}\`);
   }
   // === END MODOROCLAW ZALO-OWNER PATCH ===`;
 
     const patched = content.replace(anchor, anchor + injection);
+    if (patched === content) {
+      console.warn('[zalo-owner-fix] anchor replace failed — no write');
+      return;
+    }
     fs.writeFileSync(pluginFile, patched, 'utf-8');
-    console.log('[zalo-owner-fix] Injected owner-marker patch into inbound.ts');
+    console.log('[zalo-owner-fix] Injected V4 owner-marker patch into inbound.ts (mutates rawBody directly)');
   } catch (e) {
     console.error('[zalo-owner-fix] error:', e?.message);
   }
@@ -3848,45 +3974,143 @@ function ensureZaloOutputFilterFix() {
 // Fix: rewrite the conditional `disableBlockStreaming: ...` expression to hardcoded `true` so it
 // NEVER depends on config. Idempotent via "MODOROClaw FORCE-ONE-MESSAGE PATCH" marker.
 function ensureOpenzaloForceOneMessageFix() {
+  // PART 1: Patch channel.ts capability flag (affects groups + DMs at gateway level)
+  try {
+    const channelFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'channel.ts');
+    if (fs.existsSync(channelFile)) {
+      let channelContent = fs.readFileSync(channelFile, 'utf-8');
+      if (!channelContent.includes('MODOROClaw FORCE-ONE-MESSAGE CAPABILITY')) {
+        // Match `blockStreaming: true,` inside capabilities block
+        const capRe = /blockStreaming:\s*true,/;
+        if (capRe.test(channelContent)) {
+          const capReplacement = 'blockStreaming: false, // MODOROClaw FORCE-ONE-MESSAGE CAPABILITY: disable at capability level so gateway never tries to split-stream Zalo replies (fixes "Dạ" → "D" + "ạ..." in groups)';
+          channelContent = channelContent.replace(capRe, capReplacement);
+          fs.writeFileSync(channelFile, channelContent, 'utf-8');
+          console.log('[zalo-force-one-msg] patched channel.ts capability flag');
+        } else {
+          console.warn('[zalo-force-one-msg] channel.ts capability anchor missing — skip');
+        }
+      } else {
+        console.log('[zalo-force-one-msg] channel.ts already patched');
+      }
+    }
+  } catch (e) {
+    console.error('[zalo-force-one-msg] channel.ts patch error:', e?.message || e);
+  }
+
+  // PART 2: Patch inbound.ts dispatch call (DM path — defense in depth)
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) {
       console.warn('[zalo-force-one-msg] plugin file not present yet');
       return;
     }
-    const content = fs.readFileSync(pluginFile, 'utf-8');
-    if (content.includes('MODOROClaw FORCE-ONE-MESSAGE PATCH')) {
-      console.log('[zalo-force-one-msg] already patched');
-      return;
+    let content = fs.readFileSync(pluginFile, 'utf-8');
+    if (!content.includes('MODOROClaw FORCE-ONE-MESSAGE PATCH')) {
+      // Match the exact source form we expect. Plugin minor versions may vary whitespace
+      // so we use a flexible regex.
+      const re = /disableBlockStreaming:\s*\n?\s*typeof account\.config\.blockStreaming === "boolean"\s*\n?\s*\? !account\.config\.blockStreaming\s*\n?\s*: undefined\s*,/;
+      if (re.test(content)) {
+        const replacement =
+          '// MODOROClaw FORCE-ONE-MESSAGE PATCH: always disable block streaming regardless of\n' +
+          '      // config — openclaw 2026.4.x gateway strips openzalo config fields to {} at startup,\n' +
+          '      // so the old conditional fell back to undefined → default enabled → "Dạ" split.\n' +
+          '      // Hardcoding true ensures Zalo ALWAYS sends one complete message per turn.\n' +
+          '      disableBlockStreaming: true,';
+        content = content.replace(re, replacement);
+        fs.writeFileSync(pluginFile, content, 'utf-8');
+        console.log('[zalo-force-one-msg] Part 2 disableBlockStreaming patch applied');
+      } else {
+        console.warn('[zalo-force-one-msg] Part 2 anchor not found — plugin source changed');
+      }
     }
-    // Match the exact source form we expect. Plugin minor versions may vary whitespace
-    // so we use a flexible regex.
-    const re = /disableBlockStreaming:\s*\n?\s*typeof account\.config\.blockStreaming === "boolean"\s*\n?\s*\? !account\.config\.blockStreaming\s*\n?\s*: undefined\s*,/;
-    if (!re.test(content)) {
-      console.error('[zalo-force-one-msg] CRITICAL: conditional expression not found — plugin source has changed, pattern needs update');
-      try {
-        const diagPath = path.join(getWorkspace() || resourceDir, 'logs', 'boot-diagnostic.txt');
-        fs.mkdirSync(path.dirname(diagPath), { recursive: true });
-        fs.appendFileSync(diagPath,
-          `\n[${new Date().toISOString()}] [zalo-force-one-msg] anchor regex failed — openzalo ` +
-          `plugin source changed; Dạ/D split may reappear. Check ${pluginFile}\n`, 'utf-8');
-      } catch {}
-      return;
-    }
-    const replacement =
-      '// MODOROClaw FORCE-ONE-MESSAGE PATCH: always disable block streaming regardless of\n' +
-      '      // config — openclaw 2026.4.x gateway strips openzalo config fields to {} at startup,\n' +
-      '      // so the old conditional fell back to undefined → default enabled → "Dạ" split.\n' +
-      '      // Hardcoding true ensures Zalo ALWAYS sends one complete message per turn.\n' +
-      '      disableBlockStreaming: true,';
-    const patched = content.replace(re, replacement);
-    fs.writeFileSync(pluginFile, patched, 'utf-8');
-    // Verify write
-    const verify = fs.readFileSync(pluginFile, 'utf-8');
-    if (verify.includes('MODOROClaw FORCE-ONE-MESSAGE PATCH')) {
-      console.log('[zalo-force-one-msg] patch applied + verified');
-    } else {
-      console.error('[zalo-force-one-msg] write verification FAILED');
+
+    // PART 3: Deliver-coalesce patch — root cause of split is MODEL emitting
+    // interleaved content array [text:"D", thinking:"", text:"ạ..."].
+    // Openclaw creates 2 separate payloads from 2 text parts. disableBlockStreaming
+    // only kills streaming, not this post-split. Fix: wrap the deliver callback
+    // to buffer text-only payloads by 400ms and merge them into one send.
+    if (!content.includes('MODOROClaw DELIVER-COALESCE PATCH')) {
+      const coalesceAnchor = '  const dispatchResult = await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({';
+      if (!content.includes(coalesceAnchor)) {
+        console.warn('[zalo-force-one-msg] Part 3 anchor missing — dispatchReply not found');
+      } else {
+        const coalesceInjection =
+          '  // MODOROClaw DELIVER-COALESCE PATCH v2:\n' +
+          '  // Root cause of "Dạ" → "D" + "ạ..." split: model (reasoning-enabled) emits\n' +
+          '  // interleaved content array like [text:"D", thinking:"", text:"ạ..."].\n' +
+          '  // Openclaw turns each text part into a separate final payload. disableBlockStreaming\n' +
+          '  // only disables streaming, not merging consecutive finals.\n' +
+          '  // Fix: buffer deliver calls by 400ms; coalesce consecutive text-only payloads\n' +
+          '  // into one send. Media payloads flush immediately (no buffering).\n' +
+          '  const __mcBuffer: { text: string; firstPayload: any; timer: any } = { text: "", firstPayload: null, timer: null };\n' +
+          '  const __mcFlushDelay = 400;\n' +
+          '  const __mcDoDeliver = async (payload: any) => {\n' +
+          '    await deliverAndRememberOpenzaloReply({\n' +
+          '      payload,\n' +
+          '      target: outboundTarget,\n' +
+          '      sessionKey: route.sessionKey,\n' +
+          '      account,\n' +
+          '      cfg,\n' +
+          '      runtime,\n' +
+          '      statusSink,\n' +
+          '    });\n' +
+          '  };\n' +
+          '  const __mcFlush = async () => {\n' +
+          '    if (__mcBuffer.timer) { clearTimeout(__mcBuffer.timer); __mcBuffer.timer = null; }\n' +
+          '    if (!__mcBuffer.text || !__mcBuffer.firstPayload) { __mcBuffer.text = ""; __mcBuffer.firstPayload = null; return; }\n' +
+          '    const merged = { ...__mcBuffer.firstPayload, text: __mcBuffer.text };\n' +
+          '    __mcBuffer.text = "";\n' +
+          '    __mcBuffer.firstPayload = null;\n' +
+          '    await __mcDoDeliver(merged);\n' +
+          '  };\n\n' +
+          coalesceAnchor;
+        content = content.replace(coalesceAnchor, coalesceInjection);
+
+        // Now replace the original deliver callback body with coalescing logic
+        const oldDeliver = 'deliver: async (payload) => {\n      await deliverAndRememberOpenzaloReply({\n        payload,\n        target: outboundTarget,\n        sessionKey: route.sessionKey,\n        account,\n        cfg,\n        runtime,\n        statusSink,\n      });\n    },';
+        const newDeliver =
+          'deliver: async (payload) => {\n' +
+          '      const hasMedia = (payload?.mediaUrl || (payload?.mediaUrls?.length ?? 0) > 0 || (payload?.mediaPaths?.length ?? 0) > 0);\n' +
+          '      const text = String(payload?.text || "").trim();\n' +
+          '      if (hasMedia || !text) {\n' +
+          '        await __mcFlush();\n' +
+          '        await __mcDoDeliver(payload);\n' +
+          '        return;\n' +
+          '      }\n' +
+          '      if (__mcBuffer.text) {\n' +
+          '        __mcBuffer.text += (/[.!?…]$/.test(__mcBuffer.text) ? " " : "") + text;\n' +
+          '      } else {\n' +
+          '        __mcBuffer.text = text;\n' +
+          '        __mcBuffer.firstPayload = payload;\n' +
+          '      }\n' +
+          '      if (__mcBuffer.timer) clearTimeout(__mcBuffer.timer);\n' +
+          '      __mcBuffer.timer = setTimeout(() => { __mcFlush().catch(() => {}); }, __mcFlushDelay);\n' +
+          '    },';
+        if (content.includes(oldDeliver)) {
+          content = content.replace(oldDeliver, newDeliver);
+        } else {
+          console.warn('[zalo-force-one-msg] Part 3 deliver body not found — coalesce setup injected but callback not replaced');
+        }
+
+        // Inject final flush after the dispatchResult assignment
+        const dispatchEndMarker = '  const dispatchResult = await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({';
+        // We need to inject AFTER the closing `});` of this call. Look for the pattern.
+        const dispatchCallEnd = /(\s+},\s*\n\s*replyOptions:\s*\{[\s\S]*?\n\s*\}\s*,?\s*\n\s*\}\);)/;
+        const m = content.match(dispatchCallEnd);
+        if (m) {
+          const injectAfter = '\n  await __mcFlush(); // MODOROClaw DELIVER-COALESCE flush';
+          content = content.replace(m[1], m[1] + injectAfter);
+        }
+
+        // Add marker at top so we don't re-patch
+        content = content.replace(
+          '  // MODOROClaw DELIVER-COALESCE PATCH v2:',
+          '  // MODOROClaw DELIVER-COALESCE PATCH v2 — marker\n  // MODOROClaw DELIVER-COALESCE PATCH v2:'
+        );
+        fs.writeFileSync(pluginFile, content, 'utf-8');
+        console.log('[zalo-force-one-msg] Part 3 deliver-coalesce patch applied');
+      }
     }
   } catch (e) {
     console.error('[zalo-force-one-msg] error:', e?.message || e);
@@ -4145,7 +4369,117 @@ async function startOpenClaw() {
   try { return await _startOpenClawImpl(); }
   finally { _startOpenClawInFlight = false; }
 }
+function backupWorkspace() {
+  const ws = getWorkspace();
+  if (!ws || !fs.existsSync(ws)) return;
+  const backupsRoot = path.join(ws, 'backups');
+  try { fs.mkdirSync(backupsRoot, { recursive: true }); } catch {}
+
+  // Throttle: skip if most recent backup < 1 hour old
+  try {
+    const existing = fs.readdirSync(backupsRoot)
+      .filter(n => /^\d{4}-\d{2}-\d{2}-\d{6}$/.test(n))
+      .sort();
+    if (existing.length > 0) {
+      const latest = existing[existing.length - 1];
+      const latestPath = path.join(backupsRoot, latest);
+      try {
+        const st = fs.statSync(latestPath);
+        if (Date.now() - st.mtimeMs < 60 * 60 * 1000) {
+          console.log('[backup] skipped — recent backup exists');
+          return;
+        }
+      } catch {}
+    }
+  } catch {}
+
+  // Build UTC timestamp YYYY-MM-DD-HHmmss
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const stamp = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
+  const dst = path.join(backupsRoot, stamp);
+  fs.mkdirSync(dst, { recursive: true });
+
+  let fileCount = 0;
+
+  const copyFileIfExists = (srcAbs, dstAbs) => {
+    try {
+      if (!fs.existsSync(srcAbs)) return;
+      fs.mkdirSync(path.dirname(dstAbs), { recursive: true });
+      fs.copyFileSync(srcAbs, dstAbs);
+      fileCount++;
+    } catch {}
+  };
+
+  const flatFiles = [
+    'AGENTS.md', 'IDENTITY.md', 'COMPANY.md', 'PRODUCTS.md', 'USER.md',
+    'SOUL.md', 'MEMORY.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'TOOLS.md',
+    'schedules.json', 'custom-crons.json',
+    'zalo-blocklist.json', 'telegram-paused.json', 'zalo-paused.json',
+  ];
+  for (const rel of flatFiles) {
+    copyFileIfExists(path.join(ws, rel), path.join(dst, rel));
+  }
+
+  // memory/ recursive, excluding Cache + logs
+  const memSrc = path.join(ws, 'memory');
+  if (fs.existsSync(memSrc)) {
+    try {
+      fs.cpSync(memSrc, path.join(dst, 'memory'), {
+        recursive: true,
+        filter: (src) => {
+          const base = path.basename(src);
+          if (base === 'Cache' || base === 'logs') return false;
+          return true;
+        },
+      });
+      // Count files recursively
+      const walk = (p) => {
+        try {
+          const entries = fs.readdirSync(p, { withFileTypes: true });
+          for (const e of entries) {
+            const full = path.join(p, e.name);
+            if (e.isDirectory()) walk(full);
+            else if (e.isFile()) fileCount++;
+          }
+        } catch {}
+      };
+      walk(path.join(dst, 'memory'));
+    } catch {}
+  }
+
+  // knowledge/<cat>/index.md only
+  for (const cat of ['cong-ty', 'san-pham', 'nhan-vien']) {
+    copyFileIfExists(
+      path.join(ws, 'knowledge', cat, 'index.md'),
+      path.join(dst, 'knowledge', cat, 'index.md'),
+    );
+  }
+
+  // ~/.openclaw/openclaw.json
+  try {
+    const openclawJson = path.join(require('os').homedir(), '.openclaw', 'openclaw.json');
+    copyFileIfExists(openclawJson, path.join(dst, 'openclaw.json'));
+  } catch {}
+
+  console.log(`[backup] saved ${dst} (${fileCount} files)`);
+
+  // Retention: keep 7 most recent
+  try {
+    const all = fs.readdirSync(backupsRoot)
+      .filter(n => /^\d{4}-\d{2}-\d{2}-\d{6}$/.test(n))
+      .sort();
+    const toDelete = all.slice(0, Math.max(0, all.length - 7));
+    for (const name of toDelete) {
+      try {
+        fs.rmSync(path.join(backupsRoot, name), { recursive: true, force: true });
+      } catch {}
+    }
+  } catch {}
+}
+
 async function _startOpenClawImpl() {
+  try { backupWorkspace(); } catch (e) { console.error('[backup] failed:', e.message); }
   auditLog('startOpenClaw_begin', {});
 
   const bin = await findOpenClawBin();
@@ -5259,6 +5593,164 @@ async function ensureZaloPlugin() {
   return _zaloPluginInFlight;
 }
 
+// Bulk-seed memory/zalo-users/ and memory/zalo-groups/ from openzca cache.
+// Solves the "cold start memory" problem: CEO installs MODOROClaw on day 1 and
+// customers who've been Zalo friends for years get recognized on their first
+// bot interaction instead of being treated as strangers.
+//
+// Idempotent: skips customers that already have a profile (bot may have
+// learned things about them we don't want to overwrite).
+//
+// Data source: openzca listener maintains friend + group caches at
+// ~/.openzca/profiles/default/cache/{friends.json,groups.json}. These are
+// refreshed every 10 minutes by the listener, so they're usually <30min old.
+function seedZaloCustomersFromCache() {
+  try {
+    const homedir = require('os').homedir();
+    const cacheDir = path.join(homedir, '.openzca', 'profiles', 'default', 'cache');
+    if (!fs.existsSync(cacheDir)) {
+      console.log('[seedZaloCustomers] openzca cache dir not found, skipping');
+      return;
+    }
+    const workspace = getWorkspace();
+    if (!workspace) return;
+    const usersDir = path.join(workspace, 'memory', 'zalo-users');
+    const groupsDir = path.join(workspace, 'memory', 'zalo-groups');
+    try { fs.mkdirSync(usersDir, { recursive: true }); } catch {}
+    try { fs.mkdirSync(groupsDir, { recursive: true }); } catch {}
+
+    let seededUsers = 0, seededGroups = 0, skipped = 0;
+    const stamp = new Date().toISOString().slice(0, 19);
+
+    // Friends → memory/zalo-users/<userId>.md
+    const friendsPath = path.join(cacheDir, 'friends.json');
+    if (fs.existsSync(friendsPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(friendsPath, 'utf-8'));
+        const friends = Array.isArray(raw) ? raw : (Array.isArray(raw?.friends) ? raw.friends : []);
+        for (const f of friends) {
+          const userId = f.userId || f.uid || f.id;
+          if (!userId) continue;
+          const profilePath = path.join(usersDir, `${userId}.md`);
+          if (fs.existsSync(profilePath)) { skipped++; continue; }
+          const displayName = String(f.displayName || f.zaloName || f.name || 'Khách Zalo').trim();
+          const zaloName = String(f.zaloName || f.displayName || displayName).trim();
+          const lastSeen = f.lastActionTime
+            ? new Date(f.lastActionTime).toISOString()
+            : new Date().toISOString();
+          const statusText = String(f.status || '').trim().replace(/[\r\n]+/g, ' ').slice(0, 200);
+          const content = `---
+name: ${displayName}
+zaloName: ${zaloName}
+lastSeen: ${lastSeen}
+msgCount: 0
+gender: unknown
+tags: []
+groups: []
+---
+# ${displayName}
+
+${statusText ? `**Trạng thái Zalo:** ${statusText}\n\n` : ''}---
+*Hồ sơ được import tự động từ openzca cache lúc ${stamp}. Bot sẽ cập nhật thêm info sau mỗi lần tương tác.*
+`;
+          try { fs.writeFileSync(profilePath, content, 'utf-8'); seededUsers++; }
+          catch (e) { console.error('[seedZaloCustomers] write user error:', e.message); }
+        }
+      } catch (e) {
+        console.error('[seedZaloCustomers] friends parse error:', e.message);
+      }
+    }
+
+    // Groups → memory/zalo-groups/<groupId>.md
+    const groupsPath = path.join(cacheDir, 'groups.json');
+    if (fs.existsSync(groupsPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(groupsPath, 'utf-8'));
+        const groups = Array.isArray(raw) ? raw : (Array.isArray(raw?.groups) ? raw.groups : []);
+        for (const g of groups) {
+          const groupId = g.groupId || g.id;
+          if (!groupId) continue;
+          const profilePath = path.join(groupsDir, `${groupId}.md`);
+          if (fs.existsSync(profilePath)) { skipped++; continue; }
+          const name = String(g.name || g.groupName || 'Nhóm Zalo').trim();
+          const memberCount = Array.isArray(g.memVerList) ? g.memVerList.length
+            : Array.isArray(g.members) ? g.members.length
+            : (g.totalMember || 0);
+          const content = `---
+name: ${name}
+lastActivity: ${new Date().toISOString()}
+memberCount: ${memberCount}
+---
+# Nhóm ${groupId}
+
+**Tên nhóm:** ${name}
+
+## Chủ đề thường thảo luận
+(chưa có)
+
+## Thành viên key
+(chưa có)
+
+## Quyết định/thông báo gần đây
+(chưa có)
+
+---
+*Nhóm được import tự động từ openzca cache lúc ${stamp}.*
+`;
+          try { fs.writeFileSync(profilePath, content, 'utf-8'); seededGroups++; }
+          catch (e) { console.error('[seedZaloCustomers] write group error:', e.message); }
+        }
+      } catch (e) {
+        console.error('[seedZaloCustomers] groups parse error:', e.message);
+      }
+    }
+
+    if (seededUsers > 0 || seededGroups > 0) {
+      console.log(`[seedZaloCustomers] seeded ${seededUsers} users + ${seededGroups} groups (skipped ${skipped} existing)`);
+      try { auditLog('zalo_customers_seeded', { users: seededUsers, groups: seededGroups, skipped }); } catch {}
+    } else if (skipped > 0) {
+      console.log(`[seedZaloCustomers] ${skipped} profiles already exist, no new seeds`);
+    } else {
+      console.log('[seedZaloCustomers] cache is empty, nothing to seed');
+    }
+  } catch (e) {
+    console.error('[seedZaloCustomers] error:', e.message);
+  }
+}
+
+// Cookie expiry monitor — checks once per day, alerts CEO when Zalo
+// credentials.json mtime is >10 days (warning) or >13 days (critical).
+// Zalo web session cookies typically last ~14 days. Proactive alert lets CEO
+// re-auth before listener dies mid-business-hours.
+let _lastCookieCheckAt = 0;
+const COOKIE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const COOKIE_EXPIRE_WARN_DAYS = 10;
+const COOKIE_EXPIRE_CRITICAL_DAYS = 13;
+function checkZaloCookieAge() {
+  const now = Date.now();
+  if (now - _lastCookieCheckAt < COOKIE_CHECK_INTERVAL_MS) return;
+  _lastCookieCheckAt = now;
+  try {
+    const homedir = require('os').homedir();
+    const credPath = path.join(homedir, '.openzca', 'profiles', 'default', 'credentials.json');
+    if (!fs.existsSync(credPath)) return;
+    const stat = fs.statSync(credPath);
+    const ageMs = now - stat.mtimeMs;
+    const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+    if (ageDays >= COOKIE_EXPIRE_CRITICAL_DAYS) {
+      try {
+        sendCeoAlert(`Cookie Zalo đã ${ageDays} ngày tuổi — RẤT CÓ THỂ sắp expire. Bot Zalo có thể ngừng nhận tin bất cứ lúc nào. Anh cần login lại Zalo qua openzca ngay ạ.`);
+      } catch {}
+    } else if (ageDays >= COOKIE_EXPIRE_WARN_DAYS) {
+      try {
+        sendCeoAlert(`Cookie Zalo đã ${ageDays} ngày tuổi. Còn khoảng ${Math.max(0, COOKIE_EXPIRE_CRITICAL_DAYS - ageDays)} ngày nữa có thể expire. Anh sắp xếp login lại Zalo trong tuần này nhé ạ.`);
+      } catch {}
+    }
+  } catch (e) {
+    console.error('[checkZaloCookieAge] error:', e.message);
+  }
+}
+
 async function _ensureZaloPluginImpl() {
   if (_zaloReady) return;
   try {
@@ -5503,6 +5995,91 @@ ipcMain.handle('get-zalo-mode', async () => {
 });
 
 // Save Zalo mode to workspace config (read by AGENTS.md)
+// ================================
+// Shop State — "Tình trạng hôm nay"
+// ================================
+// CEO updates via Dashboard. Bot reads workspace/shop-state.json before each
+// reply to know real-time shop state (out of stock, staff absent, shipping
+// delay, active promotions, early closing, special notes).
+// Note: no daily auto-reset cron — CEO clears fields manually via Dashboard
+// "Xoá hết (bình thường)" button. May add cron in a later release.
+ipcMain.handle('get-shop-state', async () => {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return null;
+    const p = path.join(ws, 'shop-state.json');
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+  } catch (e) {
+    console.error('[get-shop-state] error:', e?.message);
+    return null;
+  }
+});
+ipcMain.handle('set-shop-state', async (_event, state) => {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return { ok: false, error: 'no workspace' };
+    const p = path.join(ws, 'shop-state.json');
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'CEO via Dashboard',
+      ...(state || {}),
+    };
+    fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf-8');
+    try { auditLog('shop_state_updated', { fields: Object.keys(state || {}).length }); } catch {}
+    return { ok: true };
+  } catch (e) {
+    console.error('[set-shop-state] error:', e?.message);
+    return { ok: false, error: e.message };
+  }
+});
+
+// ================================
+// Persona Mix — Dashboard re-edit (post-wizard)
+// ================================
+// Dashboard has a "Tính cách bot" page where CEO can edit persona mix after
+// wizard. These handlers bridge between Dashboard UI state and the 2 workspace
+// files (active-persona.json + active-persona.md).
+ipcMain.handle('get-persona-mix', async () => {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return null;
+    const p = path.join(ws, 'active-persona.json');
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+  } catch (e) {
+    console.error('[get-persona-mix] error:', e?.message);
+    return null;
+  }
+});
+ipcMain.handle('save-persona-mix', async (_event, mix) => {
+  try {
+    const ws = getWorkspace();
+    if (!ws) return { ok: false, error: 'no workspace' };
+    if (!mix || typeof mix !== 'object') return { ok: false, error: 'invalid mix' };
+    const normalized = {
+      region: mix.region || 'trung-tinh',
+      voice: mix.voice || 'em-nu-tre',
+      customer: mix.customer || 'anh-chi',
+      traits: Array.isArray(mix.traits) ? mix.traits.slice(0, 5) : [],
+      formality: Math.max(1, Math.min(10, parseInt(mix.formality, 10) || 5)),
+      greeting: (mix.greeting || '').toString().slice(0, 300),
+      closing: (mix.closing || '').toString().slice(0, 300),
+      phrases: (mix.phrases || '').toString().slice(0, 1000),
+    };
+    const jsonPath = path.join(ws, 'active-persona.json');
+    const mdPath = path.join(ws, 'active-persona.md');
+    fs.writeFileSync(jsonPath, JSON.stringify(normalized, null, 2), 'utf-8');
+    fs.writeFileSync(mdPath, compilePersonaMix(normalized), 'utf-8');
+    try { auditLog('persona_mix_updated', { region: normalized.region, voice: normalized.voice, traits: normalized.traits.length, formality: normalized.formality }); } catch {}
+    console.log('[save-persona-mix] updated via Dashboard');
+    return { ok: true };
+  } catch (e) {
+    console.error('[save-persona-mix] error:', e?.message);
+    return { ok: false, error: e.message };
+  }
+});
+
 ipcMain.handle('save-zalo-mode', async (_event, mode) => {
   try {
     const ws = getWorkspace();
@@ -6212,7 +6789,126 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
 });
 
 // Save personalization (industry, tone, pronouns)
-ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns, ceoTitle, botName }) => {
+// Compile a persona mix config into a human-readable Markdown prompt that
+// the bot reads on bootstrap. Mix contains: region, voice, customer, traits[],
+// formality (1-10), greeting/closing/phrases (optional custom text).
+// Bot reads the compiled file (not the raw JSON) to get concrete instructions
+// + signature phrases it can apply naturally.
+function compilePersonaMix(mix) {
+  if (!mix || typeof mix !== 'object') mix = {};
+  const regionMap = {
+    'bac': 'Miền Bắc (Hà Nội). Dùng tiếng Việt chuẩn mực, formal. Từ vựng chuẩn Bắc.',
+    'trung': 'Miền Trung (Huế / Đà Nẵng). Giọng nhẹ nhàng, chậm rãi, lễ phép.',
+    'nam': 'Miền Nam (Sài Gòn). Thẳng thắn, năng động, pragmatic, ít lòng vòng.',
+    'tay': 'Miền Tây. Mộc mạc, thân tình, gần gũi như người quen. Dùng "nha", "nè" cuối câu.',
+    'trung-tinh': 'Trung tính, không region-specific. Dùng tiếng Việt chuẩn phổ thông.',
+  };
+  const voiceMap = {
+    'em-nu-tre': { pronoun: 'em', gender: 'Nữ trẻ (20-28 tuổi). Giọng nhẹ nhàng, năng động, thân thiện.' },
+    'em-nam-tre': { pronoun: 'em', gender: 'Nam trẻ (20-28 tuổi). Giọng thẳng thắn, nhanh nhẹn, lễ phép.' },
+    'chi-trung-nien': { pronoun: 'chị', gender: 'Nữ trung niên (35-45 tuổi). Giọng chững chạc, chu đáo, tin cậy.' },
+    'anh-trung-nien': { pronoun: 'anh', gender: 'Nam trung niên (35-45 tuổi). Giọng chững chạc, chuyên nghiệp, đáng tin.' },
+    'minh-trung-tinh': { pronoun: 'mình', gender: 'Trung tính, không xác định giới tính. Thân thiện, lịch sự.' },
+  };
+  const customerMap = {
+    'anh-chi': 'Gọi khách là "anh" / "chị" tùy giới tính.',
+    'quy-khach': 'Gọi khách là "quý khách" — formal cao cấp.',
+    'mình': 'Gọi khách là "mình" — casual, cùng cấp.',
+  };
+  // 15 traits grounded in Big Five (OCEAN) + customer service research.
+  // Groups: Openness (3) + Conscientiousness (3) + Extraversion (3) +
+  //         Agreeableness (3) + Service-specific (3).
+  // Each description ties the trait to concrete bot behavior.
+  const traitMap = {
+    // Openness — cởi mở / sáng tạo
+    'sang-tao':     '[Sáng tạo — Openness] Gợi ý alternative, đề xuất combo mới, kể câu chuyện về SP thay vì đọc spec khô khan',
+    'thuc-te':      '[Thực tế — Openness] Thẳng vào vấn đề, không thêu dệt, không kể câu chuyện dài. Nói cái gì cần nói',
+    'linh-hoat':    '[Linh hoạt — Openness] Điều chỉnh theo từng khách, không cứng nhắc theo template, adapt tone per customer',
+    // Conscientiousness — chỉn chu / có tổ chức
+    'chin-chu':     '[Chỉn chu — Conscientiousness] Kiểm tra kỹ, không miss chi tiết, xác nhận rõ ràng trước khi reply',
+    'chu-dao':      '[Chu đáo — Conscientiousness] Để ý nhu cầu ngầm, gợi ý chủ động, hỏi han thêm ngoài câu hỏi của khách',
+    'kien-nhan':    '[Kiên nhẫn — Conscientiousness] Không vội, giải thích chậm rãi, cho khách thời gian quyết định',
+    // Extraversion — năng động / giao tiếp
+    'nang-dong':    '[Năng động — Extraversion] Reply nhanh, tone tươi, tạo cảm giác shop đang "alive"',
+    'diem-tinh':    '[Điềm tĩnh — Extraversion] Chậm rãi, bình tĩnh, tạo cảm giác yên tâm. Dùng cho tình huống khủng hoảng/nhạy cảm',
+    'chu-dong':     '[Chủ động — Extraversion] Dẫn dắt conversation, gợi ý trước khi khách hỏi, upsell khéo',
+    // Agreeableness — đồng cảm / hợp tác
+    'am-ap':        '[Ấm áp — Agreeableness] Giọng tình cảm như người quen, tạo kết nối cá nhân',
+    'dong-cam':     '[Đồng cảm — Agreeableness] Hiểu cảm xúc khách, đặt mình vào vị trí khách trước khi reply',
+    'thang-than':   '[Thẳng thắn — Agreeableness-low] Nói rõ được/không được, không vòng vo, không làm hài lòng giả tạo',
+    // Service-specific
+    'chuyen-nghiep':'[Chuyên nghiệp — Service] Formal, đúng mực, thể hiện shop có quy trình rõ ràng',
+    'than-thien':   '[Thân thiện — Service] Balance giữa formal và casual, universal-safe tone cho mọi khách',
+    'tinh-te':      '[Tinh tế — Service] Để ý nuance ngôn ngữ, xử lý khéo tình huống nhạy cảm, vocabulary chọn lọc',
+  };
+
+  const region = regionMap[mix.region] || regionMap['trung-tinh'];
+  const voice = voiceMap[mix.voice] || voiceMap['em-nu-tre'];
+  const customerAddr = customerMap[mix.customer] || customerMap['anh-chi'];
+  const traits = Array.isArray(mix.traits) ? mix.traits : [];
+  const formality = Math.max(1, Math.min(10, parseInt(mix.formality, 10) || 5));
+  const formalityDesc = formality >= 8 ? 'Rất trang trọng (10 = lễ tân khách sạn 5 sao)'
+    : formality >= 6 ? 'Trang trọng vừa phải (giống nhân viên văn phòng)'
+    : formality >= 4 ? 'Balance — thân thiện nhưng vẫn lịch sự (chuẩn CSKH phổ biến)'
+    : 'Thân mật — giống bạn bè, không formal';
+
+  const traitList = traits.map(t => `- ${traitMap[t] || t}`).join('\n') || '- (CEO chưa chọn trait cụ thể — dùng style mặc định)';
+  const customGreeting = (mix.greeting || '').trim();
+  const customClosing = (mix.closing || '').trim();
+  const customPhrases = (mix.phrases || '').trim().split('\n').map(s => s.trim()).filter(Boolean);
+
+  return `# Persona Mix — Tính cách bot hiện tại
+
+> File này được compile tự động từ config CEO đã chọn ở wizard/settings. KHÔNG sửa tay.
+> Sửa qua Dashboard → Cài đặt → Tính cách nhân viên.
+
+## Xưng hô + giới tính bot
+- Bot tự xưng: **${voice.pronoun}**
+- Giới tính archetype: ${voice.gender}
+- ${customerAddr}
+
+## Vùng miền
+${region}
+
+## Tính cách đặc trưng (${traits.length}/5 đặc điểm đã chọn)
+${traitList}
+
+## Độ trang trọng: ${formality}/10
+${formalityDesc}
+
+${customGreeting ? `## Câu chào riêng (CEO tự đặt)
+"${customGreeting}"
+
+Bot PHẢI dùng câu này cho lần đầu chào khách trong phiên.
+
+` : ''}${customClosing ? `## Câu kết riêng (CEO tự đặt)
+"${customClosing}"
+
+Bot PHẢI dùng câu này khi kết thúc conversation.
+
+` : ''}${customPhrases.length > 0 ? `## Cụm từ đặc trưng (CEO tự đặt)
+${customPhrases.map(p => `- "${p}"`).join('\n')}
+
+Bot nên dùng các cụm này tự nhiên trong reply (không ép).
+
+` : ''}## Hướng dẫn áp dụng cho bot
+
+1. **Giọng văn**: Kết hợp vùng miền + tính cách + xưng hô thành reply tự nhiên. VD:
+   - Miền Tây + Ấm áp + Em nữ trẻ → "Dạ em chào anh/chị nè, anh/chị cần em tư vấn chi không nha?"
+   - Miền Bắc + Trang trọng + Chị trung niên → "Dạ vâng, em kính chào anh/chị ạ. Anh/chị cần em hỗ trợ thông tin gì ạ?"
+   - Trung tính + Chuyên nghiệp + Em nam trẻ → "Dạ em chào anh/chị. Anh/chị đang cần tư vấn về sản phẩm nào ạ?"
+
+2. **Kết hợp trait, không isolated**: Nếu có trait "Thẳng thắn" + "Chu đáo" → vừa nói rõ cái được/không được, vừa gợi ý alternative. Đừng chỉ thẳng thắn mà thiếu chu đáo.
+
+3. **Đừng lặp cùng 1 signature phrase mỗi reply**: Dùng luân phiên, tự nhiên.
+
+4. **Tất cả rule defense (prompt injection, PII, scope, Dạ/ạ chuẩn CSKH) trong AGENTS.md vẫn BẮT BUỘC** — persona mix KHÔNG override defense rules, chỉ override giọng nói.
+
+5. **Độ dài reply**: Theo SOUL.md — tối đa 3 câu, dưới 80 từ trên Zalo. Persona KHÔNG extend giới hạn này.
+`;
+}
+
+ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns, ceoTitle, botName, personaMix, selectedPersona }) => {
   try {
     // Validate inputs
     const VALID_INDUSTRIES = ['bat-dong-san', 'fnb', 'thuong-mai', 'dich-vu', 'giao-duc', 'cong-nghe', 'san-xuat', 'tong-quat'];
@@ -6327,6 +7023,32 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       return { success: false, error: 'IDENTITY.md không tồn tại — workspace bị hỏng' };
     }
 
+    // Save persona mix config from wizard. Bot reads compiled active-persona.md
+    // on bootstrap. JSON config saved separately for Dashboard settings edit.
+    // personaMix format: { region, voice, customer, traits:[], formality:1-10,
+    //                      greeting, closing, phrases }
+    // Legacy: `selectedPersona` (archetype id) still accepted for backwards
+    // compat — if present and personaMix missing, map to default mix.
+    try {
+      let mix = personaMix;
+      if (!mix || typeof mix !== 'object') {
+        // Legacy fallback: single archetype id → default mix
+        mix = { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap', 'chu-dao'], formality: 5, greeting: '', closing: '', phrases: '' };
+      }
+      // Write structured JSON for Dashboard settings editor
+      const mixJsonPath = path.join(ws, 'active-persona.json');
+      fs.writeFileSync(mixJsonPath, JSON.stringify(mix, null, 2), 'utf-8');
+      // Write compiled Markdown for bot bootstrap read
+      const compiledPath = path.join(ws, 'active-persona.md');
+      fs.writeFileSync(compiledPath, compilePersonaMix(mix), 'utf-8');
+      // Clean up legacy active-persona.txt if present (from v2.2.35)
+      try {
+        const legacyPath = path.join(ws, 'active-persona.txt');
+        if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
+      } catch {}
+      console.log('[save-personalization] persona mix saved: region=' + mix.region + ' traits=' + (mix.traits || []).length + ' formality=' + mix.formality);
+    } catch (e) { console.warn('[save-personalization] persona mix write failed:', e?.message); }
+
     // Delete BOOTSTRAP.md — it's single-use, wizard completion means bot is
     // bootstrapped. Leaving it wastes ~1.5k chars per session-bootstrap read.
     // The file itself says "Sau lần chạy đầu: Xoá file này" — we enforce that
@@ -6367,6 +7089,9 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       workEnd = '21:00',
       goals = [],
       ceoName = '',
+      bizProduct = '',
+      bizAudience = '',
+      bizHighlight = '',
     } = payload || {};
 
     // Sanitize inputs (file content goes into Markdown templates → strip control chars)
@@ -6374,6 +7099,9 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
     const cName = sanitize(companyName, 100);
     const cDesc = sanitize(companyDesc, 500);
     const ceoN = sanitize(ceoName, 100);
+    const bProduct = sanitize(bizProduct, 300);
+    const bAudience = sanitize(bizAudience, 300);
+    const bHighlight = sanitize(bizHighlight, 500);
     const VALID_TEAM = ['solo', 'small', 'medium', 'large'];
     const tSize = VALID_TEAM.includes(teamSize) ? teamSize : 'small';
     const VALID_GOALS = ['zalo-auto-reply', 'daily-reports', 'schedule-mgmt', 'staff-reminders', 'customer-followup', 'competitor-watch'];
@@ -6433,6 +7161,46 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       }
       fs.writeFileSync(companyPath, content, 'utf-8');
       console.log('[save-business-profile] COMPANY.md updated');
+    }
+
+    // 1b. Update PRODUCTS.md — replace placeholder template with wizard-collected info.
+    // Wizard asks "Bán gì" (product) + "Cho ai" (audience) + "Điểm khác biệt" (highlight).
+    // Bot reads PRODUCTS.md to answer customer questions about products/services.
+    // If user has already edited PRODUCTS.md manually (no marker), skip to preserve their edits.
+    const productsPath = path.join(ws, 'PRODUCTS.md');
+    if (fs.existsSync(productsPath) && (bProduct || bAudience || bHighlight)) {
+      let productsContent = fs.readFileSync(productsPath, 'utf-8');
+      const isTemplate = productsContent.includes('[Tên sản phẩm 1]') || productsContent.includes('<!-- WIZARD AUTO-FILLED -->');
+      if (isTemplate) {
+        const wizardBlock =
+          '<!-- WIZARD AUTO-FILLED -->\n' +
+          '## Sản phẩm / Dịch vụ chính\n\n' +
+          (bProduct ? '**Bán gì:** ' + bProduct + '\n\n' : '') +
+          (bAudience ? '**Khách hàng mục tiêu:** ' + bAudience + '\n\n' : '') +
+          (bHighlight ? '**Điểm khác biệt / Lợi thế:** ' + bHighlight + '\n\n' : '') +
+          '> Anh/chị bổ sung bảng giá chi tiết bên dưới khi có.\n' +
+          '<!-- /WIZARD AUTO-FILLED -->\n\n';
+        if (productsContent.includes('<!-- WIZARD AUTO-FILLED -->')) {
+          productsContent = productsContent.replace(/<!-- WIZARD AUTO-FILLED -->[\s\S]*?<!-- \/WIZARD AUTO-FILLED -->\n?\n?/, wizardBlock);
+        } else {
+          // First run: strip placeholder product table (from "## Bảng sản phẩm" to next "## ")
+          productsContent = productsContent.replace(/## Bảng sản phẩm[\s\S]*?(?=\n## |$)/, '');
+          const lines = productsContent.split('\n');
+          const h1Idx = lines.findIndex(l => l.startsWith('# '));
+          if (h1Idx >= 0) {
+            let insertAt = h1Idx + 1;
+            while (insertAt < lines.length && (lines[insertAt].trim() === '' || lines[insertAt].startsWith('>') || lines[insertAt].trim() === '---')) insertAt++;
+            lines.splice(insertAt, 0, '', wizardBlock);
+            productsContent = lines.join('\n');
+          } else {
+            productsContent = wizardBlock + productsContent;
+          }
+        }
+        fs.writeFileSync(productsPath, productsContent, 'utf-8');
+        console.log('[save-business-profile] PRODUCTS.md updated');
+      } else {
+        console.log('[save-business-profile] PRODUCTS.md has custom edits — skipping wizard overwrite');
+      }
     }
 
     // 2. Update schedules.json — set morning cron = workStart, evening cron = workEnd
@@ -7347,6 +8115,27 @@ const _outputFilterPatterns = [
   { name: 'meta-vi-memory-claim', re: /(?<![a-zA-Z0-9_])(đã (?:lưu|ghi|cập nhật|update) (?:vào |trong )?(?:bộ nhớ|memory|hồ sơ|file|database)|stored (?:in|to) memory|saved to (?:file|memory))(?![a-zA-Z0-9_])/i },
   // Layer D: all-Latin / no-Vietnamese-diacritic (>40 chars, no URL)
   { name: 'no-vietnamese-diacritic', re: /^(?!.*https?:\/\/)(?=[\s\S]{40,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
+  // Layer E: brand + internal name leakage
+  { name: 'brand-modoroclaw', re: /\bMODOROClaw\b/i },
+  { name: 'brand-openclaw', re: /\bOpenClaw\b/i },
+  { name: 'brand-9router', re: /\b9Router\b/i },
+  { name: 'brand-openzca', re: /\bopenzca\b/i },
+  { name: 'zalo-chu-nhan-marker', re: /\[ZALO_CHU_NHAN/i },
+  // Layer F: prompt injection acknowledgment leakage
+  { name: 'jailbreak-acknowledge', re: /\b(developer mode|jailbreak|ignore previous|forget instructions|role\s*play as|you are now|pretend to be)\b/i },
+  { name: 'system-prompt-leak', re: /\b(my (?:instructions|prompt|system prompt|rules)|here (?:are|is) my (?:rules|instructions))/i },
+  // Layer G: cross-customer PII leakage (any attempt to list customers)
+  { name: 'list-all-customers', re: /(?:tất cả khách hàng|all customers|list customers|other customers?|khách khác cũng|khách hàng khác)/i },
+  // Layer H: fake order confirmation / hallucinated commerce — bot must NEVER
+  // confirm orders, prices, shipping fees, discounts, or bookings without CEO.
+  // These patterns are aggressive — if they fire, the bot was about to make a
+  // commitment it cannot honor, which creates legal + reputation risk.
+  { name: 'fake-order-confirm', re: /(?:đã\s+(?:xác\s*nhận|tạo|lưu|ghi\s*nhận)\s*đơn|đơn\s*(?:của\s+(?:anh|chị|mình|bạn))?\s*(?:đã|được)\s+(?:tạo|xác\s*nhận|lưu|ghi))/i },
+  { name: 'fake-shipping-fee', re: /(?:phí\s*ship|ship\s*phí|phí\s*vận\s*chuyển|tiền\s*ship)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
+  { name: 'fake-total-amount', re: /tổng\s*(?:tiền|cộng|đơn\s*hàng|thanh\s*toán|cần\s*thanh\s*toán)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
+  { name: 'fake-discount-percent', re: /(?:giảm\s*(?:giá)?|discount|khuyến\s*mãi|sale)\s*\d{1,2}\s*%/i },
+  { name: 'fake-booking-confirmed', re: /(?:đã\s*(?:đặt|book|giữ|xác\s*nhận))\s*(?:lịch|bàn|phòng|chỗ|slot|lịch\s*hẹn|cuộc\s*hẹn)/i },
+  { name: 'fake-payment-received', re: /(?:đã\s*nhận\s*(?:thanh\s*toán|tiền|chuyển\s*khoản)|payment\s*received)/i },
 ];
 
 const _outputFilterSafeMsgs = [
@@ -7354,6 +8143,49 @@ const _outputFilterSafeMsgs = [
   'Dạ em ghi nhận rồi ạ. Em sẽ kiểm tra và phản hồi lại mình ngay.',
   'Dạ em đang xác nhận lại thông tin, mình chờ em xíu nha.',
 ];
+
+// Strip markdown artifacts from Zalo-bound text. Zalo does NOT render markdown,
+// so **bold**, *italic*, `code`, ``` blocks, # headers, and bullet lists all
+// appear as literal asterisks/hashes to customers. This strips them cleanly.
+// Also strips zero-width chars, RLO/LRO Unicode overrides, HTML tags.
+function sanitizeZaloText(text) {
+  if (!text || typeof text !== 'string') return '';
+  let out = String(text);
+  out = out.replace(/```[\s\S]*?```/g, '');                       // code fences
+  out = out.replace(/`([^`]+)`/g, '$1');                           // inline code
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, '$1');                   // **bold**
+  out = out.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '$1');          // *italic*
+  out = out.replace(/__([^_\n]+)__/g, '$1');                       // __bold__
+  out = out.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '$1');              // _italic_
+  out = out.replace(/^#{1,6}\s+/gm, '');                           // # headings
+  out = out.replace(/^>\s*/gm, '');                                // > blockquote
+  out = out.replace(/^\s*[-*+]\s+/gm, '');                         // - bullets
+  out = out.replace(/^\s*\d+[.)]\s+/gm, '');                       // 1. numbered
+  out = out.replace(/\|([^|\n]+)\|/g, '$1');                       // | table |
+  out = out.replace(/<\/?[a-zA-Z][^>]*>/g, '');                    // HTML tags
+  out = out.replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '');    // zero-width + RLO/LRO
+  out = out.replace(/\n{3,}/g, '\n\n');                             // collapse newlines
+  return out.trim();
+}
+
+// Shape-based suspicious output detector for Zalo customer replies.
+// Returns { bad, reason } — caller should block + alert CEO if bad.
+// Rationale: customer support reply is short + natural language. If the bot
+// is producing 400+ words, multiple bullet lists, headings, or code — it's
+// likely doing scope-violation (writing a post, draft, proposal, code).
+function isZaloOutputSuspicious(text) {
+  if (!text) return { bad: false };
+  const words = (text.match(/\S+/g) || []).length;
+  if (words > 300) return { bad: true, reason: `quá dài (${words} từ)` };
+  const bullets = (text.match(/^\s*[-*•]\s/gm) || []).length;
+  if (bullets >= 4) return { bad: true, reason: `có ${bullets} bullet (có vẻ là viết content)` };
+  const numbered = (text.match(/^\s*\d+[.)]\s/gm) || []).length;
+  if (numbered >= 4) return { bad: true, reason: `có ${numbered} numbered item` };
+  if (/^#{1,6}\s/m.test(text)) return { bad: true, reason: 'có markdown heading' };
+  if (/```/.test(text)) return { bad: true, reason: 'có code block' };
+  if (/\n\n.*\n\n.*\n\n/.test(text)) return { bad: true, reason: 'nhiều paragraph (>=4)' };
+  return { bad: false };
+}
 
 function filterSensitiveOutput(text) {
   if (!text || typeof text !== 'string') return { blocked: false, text };
@@ -7481,6 +8313,10 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
     console.log('[sendZalo] channel paused — skipping');
     return null;
   }
+  // Sanitize markdown — Zalo does not render markdown cleanly
+  if (!skipFilter) {
+    text = sanitizeZaloText(text);
+  }
   // Output filter
   if (!skipFilter) {
     const filtered = filterSensitiveOutput(text);
@@ -7488,6 +8324,11 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
       console.warn(`[sendZalo] output filter blocked (${filtered.pattern})`);
       text = filtered.text;
     }
+  }
+  // Hard length cap 800 chars for Zalo (shape-based guardrail)
+  if (!skipFilter && text.length > 800) {
+    console.warn(`[sendZalo] output too long (${text.length} chars), truncating`);
+    text = text.slice(0, 780) + '...';
   }
   const owner = readZaloOwner();
   if (!owner || !owner.ownerUserId) {
@@ -7529,6 +8370,533 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
     }
   });
 }
+
+// ============================================
+//  APPOINTMENTS — local calendar driven by CEO via Telegram prompts
+// ============================================
+//
+// Data: workspace/appointments.json (array of appointment objects).
+// Engine: dispatcher tick every 60s — fires reminders + push targets.
+// Bot writes via filesystem tool (rules in AGENTS.md). Dashboard is view + fallback.
+//
+// Schema: see normalizeAppointment() below. Each appointment has:
+//   - start/end (ISO8601 with TZ), meetingUrl, location, note
+//   - reminderMinutes + reminderChannels (telegram/zalo) — 1 shot before start
+//   - pushTargets[] — {channel, toId, toName, atTime, daily, template}
+//     channel = telegram | zalo_user | zalo_group
+//     atTime = 'HH:MM' local, daily=true => repeat each day until appointment passes
+//   - status = scheduled | done | canceled
+
+function getAppointmentsPath() {
+  // Bot (openclaw agent process) writes to agents.defaults.workspace.
+  // Dispatcher MUST read from the same path or split-brain occurs. Prefer bot's
+  // workspace, fallback to Electron workspace, last resort HOME.
+  try {
+    const botWs = getOpenclawAgentWorkspace();
+    if (botWs) return path.join(botWs, 'appointments.json');
+  } catch {}
+  const ws = getWorkspace();
+  if (ws) return path.join(ws, 'appointments.json');
+  return path.join(HOME, 'appointments.json');
+}
+
+function readAppointments() {
+  try {
+    const p = getAppointmentsPath();
+    if (!fs.existsSync(p)) return [];
+    const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('[appointments] read error:', e.message);
+    return [];
+  }
+}
+
+function writeAppointments(arr) {
+  const p = getAppointmentsPath();
+  const tmp = p + '.tmp';
+  try {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(tmp, JSON.stringify(arr, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[appointments] write error (tmp):', e.message);
+    return false;
+  }
+  // Windows + antivirus can transiently hold `appointments.json` and make
+  // renameSync throw EBUSY/EPERM. Retry a few times with short backoff before
+  // giving up so an AV scan doesn't cause silent mutation loss.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      fs.renameSync(tmp, p);
+      return true;
+    } catch (e) {
+      const code = e && e.code;
+      if ((code === 'EBUSY' || code === 'EPERM' || code === 'EEXIST') && attempt < 3) {
+        const wait = 30 + attempt * 50;
+        const until = Date.now() + wait;
+        while (Date.now() < until) { /* spin briefly, synchronous on purpose */ }
+        continue;
+      }
+      console.error(`[appointments] write error (rename attempt ${attempt + 1}):`, e.message);
+      try { fs.unlinkSync(tmp); } catch {}
+      return false;
+    }
+  }
+  return false;
+}
+
+function newAppointmentId() {
+  return `apt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+// Serialize all in-process mutations so IPC handlers + dispatcher tick don't race.
+// Returns null on write failure (caller must check) or if mutator throws/returns
+// non-array (abort). Guards against reentrant calls that would deadlock the queue.
+let _apptWriteQueue = Promise.resolve();
+let _apptMutating = false;
+function mutateAppointments(mutatorFn) {
+  if (_apptMutating) {
+    console.error('[appointments] recursive mutateAppointments call refused — would deadlock');
+    return Promise.resolve(null);
+  }
+  const next = _apptWriteQueue.then(async () => {
+    _apptMutating = true;
+    try {
+      const list = readAppointments();
+      const result = await mutatorFn(list);
+      if (!Array.isArray(result)) return null;
+      if (!writeAppointments(result)) return null;
+      return result;
+    } catch (e) {
+      console.error('[appointments] mutate error:', e.message);
+      return null;
+    } finally {
+      _apptMutating = false;
+    }
+  });
+  _apptWriteQueue = next.catch(() => null);
+  return next;
+}
+
+// VN timezone helpers — engine must always display/compare VN local time
+// regardless of machine timezone (demo machines may run UTC/PST).
+function vnHHMM(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (!Number.isFinite(d.getTime())) return '';
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(d);
+  } catch { return ''; }
+}
+function vnDDMM(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (!Number.isFinite(d.getTime())) return '';
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      day: '2-digit', month: '2-digit',
+    }).format(d);
+  } catch { return ''; }
+}
+function vnHHMMNow() {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date());
+}
+function vnDateKeyNow() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
+function normalizeAppointment(a) {
+  if (!a || typeof a !== 'object') return null;
+  const clean = (v, max) => String(v == null ? '' : v).slice(0, max);
+  return {
+    id: a.id || newAppointmentId(),
+    title: clean(a.title, 200),
+    customerName: clean(a.customerName, 100),
+    phone: clean(a.phone, 30),
+    start: a.start || null,
+    end: a.end || null,
+    meetingUrl: clean(a.meetingUrl, 500),
+    location: clean(a.location, 200),
+    note: clean(a.note, 1000),
+    reminderMinutes: Number.isFinite(Number(a.reminderMinutes)) ? Number(a.reminderMinutes) : 15,
+    reminderChannels: Array.isArray(a.reminderChannels) && a.reminderChannels.length
+      ? a.reminderChannels.filter(c => c === 'telegram' || c === 'zalo') : ['telegram'],
+    pushTargets: Array.isArray(a.pushTargets) ? a.pushTargets.map(t => ({
+      channel: ['telegram', 'zalo_user', 'zalo_group'].includes(t?.channel) ? t.channel : 'telegram',
+      toId: clean(t?.toId, 100),
+      toName: clean(t?.toName, 200),
+      atTime: /^\d{2}:\d{2}$/.test(t?.atTime || '') ? t.atTime : null,
+      daily: !!t?.daily,
+      template: clean(t?.template, 1000),
+    })) : [],
+    status: ['scheduled', 'done', 'canceled'].includes(a.status) ? a.status : 'scheduled',
+    reminderFiredAt: a.reminderFiredAt || null,
+    pushedAt: (a.pushedAt && typeof a.pushedAt === 'object') ? a.pushedAt : {},
+    createdBy: a.createdBy || 'telegram',
+    createdAt: a.createdAt || new Date().toISOString(),
+  };
+}
+
+// Send a Zalo message to an arbitrary target (user or group), unlike sendZalo()
+// which only ever talks to the configured CEO owner. Used by appointment push
+// targets so bot/cron can push meeting links into any group or friend.
+async function sendZaloTo(target, text, opts = {}) {
+  let targetId, isGroup;
+  if (typeof target === 'string') {
+    if (target.startsWith('group:')) { targetId = target.slice(6); isGroup = true; }
+    else if (target.startsWith('user:')) { targetId = target.slice(5); isGroup = false; }
+    else { targetId = target; isGroup = false; }
+  } else if (target && typeof target === 'object') {
+    targetId = String(target.id || target.toId || '');
+    isGroup = !!target.isGroup;
+  }
+  if (!targetId) { console.error('[sendZaloTo] missing target id'); return null; }
+
+  const { skipFilter = false, skipPauseCheck = false } = opts;
+  if (!skipPauseCheck && isChannelPaused('zalo')) {
+    console.log('[sendZaloTo] channel paused — skipping');
+    return null;
+  }
+  if (!skipFilter) {
+    text = sanitizeZaloText(text);
+    const filtered = filterSensitiveOutput(text);
+    if (filtered.blocked) {
+      console.warn(`[sendZaloTo] output filter blocked (${filtered.pattern})`);
+      text = filtered.text;
+    }
+    if (text.length > 800) text = text.slice(0, 780) + '...';
+  }
+
+  const zcaBin = findGlobalPackageFile('openzca', 'dist/cli.js');
+  if (!zcaBin) { console.error('[sendZaloTo] openzca CLI not found'); return null; }
+  const nodeBin = findNodeBin() || 'node';
+  const args = [zcaBin, 'msg', 'send', targetId, text];
+  if (isGroup) args.push('--group');
+
+  return new Promise((resolve) => {
+    try {
+      const child = require('child_process').spawn(
+        nodeBin, args,
+        { shell: false, timeout: 20000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+      let stderr = '';
+      child.stderr.on('data', (d) => { stderr += d; });
+      child.on('close', (code) => {
+        if (code === 0) {
+          console.log(`[sendZaloTo] sent to ${isGroup ? 'group' : 'user'} ${targetId}`);
+          resolve(true);
+        } else {
+          console.error(`[sendZaloTo] exit ${code}: ${stderr.slice(0, 200)}`);
+          resolve(null);
+        }
+      });
+      child.on('error', (e) => { console.error('[sendZaloTo] spawn error:', e.message); resolve(null); });
+    } catch (e) {
+      console.error('[sendZaloTo] error:', e.message);
+      resolve(null);
+    }
+  });
+}
+
+function substituteApptTemplate(tpl, apt) {
+  if (!tpl) return '';
+  const hhmm = vnHHMM(apt.start);
+  const ddmm = vnDDMM(apt.start);
+  return String(tpl)
+    .replace(/\{title\}/g, apt.title || '')
+    .replace(/\{customerName\}/g, apt.customerName || '')
+    .replace(/\{phone\}/g, apt.phone || '')
+    .replace(/\{meetingUrl\}/g, apt.meetingUrl || '')
+    .replace(/\{location\}/g, apt.location || '')
+    .replace(/\{note\}/g, apt.note || '')
+    .replace(/\{startHHMM\}/g, hhmm)
+    .replace(/\{startDate\}/g, ddmm);
+}
+
+function defaultApptPushTemplate(apt) {
+  let t = 'Lịch hẹn: {title}';
+  if (apt.start) t += ' lúc {startHHMM} ({startDate})';
+  if (apt.customerName) t += ' với {customerName}';
+  if (apt.meetingUrl) t += '\nLink: {meetingUrl}';
+  if (apt.location) t += '\nĐịa điểm: {location}';
+  return t;
+}
+
+function buildApptReminderText(apt) {
+  const hhmm = vnHHMM(apt.start);
+  let txt = `Nhắc lịch: ${apt.title || 'Cuộc hẹn'}`;
+  if (hhmm) txt += ` lúc ${hhmm}`;
+  if (apt.customerName) txt += ` với ${apt.customerName}`;
+  if (apt.meetingUrl) txt += `\nLink: ${apt.meetingUrl}`;
+  if (apt.location) txt += `\nĐịa điểm: ${apt.location}`;
+  if (apt.note) txt += `\nGhi chú: ${apt.note}`;
+  return txt;
+}
+
+async function fireApptPushTarget(apt, target) {
+  const tpl = target.template || defaultApptPushTemplate(apt);
+  const text = substituteApptTemplate(tpl, apt);
+  try {
+    let ok = false;
+    if (target.channel === 'telegram') {
+      ok = !!(await sendTelegram(text));
+    } else if (target.channel === 'zalo_user' || target.channel === 'zalo_group') {
+      if (isChannelPaused('zalo')) {
+        // Zalo paused — don't silently drop. Alert CEO on Telegram so they know
+        // push was skipped, and return false so pushedAt is NOT marked → retries
+        // on next tick after they resume Zalo.
+        try {
+          await sendTelegram(`[Cảnh báo] Zalo đang tạm dừng, không push được "${apt.title}" vào ${target.toName || target.toId}. Resume Zalo ở Dashboard.`);
+        } catch {}
+        return false;
+      }
+      ok = !!(await sendZaloTo({ id: target.toId, isGroup: target.channel === 'zalo_group' }, text));
+    }
+    if (ok) {
+      try { auditLog('appt_push', { id: apt.id, channel: target.channel, to: target.toName || target.toId }); } catch {}
+    }
+    return ok;
+  } catch (e) {
+    console.error('[fireApptPushTarget] failed:', e.message);
+    return false;
+  }
+}
+
+let _apptDispatcherInterval = null;
+let _apptDispatcherInitialTimeout = null;
+function startAppointmentDispatcher() {
+  // Track both interval + initial timeout so a second startAppointmentDispatcher
+  // call (cold-boot + wizard-complete both call this) doesn't leak a second
+  // initial tick scheduled before the first completed.
+  if (_apptDispatcherInterval) clearInterval(_apptDispatcherInterval);
+  if (_apptDispatcherInitialTimeout) clearTimeout(_apptDispatcherInitialTimeout);
+  _apptDispatcherInterval = setInterval(() => {
+    apptDispatcherTick().catch(e => console.error('[apptDispatcher] tick error:', e.message));
+  }, 60 * 1000);
+  _apptDispatcherInitialTimeout = setTimeout(() => {
+    _apptDispatcherInitialTimeout = null;
+    apptDispatcherTick().catch(() => {});
+  }, 10_000);
+  console.log('[apptDispatcher] started (60s tick)');
+}
+
+async function apptDispatcherTick() {
+  await mutateAppointments(async (list) => {
+    if (!list.length) return null;
+    let changed = false;
+    const now = Date.now();
+    const hhmm = vnHHMMNow();
+    const todayKey = vnDateKeyNow();
+    // Grace window for catch-up reminders after Electron restart / missed tick.
+    // If start time passed within GRACE_MS and reminder never fired, still send
+    // it with "[Trễ]" prefix so CEO knows.
+    const GRACE_MS = 15 * 60_000;
+
+    for (const apt of list) {
+      if (apt.status !== 'scheduled') continue;
+
+      // 1) Reminder (with catch-up): fire if in window, or in grace window past start.
+      if (apt.start && !apt.reminderFiredAt) {
+        const startMs = new Date(apt.start).getTime();
+        if (Number.isFinite(startMs)) {
+          const reminderMs = startMs - (Number(apt.reminderMinutes) || 0) * 60_000;
+          const late = now > startMs;
+          const withinLiveWindow = now >= reminderMs && now < startMs;
+          const withinGrace = late && now <= startMs + GRACE_MS;
+          if (withinLiveWindow || withinGrace) {
+            let text = buildApptReminderText(apt);
+            if (late) text = '[Trễ] ' + text;
+            const channels = apt.reminderChannels && apt.reminderChannels.length ? apt.reminderChannels : ['telegram'];
+            let anySent = false;
+            for (const ch of channels) {
+              try {
+                if (ch === 'telegram') anySent = !!(await sendTelegram(text)) || anySent;
+                else if (ch === 'zalo') anySent = !!(await sendZalo(text)) || anySent;
+              } catch (e) { console.error('[apptDispatcher] reminder send:', e.message); }
+            }
+            if (anySent) {
+              apt.reminderFiredAt = new Date().toISOString();
+              try { auditLog('appt_reminder', { id: apt.id, title: apt.title, late }); } catch {}
+              changed = true;
+            }
+          }
+        }
+      }
+
+      // 2) Auto-mark done after end + 5 min.
+      if (apt.end) {
+        const endMs = new Date(apt.end).getTime();
+        if (Number.isFinite(endMs) && now > endMs + 5 * 60_000) {
+          apt.status = 'done';
+          changed = true;
+        }
+      }
+
+      // 3) Push targets at atTime — only mark pushedAt if send actually succeeded.
+      if (Array.isArray(apt.pushTargets)) {
+        for (let i = 0; i < apt.pushTargets.length; i++) {
+          const t = apt.pushTargets[i];
+          if (!t || !t.atTime) continue;
+          if (t.atTime !== hhmm) continue;
+
+          const startMs = apt.start ? new Date(apt.start).getTime() : null;
+          if (t.daily) {
+            if (startMs && now > startMs + 24 * 60 * 60_000) continue;
+            const pushKey = `${i}_${todayKey}`;
+            if (apt.pushedAt && apt.pushedAt[pushKey]) continue;
+            const ok = await fireApptPushTarget(apt, t);
+            if (ok) {
+              apt.pushedAt = apt.pushedAt || {};
+              apt.pushedAt[pushKey] = new Date().toISOString();
+              changed = true;
+            }
+          } else {
+            const pushKey = `${i}`;
+            if (apt.pushedAt && apt.pushedAt[pushKey]) continue;
+            if (startMs) {
+              if (now > startMs) continue;
+              if (now < startMs - 7 * 24 * 60 * 60_000) continue;
+            }
+            const ok = await fireApptPushTarget(apt, t);
+            if (ok) {
+              apt.pushedAt = apt.pushedAt || {};
+              apt.pushedAt[pushKey] = new Date().toISOString();
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+
+    return changed ? list : null;
+  });
+}
+
+// --- IPC: appointments CRUD ---
+ipcMain.handle('list-appointments', async () => {
+  return readAppointments();
+});
+
+ipcMain.handle('create-appointment', async (_e, data) => {
+  try {
+    const apt = normalizeAppointment(data || {});
+    if (!apt) return { ok: false, error: 'Dữ liệu không hợp lệ' };
+    if (!apt.title) return { ok: false, error: 'Thiếu tiêu đề' };
+    if (!apt.start) return { ok: false, error: 'Thiếu thời gian bắt đầu' };
+    const startMs = new Date(apt.start).getTime();
+    if (!Number.isFinite(startMs)) return { ok: false, error: 'Thời gian không hợp lệ' };
+    const result = await mutateAppointments(async (list) => { list.push(apt); return list; });
+    if (!Array.isArray(result)) return { ok: false, error: 'Không ghi được file appointments.json' };
+    try { auditLog('appt_created', { id: apt.id, title: apt.title, start: apt.start }); } catch {}
+    return { ok: true, appointment: apt };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+
+ipcMain.handle('update-appointment', async (_e, payload) => {
+  try {
+    const { id, patch } = payload || {};
+    if (!id) return { ok: false, error: 'Thiếu id' };
+    const result = await mutateAppointments(async (list) => {
+      const idx = list.findIndex(a => a.id === id);
+      if (idx < 0) return null;
+      const oldApt = list[idx];
+      const newStart = (patch && patch.start) || oldApt.start;
+      const newEnd = (patch && patch.end) || oldApt.end;
+      const timeChanged = newStart !== oldApt.start || newEnd !== oldApt.end;
+      const merged = { ...oldApt, ...(patch || {}), id };
+      if (timeChanged) {
+        // Time changed — reset delivery state so reminder/push fire for new time.
+        merged.reminderFiredAt = null;
+        merged.pushedAt = {};
+      }
+      list[idx] = normalizeAppointment(merged);
+      return list;
+    });
+    if (!Array.isArray(result)) return { ok: false, error: 'Không tìm thấy hoặc không ghi được lịch hẹn' };
+    const updated = result.find(a => a.id === id);
+    if (!updated) return { ok: false, error: 'Lịch hẹn đã bị xóa trước khi cập nhật' };
+    return { ok: true, appointment: updated };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+
+ipcMain.handle('delete-appointment', async (_e, payload) => {
+  try {
+    const id = payload?.id;
+    if (!id) return { ok: false, error: 'Thiếu id' };
+    const result = await mutateAppointments(async (list) => list.filter(a => a.id !== id));
+    if (!Array.isArray(result)) return { ok: false, error: 'Không ghi được file' };
+    try { auditLog('appt_deleted', { id }); } catch {}
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+
+// Bot + UI helper: resolve Zalo target by name from openzca cache.
+// Returns fuzzy matches (accent-insensitive substring) so bot can confirm with CEO.
+ipcMain.handle('resolve-zalo-target', async (_e, payload) => {
+  try {
+    const query = payload?.query;
+    const type = payload?.type || 'any'; // 'group' | 'user' | 'any'
+    // NFD decomposes most Vietnamese diacritics, but đ/Đ are atomic (U+0111/U+0110)
+    // and don't decompose. Map them explicitly so "Đội bán hàng" matches "doi ban hang".
+    const normalize = (s) => String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'd');
+    const q = normalize(query);
+    if (!q) return { matches: [] };
+    const results = [];
+    if (type === 'group' || type === 'any') {
+      const pg = path.join(getZcaCacheDir(), 'groups.json');
+      if (fs.existsSync(pg)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(pg, 'utf-8'));
+          for (const g of (Array.isArray(data) ? data : [])) {
+            const name = g.name || g.groupName || '';
+            if (normalize(name).includes(q)) {
+              results.push({
+                type: 'zalo_group',
+                toId: String(g.groupId || g.id || ''),
+                toName: name,
+                memberCount: g.totalMember || g.memberCount || (g.memberIds?.length) || 0,
+              });
+            }
+          }
+        } catch {}
+      }
+    }
+    if (type === 'user' || type === 'any') {
+      const pf = path.join(getZcaCacheDir(), 'friends.json');
+      if (fs.existsSync(pf)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(pf, 'utf-8'));
+          for (const u of (Array.isArray(data) ? data : [])) {
+            const name = u.displayName || u.zaloName || u.name || '';
+            if (normalize(name).includes(q)) {
+              results.push({
+                type: 'zalo_user',
+                toId: String(u.userId || u.id || ''),
+                toName: name,
+              });
+            }
+          }
+        } catch {}
+      }
+    }
+    return { matches: results.slice(0, 10) };
+  } catch (e) { return { matches: [], error: e.message }; }
+});
 
 // ============================================
 //  CHANNEL READINESS PROBES — actual proof channels can receive messages
@@ -7822,6 +9190,8 @@ ipcMain.handle('set-app-prefs', async (_e, partial) => {
 // window, fall back to 45s steady-state polling.
 let _channelStatusInterval = null;
 let _channelStatusBootTimers = [];
+let _lastChannelState = { telegram: null, zalo: null };
+let _lastChannelAlertAt = { telegram: 0, zalo: 0 };
 function startChannelStatusBroadcast() {
   if (_channelStatusInterval) clearInterval(_channelStatusInterval);
   for (const t of _channelStatusBootTimers) clearTimeout(t);
@@ -7836,6 +9206,32 @@ function startChannelStatusBroadcast() {
         zalo: { ...zl, paused: isChannelPaused('zalo') },
         checkedAt: new Date().toISOString(),
       });
+
+      // Daily cookie expiry check (cheap, runs inside broadcast loop)
+      try { checkZaloCookieAge(); } catch {}
+
+      // Push alert when a channel transitions ready:true -> ready:false.
+      // Throttle: at most 1 alert per channel per 15 minutes. Skip the
+      // first poll (cached state === null) so we don't alert on cold boot
+      // when we don't actually know the previous state.
+      const THROTTLE_MS = 15 * 60 * 1000;
+      const now = Date.now();
+      const probes = { telegram: tg, zalo: zl };
+      const labels = { telegram: 'Telegram', zalo: 'Zalo' };
+      for (const ch of ['telegram', 'zalo']) {
+        const prev = _lastChannelState[ch];
+        const cur = probes[ch];
+        if (prev !== null && prev.ready === true && cur.ready === false) {
+          if (now - (_lastChannelAlertAt[ch] || 0) >= THROTTLE_MS) {
+            const hhmm = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const reason = (cur && cur.error) ? String(cur.error) : 'không rõ';
+            const msg = `Kênh ${labels[ch]} vừa mất kết nối lúc ${hhmm}. Lý do: ${reason}. Em sẽ tự thử kết nối lại, nếu sau 2 phút chưa được, anh mở Dashboard xem chi tiết.`;
+            try { sendCeoAlert(msg); } catch (e) { console.error('[channel-status] sendCeoAlert error:', e.message); }
+            _lastChannelAlertAt[ch] = now;
+          }
+        }
+        _lastChannelState[ch] = cur;
+      }
     } catch (e) { console.error('[channel-status] broadcast error:', e.message); }
   };
 
@@ -7944,6 +9340,209 @@ async function sendTelegramRich(text, options = {}) {
     req.write(payload);
     req.end();
   });
+}
+
+// ============================================================================
+// Telegram built-in command handlers (intercepted in main.js, not in agent)
+// ----------------------------------------------------------------------------
+// These commands run locally in Electron so they always work even if the
+// OpenClaw agent is compacting / restarting / offline. They must never block
+// the agent pipeline — parseTelegramBuiltinCommand returns `true` only when
+// the command was fully handled here, so callers can short-circuit forwarding.
+// ============================================================================
+
+// /tim <keyword> — search customer memory files under memory/zalo-users/
+async function handleTimCommand(keyword) {
+  const kw = String(keyword || '').trim();
+  if (!kw) {
+    await sendTelegram('Cách dùng: /tim <tên|SĐT|từ khóa>');
+    return;
+  }
+  const workspace = getWorkspace();
+  if (!workspace) { await sendTelegram('Lỗi: không xác định được workspace.'); return; }
+  const dir = path.join(workspace, 'memory', 'zalo-users');
+  let files = [];
+  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.md')); } catch {}
+  const kwLower = kw.toLowerCase();
+  const matches = [];
+  for (const f of files) {
+    try {
+      const raw = fs.readFileSync(path.join(dir, f), 'utf-8');
+      // Parse frontmatter
+      const fm = {};
+      const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+      const body = m ? m[2] : raw;
+      if (m) {
+        for (const line of m[1].split('\n')) {
+          const mm = line.match(/^([a-zA-Z][\w]*)\s*:\s*(.*)$/);
+          if (mm) fm[mm[1]] = mm[2].trim().replace(/^["']|["']$/g, '');
+        }
+      }
+      const haystack = [
+        fm.name, fm.phone, fm.email, fm.zaloName, body
+      ].filter(Boolean).join('\n').toLowerCase();
+      if (haystack.includes(kwLower)) {
+        // Pull 80-char snippet around first body match
+        let snippet = '';
+        const bodyLower = body.toLowerCase();
+        const idx = bodyLower.indexOf(kwLower);
+        if (idx >= 0) {
+          const start = Math.max(0, idx - 20);
+          snippet = body.slice(start, start + 80).replace(/\s+/g, ' ').trim();
+        } else {
+          snippet = body.replace(/\s+/g, ' ').trim().slice(0, 80);
+        }
+        // Relative time from lastSeen
+        let rel = '';
+        if (fm.lastSeen) {
+          const ts = Date.parse(fm.lastSeen);
+          if (!isNaN(ts)) {
+            const diffDays = Math.floor((Date.now() - ts) / 86400000);
+            if (diffDays <= 0) rel = 'hôm nay';
+            else if (diffDays === 1) rel = 'hôm qua';
+            else rel = `${diffDays} ngày trước`;
+          }
+        }
+        matches.push({
+          name: fm.name || fm.zaloName || f.replace(/\.md$/, ''),
+          phone: fm.phone || '',
+          rel,
+          snippet,
+          lastSeenMs: fm.lastSeen ? Date.parse(fm.lastSeen) || 0 : 0,
+        });
+      }
+    } catch {}
+  }
+  // Sort: most recent lastSeen first
+  matches.sort((a, b) => b.lastSeenMs - a.lastSeenMs);
+  if (matches.length === 0) {
+    await sendTelegram(`Không tìm thấy khách nào khớp "${kw}"`);
+    return;
+  }
+  const top = matches.slice(0, 5);
+  const lines = [`**Tìm thấy ${matches.length} khách với từ khóa "${kw}":**`, ''];
+  top.forEach((m, i) => {
+    const parts = [`**${m.name}**`];
+    if (m.phone) parts.push(m.phone);
+    if (m.rel) parts.push(m.rel);
+    lines.push(`${i + 1}. ${parts.join(' · ')}`);
+    if (m.snippet) lines.push(`   "${m.snippet}"`);
+    lines.push('');
+  });
+  await sendTelegram(lines.join('\n').trim());
+}
+
+// /thongke — show today's stats
+async function handleThongkeCommand() {
+  const workspace = getWorkspace();
+  if (!workspace) { await sendTelegram('Lỗi: không xác định được workspace.'); return; }
+
+  // Count today's events from audit.jsonl (tail last 64KB)
+  const auditFile = path.join(workspace, 'logs', 'audit.jsonl');
+  let tgReplies = 0, zaloReplies = 0, cronFired = 0;
+  try {
+    const stat = fs.statSync(auditFile);
+    const readFrom = Math.max(0, stat.size - 64 * 1024);
+    const fd = fs.openSync(auditFile, 'r');
+    const buf = Buffer.alloc(stat.size - readFrom);
+    fs.readSync(fd, buf, 0, buf.length, readFrom);
+    fs.closeSync(fd);
+    const lines = buf.toString('utf-8').split('\n');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const ev = JSON.parse(line);
+        if (!ev.t || !ev.t.startsWith(todayStr)) continue;
+        const evt = String(ev.event || '');
+        if (/telegram.*reply|reply.*telegram|telegram_send/i.test(evt)) tgReplies++;
+        else if (/zalo.*reply|reply.*zalo|zalo_send/i.test(evt)) zaloReplies++;
+        if (evt === 'cron_fired') cronFired++;
+      } catch {}
+    }
+  } catch {}
+  const totalReplies = tgReplies + zaloReplies;
+
+  // Count customers
+  const dir = path.join(workspace, 'memory', 'zalo-users');
+  let totalCustomers = 0, activeToday = 0;
+  try {
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+    totalCustomers = files.length;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    for (const f of files) {
+      try {
+        const raw = fs.readFileSync(path.join(dir, f), 'utf-8');
+        const m = raw.match(/^---\n([\s\S]*?)\n---/);
+        if (m) {
+          const lsMatch = m[1].match(/lastSeen\s*:\s*(.+)/);
+          if (lsMatch && lsMatch[1].trim().startsWith(todayStr)) activeToday++;
+        }
+      } catch {}
+    }
+  } catch {}
+
+  // Uptime from process.uptime()
+  const upSec = Math.floor(process.uptime());
+  const upH = Math.floor(upSec / 3600);
+  const upM = Math.floor((upSec % 3600) / 60);
+
+  const now = new Date();
+  const hhmm = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const ddmm = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+  const lines = [
+    `**Thống kê hôm nay (${hhmm} ${ddmm})**`,
+    '',
+    `Tin đã trả: ${totalReplies} (Telegram ${tgReplies} · Zalo ${zaloReplies})`,
+    `Khách tương tác: ${activeToday} / ${totalCustomers} tổng`,
+    `Cron đã chạy: ${cronFired}`,
+    `Uptime: ${upH}g ${upM}p`,
+  ];
+  await sendTelegram(lines.join('\n'));
+}
+
+// /baocao — manually trigger the morning brief
+async function handleBaocaoCommand() {
+  await sendTelegram('Đang chạy báo cáo, em sẽ gửi sau vài giây...');
+  try {
+    const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const prompt = buildMorningBriefingPrompt(timeStr);
+    // Fire-and-forget: same function the morning cron uses. runCronAgentPrompt
+    // delivers the output to Telegram on its own via the agent --deliver flag.
+    runCronAgentPrompt(prompt, { label: 'manual-baocao' }).catch(e => {
+      console.error('[/baocao] runCronAgentPrompt failed:', e?.message || e);
+      sendTelegram('Xin lỗi, em chạy báo cáo bị lỗi. Anh thử lại sau vài phút giúp em.').catch(() => {});
+    });
+  } catch (e) {
+    console.error('[/baocao] build prompt failed:', e?.message || e);
+    await sendTelegram('Xin lỗi, em chạy báo cáo bị lỗi. Anh thử lại sau vài phút giúp em.');
+  }
+}
+
+// Dispatcher: parse a raw Telegram text message and handle if it matches one
+// of our built-in commands. Returns true when handled (caller should NOT
+// forward to the OpenClaw agent).
+async function handleTelegramBuiltinCommand(text) {
+  const raw = String(text || '').trim();
+  if (!raw.startsWith('/')) return false;
+  // Strip bot username suffix e.g. /tim@mybot
+  const firstSpace = raw.indexOf(' ');
+  const head = (firstSpace >= 0 ? raw.slice(0, firstSpace) : raw).split('@')[0].toLowerCase();
+  const args = firstSpace >= 0 ? raw.slice(firstSpace + 1) : '';
+  if (head === '/tim') {
+    await handleTimCommand(args);
+    return true;
+  }
+  if (head === '/thongke') {
+    await handleThongkeCommand();
+    return true;
+  }
+  if (head === '/baocao') {
+    await handleBaocaoCommand();
+    return true;
+  }
+  return false;
 }
 
 // Custom crons file — bot writes here, Electron picks up automatically
@@ -9787,6 +11386,7 @@ ipcMain.handle('wizard-complete', async () => {
   startCronJobs();
   watchCustomCrons();
   startZaloCacheAutoRefresh();
+  startAppointmentDispatcher();
   return { success: true };
 });
 
@@ -10018,6 +11618,186 @@ ipcMain.handle('install-openclaw', async (event) => {
 ipcMain.handle('relaunch', async () => {
   app.relaunch();
   app.exit(0);
+});
+
+// Factory reset — wipe ALL user data. Called from Dashboard with 2-layer
+// confirmation (modal + type-to-confirm "XOA"). After wipe, Dashboard calls
+// relaunch() so app starts fresh with wizard onboarding.
+ipcMain.handle('factory-reset', async () => {
+  try {
+    console.log('[factory-reset] Starting full wipe...');
+    // Stop background processes so they don't hold file handles
+    try { stopOpenClaw(); } catch {}
+    try { stop9Router(); } catch {}
+    try { stopCronJobs(); } catch {}
+    // Small delay for process cleanup
+    await new Promise(r => setTimeout(r, 500));
+
+    const targets = [];
+    const ws = getWorkspace();
+    if (ws) targets.push(ws);
+    targets.push(path.join(HOME, '.openclaw'));
+    targets.push(path.join(HOME, '.openzca'));
+    if (process.platform === 'win32') {
+      const appData = process.env.APPDATA || path.join(HOME, 'AppData', 'Roaming');
+      targets.push(path.join(appData, '9router'));
+    } else if (process.platform === 'darwin') {
+      targets.push(path.join(HOME, 'Library', 'Application Support', '9router'));
+    } else {
+      const xdg = process.env.XDG_CONFIG_HOME || path.join(HOME, '.config');
+      targets.push(path.join(xdg, '9router'));
+    }
+
+    const results = [];
+    for (const t of targets) {
+      try {
+        if (fs.existsSync(t)) {
+          fs.rmSync(t, { recursive: true, force: true });
+          console.log('[factory-reset] removed:', t);
+          results.push({ path: t, ok: true });
+        }
+      } catch (e) {
+        console.error('[factory-reset] failed to remove', t, e?.message);
+        results.push({ path: t, ok: false, error: e?.message });
+      }
+    }
+
+    console.log('[factory-reset] done');
+    return { success: true, results };
+  } catch (e) {
+    console.error('[factory-reset] error:', e?.message || e);
+    return { success: false, error: e?.message || String(e) };
+  }
+});
+
+// Export workspace — create a tar archive of the user's workspace (config,
+// memory, knowledge metadata, schedules, etc.) for backup / migration to a
+// new machine. Excludes Electron cache dirs, logs, backups, and heavy
+// knowledge/*/files blobs to keep the archive lean.
+ipcMain.handle('export-workspace', async () => {
+  try {
+    const { dialog } = require('electron');
+    const ws = getWorkspace();
+    if (!ws || !fs.existsSync(ws)) {
+      return { ok: false, error: 'workspace not found' };
+    }
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+    const defaultName = `modoroclaw-export-${Date.now()}.tar`;
+    const saveRes = await dialog.showSaveDialog(win, {
+      title: 'Lưu file export',
+      defaultPath: defaultName,
+      filters: [{ name: 'TAR archive', extensions: ['tar'] }],
+    });
+    if (saveRes.canceled || !saveRes.filePath) {
+      return { ok: false, canceled: true };
+    }
+    const outfile = saveRes.filePath;
+
+    // Excluded dir/file name set (Electron cache, heavy state, transient).
+    const EXCLUDED = new Set([
+      'Cache', 'Code Cache', 'GPUCache', 'DawnCache', 'Network',
+      'Local Storage', 'Session Storage', 'logs', 'backups',
+      'Shared Dictionary', 'SharedStorage', 'blob_storage', 'Partitions',
+      'node_modules', 'tmp', 'temp',
+    ]);
+    // Build explicit include list from top-level workspace entries.
+    const include = [];
+    for (const name of fs.readdirSync(ws)) {
+      if (EXCLUDED.has(name)) continue;
+      // Skip dotfiles coming from Chromium/Electron state.
+      if (name === '.org.chromium.Chromium' || name.startsWith('.com.google.Chrome')) continue;
+      include.push(name);
+    }
+    if (include.length === 0) {
+      return { ok: false, error: 'nothing to export' };
+    }
+
+    // For each knowledge/<cat>/files subdir, exclude via --exclude patterns
+    // (still include knowledge/<cat>/index.md + metadata). tar honors
+    // --exclude relative to -C root on both BSD tar (mac) and bsdtar
+    // bundled with Windows 10+.
+    const excludePatterns = [
+      'knowledge/*/files',
+      'knowledge/*/files/*',
+    ];
+
+    const tarBin = process.platform === 'win32'
+      ? 'C:\\Windows\\System32\\tar.exe'
+      : '/usr/bin/tar';
+
+    const args = ['-cf', outfile];
+    for (const pat of excludePatterns) args.push(`--exclude=${pat}`);
+    args.push('-C', ws);
+    for (const n of include) args.push(n);
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(tarBin, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+      let stderr = '';
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`tar exit ${code}: ${stderr.trim()}`));
+      });
+    });
+
+    const stat = fs.statSync(outfile);
+    console.log('[export-workspace] wrote', outfile, stat.size, 'bytes');
+    return { ok: true, path: outfile, sizeBytes: stat.size };
+  } catch (e) {
+    console.error('[export-workspace] error:', e?.message || e);
+    return { ok: false, error: e?.message || String(e) };
+  }
+});
+
+// Import workspace — restore a previously exported tar archive over the
+// current workspace. Overwrites existing files. Caller is expected to show
+// a confirm dialog in the UI before invoking. App restart is recommended
+// afterwards so in-memory state re-reads the fresh files.
+ipcMain.handle('import-workspace', async () => {
+  try {
+    const { dialog } = require('electron');
+    const ws = getWorkspace();
+    if (!ws) {
+      return { ok: false, error: 'workspace not found' };
+    }
+    try { fs.mkdirSync(ws, { recursive: true }); } catch {}
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+    const openRes = await dialog.showOpenDialog(win, {
+      title: 'Chọn file export để khôi phục',
+      properties: ['openFile'],
+      filters: [{ name: 'TAR archive', extensions: ['tar'] }],
+    });
+    if (openRes.canceled || !openRes.filePaths || openRes.filePaths.length === 0) {
+      return { ok: false, canceled: true };
+    }
+    const infile = openRes.filePaths[0];
+    if (!fs.existsSync(infile)) {
+      return { ok: false, error: 'file not found' };
+    }
+
+    const tarBin = process.platform === 'win32'
+      ? 'C:\\Windows\\System32\\tar.exe'
+      : '/usr/bin/tar';
+    const args = ['-xf', infile, '-C', ws];
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(tarBin, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+      let stderr = '';
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`tar exit ${code}: ${stderr.trim()}`));
+      });
+    });
+
+    console.log('[import-workspace] restored from', infile, 'into', ws);
+    return { ok: true, path: infile };
+  } catch (e) {
+    console.error('[import-workspace] error:', e?.message || e);
+    return { ok: false, error: e?.message || String(e) };
+  }
 });
 
 // Diagnostic log IPC — lets Dashboard/wizard grab the main.log contents

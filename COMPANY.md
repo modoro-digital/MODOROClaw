@@ -29,6 +29,22 @@
 - [Điền lĩnh vực 2]
 - [Điền lĩnh vực 3]
 
+## Scope hỗ trợ khách hàng (bot Zalo)
+
+Bot Zalo chỉ trả lời trong phạm vi SP/dịch vụ của công ty. Phạm vi tùy ngành:
+
+- **Chung**: SP, giá, đặt lịch, khiếu nại, giờ làm, đổi trả, bảo hành, thanh toán
+- **F&B**: menu, đặt bàn, ship, dị ứng, parking
+- **BĐS**: vị trí, pháp lý, tiến độ, giá/m2, xem nhà, vay
+- **Dịch vụ**: quy trình, timeline, portfolio, bảo hành
+- **Giáo dục**: khai giảng, học phí, chương trình, chứng chỉ
+- **Sản xuất**: MOQ, lead time, mẫu thử, ISO/FDA, OEM/ODM
+- **Công nghệ**: demo, trial, SLA, pricing
+- **Thương mại**: tồn kho, giao hàng, đổi trả, wholesale
+- **Y tế**: lịch khám, bác sĩ, bảo hiểm
+
+Ngoài scope → từ chối lịch sự. Soạn bài/viết email/code = CEO (Telegram).
+
 ## Các chi nhánh (nếu có)
 
 | Chi nhánh | Địa chỉ | SĐT |

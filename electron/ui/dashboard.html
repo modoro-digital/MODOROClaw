@@ -6,9 +6,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:20128 http://127.0.0.1:18789; frame-src http://127.0.0.1:18789 http://127.0.0.1:20128 http://localhost:18789 http://localhost:20128; img-src 'self' data: https:;">
   <title>MODOROClaw</title>
   <script>
-    // Apply theme before paint to avoid flash
+    // Apply theme before paint to avoid flash of wrong theme
     try {
-      const saved = localStorage.getItem('theme') || 'dark';
+      const saved = localStorage.getItem('theme') || 'light';
       document.documentElement.setAttribute('data-theme', saved);
     } catch {}
   </script>
@@ -23,7 +23,9 @@
     .sidebar { width:220px; background:var(--bg); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:16px; flex-shrink:0; overflow-y:auto; min-height:0; }
     .sidebar::-webkit-scrollbar { width:6px; }
     .sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-    .sidebar-version { font-size:11px; color:var(--text-muted); margin:-18px 0 16px 46px; letter-spacing:0.3px; }
+    .sidebar-brand-text { display:flex; flex-direction:column; min-width:0; flex:1; }
+    .sidebar-brand-tagline { font-size:11px; color:var(--text-muted); font-weight:500; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-brand-version { font-size:10px; color:var(--text-muted); opacity:0.6; font-weight:500; letter-spacing:0.3px; margin-top:1px; }
     .sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:24px; }
     .sidebar-logo img { width:36px; height:36px; }
     .sidebar-logo h1 { font-size:18px; margin:0; }
@@ -99,6 +101,7 @@
       font-size: 12px;
       color: var(--text);
       white-space: normal;
+      width: max-content;
       max-width: 220px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.15);
       z-index: 200;
@@ -212,7 +215,7 @@
     }
     @media (max-width:800px) {
       .sidebar { width:60px; padding:12px 8px; }
-      .sidebar-logo h1, .sidebar-status span, .sidebar-nav a span { display:none; }
+      .sidebar-brand-text, .sidebar-status span, .sidebar-nav a span { display:none; }
       .sidebar-btn { font-size:0; padding:8px; }
       .sidebar-btn::after { content:''; font-size:13px; }
       .main-grid { grid-template-columns:1fr; }
@@ -322,6 +325,11 @@
     #page-zalo.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
     .zalo-columns { display:grid; grid-template-columns:300px 1fr 1fr; gap:12px; flex:1; min-height:0; margin-bottom:12px; }
     .zalo-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    /* Kill fat native scrollbars inside Zalo columns (was showing as horizontal gray bar on Windows) */
+    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar { width:6px; height:6px; }
+    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-track { background:transparent; }
+    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
     .zalo-col h4 { margin:0 0 10px; font-size:14px; }
     .zalo-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0; }
     .zalo-col-header h4 { margin:0; }
@@ -505,15 +513,7 @@
       font-weight: 700 !important;
       letter-spacing: -0.3px;
       color: var(--text);
-    }
-    .sidebar-logo h1::after {
-      content: 'Trợ lý AI doanh nghiệp';
-      display: block;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-tertiary, var(--text-muted));
-      margin-top: 1px;
-      letter-spacing: 0;
+      line-height: 1.1;
     }
 
     .sidebar-status {
@@ -1188,6 +1188,532 @@
       .main-content { padding: 24px 28px !important; }
       .page-header h2 { font-size: 24px !important; }
     }
+
+    /* Dark theme overrides — Linear-inspired near-black palette.
+       styles.css already defines a dark theme, but this block pins the
+       exact tokens the MODOROClaw dashboard expects so fresh installs
+       and any future styles.css drift stay consistent. */
+    :root[data-theme="dark"] {
+      --bg: #0b0d10;
+      --bg-elevated: #14171c;
+      --surface: #14171c;
+      --surface-hover: #1a1e24;
+      --surface-elevated: #1a1e24;
+      --border: #1f242b;
+      --border-strong: #2a3039;
+      --text: #e6e8eb;
+      --text-secondary: #9ba1a8;
+      --text-tertiary: #6b727a;
+      --text-muted: #9ba1a8;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --danger: #f87171;
+    }
+
+    /* Theme toggle button — minimal, matches sidebar aesthetic */
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover {
+      color: var(--text);
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+    .theme-toggle svg { width: 16px; height: 16px; display: block; }
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+    :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+    /* Tình trạng hôm nay (shop-state) */
+    /* Persona mix editor page */
+    #page-persona-mix .persona-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+    }
+    #page-persona-mix .persona-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    #page-persona-mix .persona-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #page-persona-mix .persona-chip {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #page-persona-mix .persona-chip:hover {
+      border-color: var(--accent);
+      background: var(--surface-hover, var(--surface));
+    }
+    #page-persona-mix .persona-chip.is-selected {
+      background: var(--accent-soft, rgba(124, 92, 255, 0.12));
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    #page-persona-mix .persona-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #page-persona-mix .persona-slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+    #page-persona-mix .persona-slider-edge {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    #page-persona-mix .persona-custom-summary {
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      user-select: none;
+    }
+    #page-persona-mix .persona-custom-summary:hover { color: var(--text); }
+    #page-persona-mix .persona-custom-body { padding-top: 12px; }
+    #page-persona-mix .persona-custom-body input[type="text"],
+    #page-persona-mix .persona-custom-body textarea {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    #page-persona-mix .persona-custom-body textarea { resize: vertical; }
+    #page-persona-mix .persona-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    #page-persona-mix .persona-preset-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #page-persona-mix .persona-preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      border-style: solid;
+    }
+    #page-persona-mix .persona-preview {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    #page-persona-mix .persona-preview-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    #page-persona-mix .persona-preview-bubble {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+      font-style: italic;
+    }
+    #page-persona-mix .persona-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    #page-persona-mix .persona-actions .btn-primary {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* === Appointments page === */
+    #page-calendar .appt-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      background: color-mix(in srgb, var(--accent, #4ea1ff) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent, #4ea1ff) 25%, transparent);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    #page-calendar .appt-tip em {
+      color: var(--text);
+      font-style: normal;
+      font-weight: 500;
+    }
+    #page-calendar .appt-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) minmax(400px, 1.3fr);
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      #page-calendar .appt-grid { grid-template-columns: 1fr; }
+    }
+    #page-calendar .appt-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    #page-calendar .appt-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    #page-calendar .appt-section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    #page-calendar .appt-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+    #page-calendar .appt-count {
+      font-size: 10px;
+      padding: 1px 7px;
+      background: var(--bg);
+      border-radius: 999px;
+      color: var(--text-muted);
+      min-width: 18px;
+      text-align: center;
+    }
+    #page-calendar .appt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #page-calendar .appt-empty {
+      padding: 18px 12px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    #page-calendar .appt-card {
+      display: flex;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.15s, transform 0.15s;
+      position: relative;
+    }
+    #page-calendar .appt-card:hover {
+      border-color: var(--accent, #4ea1ff);
+    }
+    #page-calendar .appt-card.is-done { opacity: 0.55; }
+    #page-calendar .appt-card.is-canceled { opacity: 0.4; }
+    #page-calendar .appt-card.is-canceled .appt-card-title { text-decoration: line-through; }
+    #page-calendar .appt-time-pill {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 52px;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    #page-calendar .appt-time-pill .hh { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.1; }
+    #page-calendar .appt-time-pill .date { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    #page-calendar .appt-card-body { flex: 1; min-width: 0; }
+    #page-calendar .appt-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #page-calendar .appt-card-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      line-height: 1.4;
+    }
+    #page-calendar .appt-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    #page-calendar .appt-card-link {
+      font-size: 11px;
+      color: var(--accent, #4ea1ff);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    #page-calendar .appt-card-link:hover { text-decoration: underline; }
+    #page-calendar .appt-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    #page-calendar .appt-card-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 3px 6px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    #page-calendar .appt-card-btn:hover { background: var(--surface); color: var(--text); }
+    #page-calendar .appt-card-btn.danger:hover { color: var(--danger, #e74c3c); }
+    #page-calendar .appt-push-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      padding: 2px 7px;
+      background: color-mix(in srgb, var(--accent, #4ea1ff) 12%, transparent);
+      color: var(--accent, #4ea1ff);
+      border-radius: 999px;
+    }
+
+    /* Form */
+    #page-calendar .appt-form { display: flex; flex-direction: column; gap: 12px; }
+    #page-calendar .appt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    #page-calendar .appt-field label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    #page-calendar .appt-field input[type="text"],
+    #page-calendar .appt-field input[type="date"],
+    #page-calendar .appt-field input[type="time"],
+    #page-calendar .appt-field select,
+    #page-calendar .appt-field textarea {
+      width: 100%;
+      padding: 8px 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    #page-calendar .appt-field input:focus,
+    #page-calendar .appt-field select:focus,
+    #page-calendar .appt-field textarea:focus {
+      outline: none;
+      border-color: var(--accent, #4ea1ff);
+    }
+    #page-calendar .appt-field textarea { resize: vertical; font-family: inherit; }
+    #page-calendar .appt-row { display: flex; gap: 10px; }
+    #page-calendar .appt-row .appt-field { flex: 1; }
+    #page-calendar .appt-push-section {
+      margin-top: 4px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+    #page-calendar .appt-push-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    #page-calendar .appt-push-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    #page-calendar .appt-push-item {
+      display: grid;
+      grid-template-columns: 130px 1fr 80px 70px auto;
+      gap: 6px;
+      align-items: center;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+    }
+    #page-calendar .appt-push-item:first-child { border-top: none; }
+    #page-calendar .appt-push-item select,
+    #page-calendar .appt-push-item input[type="text"],
+    #page-calendar .appt-push-item input[type="time"] {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    #page-calendar .appt-push-item label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #page-calendar .appt-push-item .remove-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+    #page-calendar .appt-push-item .remove-btn:hover { color: var(--danger, #e74c3c); }
+    #page-calendar .appt-form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    #page-calendar .appt-save-msg {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    #page-calendar .appt-save-msg.success { color: var(--success, #16a34a); }
+    #page-calendar .appt-save-msg.error { color: var(--danger, #e74c3c); }
+    #page-calendar .btn-link {
+      background: none;
+      border: none;
+      color: var(--accent, #4ea1ff);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-family: inherit;
+    }
+    #page-calendar .btn-link:hover { text-decoration: underline; }
+
+    #page-shop-state .state-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    #page-shop-state .state-section h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      color: var(--text);
+    }
+    #page-shop-state .state-section .hint {
+      margin: 0 0 12px 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    #page-shop-state textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+    }
+    #page-shop-state input[type="text"],
+    #page-shop-state input[type="number"],
+    #page-shop-state input[type="time"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    #page-shop-state .state-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+    }
+    #page-shop-state .state-actions button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #page-shop-state .state-actions .btn-primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    #page-shop-state .state-info {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -1199,9 +1725,12 @@
     <div class="sidebar">
       <div class="sidebar-logo">
         <img src="modoro-mascot.png" alt="" onerror="this.style.display='none'">
-        <h1>MODOROClaw</h1>
+        <div class="sidebar-brand-text">
+          <h1>MODOROClaw</h1>
+          <div class="sidebar-brand-tagline">Trợ lý AI doanh nghiệp</div>
+          <div class="sidebar-brand-version" id="sidebar-version">v—</div>
+        </div>
       </div>
-      <div class="sidebar-version" id="sidebar-version">v—</div>
 
       <div class="sidebar-status" data-tooltip="Bot đang nhận và trả lời tin nhắn">
         <span class="status-dot stopped" id="status-dot"></span>
@@ -1222,6 +1751,14 @@
         <div class="sidebar-menu-item" data-page="knowledge" onclick="switchPage('knowledge')">
           <span class="icon" data-icon="book-open"></span><span class="label">Tài liệu</span>
         </div>
+        <div class="sidebar-menu-item" data-page="persona-mix" onclick="switchPage('persona-mix')">
+          <span class="icon" data-icon="sparkles"></span>
+          <span class="label">Tính cách bot</span>
+        </div>
+        <div class="sidebar-menu-item" data-page="shop-state" onclick="switchPage('shop-state')">
+          <span class="icon" data-icon="alert-circle"></span>
+          <span class="label">Tình trạng hôm nay</span>
+        </div>
         <div class="sidebar-menu-item" data-page="calendar" onclick="switchPage('calendar')">
           <span class="icon" data-icon="calendar"></span><span class="label">Lịch hẹn</span>
         </div>
@@ -1237,15 +1774,15 @@
         </div>
 
         <div class="sidebar-menu-header">Cài đặt</div>
-        <div class="sidebar-menu-item" data-page="models" onclick="switchPage('models')">
+        <div class="sidebar-menu-item" data-page="9router" onclick="switchPage('9router')">
           <span class="icon" data-icon="cpu"></span><span class="label">AI Models</span>
         </div>
         <div class="sidebar-menu-item" id="theme-toggle-btn" onclick="toggleTheme()">
           <span class="icon" id="theme-toggle-icon" data-icon="moon"></span><span class="label" id="theme-toggle-label">Giao diện sáng</span>
         </div>
-        <label class="pref-toggle" style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;margin-top:4px;font-size:12px;color:var(--text-muted);cursor:pointer;line-height:1.4">
-          <input type="checkbox" id="pref-start-minimized" style="margin-top:2px;flex-shrink:0;cursor:pointer">
-          <span>Mở ẩn khi khởi động (chạy nền qua taskbar tray)</span>
+        <label class="pref-toggle" style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:4px;font-size:12px;color:var(--text-muted);cursor:pointer;line-height:1.3;min-width:0">
+          <input type="checkbox" id="pref-start-minimized" style="flex-shrink:0;cursor:pointer;margin:0">
+          <span style="flex:1;min-width:0;word-break:normal">Ẩn xuống tray khi mở</span>
         </label>
       </div>
       <div id="gateway-token-box" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:11px">
@@ -1304,18 +1841,8 @@
 
         <!-- 2-column: Alerts + Recent customers -->
         <div class="ov-grid">
-          <!-- Alerts (above fold) -->
-          <div class="ov-card" id="ov-actions-card">
-            <div class="ov-card-head">
-              <h3>Cần xử lý <span class="tip" data-tooltip="Việc cần anh/chị xem hoặc xử lý">?</span></h3>
-            </div>
-            <div class="ov-actions" id="ov-actions">
-              <div class="ov-list-empty">Mọi thứ đều ổn</div>
-            </div>
-          </div>
-
-          <!-- Recent Zalo customers -->
-          <div class="ov-card">
+          <!-- Recent Zalo customers (full width now that "Cần xử lý" is removed) -->
+          <div class="ov-card" style="grid-column:1/-1">
             <div class="ov-card-head">
               <h3>Khách Zalo gần đây</h3>
               <button class="ov-card-action" onclick="switchPage('zalo')" title="Mở trang Zalo"><span data-icon="message-circle" data-icon-size="14"></span></button>
@@ -1417,7 +1944,7 @@
           <!-- Column 1: Settings -->
           <div class="zalo-col">
             <h4>Cài đặt</h4>
-            <div style="overflow-y:auto;flex:1;min-height:0">
+            <div style="overflow-y:auto;overflow-x:hidden;flex:1;min-height:0">
               <label class="zalo-checkbox-row" style="margin-bottom:10px">
                 <input type="checkbox" id="zalo-mgr-enabled">
                 <div>
@@ -1547,86 +2074,312 @@
         </div>
       </div>
 
+      <!-- PAGE: Tính cách bot (persona mix editor) -->
+      <div class="page" id="page-persona-mix">
+        <div class="page-header">
+          <h2>Tính cách bot</h2>
+          <p class="page-subtitle">Kết hợp vùng miền, giọng, tính cách (theo Big Five) để tạo phong cách nhân viên riêng cho shop. Bot sẽ áp dụng ngay sau khi lưu.</p>
+        </div>
+
+        <div class="persona-section">
+          <div class="persona-label">Vùng miền</div>
+          <div class="persona-chips" data-pgroup="region">
+            <button type="button" class="persona-chip" data-pvalue="bac">Miền Bắc</button>
+            <button type="button" class="persona-chip" data-pvalue="trung">Miền Trung</button>
+            <button type="button" class="persona-chip" data-pvalue="nam">Miền Nam</button>
+            <button type="button" class="persona-chip" data-pvalue="tay">Miền Tây</button>
+            <button type="button" class="persona-chip" data-pvalue="trung-tinh">Trung tính</button>
+          </div>
+        </div>
+
+        <div class="persona-section">
+          <div class="persona-label">Bot tự xưng + giới tính</div>
+          <div class="persona-chips" data-pgroup="voice">
+            <button type="button" class="persona-chip" data-pvalue="em-nu-tre">Em (nữ trẻ)</button>
+            <button type="button" class="persona-chip" data-pvalue="em-nam-tre">Em (nam trẻ)</button>
+            <button type="button" class="persona-chip" data-pvalue="chi-trung-nien">Chị (trung niên)</button>
+            <button type="button" class="persona-chip" data-pvalue="anh-trung-nien">Anh (trung niên)</button>
+            <button type="button" class="persona-chip" data-pvalue="minh-trung-tinh">Mình (trung tính)</button>
+          </div>
+        </div>
+
+        <div class="persona-section">
+          <div class="persona-label">Gọi khách</div>
+          <div class="persona-chips" data-pgroup="customer">
+            <button type="button" class="persona-chip" data-pvalue="anh-chi">Anh/chị</button>
+            <button type="button" class="persona-chip" data-pvalue="quy-khach">Quý khách</button>
+            <button type="button" class="persona-chip" data-pvalue="mình">Mình</button>
+          </div>
+        </div>
+
+        <div class="persona-section">
+          <div class="persona-label">Tính cách (chọn 3-5 đặc điểm, nhóm theo Big Five)</div>
+          <div class="persona-chips" data-pgroup="trait">
+            <button type="button" class="persona-chip" data-pvalue="sang-tao" title="Gợi ý combo mới, kể câu chuyện SP (Openness)">Sáng tạo</button>
+            <button type="button" class="persona-chip" data-pvalue="thuc-te" title="Thẳng vào vấn đề, không thêu dệt (Openness)">Thực tế</button>
+            <button type="button" class="persona-chip" data-pvalue="linh-hoat" title="Điều chỉnh theo khách, không cứng nhắc (Openness)">Linh hoạt</button>
+            <button type="button" class="persona-chip" data-pvalue="chin-chu" title="Kiểm tra kỹ, không miss chi tiết (Conscientiousness)">Chỉn chu</button>
+            <button type="button" class="persona-chip" data-pvalue="chu-dao" title="Để ý nhu cầu ngầm, gợi ý chủ động (Conscientiousness)">Chu đáo</button>
+            <button type="button" class="persona-chip" data-pvalue="kien-nhan" title="Không vội, giải thích chậm rãi (Conscientiousness)">Kiên nhẫn</button>
+            <button type="button" class="persona-chip" data-pvalue="nang-dong" title="Reply nhanh, tone tươi (Extraversion)">Năng động</button>
+            <button type="button" class="persona-chip" data-pvalue="diem-tinh" title="Bình tĩnh, tạo cảm giác yên tâm (Extraversion)">Điềm tĩnh</button>
+            <button type="button" class="persona-chip" data-pvalue="chu-dong" title="Dẫn dắt, gợi ý trước khi khách hỏi (Extraversion)">Chủ động</button>
+            <button type="button" class="persona-chip" data-pvalue="am-ap" title="Giọng tình cảm, như người quen (Agreeableness)">Ấm áp</button>
+            <button type="button" class="persona-chip" data-pvalue="dong-cam" title="Hiểu cảm xúc khách, đặt mình vào vị trí khách (Agreeableness)">Đồng cảm</button>
+            <button type="button" class="persona-chip" data-pvalue="thang-than" title="Nói rõ được/không, không vòng vo (Agreeableness)">Thẳng thắn</button>
+            <button type="button" class="persona-chip" data-pvalue="chuyen-nghiep" title="Formal, đúng mực (Service)">Chuyên nghiệp</button>
+            <button type="button" class="persona-chip" data-pvalue="than-thien" title="Balance formal và casual, universal (Service)">Thân thiện</button>
+            <button type="button" class="persona-chip" data-pvalue="tinh-te" title="Xử lý khéo tình huống nhạy cảm (Service)">Tinh tế</button>
+          </div>
+        </div>
+
+        <div class="persona-section">
+          <div class="persona-label">Độ trang trọng: <span id="persona-formality-display">5</span>/10</div>
+          <div class="persona-slider-row">
+            <span class="persona-slider-edge">Rất thân mật</span>
+            <input type="range" id="persona-formality-slider" min="1" max="10" value="5">
+            <span class="persona-slider-edge">Rất trang trọng</span>
+          </div>
+        </div>
+
+        <details class="persona-section">
+          <summary class="persona-custom-summary">Tùy chỉnh nâng cao (không bắt buộc)</summary>
+          <div class="persona-custom-body">
+            <div class="persona-label">Câu chào riêng</div>
+            <input type="text" id="persona-greeting" placeholder="VD: Dạ em Mai bên shop XYZ xin chào anh/chị ạ">
+            <div class="persona-label" style="margin-top:12px">Câu kết riêng</div>
+            <input type="text" id="persona-closing" placeholder="VD: Anh/chị cần gì thêm cứ nhắn em nha">
+            <div class="persona-label" style="margin-top:12px">Cụm từ đặc trưng (mỗi cụm 1 dòng)</div>
+            <textarea id="persona-phrases" rows="3" placeholder="VD:&#10;Bên em làm chuẩn lắm ạ&#10;Em nhớ anh/chị như người quen nhé"></textarea>
+          </div>
+        </details>
+
+        <div class="persona-section">
+          <div class="persona-label">Mẫu có sẵn — click để auto-fill</div>
+          <div class="persona-presets" id="persona-presets"></div>
+        </div>
+
+        <div class="persona-preview">
+          <div class="persona-preview-label">Preview reply của bot</div>
+          <div class="persona-preview-bubble" id="persona-preview-bubble">Dạ em chào anh/chị ạ. Anh/chị cần em tư vấn gì không ạ?</div>
+        </div>
+
+        <div class="persona-actions">
+          <button class="btn-primary" onclick="savePersonaMix()">Lưu tính cách</button>
+          <span id="persona-save-status"></span>
+        </div>
+      </div>
+
+      <!-- PAGE: Tình trạng hôm nay -->
+      <div class="page" id="page-shop-state">
+        <div class="page-header">
+          <h2>Tình trạng hôm nay</h2>
+          <p class="page-subtitle">Cập nhật nhanh để bot biết shop đang có gì đặc biệt. Bot sẽ áp dụng khi trả lời khách.</p>
+        </div>
+
+        <div class="state-section">
+          <h3>Hết hàng hôm nay</h3>
+          <p class="hint">Liệt kê sản phẩm đang hết, mỗi SP 1 dòng. Bot sẽ báo khách trước khi đặt.</p>
+          <textarea id="state-out-of-stock" rows="4" placeholder="Combo A - gà&#10;Áo thun basic size L"></textarea>
+        </div>
+
+        <div class="state-section">
+          <h3>Nhân viên nghỉ hôm nay</h3>
+          <p class="hint">Tên nhân viên nghỉ, mỗi người 1 dòng.</p>
+          <textarea id="state-staff-absent" rows="3" placeholder="Chị Hằng&#10;Anh Minh"></textarea>
+        </div>
+
+        <div class="state-section">
+          <h3>Ship chậm</h3>
+          <label class="pref-toggle">
+            <input type="checkbox" id="state-shipping-delay-active">
+            <span>Ship hôm nay đang chậm</span>
+          </label>
+          <input type="text" id="state-shipping-reason" placeholder="Lý do (VD: mưa bão miền Bắc)">
+          <input type="number" id="state-shipping-hours" placeholder="Chậm khoảng bao nhiêu giờ" min="0" max="48">
+        </div>
+
+        <div class="state-section">
+          <h3>Khuyến mãi đang chạy</h3>
+          <p class="hint">Mỗi khuyến mãi: "Tên | Mô tả | Hết hạn (YYYY-MM-DD)" trên 1 dòng.</p>
+          <textarea id="state-promotions" rows="4" placeholder="Sinh nhật shop | Giảm 15% đơn trên 500k | 2026-04-15"></textarea>
+        </div>
+
+        <div class="state-section">
+          <h3>Đóng cửa sớm</h3>
+          <label class="pref-toggle">
+            <input type="checkbox" id="state-early-closing-active">
+            <span>Hôm nay đóng cửa sớm</span>
+          </label>
+          <input type="time" id="state-early-closing-time">
+        </div>
+
+        <div class="state-section">
+          <h3>Ghi chú đặc biệt</h3>
+          <p class="hint">Free-form note cho bot. VD: "Hôm nay chỉ nhận đơn online".</p>
+          <textarea id="state-special-notes" rows="3" placeholder="Ghi chú bổ sung..."></textarea>
+        </div>
+
+        <div class="state-actions">
+          <button class="btn-primary" onclick="saveShopState()">Lưu tình trạng</button>
+          <button class="btn-secondary" onclick="clearShopState()">Xoá hết (bình thường)</button>
+          <span id="shop-state-save-status"></span>
+        </div>
+
+        <div class="state-info">
+          <p class="hint">State sẽ tự reset về trống vào 00:00 mỗi ngày. Bot đọc state file này mỗi tin nhắn để biết tình hình thực tế shop.</p>
+        </div>
+      </div>
+
       <!-- PAGE: Google Calendar -->
       <div class="page" id="page-calendar">
         <div class="page-header">
           <span class="page-icon" data-icon="calendar" data-icon-size="26"></span>
           <div>
-            <h2>Lich hen</h2>
-            <div class="page-sub">Quan ly lich hen voi khach -- ket noi Google Calendar</div>
+            <h2>Lịch hẹn</h2>
+            <div class="page-sub">Quản lý lịch hẹn với khách — bot tự động nhắc và gửi link meeting</div>
           </div>
-          <div style="margin-left:auto">
-            <button class="btn btn-secondary btn-small" id="gcal-connect-btn" onclick="connectGoogleCalendar()">Ket noi Google Calendar</button>
-          </div>
-        </div>
-
-        <!-- Connected state -->
-        <div id="gcal-connected" style="display:none">
-          <!-- Calendar embed -->
-          <div class="main-card" style="padding:0;overflow:hidden;margin-bottom:16px">
-            <webview id="gcal-embed" class="embed-frame" src="about:blank" partition="persist:embed-gcal" allowpopups style="width:100%;height:500px;border:none"></webview>
-          </div>
-
-          <!-- Upcoming events -->
-          <div class="main-card" style="margin-bottom:16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <h3 style="margin:0;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Lich hen sap toi</h3>
-              <button class="btn btn-secondary btn-small" onclick="loadGcalEvents()" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px"><span data-icon="refresh-cw" data-icon-size="12"></span>Refresh</button>
-            </div>
-            <div id="gcal-upcoming" style="font-size:13px;color:var(--text-muted)">Dang tai...</div>
-          </div>
-
-          <!-- Config -->
-          <div class="main-card">
-            <h3 style="margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Cai dat</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
-              <div>
-                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Gio bat dau</label>
-                <input type="time" id="gcal-work-start" value="08:00" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
-              </div>
-              <div>
-                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Gio ket thuc</label>
-                <input type="time" id="gcal-work-end" value="18:00" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
-              </div>
-              <div>
-                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Thoi luong moi slot</label>
-                <select id="gcal-slot-duration" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
-                  <option value="15">15 phut</option>
-                  <option value="30" selected>30 phut</option>
-                  <option value="45">45 phut</option>
-                  <option value="60">60 phut</option>
-                </select>
-              </div>
-              <div>
-                <label style="color:var(--text-muted);font-size:11px;display:block;margin-bottom:4px">Nhac truoc</label>
-                <select id="gcal-reminder" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;box-sizing:border-box">
-                  <option value="5">5 phut</option>
-                  <option value="10">10 phut</option>
-                  <option value="15" selected>15 phut</option>
-                  <option value="30">30 phut</option>
-                  <option value="60">1 gio</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between">
-              <span id="gcal-email-display" style="font-size:11px;color:var(--text-muted)"></span>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-secondary btn-small" onclick="saveGcalConfig()">Luu cai dat</button>
-                <button class="btn btn-secondary btn-small" style="color:var(--danger)" onclick="disconnectGcal()">Ngat ket noi</button>
-              </div>
-            </div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-secondary btn-small" onclick="loadAppointments()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="12"></span>Làm mới</button>
+            <button class="btn btn-primary btn-small" onclick="openApptForm()"><span data-icon="plus" data-icon-size="12" style="margin-right:4px"></span>Tạo lịch hẹn</button>
           </div>
         </div>
 
-        <!-- Not connected state -->
-        <div id="gcal-not-connected">
-          <div class="main-card" style="text-align:center;padding:48px 24px">
-            <div style="font-size:48px;margin-bottom:16px;opacity:0.15"><span data-icon="calendar" data-icon-size="48"></span></div>
-            <div style="font-size:16px;font-weight:600;margin-bottom:8px">Chua ket noi Google Calendar</div>
-            <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.6">
-              Ket noi de bot tu check lich trong va dat hen cho khach. Anh/chi nhin thay lich ngay trong app, khong can mo browser.
+        <!-- Tip bar -->
+        <div class="appt-tip">
+          <span data-icon="message-square" data-icon-size="14"></span>
+          <span>Sếp có thể nhắn Telegram để tạo lịch nhanh: <em>"thêm lịch mai 3pm họp anh Minh link zoom.us/abc, mỗi 8h sáng push vào group Bán Hàng"</em></span>
+        </div>
+
+        <div class="appt-grid">
+          <!-- LEFT: Today + Upcoming list -->
+          <div class="appt-col">
+            <div class="appt-section">
+              <div class="appt-section-head">
+                <span class="appt-section-title">Hôm nay</span>
+                <span class="appt-count" id="appt-today-count">0</span>
+              </div>
+              <div id="appt-today-list" class="appt-list">
+                <div class="appt-empty">Chưa có lịch nào hôm nay.</div>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="connectGoogleCalendar()">Ket noi Google Calendar</button>
+
+            <div class="appt-section">
+              <div class="appt-section-head">
+                <span class="appt-section-title">Sắp tới (7 ngày)</span>
+                <span class="appt-count" id="appt-upcoming-count">0</span>
+              </div>
+              <div id="appt-upcoming-list" class="appt-list">
+                <div class="appt-empty">Không có lịch trong tuần tới.</div>
+              </div>
+            </div>
+
+            <div class="appt-section">
+              <div class="appt-section-head">
+                <span class="appt-section-title">Đã qua</span>
+                <span class="appt-count" id="appt-past-count">0</span>
+                <button class="btn-link" onclick="toggleApptPast()" id="appt-past-toggle" style="margin-left:auto">Hiện</button>
+              </div>
+              <div id="appt-past-list" class="appt-list" style="display:none">
+                <div class="appt-empty">Chưa có lịch nào.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Create form -->
+          <div class="appt-col">
+            <div class="appt-section" id="appt-form-card">
+              <div class="appt-section-head">
+                <span class="appt-section-title" id="appt-form-title">Tạo lịch hẹn mới</span>
+                <button class="btn-link" onclick="clearApptForm()" id="appt-form-clear" style="margin-left:auto">Xóa form</button>
+              </div>
+
+              <div class="appt-form">
+                <div class="appt-field">
+                  <label>Tiêu đề *</label>
+                  <input type="text" id="appt-title" placeholder="VD: Họp với anh Minh về hợp đồng">
+                </div>
+
+                <div class="appt-row">
+                  <div class="appt-field">
+                    <label>Ngày *</label>
+                    <input type="date" id="appt-date">
+                  </div>
+                  <div class="appt-field">
+                    <label>Giờ bắt đầu *</label>
+                    <input type="time" id="appt-time-start" value="14:00">
+                  </div>
+                  <div class="appt-field">
+                    <label>Giờ kết thúc</label>
+                    <input type="time" id="appt-time-end" value="15:00">
+                  </div>
+                </div>
+
+                <div class="appt-row">
+                  <div class="appt-field">
+                    <label>Tên khách / đối tác</label>
+                    <input type="text" id="appt-customer" placeholder="Anh Minh">
+                  </div>
+                  <div class="appt-field">
+                    <label>Số điện thoại</label>
+                    <input type="text" id="appt-phone" placeholder="09xx...">
+                  </div>
+                </div>
+
+                <div class="appt-field">
+                  <label>Link meeting (Zoom / Meet / Teams)</label>
+                  <input type="text" id="appt-meeting-url" placeholder="https://zoom.us/j/...">
+                </div>
+
+                <div class="appt-field">
+                  <label>Địa điểm (nếu họp offline)</label>
+                  <input type="text" id="appt-location" placeholder="VD: Văn phòng tầng 5, 123 Nguyễn Trãi">
+                </div>
+
+                <div class="appt-field">
+                  <label>Ghi chú</label>
+                  <textarea id="appt-note" rows="2" placeholder="Chuẩn bị slide, tài liệu cần mang theo..."></textarea>
+                </div>
+
+                <div class="appt-row">
+                  <div class="appt-field">
+                    <label>Nhắc trước</label>
+                    <select id="appt-reminder-min">
+                      <option value="5">5 phút</option>
+                      <option value="10">10 phút</option>
+                      <option value="15" selected>15 phút</option>
+                      <option value="30">30 phút</option>
+                      <option value="60">1 giờ</option>
+                      <option value="120">2 giờ</option>
+                      <option value="1440">1 ngày</option>
+                    </select>
+                  </div>
+                  <div class="appt-field">
+                    <label>Kênh nhắc</label>
+                    <select id="appt-reminder-ch">
+                      <option value="telegram" selected>Telegram</option>
+                      <option value="zalo">Zalo (DM sếp)</option>
+                      <option value="both">Cả 2 kênh</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Push targets section -->
+                <div class="appt-push-section">
+                  <div class="appt-push-head">
+                    <span>Tự động gửi link vào (tùy chọn)</span>
+                    <button class="btn-link" onclick="addApptPushTarget()">+ Thêm nơi nhận</button>
+                  </div>
+                  <div id="appt-push-list"></div>
+                  <div class="appt-push-hint">VD: mỗi 8h sáng push link Zoom vào group Zalo "Bán hàng" cho đội sale chuẩn bị.</div>
+                </div>
+
+                <div class="appt-form-actions">
+                  <button class="btn btn-primary" onclick="saveAppointment()" id="appt-save-btn">Lưu lịch hẹn</button>
+                  <span id="appt-save-msg" class="appt-save-msg"></span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1691,22 +2444,87 @@
       <span data-icon="eye" data-icon-size="16"></span>
       Xem video hướng dẫn
     </div>
-    <div class="support-menu-item" onclick="window.claw.openExternal('https://zalo.me/modoro')">
+    <div class="support-menu-item" onclick="window.claw.openExternal('https://t.me/+qg8RQm1sq4AwODI1')">
       <span data-icon="message-circle" data-icon-size="16"></span>
       Liên hệ MODORO
     </div>
-    <div class="support-menu-item" onclick="resetOnboarding()">
-      <span data-icon="refresh-cw" data-icon-size="16"></span>
-      Xem lại hướng dẫn
+    <div class="support-menu-item" onclick="replayWalkthrough()">
+      <span data-icon="play-circle" data-icon-size="16"></span>
+      Xem lại hướng dẫn sử dụng
     </div>
     <div style="border-top:1px solid var(--border);margin:4px 0"></div>
-    <div class="support-menu-item" onclick="switchPage('openclaw');toggleSupportMenu()">
-      <span data-icon="zap" data-icon-size="16"></span>
-      Xem gateway (nâng cao)
+    <div class="support-menu-item" onclick="handleExportWorkspace(event)">
+      <span data-icon="download" data-icon-size="16"></span>
+      Xuất dữ liệu (backup)
     </div>
-    <div class="support-menu-item" onclick="openLogFolder();toggleSupportMenu()">
-      <span data-icon="file-text" data-icon-size="16"></span>
-      Mở thư mục log
+    <div class="support-menu-item" onclick="handleImportWorkspace(event)">
+      <span data-icon="upload" data-icon-size="16"></span>
+      Khôi phục từ file
+    </div>
+    <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+    <div class="support-menu-item" onclick="showFactoryResetModal()" style="color:#e06666">
+      <span data-icon="trash-2" data-icon-size="16"></span>
+      Xóa sạch dữ liệu (Factory Reset)
+    </div>
+  </div>
+
+  <!-- Factory Reset modal — 2-layer confirmation + type "XOA" to confirm -->
+  <div id="factory-reset-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;align-items:center;justify-content:center" onclick="if(event.target===this)hideFactoryResetModal()">
+    <div style="background:var(--surface);border:2px solid #e06666;border-radius:16px;max-width:520px;width:92%;padding:24px 28px;box-shadow:0 12px 48px rgba(0,0,0,0.5)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span data-icon="trash-2" data-icon-size="24" style="color:#e06666"></span>
+        <h2 style="margin:0;font-size:19px;color:#e06666">Xóa sạch dữ liệu</h2>
+      </div>
+      <div style="font-size:13px;line-height:1.6;color:var(--text);margin-bottom:14px">
+        Hành động này sẽ xóa <strong>TOÀN BỘ</strong>:
+      </div>
+      <ul style="font-size:12px;color:var(--text-muted);line-height:1.8;margin:0 0 16px 18px;padding:0">
+        <li>Workspace (AGENTS, knowledge, memory, logs)</li>
+        <li>Config bot (openclaw.json, PIN, extensions)</li>
+        <li>Zalo session (cookies, friend cache, owner)</li>
+        <li>Telegram token + chat ID</li>
+        <li>9Router (API keys, provider config)</li>
+        <li>Google Calendar OAuth token</li>
+      </ul>
+      <div style="padding:10px 14px;background:#2a1215;border:1px solid #5c2b2b;border-radius:8px;font-size:12px;color:#e8a8a8;margin-bottom:14px">
+        <strong>KHÔNG thể khôi phục sau khi xóa.</strong> Sau khi reset, app sẽ restart và chạy lại wizard onboarding từ đầu.
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Nhập <code style="background:var(--bg);padding:2px 6px;border-radius:4px;color:#e06666">XOA</code> để xác nhận:</div>
+      <input type="text" id="factory-reset-confirm-input" placeholder="Nhập XOA" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:16px" oninput="_updateFactoryResetBtn()">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-secondary btn-small" onclick="hideFactoryResetModal()">Hủy</button>
+        <button class="btn btn-small" id="factory-reset-confirm-btn" onclick="doFactoryReset()" disabled style="background:#e06666;color:#fff;opacity:0.5;cursor:not-allowed">Xóa sạch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive walkthrough overlay -->
+  <div id="walkthrough-overlay" style="display:none;position:fixed;inset:0;z-index:6000;pointer-events:auto">
+    <!-- Dark backdrop with spotlight cutout -->
+    <svg id="walkthrough-svg" style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <mask id="walkthrough-mask">
+          <rect width="100%" height="100%" fill="white"/>
+          <rect id="walkthrough-spotlight" x="0" y="0" width="0" height="0" rx="12" ry="12" fill="black"/>
+        </mask>
+      </defs>
+      <rect width="100%" height="100%" fill="rgba(0,0,0,0.72)" mask="url(#walkthrough-mask)"/>
+    </svg>
+    <!-- Highlight border around target -->
+    <div id="walkthrough-highlight" style="position:absolute;border:2px solid #4ea1ff;border-radius:12px;pointer-events:none;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:0 0 0 4px rgba(78,161,255,0.2),0 0 32px rgba(78,161,255,0.4);display:none"></div>
+    <!-- Step card -->
+    <div id="walkthrough-card" style="position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;width:360px;box-shadow:0 16px 48px rgba(0,0,0,0.5);transition:all 0.35s cubic-bezier(0.4,0,0.2,1)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div id="walkthrough-progress" style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Bước 1 / 8</div>
+        <button onclick="walkthroughSkip()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">Bỏ qua</button>
+      </div>
+      <h3 id="walkthrough-title" style="margin:0 0 8px;font-size:16px;font-weight:600;color:var(--text)">Title</h3>
+      <div id="walkthrough-desc" style="font-size:13px;line-height:1.6;color:var(--text-muted);margin-bottom:16px">Description</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <button id="walkthrough-prev" class="btn btn-secondary btn-small" onclick="walkthroughPrev()" style="padding:8px 14px">← Trước</button>
+        <div id="walkthrough-dots" style="display:flex;gap:6px;flex:1;justify-content:center"></div>
+        <button id="walkthrough-next" class="btn btn-primary btn-small" onclick="walkthroughNext()" style="padding:8px 14px">Tiếp →</button>
+      </div>
     </div>
   </div>
 
@@ -2337,7 +3155,7 @@
         else refreshKnowledgeFiles();
       }
       if (page === 'calendar') {
-        loadCalendarPage();
+        loadAppointments();
       }
       if (page === '9router' || page === 'openclaw') {
         ensureEmbedLoaded(page);
@@ -2345,9 +3163,240 @@
       if (page === 'overview') {
         loadOverview();
       }
+      if (page === 'shop-state') {
+        loadShopState();
+      }
+      if (page === 'persona-mix') {
+        loadPersonaMix();
+      }
     }
     // Alias used by overview card buttons (matches what onclick handlers call)
     function setActivePage(page) { switchPage(page); }
+
+    // ============================================
+    //  PERSONA MIX — Tính cách bot
+    // ============================================
+    let _personaMix = {
+      region: 'trung-tinh',
+      voice: 'em-nu-tre',
+      customer: 'anh-chi',
+      traits: ['am-ap', 'chu-dao', 'chuyen-nghiep'],
+      formality: 5,
+      greeting: '',
+      closing: '',
+      phrases: '',
+    };
+    let _personaMixBound = false;
+
+    const PERSONA_MIX_PRESETS = [
+      { label: 'Chị bán hàng miền Tây', mix: { region: 'tay', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap','thuc-te','kien-nhan','chu-dao'], formality: 4 } },
+      { label: 'Em sale BĐS Sài Gòn', mix: { region: 'nam', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['nang-dong','chu-dong','chuyen-nghiep','chu-dao'], formality: 6 } },
+      { label: 'Cô giáo Hà Nội', mix: { region: 'bac', voice: 'chi-trung-nien', customer: 'anh-chi', traits: ['chin-chu','kien-nhan','chu-dao','tinh-te'], formality: 8 } },
+      { label: 'Dược sĩ ân cần', mix: { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['chin-chu','dong-cam','diem-tinh','chu-dao'], formality: 6 } },
+      { label: 'Chị spa cao cấp', mix: { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['tinh-te','am-ap','diem-tinh','linh-hoat'], formality: 7 } },
+      { label: 'Anh thợ sửa xe', mix: { region: 'nam', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['thang-than','thuc-te','chu-dao','than-thien'], formality: 4 } },
+      { label: 'Cô lễ tân 5 sao', mix: { region: 'bac', voice: 'em-nu-tre', customer: 'quy-khach', traits: ['tinh-te','chuyen-nghiep','chin-chu','linh-hoat'], formality: 10 } },
+      { label: 'Anh sale ôtô', mix: { region: 'trung-tinh', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['chuyen-nghiep','chu-dong','chu-dao','linh-hoat'], formality: 7 } },
+      { label: 'Chị chủ boutique', mix: { region: 'nam', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['sang-tao','tinh-te','am-ap','linh-hoat'], formality: 6 } },
+      { label: 'Anh kỹ thuật', mix: { region: 'trung-tinh', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['chuyen-nghiep','kien-nhan','thuc-te','chu-dao'], formality: 6 } },
+    ];
+
+    async function loadPersonaMix() {
+      if (!window.claw || !window.claw.getPersonaMix) return;
+      try {
+        const mix = await window.claw.getPersonaMix();
+        if (mix) _personaMix = Object.assign({}, _personaMix, mix, {
+          traits: Array.isArray(mix.traits) ? mix.traits : _personaMix.traits,
+        });
+      } catch (e) { console.error('loadPersonaMix', e); }
+      if (!_personaMixBound) {
+        renderPersonaPresets();
+        bindPersonaMixChips();
+        _personaMixBound = true;
+      }
+      syncPersonaMixUI();
+      updatePersonaPreview();
+    }
+
+    function renderPersonaPresets() {
+      const row = document.getElementById('persona-presets');
+      if (!row) return;
+      row.innerHTML = PERSONA_MIX_PRESETS.map((p, i) => `
+        <button type="button" class="persona-preset-btn" data-pindex="${i}">${p.label}</button>
+      `).join('');
+      row.querySelectorAll('.persona-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-pindex'), 10);
+          const preset = PERSONA_MIX_PRESETS[idx];
+          if (!preset) return;
+          Object.assign(_personaMix, preset.mix);
+          syncPersonaMixUI();
+          updatePersonaPreview();
+        });
+      });
+    }
+
+    function bindPersonaMixChips() {
+      document.querySelectorAll('#page-persona-mix .persona-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const group = chip.closest('.persona-chips').getAttribute('data-pgroup');
+          const value = chip.getAttribute('data-pvalue');
+          if (group === 'trait') {
+            const idx = _personaMix.traits.indexOf(value);
+            if (idx >= 0) _personaMix.traits.splice(idx, 1);
+            else if (_personaMix.traits.length < 5) _personaMix.traits.push(value);
+            else return;
+          } else {
+            _personaMix[group] = value;
+          }
+          syncPersonaMixUI();
+          updatePersonaPreview();
+        });
+      });
+      const slider = document.getElementById('persona-formality-slider');
+      if (slider) slider.addEventListener('input', () => {
+        _personaMix.formality = parseInt(slider.value, 10);
+        document.getElementById('persona-formality-display').textContent = _personaMix.formality;
+        updatePersonaPreview();
+      });
+      ['greeting', 'closing', 'phrases'].forEach(field => {
+        const el = document.getElementById('persona-' + field);
+        if (el) el.addEventListener('input', () => {
+          _personaMix[field] = el.value;
+          updatePersonaPreview();
+        });
+      });
+    }
+
+    function syncPersonaMixUI() {
+      ['region', 'voice', 'customer'].forEach(group => {
+        document.querySelectorAll(`#page-persona-mix .persona-chips[data-pgroup="${group}"] .persona-chip`).forEach(chip => {
+          chip.classList.toggle('is-selected', chip.getAttribute('data-pvalue') === _personaMix[group]);
+        });
+      });
+      document.querySelectorAll('#page-persona-mix .persona-chips[data-pgroup="trait"] .persona-chip').forEach(chip => {
+        chip.classList.toggle('is-selected', _personaMix.traits.includes(chip.getAttribute('data-pvalue')));
+      });
+      const slider = document.getElementById('persona-formality-slider');
+      if (slider) slider.value = _personaMix.formality;
+      const disp = document.getElementById('persona-formality-display');
+      if (disp) disp.textContent = _personaMix.formality;
+      ['greeting', 'closing', 'phrases'].forEach(field => {
+        const el = document.getElementById('persona-' + field);
+        if (el) el.value = _personaMix[field] || '';
+      });
+    }
+
+    function updatePersonaPreview() {
+      const bubble = document.getElementById('persona-preview-bubble');
+      if (!bubble) return;
+      if (_personaMix.greeting && _personaMix.greeting.trim()) {
+        bubble.textContent = _personaMix.greeting.trim();
+        return;
+      }
+      const addressMap = { 'anh-chi': 'anh/chị', 'quy-khach': 'quý khách', 'mình': 'mình' };
+      const address = addressMap[_personaMix.customer] || 'anh/chị';
+      const suffix = _personaMix.region === 'tay' ? ' nha' : ' ạ';
+      const capAddress = address[0].toUpperCase() + address.slice(1);
+      let preview;
+      if (_personaMix.formality >= 8) {
+        preview = `Dạ em kính chào ${address}${suffix}. ${capAddress} cần em hỗ trợ về sản phẩm nào ạ?`;
+      } else if (_personaMix.formality <= 4) {
+        preview = `Dạ em chào ${address}${suffix}, ${address} cần gì em tư vấn giúp${suffix}?`;
+      } else {
+        preview = `Dạ em chào ${address}${suffix}. ${capAddress} cần em tư vấn gì không${suffix}?`;
+      }
+      bubble.textContent = preview;
+    }
+
+    async function savePersonaMix() {
+      if (!window.claw || !window.claw.savePersonaMix) return;
+      const status = document.getElementById('persona-save-status');
+      try {
+        const r = await window.claw.savePersonaMix(_personaMix);
+        if (r && r.ok) {
+          status.textContent = 'Đã lưu lúc ' + new Date().toLocaleTimeString('vi-VN');
+          status.style.color = 'var(--success, #4ade80)';
+        } else {
+          status.textContent = 'Lỗi: ' + (r && r.error ? r.error : 'không rõ');
+          status.style.color = 'var(--danger, #f87171)';
+        }
+      } catch (e) {
+        status.textContent = 'Lỗi: ' + e.message;
+        status.style.color = 'var(--danger, #f87171)';
+      }
+    }
+
+    // ============================================
+    //  SHOP STATE — Tình trạng hôm nay
+    // ============================================
+    async function loadShopState() {
+      if (!window.claw || !window.claw.getShopState) return;
+      try {
+        const state = await window.claw.getShopState();
+        if (!state) return;
+        document.getElementById('state-out-of-stock').value = (state.outOfStock || []).join('\n');
+        document.getElementById('state-staff-absent').value = (state.staffAbsent || []).join('\n');
+        document.getElementById('state-shipping-delay-active').checked = !!(state.shippingDelay && state.shippingDelay.active);
+        document.getElementById('state-shipping-reason').value = (state.shippingDelay && state.shippingDelay.reason) || '';
+        document.getElementById('state-shipping-hours').value = (state.shippingDelay && state.shippingDelay.estimatedDelayHours) || '';
+        document.getElementById('state-promotions').value = (state.activePromotions || [])
+          .map(p => `${p.name} | ${p.description} | ${p.validUntil || ''}`).join('\n');
+        document.getElementById('state-early-closing-active').checked = !!(state.earlyClosing && state.earlyClosing.active);
+        document.getElementById('state-early-closing-time').value = (state.earlyClosing && state.earlyClosing.time) || '';
+        document.getElementById('state-special-notes').value = state.specialNotes || '';
+      } catch (e) { console.error('loadShopState', e); }
+    }
+
+    async function saveShopState() {
+      const state = {
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'CEO via Dashboard',
+        outOfStock: document.getElementById('state-out-of-stock').value.split('\n').map(s => s.trim()).filter(Boolean),
+        staffAbsent: document.getElementById('state-staff-absent').value.split('\n').map(s => s.trim()).filter(Boolean),
+        shippingDelay: {
+          active: document.getElementById('state-shipping-delay-active').checked,
+          reason: document.getElementById('state-shipping-reason').value.trim(),
+          estimatedDelayHours: parseFloat(document.getElementById('state-shipping-hours').value) || 0
+        },
+        activePromotions: document.getElementById('state-promotions').value.split('\n').map(s => s.trim()).filter(Boolean).map(line => {
+          const [name, description, validUntil] = line.split('|').map(s => (s || '').trim());
+          return { name, description, validUntil };
+        }),
+        earlyClosing: {
+          active: document.getElementById('state-early-closing-active').checked,
+          time: document.getElementById('state-early-closing-time').value || null
+        },
+        specialNotes: document.getElementById('state-special-notes').value.trim()
+      };
+      try {
+        const r = await window.claw.setShopState(state);
+        const status = document.getElementById('shop-state-save-status');
+        if (r && r.ok) {
+          status.textContent = 'Đã lưu lúc ' + new Date().toLocaleTimeString('vi-VN');
+          status.style.color = 'var(--success, #4ade80)';
+        } else {
+          status.textContent = 'Lỗi: ' + ((r && r.error) || 'không rõ');
+          status.style.color = 'var(--danger, #f87171)';
+        }
+      } catch (e) {
+        console.error('saveShopState', e);
+      }
+    }
+
+    async function clearShopState() {
+      if (!confirm('Xoá toàn bộ state về trống?')) return;
+      document.getElementById('state-out-of-stock').value = '';
+      document.getElementById('state-staff-absent').value = '';
+      document.getElementById('state-shipping-delay-active').checked = false;
+      document.getElementById('state-shipping-reason').value = '';
+      document.getElementById('state-shipping-hours').value = '';
+      document.getElementById('state-promotions').value = '';
+      document.getElementById('state-early-closing-active').checked = false;
+      document.getElementById('state-early-closing-time').value = '';
+      document.getElementById('state-special-notes').value = '';
+      await saveShopState();
+    }
 
     // ============================================
     //  OVERVIEW PAGE — redesigned home (v2.2.9)
@@ -2429,24 +3478,6 @@
           heroEl.style.display = '';
         } else {
           heroEl.style.display = 'none';
-        }
-
-        // === ACTIONS (above fold) ===
-        const acEl = document.getElementById('ov-actions');
-        if (!data.actions || data.actions.length === 0) {
-          acEl.innerHTML = '<div class="ov-list-empty">Mọi thứ đều ổn</div>';
-          document.getElementById('ov-actions-card').style.display = '';
-        } else {
-          acEl.innerHTML = data.actions.map(a => {
-            const sev = a.severity || 'low';
-            const ctaAction = a.kind === 'bot-stopped'
-              ? 'window.claw.toggleBot(); setTimeout(loadOverview, 1500);'
-              : (a.ctaPage ? "switchPage('" + a.ctaPage + "');" : "window.claw.openLogFolder();");
-            return '<div class="ov-action-row" data-sev="' + _esc(sev) + '">'
-              + '<div class="ov-action-text">' + _esc(a.text) + '</div>'
-              + (a.cta ? '<button class="ov-action-cta" onclick="' + ctaAction + '">' + _esc(a.cta) + '</button>' : '')
-              + '</div>';
-          }).join('');
         }
 
         // === RECENT ZALO CUSTOMERS ===
@@ -3450,7 +4481,11 @@
         // Wait a moment for cache file to be written
         await new Promise(r => setTimeout(r, 1500));
         await loadDashboardZaloOwner();
-        if (status) { status.textContent = 'Danh sách đã cập nhật.'; status.style.color = 'var(--success,#16a34a)'; }
+        if (status) {
+          status.textContent = 'Danh sách đã cập nhật.';
+          status.style.color = 'var(--success,#16a34a)';
+          setTimeout(() => { if (status) status.style.display = 'none'; }, 2500);
+        }
       } catch (e) {
         if (status) { status.textContent = 'Lỗi refresh: ' + e.message; status.style.color = 'var(--danger)'; }
       }
@@ -3837,129 +4872,462 @@
     }
 
     // ============================================
-    //  GOOGLE CALENDAR TAB
+    //  APPOINTMENTS TAB — local calendar
     // ============================================
 
-    async function loadCalendarPage() {
+    let _appointments = [];
+    let _apptEditingId = null;
+    let _apptPushTargets = []; // in-memory for the form
+    let _apptPastOpen = false;
+    let _apptResolvingCount = 0; // pending async group/user resolve operations
+
+    // Escape for JavaScript string context (inside single-quoted JS strings).
+    // escHtml handles HTML entities but NOT apostrophes/backslashes, so meeting
+    // URLs with query strings containing ' would break inline onclick handlers.
+    function escJs(s) {
+      return String(s == null ? '' : s)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n')
+        .replace(/</g, '\\x3c');
+    }
+
+    // VN timezone helpers — form must always display/compare VN local time
+    // regardless of user's PC timezone (may be UTC/PST on demo laptops).
+    function vnHHMM(iso) {
+      if (!iso) return '';
       try {
-        const status = await window.claw.gcalGetStatus();
-        const connected = status && status.connected;
-        document.getElementById('gcal-connected').style.display = connected ? 'block' : 'none';
-        document.getElementById('gcal-not-connected').style.display = connected ? 'none' : 'block';
-        const btn = document.getElementById('gcal-connect-btn');
-        if (btn) btn.textContent = connected ? 'Da ket noi' : 'Ket noi Google Calendar';
-        if (btn) btn.disabled = connected;
-        if (connected) {
-          // Show email
-          const emailEl = document.getElementById('gcal-email-display');
-          if (emailEl && status.email) emailEl.textContent = 'Tai khoan: ' + status.email;
-          loadGcalEmbed();
-          loadGcalEvents();
-          loadGcalConfig();
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return '';
+        return new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour: '2-digit', minute: '2-digit', hour12: false,
+        }).format(d);
+      } catch { return ''; }
+    }
+    function vnDDMM(iso) {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return '';
+        return new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          day: '2-digit', month: '2-digit',
+        }).format(d);
+      } catch { return ''; }
+    }
+    function vnDateYmd(iso) {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return '';
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+        }).format(d);
+      } catch { return ''; }
+    }
+    function vnIsToday(iso) {
+      if (!iso) return false;
+      return vnDateYmd(iso) === vnDateYmd(new Date().toISOString());
+    }
+
+    function apptPad(n) { return String(n).padStart(2, '0'); }
+
+    function apptFormatDate(d) {
+      const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      return `${days[d.getDay()]}, ${apptPad(d.getDate())}/${apptPad(d.getMonth() + 1)}`;
+    }
+
+    function apptFormatDateTime(d) {
+      return `${apptPad(d.getHours())}:${apptPad(d.getMinutes())} · ${apptFormatDate(d)}`;
+    }
+
+    function apptIsToday(d) {
+      const now = new Date();
+      return d.getFullYear() === now.getFullYear()
+        && d.getMonth() === now.getMonth()
+        && d.getDate() === now.getDate();
+    }
+
+    async function loadAppointments() {
+      try {
+        _appointments = await window.claw.listAppointments() || [];
+        renderAppointments();
+        // Prefill form date with today if empty
+        const dateEl = document.getElementById('appt-date');
+        if (dateEl && !dateEl.value) {
+          dateEl.value = vnDateYmd(new Date().toISOString());
         }
       } catch (e) {
-        console.error('[gcal] loadCalendarPage error:', e);
+        console.error('[appt] load error:', e);
       }
     }
 
-    function loadGcalEmbed() {
-      const wv = document.getElementById('gcal-embed');
-      if (wv && (!wv.src || wv.src === 'about:blank')) {
-        wv.src = 'https://calendar.google.com/calendar/embed?mode=AGENDA';
+    function renderAppointments() {
+      const now = Date.now();
+      const endOfWeek = now + 7 * 24 * 60 * 60 * 1000;
+
+      const today = [];
+      const upcoming = [];
+      const past = [];
+
+      // Sort by start ascending
+      const sorted = [..._appointments].sort((a, b) => {
+        const ta = a.start ? new Date(a.start).getTime() : 0;
+        const tb = b.start ? new Date(b.start).getTime() : 0;
+        return ta - tb;
+      });
+
+      for (const apt of sorted) {
+        const startMs = apt.start ? new Date(apt.start).getTime() : 0;
+        if (apt.status === 'done' || apt.status === 'canceled' || (startMs && startMs < now - 60 * 60 * 1000)) {
+          past.push(apt);
+        } else if (startMs && vnIsToday(apt.start)) {
+          today.push(apt);
+        } else if (startMs && startMs <= endOfWeek) {
+          upcoming.push(apt);
+        } else if (startMs) {
+          upcoming.push(apt);
+        }
       }
+
+      document.getElementById('appt-today-count').textContent = today.length;
+      document.getElementById('appt-upcoming-count').textContent = upcoming.length;
+      document.getElementById('appt-past-count').textContent = past.length;
+
+      document.getElementById('appt-today-list').innerHTML = today.length
+        ? today.map(renderApptCard).join('')
+        : '<div class="appt-empty">Chưa có lịch nào hôm nay.</div>';
+
+      document.getElementById('appt-upcoming-list').innerHTML = upcoming.length
+        ? upcoming.map(renderApptCard).join('')
+        : '<div class="appt-empty">Không có lịch trong tuần tới.</div>';
+
+      document.getElementById('appt-past-list').innerHTML = past.length
+        ? past.map(renderApptCard).join('')
+        : '<div class="appt-empty">Chưa có lịch nào.</div>';
     }
 
-    async function loadGcalEvents() {
-      const container = document.getElementById('gcal-upcoming');
-      if (!container) return;
-      container.innerHTML = '<span style="color:var(--text-muted)">Dang tai...</span>';
+    function renderApptCard(apt) {
+      const hh = vnHHMM(apt.start) || '--:--';
+      const dd = vnDDMM(apt.start);
+      const statusClass = apt.status === 'done' ? 'is-done' : (apt.status === 'canceled' ? 'is-canceled' : '');
+      const title = escHtml(apt.title || 'Cuộc hẹn');
+      const metaParts = [];
+      if (apt.customerName) metaParts.push(`<span>${escHtml(apt.customerName)}</span>`);
+      if (apt.phone) metaParts.push(`<span>${escHtml(apt.phone)}</span>`);
+      if (apt.location) metaParts.push(`<span>${escHtml(apt.location)}</span>`);
+      if (apt.reminderMinutes) metaParts.push(`<span>Nhắc ${apt.reminderMinutes}p trước</span>`);
+      if (Array.isArray(apt.pushTargets) && apt.pushTargets.length) {
+        const pts = apt.pushTargets.map(t => {
+          const label = t.channel === 'zalo_group' ? `Nhóm ${escHtml(t.toName || '?')}`
+            : t.channel === 'zalo_user' ? `Zalo ${escHtml(t.toName || '?')}`
+            : 'Telegram';
+          return `<span class="appt-push-badge">${label}${t.atTime ? ' ' + escHtml(t.atTime) : ''}${t.daily ? ' daily' : ''}</span>`;
+        }).join('');
+        metaParts.push(pts);
+      }
+      const meetingLink = apt.meetingUrl
+        ? `<a class="appt-card-link" href="#" data-url="${escHtml(apt.meetingUrl)}" onclick="openApptUrl(this);return false">${escHtml(apt.meetingUrl)}</a>`
+        : '';
+      const noteBlock = apt.note ? `<div class="appt-card-meta" style="margin-top:4px;font-style:italic">${escHtml(apt.note)}</div>` : '';
+
+      return `
+        <div class="appt-card ${statusClass}">
+          <div class="appt-time-pill">
+            <div class="hh">${hh}</div>
+            <div class="date">${dd}</div>
+          </div>
+          <div class="appt-card-body">
+            <div class="appt-card-title">${title}</div>
+            <div class="appt-card-meta">${metaParts.join('') || '<span>—</span>'}</div>
+            ${meetingLink ? `<div style="margin-top:4px">${meetingLink}</div>` : ''}
+            ${noteBlock}
+          </div>
+          <div class="appt-card-actions">
+            <button class="appt-card-btn" title="Sửa" onclick="editAppointment('${escJs(apt.id)}')">Sửa</button>
+            <button class="appt-card-btn danger" title="Xóa" onclick="deleteAppointment('${escJs(apt.id)}')">Xóa</button>
+          </div>
+        </div>`;
+    }
+
+    // Safe link opener used by appt-card-link (reads URL from data attribute,
+    // bypasses inline JS quoting issues).
+    function openApptUrl(el) {
       try {
-        const res = await window.claw.gcalListEvents({ maxResults: 10 });
-        if (!res.success || !res.events || res.events.length === 0) {
-          container.innerHTML = '<span style="color:var(--text-muted)">Khong co lich hen sap toi</span>';
+        const url = el && el.dataset && el.dataset.url;
+        if (url) window.claw.openExternal(url);
+      } catch (e) { console.error('[openApptUrl]', e); }
+    }
+
+    function toggleApptPast() {
+      _apptPastOpen = !_apptPastOpen;
+      const el = document.getElementById('appt-past-list');
+      const btn = document.getElementById('appt-past-toggle');
+      if (el) el.style.display = _apptPastOpen ? 'flex' : 'none';
+      if (btn) btn.textContent = _apptPastOpen ? 'Ẩn' : 'Hiện';
+    }
+
+    function openApptForm() {
+      clearApptForm();
+      document.getElementById('appt-title')?.focus();
+      document.getElementById('appt-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function clearApptForm() {
+      _apptEditingId = null;
+      _apptPushTargets = [];
+      document.getElementById('appt-form-title').textContent = 'Tạo lịch hẹn mới';
+      document.getElementById('appt-title').value = '';
+      document.getElementById('appt-date').value = vnDateYmd(new Date().toISOString());
+      document.getElementById('appt-time-start').value = '14:00';
+      document.getElementById('appt-time-end').value = '15:00';
+      document.getElementById('appt-customer').value = '';
+      document.getElementById('appt-phone').value = '';
+      document.getElementById('appt-meeting-url').value = '';
+      document.getElementById('appt-location').value = '';
+      document.getElementById('appt-note').value = '';
+      document.getElementById('appt-reminder-min').value = '15';
+      document.getElementById('appt-reminder-ch').value = 'telegram';
+      renderPushTargets();
+      const msg = document.getElementById('appt-save-msg');
+      if (msg) { msg.textContent = ''; msg.className = 'appt-save-msg'; }
+    }
+
+    function addApptPushTarget() {
+      _apptPushTargets.push({ channel: 'zalo_group', toId: '', toName: '', atTime: '08:00', daily: true, template: '' });
+      renderPushTargets();
+    }
+
+    function removeApptPushTarget(idx) {
+      _apptPushTargets.splice(idx, 1);
+      renderPushTargets();
+    }
+
+    function renderPushTargets() {
+      const container = document.getElementById('appt-push-list');
+      if (!container) return;
+      if (!_apptPushTargets.length) {
+        container.innerHTML = '';
+        return;
+      }
+      // Preserve focus: note which input the user is currently in.
+      const active = document.activeElement;
+      const activeKey = active && active.dataset ? active.dataset.pushKey : null;
+      const activeStart = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
+
+      container.innerHTML = _apptPushTargets.map((t, i) => `
+        <div class="appt-push-item" data-idx="${i}">
+          <select data-push-key="ch-${i}" onchange="updatePushChannel(${i}, this.value)">
+            <option value="telegram" ${t.channel === 'telegram' ? 'selected' : ''}>Telegram sếp</option>
+            <option value="zalo_group" ${t.channel === 'zalo_group' ? 'selected' : ''}>Nhóm Zalo</option>
+            <option value="zalo_user" ${t.channel === 'zalo_user' ? 'selected' : ''}>Bạn Zalo</option>
+          </select>
+          <input type="text" data-push-key="name-${i}" placeholder="${t.channel === 'telegram' ? '(không cần nhập)' : 'Tên group/bạn (gõ xong bấm Tab)'}" value="${escHtml(t.toName || '')}" oninput="updatePushName(${i}, this.value)" onblur="resolveTargetName(${i}, this.value)" ${t.channel === 'telegram' ? 'disabled' : ''}>
+          <input type="time" data-push-key="time-${i}" value="${escHtml(t.atTime || '08:00')}" onchange="updatePushTarget(${i}, 'atTime', this.value)">
+          <label><input type="checkbox" ${t.daily ? 'checked' : ''} onchange="updatePushTarget(${i}, 'daily', this.checked)"> mỗi ngày</label>
+          <button class="remove-btn" onclick="removeApptPushTarget(${i})" title="Xóa">×</button>
+        </div>
+      `).join('');
+
+      // Restore focus + caret position.
+      if (activeKey) {
+        const restored = container.querySelector(`[data-push-key="${activeKey}"]`);
+        if (restored) {
+          restored.focus();
+          if (activeStart !== null && typeof restored.setSelectionRange === 'function') {
+            try { restored.setSelectionRange(activeStart, activeStart); } catch {}
+          }
+        }
+      }
+    }
+
+    function updatePushChannel(idx, value) {
+      if (!_apptPushTargets[idx]) return;
+      const t = _apptPushTargets[idx];
+      t.channel = value;
+      if (value === 'telegram') {
+        t.toId = '';
+        t.toName = '';
+      } else {
+        // Channel type changed (user vs group) — invalidate previous resolved id.
+        t.toId = '';
+      }
+      renderPushTargets();
+    }
+
+    function updatePushName(idx, value) {
+      // Called on every keystroke — update state without re-render so focus stays.
+      if (!_apptPushTargets[idx]) return;
+      _apptPushTargets[idx].toName = value;
+      _apptPushTargets[idx].toId = ''; // force re-resolve on blur
+    }
+
+    function updatePushTarget(idx, key, value) {
+      if (!_apptPushTargets[idx]) return;
+      _apptPushTargets[idx][key] = value;
+      if (key === 'channel' && value === 'telegram') {
+        _apptPushTargets[idx].toId = '';
+        _apptPushTargets[idx].toName = '';
+        renderPushTargets();
+      }
+    }
+
+    async function resolveTargetName(idx, query) {
+      const t = _apptPushTargets[idx];
+      if (!t) return;
+      t.toName = query;
+      if (!query || t.channel === 'telegram') return;
+      _apptResolvingCount++;
+      try {
+        const type = t.channel === 'zalo_group' ? 'group' : 'user';
+        const res = await window.claw.resolveZaloTarget(query, type);
+        const matches = res?.matches || [];
+        if (matches.length === 1) {
+          t.toId = matches[0].toId;
+          t.toName = matches[0].toName;
+          if (typeof showToast === 'function') showToast(`Đã khớp: ${t.toName}`);
+          renderPushTargets();
+        } else if (matches.length > 1) {
+          const names = matches.slice(0, 5).map(m => m.toName).join(', ');
+          if (typeof showToast === 'function') {
+            showToast(`${matches.length} kết quả khớp "${query}": ${names}. Gõ chính xác hơn.`);
+          }
+          t.toId = '';
+        } else {
+          if (typeof showToast === 'function') {
+            showToast(`Không tìm thấy ${t.channel === 'zalo_group' ? 'nhóm' : 'bạn'} Zalo "${query}"`);
+          }
+          t.toId = '';
+        }
+      } catch (e) {
+        console.error('[resolveTargetName]', e);
+      } finally {
+        _apptResolvingCount = Math.max(0, _apptResolvingCount - 1);
+      }
+    }
+
+    async function saveAppointment() {
+      const btn = document.getElementById('appt-save-btn');
+      const msg = document.getElementById('appt-save-msg');
+      const title = document.getElementById('appt-title').value.trim();
+      const date = document.getElementById('appt-date').value;
+      const timeStart = document.getElementById('appt-time-start').value;
+      const timeEnd = document.getElementById('appt-time-end').value;
+      if (!title) { msg.textContent = 'Thiếu tiêu đề'; msg.className = 'appt-save-msg error'; return; }
+      if (!date || !timeStart) { msg.textContent = 'Thiếu ngày / giờ'; msg.className = 'appt-save-msg error'; return; }
+
+      // Wait for any in-flight name→id resolution before validating. User pressing
+      // Save immediately after typing a group name triggers onblur→resolveTargetName
+      // async — validate would see toId still empty and reject. Wait up to 3s.
+      if (_apptResolvingCount > 0) {
+        msg.textContent = 'Đang phân giải tên nhóm Zalo...';
+        msg.className = 'appt-save-msg';
+        const waitUntil = Date.now() + 3000;
+        while (_apptResolvingCount > 0 && Date.now() < waitUntil) {
+          await new Promise(r => setTimeout(r, 50));
+        }
+      }
+
+      // Validate push targets
+      for (const t of _apptPushTargets) {
+        if (t.channel !== 'telegram' && !t.toId) {
+          msg.textContent = `Push target "${t.toName || '?'}" chưa resolve được ID — gõ lại tên`;
+          msg.className = 'appt-save-msg error';
           return;
         }
-        let html = '';
-        for (const ev of res.events) {
-          const startDate = ev.start ? new Date(ev.start) : null;
-          const dateStr = startDate ? startDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric' }) : '';
-          const timeStr = startDate ? startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
-          html += '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">';
-          html += '<div style="min-width:80px;font-size:11px;color:var(--text-muted);text-align:right">';
-          html += '<div>' + _esc(dateStr) + '</div><div style="font-weight:600;color:var(--text)">' + _esc(timeStr) + '</div></div>';
-          html += '<div style="flex:1"><div style="font-weight:500">' + _esc(ev.summary) + '</div>';
-          if (ev.location) html += '<div style="font-size:11px;color:var(--text-muted)">' + _esc(ev.location) + '</div>';
-          html += '</div>';
-          if (ev.htmlLink) html += '<a href="#" onclick="window.claw.openExternal(\'' + _esc(ev.htmlLink) + '\');return false" style="font-size:11px;color:var(--accent);text-decoration:none">Mo</a>';
-          html += '</div>';
-        }
-        container.innerHTML = html;
-      } catch (e) {
-        container.innerHTML = '<span style="color:var(--danger)">Loi: ' + _esc(e.message || 'Unknown') + '</span>';
       }
-    }
 
-    async function connectGoogleCalendar() {
-      const btn = document.getElementById('gcal-connect-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Dang ket noi...'; }
+      const channelSel = document.getElementById('appt-reminder-ch').value;
+      const reminderChannels = channelSel === 'both' ? ['telegram', 'zalo'] : [channelSel];
+
+      const data = {
+        title,
+        customerName: document.getElementById('appt-customer').value.trim(),
+        phone: document.getElementById('appt-phone').value.trim(),
+        start: `${date}T${timeStart}:00+07:00`,
+        end: timeEnd ? `${date}T${timeEnd}:00+07:00` : null,
+        meetingUrl: document.getElementById('appt-meeting-url').value.trim(),
+        location: document.getElementById('appt-location').value.trim(),
+        note: document.getElementById('appt-note').value.trim(),
+        reminderMinutes: parseInt(document.getElementById('appt-reminder-min').value, 10) || 15,
+        reminderChannels,
+        pushTargets: _apptPushTargets.map(t => ({
+          channel: t.channel,
+          toId: t.toId || '',
+          toName: t.toName || '',
+          atTime: t.atTime || null,
+          daily: !!t.daily,
+          template: t.template || '',
+        })),
+        createdBy: 'dashboard',
+      };
+
+      btn.disabled = true;
       try {
-        const res = await window.claw.gcalConnect();
-        if (res && res.success) {
-          if (typeof showToast === 'function') showToast('Da ket noi Google Calendar!');
-          loadCalendarPage();
+        let res;
+        if (_apptEditingId) {
+          res = await window.claw.updateAppointment(_apptEditingId, data);
         } else {
-          alert('Ket noi that bai: ' + (res?.error || 'Unknown error'));
-          if (btn) { btn.disabled = false; btn.textContent = 'Ket noi Google Calendar'; }
+          res = await window.claw.createAppointment(data);
+        }
+        if (res && res.ok) {
+          msg.textContent = _apptEditingId ? 'Đã cập nhật lịch hẹn' : 'Đã tạo lịch hẹn';
+          msg.className = 'appt-save-msg success';
+          await loadAppointments();
+          setTimeout(() => clearApptForm(), 800);
+        } else {
+          msg.textContent = res?.error || 'Lỗi không xác định';
+          msg.className = 'appt-save-msg error';
         }
       } catch (e) {
-        alert('Loi: ' + e.message);
-        if (btn) { btn.disabled = false; btn.textContent = 'Ket noi Google Calendar'; }
+        msg.textContent = 'Lỗi: ' + e.message;
+        msg.className = 'appt-save-msg error';
+      } finally {
+        btn.disabled = false;
       }
     }
 
-    async function disconnectGcal() {
-      if (!confirm('Ngat ket noi Google Calendar? Bot se khong the check lich hoac dat hen cho khach.')) return;
-      try {
-        await window.claw.gcalDisconnect();
-        if (typeof showToast === 'function') showToast('Da ngat ket noi Google Calendar');
-        loadCalendarPage();
-      } catch (e) {
-        alert('Loi: ' + e.message);
+    function editAppointment(id) {
+      const apt = _appointments.find(a => a.id === id);
+      if (!apt) return;
+      _apptEditingId = id;
+      document.getElementById('appt-form-title').textContent = 'Sửa lịch hẹn';
+      document.getElementById('appt-title').value = apt.title || '';
+      if (apt.start) {
+        document.getElementById('appt-date').value = vnDateYmd(apt.start);
+        document.getElementById('appt-time-start').value = vnHHMM(apt.start);
       }
+      if (apt.end) {
+        document.getElementById('appt-time-end').value = vnHHMM(apt.end);
+      }
+      document.getElementById('appt-customer').value = apt.customerName || '';
+      document.getElementById('appt-phone').value = apt.phone || '';
+      document.getElementById('appt-meeting-url').value = apt.meetingUrl || '';
+      document.getElementById('appt-location').value = apt.location || '';
+      document.getElementById('appt-note').value = apt.note || '';
+      document.getElementById('appt-reminder-min').value = String(apt.reminderMinutes || 15);
+      const ch = Array.isArray(apt.reminderChannels) ? apt.reminderChannels : ['telegram'];
+      document.getElementById('appt-reminder-ch').value = ch.length === 2 ? 'both' : (ch[0] || 'telegram');
+      _apptPushTargets = Array.isArray(apt.pushTargets) ? apt.pushTargets.map(t => ({ ...t })) : [];
+      renderPushTargets();
+      document.getElementById('appt-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    async function loadGcalConfig() {
+    async function deleteAppointment(id) {
+      if (!confirm('Xóa lịch hẹn này?')) return;
       try {
-        const cfg = await window.claw.gcalGetConfig();
-        const startEl = document.getElementById('gcal-work-start');
-        const endEl = document.getElementById('gcal-work-end');
-        const slotEl = document.getElementById('gcal-slot-duration');
-        const reminderEl = document.getElementById('gcal-reminder');
-        if (startEl && cfg.workingHours) startEl.value = cfg.workingHours.start || '08:00';
-        if (endEl && cfg.workingHours) endEl.value = cfg.workingHours.end || '18:00';
-        if (slotEl) slotEl.value = String(cfg.slotDurationMinutes || 30);
-        if (reminderEl) reminderEl.value = String(cfg.reminderMinutes || 15);
-      } catch (e) {
-        console.error('[gcal] loadGcalConfig error:', e);
-      }
-    }
-
-    async function saveGcalConfig() {
-      try {
-        const cfg = {
-          workingHours: {
-            start: document.getElementById('gcal-work-start')?.value || '08:00',
-            end: document.getElementById('gcal-work-end')?.value || '18:00',
-          },
-          slotDurationMinutes: parseInt(document.getElementById('gcal-slot-duration')?.value || '30', 10),
-          reminderMinutes: parseInt(document.getElementById('gcal-reminder')?.value || '15', 10),
-        };
-        const res = await window.claw.gcalSaveConfig(cfg);
-        if (res && res.success) {
-          if (typeof showToast === 'function') showToast('Da luu cai dat lich hen');
+        const res = await window.claw.deleteAppointment(id);
+        if (res && res.ok) {
+          await loadAppointments();
+        } else {
+          alert('Lỗi: ' + (res?.error || 'Unknown'));
         }
       } catch (e) {
-        alert('Loi luu cai dat: ' + e.message);
+        alert('Lỗi: ' + e.message);
       }
     }
 
@@ -3974,6 +5342,275 @@
       localStorage.removeItem('onboard-dismissed');
       loadOverview();
       toggleSupportMenu();
+    }
+    // ============================================
+    //  INTERACTIVE WALKTHROUGH — step-by-step guided tour
+    // ============================================
+    // Each step: { target: CSS selector, title, desc, pageBefore: switch to this page first }
+    const WALKTHROUGH_STEPS = [
+      {
+        target: '.sidebar-logo',
+        title: 'Chào mừng đến với MODOROClaw',
+        desc: 'Đây là trợ lý AI tự động trả lời khách trên Telegram + Zalo. Để em hướng dẫn anh/chị 8 bước sử dụng nhanh.',
+        pageBefore: 'overview',
+      },
+      {
+        target: '[data-page="overview"]',
+        title: 'Bước 1: Tổng quan',
+        desc: 'Trang này hiện thống kê: khách mới, sự kiện hôm nay, cron đã chạy. Nút "Dừng" ở trên để tắt bot khi cần.',
+        pageBefore: 'overview',
+      },
+      {
+        target: '[data-page="knowledge"]',
+        title: 'Bước 2: Upload tài liệu',
+        desc: 'Quan trọng nhất! Upload file PDF/Word/Excel về công ty, sản phẩm, nhân viên vào đây. Bot đọc hết và trả lời khách dựa trên nội dung. Có thể tạo thêm folder theo ngành.',
+        pageBefore: 'knowledge',
+      },
+      {
+        target: '[data-page="telegram"]',
+        title: 'Bước 3: Nhắn thử trên Telegram',
+        desc: 'Telegram là kênh chính giữa anh/chị và bot. Mở Telegram nhắn "/baocao" để bot gửi báo cáo ngay, hoặc "/menu" để xem các lệnh.',
+        pageBefore: 'telegram',
+      },
+      {
+        target: '[data-page="zalo"]',
+        title: 'Bước 4: Quản lý Zalo',
+        desc: 'Chọn tài khoản Zalo cá nhân của anh/chị để bot nhận diện là "chủ". Bot tự gửi lời mời kết bạn cho khách lạ. Nút "Tạm dừng" cho bot nghỉ 30 phút nếu anh/chị muốn tự rep.',
+        pageBefore: 'zalo',
+      },
+      {
+        target: '[data-page="calendar"]',
+        title: 'Bước 5: Lịch hẹn tự động',
+        desc: 'Quản lý lịch hẹn local. Nhắn Telegram cho bot: "thêm lịch mai 3pm họp anh Minh link zoom.us/abc" — bot tự tạo. Hoặc dùng form tạo nhanh ở tab này.',
+        pageBefore: 'calendar',
+      },
+      {
+        target: '[data-page="schedules"]',
+        title: 'Bước 6: Lịch tự động (cron)',
+        desc: 'Bot tự chạy: báo cáo sáng 7:30, báo cáo tối 21:00, follow-up khách Zalo 9:30. Có thể nhắn bot trên Telegram: "tạo cron nhắc tôi mỗi sáng 8h" để thêm.',
+        pageBefore: 'schedules',
+      },
+      {
+        target: '#support-fab',
+        title: 'Bước 7: Cần hỗ trợ?',
+        desc: 'Bấm nút "?" này bất cứ lúc nào để: xem video hướng dẫn, liên hệ MODORO, xem lại walkthrough này, hoặc mở log khi cần debug.',
+        pageBefore: 'overview',
+      },
+    ];
+    let _walkIdx = 0;
+
+    function showGuideModal() { walkthroughStart(); }
+
+    function replayWalkthrough() {
+      // Clear onboarding dismissed flag so overview hero re-appears after walkthrough
+      try { localStorage.removeItem('onboard-dismissed'); } catch (_) {}
+      // Close support menu
+      const menu = document.getElementById('support-menu');
+      if (menu) menu.style.display = 'none';
+      // Reset step state and start walkthrough unconditionally
+      _walkIdx = 0;
+      if (typeof walkthroughStart === 'function') {
+        walkthroughStart();
+      } else {
+        location.reload();
+      }
+    }
+
+    function walkthroughStart() {
+      _walkIdx = 0;
+      const menu = document.getElementById('support-menu');
+      if (menu) menu.style.display = 'none';
+      const ov = document.getElementById('walkthrough-overlay');
+      if (ov) ov.style.display = 'block';
+      _renderWalkDots();
+      walkthroughGo(0);
+    }
+    function walkthroughSkip() {
+      const ov = document.getElementById('walkthrough-overlay');
+      if (ov) ov.style.display = 'none';
+    }
+    function walkthroughNext() {
+      if (_walkIdx >= WALKTHROUGH_STEPS.length - 1) {
+        walkthroughSkip();
+        if (typeof showToast === 'function') showToast('Hoàn tất hướng dẫn. Chúc anh/chị dùng vui!', 'success');
+        return;
+      }
+      walkthroughGo(_walkIdx + 1);
+    }
+    function walkthroughPrev() {
+      if (_walkIdx <= 0) return;
+      walkthroughGo(_walkIdx - 1);
+    }
+    function walkthroughGo(idx) {
+      _walkIdx = idx;
+      const step = WALKTHROUGH_STEPS[idx];
+      if (!step) return;
+      // Switch page if needed
+      if (step.pageBefore && typeof currentPage !== 'undefined' && currentPage !== step.pageBefore) {
+        try { switchPage(step.pageBefore); } catch {}
+      }
+      // Wait for page transition before positioning
+      setTimeout(() => _walkPosition(step), 60);
+    }
+    function _walkPosition(step) {
+      const titleEl = document.getElementById('walkthrough-title');
+      const descEl = document.getElementById('walkthrough-desc');
+      const progEl = document.getElementById('walkthrough-progress');
+      const prevBtn = document.getElementById('walkthrough-prev');
+      const nextBtn = document.getElementById('walkthrough-next');
+      if (titleEl) titleEl.textContent = step.title;
+      if (descEl) descEl.textContent = step.desc;
+      if (progEl) progEl.textContent = 'Bước ' + (_walkIdx + 1) + ' / ' + WALKTHROUGH_STEPS.length;
+      if (prevBtn) prevBtn.style.visibility = _walkIdx === 0 ? 'hidden' : 'visible';
+      if (nextBtn) nextBtn.textContent = _walkIdx === WALKTHROUGH_STEPS.length - 1 ? 'Hoàn tất ✓' : 'Tiếp →';
+      _renderWalkDots();
+
+      const target = document.querySelector(step.target);
+      const highlight = document.getElementById('walkthrough-highlight');
+      const spotlight = document.getElementById('walkthrough-spotlight');
+      const card = document.getElementById('walkthrough-card');
+      if (!target || !highlight || !card || !spotlight) return;
+
+      const r = target.getBoundingClientRect();
+      const pad = 8;
+      const x = Math.max(r.left - pad, 0);
+      const y = Math.max(r.top - pad, 0);
+      const w = r.width + pad * 2;
+      const h = r.height + pad * 2;
+
+      highlight.style.display = 'block';
+      highlight.style.left = x + 'px';
+      highlight.style.top = y + 'px';
+      highlight.style.width = w + 'px';
+      highlight.style.height = h + 'px';
+
+      spotlight.setAttribute('x', x);
+      spotlight.setAttribute('y', y);
+      spotlight.setAttribute('width', w);
+      spotlight.setAttribute('height', h);
+
+      // Card placement: prefer right of target, fall back to below/above/left
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const cardW = 360;
+      const cardH = card.offsetHeight || 220;
+      const gap = 20;
+      let cx, cy;
+      // Try right
+      if (r.right + gap + cardW < vw - 10) {
+        cx = r.right + gap;
+        cy = Math.max(10, Math.min(vh - cardH - 10, r.top + r.height / 2 - cardH / 2));
+      }
+      // Try below
+      else if (r.bottom + gap + cardH < vh - 10) {
+        cx = Math.max(10, Math.min(vw - cardW - 10, r.left + r.width / 2 - cardW / 2));
+        cy = r.bottom + gap;
+      }
+      // Try above
+      else if (r.top - gap - cardH > 10) {
+        cx = Math.max(10, Math.min(vw - cardW - 10, r.left + r.width / 2 - cardW / 2));
+        cy = r.top - gap - cardH;
+      }
+      // Try left
+      else if (r.left - gap - cardW > 10) {
+        cx = r.left - gap - cardW;
+        cy = Math.max(10, Math.min(vh - cardH - 10, r.top + r.height / 2 - cardH / 2));
+      }
+      // Fallback: center
+      else {
+        cx = (vw - cardW) / 2;
+        cy = (vh - cardH) / 2;
+      }
+      card.style.left = cx + 'px';
+      card.style.top = cy + 'px';
+    }
+    function _renderWalkDots() {
+      const el = document.getElementById('walkthrough-dots');
+      if (!el) return;
+      el.innerHTML = WALKTHROUGH_STEPS.map((_, i) =>
+        '<div style="width:6px;height:6px;border-radius:50%;background:' + (i === _walkIdx ? 'var(--accent,#4ea1ff)' : 'var(--border)') + ';transition:background 0.2s"></div>'
+      ).join('');
+    }
+    // Reposition on window resize
+    window.addEventListener('resize', () => {
+      const ov = document.getElementById('walkthrough-overlay');
+      if (ov && ov.style.display !== 'none') {
+        const step = WALKTHROUGH_STEPS[_walkIdx];
+        if (step) _walkPosition(step);
+      }
+    });
+    function showFactoryResetModal() {
+      const bd = document.getElementById('factory-reset-backdrop');
+      if (bd) { bd.style.display = 'flex'; mountIcons(); }
+      const inp = document.getElementById('factory-reset-confirm-input');
+      if (inp) { inp.value = ''; _updateFactoryResetBtn(); }
+      const menu = document.getElementById('support-menu');
+      if (menu) menu.style.display = 'none';
+    }
+    function hideFactoryResetModal() {
+      const bd = document.getElementById('factory-reset-backdrop');
+      if (bd) bd.style.display = 'none';
+    }
+    function _updateFactoryResetBtn() {
+      const inp = document.getElementById('factory-reset-confirm-input');
+      const btn = document.getElementById('factory-reset-confirm-btn');
+      if (!inp || !btn) return;
+      const ok = inp.value.trim().toUpperCase() === 'XOA';
+      btn.disabled = !ok;
+      btn.style.opacity = ok ? '1' : '0.5';
+      btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    }
+    async function doFactoryReset() {
+      const btn = document.getElementById('factory-reset-confirm-btn');
+      if (btn && btn.disabled) return;
+      if (btn) { btn.disabled = true; btn.textContent = 'Đang xóa...'; }
+      try {
+        const r = await window.claw.factoryReset();
+        if (r && r.success) {
+          showToast('Đã xóa sạch — đang khởi động lại app...', 'success');
+          setTimeout(() => window.claw.relaunch(), 1500);
+        } else {
+          showToast('Lỗi: ' + (r && r.error || 'không rõ'), 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Xóa sạch'; }
+        }
+      } catch (e) {
+        showToast('Lỗi: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Xóa sạch'; }
+      }
+    }
+    // Export / import workspace (backup + restore)
+    async function handleExportWorkspace(ev) {
+      const btn = ev && ev.currentTarget;
+      const origHTML = btn ? btn.innerHTML : '';
+      if (btn) { btn.style.pointerEvents = 'none'; btn.innerHTML = '<span data-icon="download" data-icon-size="16"></span> Đang xuất...'; }
+      try {
+        const r = await window.claw.exportWorkspace();
+        if (!r || r.canceled) return;
+        if (r.ok) {
+          const mb = (r.sizeBytes / 1024 / 1024).toFixed(1);
+          alert('Đã xuất xong:\n' + r.path + '\n(' + mb + ' MB)');
+        } else {
+          alert('Lỗi: ' + (r.error || 'không rõ'));
+        }
+      } catch (e) {
+        alert('Lỗi: ' + e.message);
+      } finally {
+        if (btn) { btn.style.pointerEvents = ''; btn.innerHTML = origHTML; }
+      }
+    }
+    async function handleImportWorkspace(ev) {
+      if (!confirm('Khôi phục sẽ GHI ĐÈ dữ liệu hiện tại. Chỉ làm khi anh chắc chắn. Tiếp tục?')) return;
+      try {
+        const r = await window.claw.importWorkspace();
+        if (!r || r.canceled) return;
+        if (r.ok) {
+          alert('Đã khôi phục. Hãy khởi động lại app.');
+        } else {
+          alert('Lỗi: ' + (r.error || 'không rõ'));
+        }
+      } catch (e) {
+        alert('Lỗi: ' + e.message);
+      }
     }
     // Close support menu when clicking elsewhere
     document.addEventListener('click', function(e) {
@@ -3990,6 +5627,200 @@
     function tip(text) {
       return '<span class="tip" data-tooltip="' + _esc(text) + '">?</span>';
     }
+
+    // ============================================
+    //  KEYBOARD SHORTCUTS + COMMAND PALETTE
+    // ============================================
+    (function setupKeyboardShortcuts() {
+      const commands = [
+        { id: 'page-overview', label: 'Mở Tổng quan', keywords: 'overview dashboard tong quan' },
+        { id: 'page-telegram', label: 'Mở Telegram', keywords: 'telegram tele' },
+        { id: 'page-zalo', label: 'Mở Zalo', keywords: 'zalo' },
+        { id: 'page-calendar', label: 'Mở Lịch hẹn', keywords: 'calendar lich hen' },
+        { id: 'page-knowledge', label: 'Mở Knowledge', keywords: 'knowledge tai lieu' },
+        { id: 'page-schedules', label: 'Mở Lịch tự động', keywords: 'schedules lich tu dong cron' },
+        { id: 'page-9router', label: 'Mở AI Models', keywords: 'ai models 9router' },
+        { id: 'page-openclaw', label: 'Mở OpenClaw', keywords: 'openclaw' },
+        { id: 'action-help', label: 'Xem phím tắt (?)', keywords: 'help shortcut phim tat' }
+      ];
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .kbd-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9500; justify-content:center; align-items:flex-start; padding-top:12vh; backdrop-filter: blur(4px); }
+        .kbd-overlay.show { display:flex; }
+        .kbd-palette { width:min(560px, 92vw); background:var(--surface, #1a1a1a); border:1px solid var(--border, #333); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden; animation:kbdIn 0.12s ease-out; }
+        @keyframes kbdIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .kbd-palette-input { width:100%; background:transparent; border:none; outline:none; padding:16px 18px; font-size:15px; color:var(--text, #eee); border-bottom:1px solid var(--border, #333); font-family:inherit; box-sizing:border-box; }
+        .kbd-palette-list { max-height:50vh; overflow-y:auto; padding:6px 0; }
+        .kbd-palette-item { padding:10px 18px; font-size:13px; color:var(--text, #ddd); cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+        .kbd-palette-item.active { background:var(--accent, #4ea1ff); color:#fff; }
+        .kbd-palette-item .kbd-hint { font-size:11px; opacity:0.55; }
+        .kbd-palette-empty { padding:18px; text-align:center; color:var(--text-muted, #888); font-size:13px; }
+        .kbd-help-box { width:min(480px, 92vw); background:var(--surface, #1a1a1a); border:1px solid var(--border, #333); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.5); padding:22px 24px; animation:kbdIn 0.12s ease-out; }
+        .kbd-help-box h3 { margin:0 0 14px; font-size:16px; color:var(--text, #fff); }
+        .kbd-help-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border, #2a2a2a); font-size:13px; color:var(--text, #ddd); }
+        .kbd-help-row:last-child { border-bottom:none; }
+        .kbd-help-keys { display:flex; gap:4px; align-items:center; }
+        .kbd-help-keys kbd { background:var(--bg, #0d0d0d); border:1px solid var(--border, #333); border-radius:5px; padding:2px 8px; font-family:ui-monospace, monospace; font-size:11px; color:var(--text, #eee); min-width:18px; text-align:center; }
+      `;
+      document.head.appendChild(style);
+
+      const paletteOverlay = document.createElement('div');
+      paletteOverlay.className = 'kbd-overlay';
+      paletteOverlay.id = 'kbd-palette-overlay';
+      paletteOverlay.innerHTML = '<div class="kbd-palette" onclick="event.stopPropagation()">'
+        + '<input type="text" class="kbd-palette-input" id="kbd-palette-input" placeholder="Tìm lệnh nhanh..." autocomplete="off" spellcheck="false" />'
+        + '<div class="kbd-palette-list" id="kbd-palette-list"></div>'
+        + '</div>';
+      paletteOverlay.addEventListener('click', (e) => { if (e.target === paletteOverlay) closePalette(); });
+      document.body.appendChild(paletteOverlay);
+
+      const helpOverlay = document.createElement('div');
+      helpOverlay.className = 'kbd-overlay';
+      helpOverlay.id = 'kbd-help-overlay';
+      helpOverlay.innerHTML = '<div class="kbd-help-box" onclick="event.stopPropagation()">'
+        + '<h3>Phím tắt</h3>'
+        + '<div class="kbd-help-row"><span>Chuyển trang theo sidebar</span><div class="kbd-help-keys"><kbd>Ctrl</kbd><kbd>1</kbd><span style="opacity:0.5">..</span><kbd>9</kbd></div></div>'
+        + '<div class="kbd-help-row"><span>Mở bảng lệnh nhanh</span><div class="kbd-help-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div></div>'
+        + '<div class="kbd-help-row"><span>Hiện bảng phím tắt này</span><div class="kbd-help-keys"><kbd>?</kbd></div></div>'
+        + '<div class="kbd-help-row"><span>Đóng modal hiện tại</span><div class="kbd-help-keys"><kbd>Esc</kbd></div></div>'
+        + '</div>';
+      helpOverlay.addEventListener('click', (e) => { if (e.target === helpOverlay) closeHelp(); });
+      document.body.appendChild(helpOverlay);
+
+      let selectedIdx = 0;
+      let filteredCommands = commands.slice();
+
+      function renderList() {
+        const list = document.getElementById('kbd-palette-list');
+        if (!filteredCommands.length) {
+          list.innerHTML = '<div class="kbd-palette-empty">Không có lệnh nào khớp</div>';
+          return;
+        }
+        list.innerHTML = filteredCommands.map((c, i) =>
+          '<div class="kbd-palette-item' + (i === selectedIdx ? ' active' : '') + '" data-idx="' + i + '"><span>' + c.label + '</span><span class="kbd-hint">Enter</span></div>'
+        ).join('');
+        list.querySelectorAll('.kbd-palette-item').forEach(el => {
+          el.addEventListener('mouseenter', () => {
+            selectedIdx = parseInt(el.dataset.idx, 10);
+            updateActiveRow();
+          });
+          el.addEventListener('click', () => {
+            selectedIdx = parseInt(el.dataset.idx, 10);
+            executeSelected();
+          });
+        });
+      }
+
+      function updateActiveRow() {
+        const list = document.getElementById('kbd-palette-list');
+        if (!list) return;
+        list.querySelectorAll('.kbd-palette-item').forEach((el, i) => {
+          el.classList.toggle('active', i === selectedIdx);
+        });
+      }
+
+      function filterCommands(q) {
+        q = (q || '').trim().toLowerCase();
+        if (!q) { filteredCommands = commands.slice(); }
+        else {
+          filteredCommands = commands.filter(c => (c.label + ' ' + c.keywords).toLowerCase().includes(q));
+        }
+        selectedIdx = 0;
+        renderList();
+      }
+
+      function openPalette() {
+        closeHelp();
+        paletteOverlay.classList.add('show');
+        const input = document.getElementById('kbd-palette-input');
+        input.value = '';
+        filterCommands('');
+        setTimeout(() => input.focus(), 10);
+      }
+      function closePalette() { paletteOverlay.classList.remove('show'); }
+      function openHelp() { closePalette(); helpOverlay.classList.add('show'); }
+      function closeHelp() { helpOverlay.classList.remove('show'); }
+
+      function executeSelected() {
+        const cmd = filteredCommands[selectedIdx];
+        if (!cmd) return;
+        closePalette();
+        if (cmd.id === 'action-help') { openHelp(); return; }
+        if (cmd.id.startsWith('page-')) {
+          const pageName = cmd.id.slice(5);
+          try { switchPage(pageName); } catch {}
+        }
+      }
+
+      document.getElementById('kbd-palette-input').addEventListener('input', (e) => filterCommands(e.target.value));
+      document.getElementById('kbd-palette-input').addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (filteredCommands.length) { selectedIdx = (selectedIdx + 1) % filteredCommands.length; updateActiveRow(); }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (filteredCommands.length) { selectedIdx = (selectedIdx - 1 + filteredCommands.length) % filteredCommands.length; updateActiveRow(); }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          executeSelected();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closePalette();
+        }
+      });
+
+      function isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+      }
+
+      function anyModalOpen() {
+        return paletteOverlay.classList.contains('show') || helpOverlay.classList.contains('show');
+      }
+
+      function closeAllModals() {
+        closePalette();
+        closeHelp();
+        try {
+          const fr = document.getElementById('factory-reset-backdrop');
+          if (fr && fr.style.display !== 'none' && typeof hideFactoryResetModal === 'function') hideFactoryResetModal();
+        } catch {}
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (anyModalOpen()) { e.preventDefault(); closeAllModals(); return; }
+        }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'k' || e.key === 'K')) {
+          e.preventDefault();
+          if (paletteOverlay.classList.contains('show')) closePalette();
+          else openPalette();
+          return;
+        }
+        if (isTypingTarget(e.target)) return;
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+          e.preventDefault();
+          const items = document.querySelectorAll('.sidebar-menu-item[data-page]');
+          const idx = parseInt(e.key, 10) - 1;
+          const item = items[idx];
+          if (item) {
+            const page = item.dataset.page;
+            if (page) { try { switchPage(page); } catch {} }
+          }
+          return;
+        }
+        if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          if (helpOverlay.classList.contains('show')) closeHelp();
+          else openHelp();
+          return;
+        }
+      });
+
+      window.__kbdPalette = { open: openPalette, close: closePalette, openHelp, closeHelp };
+    })();
   </script>
 </body>
 </html>

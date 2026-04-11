@@ -112,6 +112,13 @@ contextBridge.exposeInMainWorld('claw', {
     ipcRenderer.on('channel-status', (_, data) => callback(data));
   },
 
+  // Appointments (local calendar)
+  listAppointments: () => ipcRenderer.invoke('list-appointments'),
+  createAppointment: (data) => ipcRenderer.invoke('create-appointment', data),
+  updateAppointment: (id, patch) => ipcRenderer.invoke('update-appointment', { id, patch }),
+  deleteAppointment: (id) => ipcRenderer.invoke('delete-appointment', { id }),
+  resolveZaloTarget: (query, type) => ipcRenderer.invoke('resolve-zalo-target', { query, type }),
+
   // Google Calendar
   gcalConnect: () => ipcRenderer.invoke('gcal-connect'),
   gcalDisconnect: () => ipcRenderer.invoke('gcal-disconnect'),
@@ -138,6 +145,21 @@ contextBridge.exposeInMainWorld('claw', {
   // Diagnostic log export — lets Dashboard grab main.log without DevTools
   getDiagnosticLog: (opts) => ipcRenderer.invoke('get-diagnostic-log', opts || {}),
   openLogFolder: () => ipcRenderer.invoke('open-log-folder'),
+
+  // Factory reset — wipe all user data (Dashboard button, not installer)
+  factoryReset: () => ipcRenderer.invoke('factory-reset'),
+
+  // Export / import workspace — backup to tar file and restore from tar
+  exportWorkspace: () => ipcRenderer.invoke('export-workspace'),
+  importWorkspace: () => ipcRenderer.invoke('import-workspace'),
+
+  // Shop state — "Tình trạng hôm nay" (real-time context for bot)
+  getShopState: () => ipcRenderer.invoke('get-shop-state'),
+  setShopState: (state) => ipcRenderer.invoke('set-shop-state', state),
+
+  // Persona mix — Dashboard re-edit after wizard
+  getPersonaMix: () => ipcRenderer.invoke('get-persona-mix'),
+  savePersonaMix: (mix) => ipcRenderer.invoke('save-persona-mix', mix),
 
   // Events
   onBotStatus: (callback) => {

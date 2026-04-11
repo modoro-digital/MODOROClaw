@@ -556,6 +556,234 @@
     .wz-summary-label { color: var(--text-secondary); font-weight: 500; min-width: 100px; }
     .wz-summary-value { color: var(--text); font-weight: 600; }
 
+    /* ===== Persona picker ===== */
+    .wz-persona-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .wz-persona-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px 14px 14px;
+      background: var(--surface, #fff);
+      border: 1px solid var(--border, #e5e5ea);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+      outline: none;
+      min-height: 148px;
+    }
+    .wz-persona-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      border-color: var(--accent, #0a84ff);
+    }
+    .wz-persona-card:focus-visible {
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.25);
+      border-color: var(--accent, #0a84ff);
+    }
+    .wz-persona-card.is-checked {
+      border: 2px solid var(--accent, #0a84ff);
+      background: var(--accent-soft, rgba(10,132,255,0.08));
+      padding: 15px 13px 13px;
+    }
+    .wz-persona-card.is-checked .wz-persona-check {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .wz-persona-check {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent, #0a84ff);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity .15s ease, transform .15s ease;
+    }
+    .wz-persona-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .wz-persona-avatar {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent, #0a84ff) 0%, rgba(10,132,255,0.55) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .wz-persona-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text, #1d1d1f);
+      line-height: 1.25;
+    }
+    .wz-persona-desc {
+      font-size: 12px;
+      color: var(--text-secondary, #555);
+      line-height: 1.4;
+    }
+    .wz-persona-industry {
+      font-size: 11px;
+      color: var(--text-tertiary, #888);
+      line-height: 1.4;
+    }
+    .wz-persona-quote {
+      margin-top: auto;
+      font-size: 11.5px;
+      font-style: italic;
+      color: var(--text-tertiary, #888);
+      line-height: 1.4;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height .2s ease, opacity .2s ease, margin-top .2s ease;
+      padding-top: 0;
+      border-top: 1px dashed transparent;
+    }
+    .wz-persona-card:hover .wz-persona-quote,
+    .wz-persona-card.is-checked .wz-persona-quote,
+    .wz-persona-card:focus-visible .wz-persona-quote {
+      max-height: 60px;
+      opacity: 1;
+      padding-top: 8px;
+      margin-top: 6px;
+      border-top-color: var(--border, #e5e5ea);
+    }
+    .wz-persona-skip {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    @media (max-width: 900px) {
+      .wz-persona-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .wz-persona-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Persona mix-and-match system ===== */
+    .wz-mix-section {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .wz-mix-section:first-of-type {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: none;
+    }
+    .wz-mix-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .wz-mix-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .wz-mix-chip {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wz-mix-chip:hover {
+      border-color: var(--accent);
+      background: var(--surface-hover, var(--bg));
+    }
+    .wz-mix-chip.is-selected {
+      background: var(--accent-soft, rgba(124, 92, 255, 0.12));
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .wz-mix-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .wz-mix-slider {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+    .wz-mix-slider-label {
+      font-size: 11px;
+      color: var(--text-muted, #9ba1a8);
+      white-space: nowrap;
+    }
+    .wz-mix-custom summary {
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted, #9ba1a8);
+      padding: 6px 0;
+      user-select: none;
+    }
+    .wz-mix-custom summary:hover { color: var(--text); }
+    .wz-mix-custom[open] summary { color: var(--text); }
+    .wz-mix-preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .wz-mix-preset-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--text-muted, #9ba1a8);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wz-mix-preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      border-style: solid;
+    }
+    .wz-mix-preview {
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .wz-mix-preview-label {
+      font-size: 11px;
+      color: var(--text-muted, #9ba1a8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .wz-mix-preview-bubble {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+      font-style: italic;
+    }
+
     /* ===== Responsive — collapse to single column under 1024px ===== */
     @media (max-width: 1024px) {
       .wz-shell { grid-template-columns: 1fr; }
@@ -757,32 +985,92 @@
             </div>
 
             <div class="wz-field">
-              <label class="wz-label">Phong cách giao tiếp</label>
-              <div class="wz-grid cols-3">
-                <label class="wz-choice" data-radio="tone">
-                  <input type="radio" name="tone" value="professional">
-                  <div class="wz-choice-body">
-                    <div class="wz-choice-icon"><span data-icon="building"></span></div>
-                    <div class="wz-choice-title">Chuyên nghiệp</div>
-                    <div class="wz-choice-desc">B2B, bất động sản, công nghệ</div>
-                  </div>
-                </label>
-                <label class="wz-choice is-checked" data-radio="tone">
-                  <input type="radio" name="tone" value="friendly" checked>
-                  <div class="wz-choice-body">
-                    <div class="wz-choice-icon"><span data-icon="users"></span></div>
-                    <div class="wz-choice-title">Thân thiện</div>
-                    <div class="wz-choice-desc">F&amp;B, dịch vụ, bán lẻ</div>
-                  </div>
-                </label>
-                <label class="wz-choice" data-radio="tone">
-                  <input type="radio" name="tone" value="concise">
-                  <div class="wz-choice-body">
-                    <div class="wz-choice-icon"><span data-icon="zap"></span></div>
-                    <div class="wz-choice-title">Ngắn gọn</div>
-                    <div class="wz-choice-desc">Đi thẳng vào vấn đề</div>
-                  </div>
-                </label>
+              <label class="wz-label">Tính cách nhân viên của bot</label>
+              <p class="wz-help" style="margin-top:-2px;margin-bottom:12px">Chọn các đặc điểm phù hợp với shop. Bot sẽ kết hợp thành một phong cách riêng — không bị khóa vào preset cứng.</p>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label">Vùng miền</div>
+                <div class="wz-mix-options" id="mix-region">
+                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="bac">Miền Bắc</button>
+                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="trung">Miền Trung</button>
+                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="nam">Miền Nam</button>
+                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="tay">Miền Tây</button>
+                  <button type="button" class="wz-mix-chip is-selected" data-mix="region" data-value="trung-tinh">Trung tính</button>
+                </div>
+              </div>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label">Bot tự xưng + giới tính</div>
+                <div class="wz-mix-options" id="mix-voice">
+                  <button type="button" class="wz-mix-chip is-selected" data-mix="voice" data-value="em-nu-tre">Em (nữ trẻ)</button>
+                  <button type="button" class="wz-mix-chip" data-mix="voice" data-value="em-nam-tre">Em (nam trẻ)</button>
+                  <button type="button" class="wz-mix-chip" data-mix="voice" data-value="chi-trung-nien">Chị (trung niên)</button>
+                  <button type="button" class="wz-mix-chip" data-mix="voice" data-value="anh-trung-nien">Anh (trung niên)</button>
+                  <button type="button" class="wz-mix-chip" data-mix="voice" data-value="minh-trung-tinh">Mình (trung tính)</button>
+                </div>
+              </div>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label">Gọi khách</div>
+                <div class="wz-mix-options" id="mix-customer">
+                  <button type="button" class="wz-mix-chip is-selected" data-mix="customer" data-value="anh-chi">Anh/chị</button>
+                  <button type="button" class="wz-mix-chip" data-mix="customer" data-value="quy-khach">Quý khách</button>
+                  <button type="button" class="wz-mix-chip" data-mix="customer" data-value="mình">Mình</button>
+                </div>
+              </div>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label">Tính cách (chọn 3-5 đặc điểm) — nhóm theo Big Five</div>
+                <div class="wz-mix-options" id="mix-traits">
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="sang-tao" title="Gợi ý combo mới, kể câu chuyện SP (Openness)">Sáng tạo</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="thuc-te" title="Thẳng vào vấn đề, không thêu dệt (Openness)">Thực tế</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="linh-hoat" title="Điều chỉnh theo khách, không cứng nhắc (Openness)">Linh hoạt</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="chin-chu" title="Kiểm tra kỹ, không miss chi tiết (Conscientiousness)">Chỉn chu</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="chu-dao" title="Để ý nhu cầu ngầm, gợi ý chủ động (Conscientiousness)">Chu đáo</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="kien-nhan" title="Không vội, giải thích chậm rãi (Conscientiousness)">Kiên nhẫn</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="nang-dong" title="Reply nhanh, tone tươi (Extraversion)">Năng động</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="diem-tinh" title="Bình tĩnh, tạo cảm giác yên tâm (Extraversion)">Điềm tĩnh</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="chu-dong" title="Dẫn dắt, gợi ý trước khi khách hỏi (Extraversion)">Chủ động</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="am-ap" title="Giọng tình cảm, như người quen (Agreeableness)">Ấm áp</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="dong-cam" title="Hiểu cảm xúc khách, đặt mình vào vị trí khách (Agreeableness)">Đồng cảm</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="thang-than" title="Nói rõ được/không, không vòng vo (Agreeableness)">Thẳng thắn</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="chuyen-nghiep" title="Formal, đúng mực (Service)">Chuyên nghiệp</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="than-thien" title="Balance formal và casual, universal (Service)">Thân thiện</button>
+                  <button type="button" class="wz-mix-chip" data-mix="trait" data-value="tinh-te" title="Xử lý khéo tình huống nhạy cảm (Service)">Tinh tế</button>
+                </div>
+              </div>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label">Độ trang trọng</div>
+                <div class="wz-mix-slider-row">
+                  <span class="wz-mix-slider-label">Rất thân mật</span>
+                  <input type="range" id="mix-formality" min="1" max="10" value="5" class="wz-mix-slider">
+                  <span class="wz-mix-slider-label">Rất trang trọng</span>
+                </div>
+              </div>
+
+              <details class="wz-mix-section wz-mix-custom">
+                <summary>Tùy chỉnh nâng cao (không bắt buộc)</summary>
+                <div style="padding-top:12px">
+                  <div class="wz-mix-label" style="margin-top:4px">Câu chào riêng</div>
+                  <input type="text" id="mix-greeting" class="wz-input" placeholder="VD: Dạ em Mai bên shop XYZ xin chào anh/chị ạ">
+                  <div class="wz-mix-label" style="margin-top:12px">Câu kết riêng</div>
+                  <input type="text" id="mix-closing" class="wz-input" placeholder="VD: Anh/chị cần gì thêm cứ nhắn em nha">
+                  <div class="wz-mix-label" style="margin-top:12px">Cụm từ đặc trưng (mỗi cụm 1 dòng)</div>
+                  <textarea id="mix-phrases" class="wz-input" rows="3" placeholder="VD:&#10;Bên em làm chuẩn lắm ạ&#10;Em nhớ anh/chị như người quen nhé"></textarea>
+                </div>
+              </details>
+
+              <div class="wz-mix-section">
+                <div class="wz-mix-label" style="margin-bottom:8px">Hoặc chọn mẫu có sẵn để auto-fill nhanh</div>
+                <div class="wz-mix-preset-row" id="mix-presets">
+                  <!-- preset buttons rendered by JS -->
+                </div>
+              </div>
+
+              <div class="wz-mix-preview">
+                <div class="wz-mix-preview-label">Preview reply của bot</div>
+                <div class="wz-mix-preview-bubble" id="mix-preview-bubble">Dạ em chào anh/chị ạ. Anh/chị cần em tư vấn gì không ạ?</div>
               </div>
             </div>
 
@@ -1096,7 +1384,7 @@
     // ===== Theme toggle =====
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
-      try { localStorage.setItem('mc-theme', theme); } catch {}
+      try { localStorage.setItem('theme', theme); } catch {}
       const iconEl = document.getElementById('theme-icon');
       if (iconEl) iconEl.innerHTML = icon(theme === 'dark' ? 'sun' : 'moon', 18);
     }
@@ -1252,6 +1540,135 @@
           inp.closest('.wz-choice').classList.toggle('is-checked', inp.checked);
         });
       });
+    }
+
+    // ===== Persona mix-and-match state =====
+    // CEO picks individual traits instead of a locked archetype. Config saved
+    // as active-persona.json on wizard submit; bot reads + applies per reply.
+    let personaMix = {
+      region: 'trung-tinh',
+      voice: 'em-nu-tre',
+      customer: 'anh-chi',
+      traits: ['am-ap', 'chu-dao', 'chuyen-nghiep'],
+      formality: 5,
+      greeting: '',
+      closing: '',
+      phrases: '',
+    };
+
+    // Presets: quick-start auto-fill from old archetype names. Clicking applies
+    // matching mix config but CEO can tweak after.
+    const PERSONA_PRESETS = [
+      { label: 'Chị bán hàng miền Tây', mix: { region: 'tay', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap','thuc-te','kien-nhan','chu-dao'], formality: 4 } },
+      { label: 'Em sale BĐS Sài Gòn', mix: { region: 'nam', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['nang-dong','chu-dong','chuyen-nghiep','chu-dao'], formality: 6 } },
+      { label: 'Cô giáo Hà Nội', mix: { region: 'bac', voice: 'chi-trung-nien', customer: 'anh-chi', traits: ['chin-chu','kien-nhan','chu-dao','tinh-te'], formality: 8 } },
+      { label: 'Dược sĩ ân cần', mix: { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['chin-chu','dong-cam','diem-tinh','chu-dao'], formality: 6 } },
+      { label: 'Chị spa cao cấp', mix: { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['tinh-te','am-ap','diem-tinh','linh-hoat'], formality: 7 } },
+      { label: 'Anh thợ sửa xe', mix: { region: 'nam', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['thang-than','thuc-te','chu-dao','than-thien'], formality: 4 } },
+      { label: 'Cô lễ tân 5 sao', mix: { region: 'bac', voice: 'em-nu-tre', customer: 'quy-khach', traits: ['tinh-te','chuyen-nghiep','chin-chu','linh-hoat'], formality: 10 } },
+      { label: 'Anh sale ôtô', mix: { region: 'trung-tinh', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['chuyen-nghiep','chu-dong','chu-dao','linh-hoat'], formality: 7 } },
+      { label: 'Chị chủ boutique', mix: { region: 'nam', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['sang-tao','tinh-te','am-ap','linh-hoat'], formality: 6 } },
+      { label: 'Anh kỹ thuật', mix: { region: 'trung-tinh', voice: 'em-nam-tre', customer: 'anh-chi', traits: ['chuyen-nghiep','kien-nhan','thuc-te','chu-dao'], formality: 6 } },
+    ];
+
+    function renderPresets() {
+      const row = document.getElementById('mix-presets');
+      if (!row) return;
+      row.innerHTML = PERSONA_PRESETS.map((p, i) => `
+        <button type="button" class="wz-mix-preset-btn" data-preset-index="${i}">${esc(p.label)}</button>
+      `).join('');
+      row.querySelectorAll('.wz-mix-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyPreset(parseInt(btn.getAttribute('data-preset-index'), 10)));
+      });
+    }
+
+    function applyPreset(idx) {
+      const preset = PERSONA_PRESETS[idx];
+      if (!preset) return;
+      Object.assign(personaMix, preset.mix);
+      syncMixUI();
+      updateMixPreview();
+    }
+
+    function syncMixUI() {
+      // Single-select chips: region, voice, customer
+      ['region', 'voice', 'customer'].forEach(group => {
+        document.querySelectorAll(`.wz-mix-chip[data-mix="${group}"]`).forEach(chip => {
+          chip.classList.toggle('is-selected', chip.getAttribute('data-value') === personaMix[group]);
+        });
+      });
+      // Multi-select: traits
+      document.querySelectorAll('.wz-mix-chip[data-mix="trait"]').forEach(chip => {
+        chip.classList.toggle('is-selected', personaMix.traits.includes(chip.getAttribute('data-value')));
+      });
+      // Slider
+      const slider = document.getElementById('mix-formality');
+      if (slider) slider.value = personaMix.formality;
+    }
+
+    function bindMixChips() {
+      document.querySelectorAll('.wz-mix-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const group = chip.getAttribute('data-mix');
+          const value = chip.getAttribute('data-value');
+          if (group === 'trait') {
+            const idx = personaMix.traits.indexOf(value);
+            if (idx >= 0) personaMix.traits.splice(idx, 1);
+            else if (personaMix.traits.length < 5) personaMix.traits.push(value);
+            else return; // max 5 traits
+          } else {
+            personaMix[group] = value;
+          }
+          syncMixUI();
+          updateMixPreview();
+        });
+      });
+      const slider = document.getElementById('mix-formality');
+      if (slider) slider.addEventListener('input', () => {
+        personaMix.formality = parseInt(slider.value, 10);
+        updateMixPreview();
+      });
+      ['mix-greeting', 'mix-closing', 'mix-phrases'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+          personaMix[id.replace('mix-', '')] = el.value;
+          updateMixPreview();
+        });
+      });
+    }
+
+    function updateMixPreview() {
+      const bubble = document.getElementById('mix-preview-bubble');
+      if (!bubble) return;
+      if (personaMix.greeting && personaMix.greeting.trim()) {
+        bubble.textContent = personaMix.greeting.trim();
+        return;
+      }
+      // Generate preview based on region + voice + customer
+      const addressMap = {
+        'anh-chi': 'anh/chị',
+        'quy-khach': 'quý khách',
+        'mình': 'mình',
+      };
+      const address = addressMap[personaMix.customer] || 'anh/chị';
+      const regionSuffix = {
+        'bac': ' ạ',
+        'trung': ' ạ',
+        'nam': ' ạ',
+        'tay': ' nha',
+        'trung-tinh': ' ạ',
+      }[personaMix.region] || ' ạ';
+      const isFormal = personaMix.formality >= 7;
+      const isCasual = personaMix.formality <= 4;
+      let preview;
+      if (isFormal) {
+        preview = `Dạ em kính chào ${address}${regionSuffix}. ${address[0].toUpperCase() + address.slice(1)} cần em hỗ trợ về sản phẩm nào ạ?`;
+      } else if (isCasual) {
+        preview = `Dạ em chào ${address}${regionSuffix}, ${address} cần gì em tư vấn giúp${regionSuffix}?`;
+      } else {
+        preview = `Dạ em chào ${address}${regionSuffix}. ${address[0].toUpperCase() + address.slice(1)} cần em tư vấn gì không${regionSuffix}?`;
+      }
+      bubble.textContent = preview;
     }
 
     // ===== Step 2: AI setup =====
@@ -1515,12 +1932,16 @@
 
         status.textContent = 'Đang lưu thông tin doanh nghiệp...';
         const companyDesc = document.getElementById('company-desc').value.trim();
+        const bizProduct = (document.getElementById('biz-product')?.value || '').trim();
+        const bizAudience = (document.getElementById('biz-audience')?.value || '').trim();
+        const bizHighlight = (document.getElementById('biz-highlight')?.value || '').trim();
         const teamSize = document.getElementById('team-size').value || 'small';
         const workStart = document.getElementById('work-start').value || '07:30';
         const workEnd = document.getElementById('work-end').value || '21:00';
         const goals = Array.from(document.querySelectorAll('input[name="goals"]:checked')).map(el => el.value);
         await withTimeout(window.claw.saveBusinessProfile({
           companyName: company, companyDesc, teamSize, workStart, workEnd, goals, ceoName: name,
+          bizProduct, bizAudience, bizHighlight,
         }));
 
         status.textContent = 'Đang cá nhân hóa trợ lý...';
@@ -1533,7 +1954,7 @@
           return;
         }
         const botName = (document.getElementById('bot-name')?.value || '').trim();
-        const personResult = await withTimeout(window.claw.savePersonalization({ industry, tone: selectedTone, pronouns: selectedPronouns, ceoTitle, botName }));
+        const personResult = await withTimeout(window.claw.savePersonalization({ industry, tone: selectedTone, pronouns: selectedPronouns, ceoTitle, botName, personaMix }));
         if (personResult && personResult.success === false) {
           showError('Lưu cá nhân hóa thất bại: ' + (personResult.error || 'không rõ lỗi'));
         }
@@ -1631,11 +2052,15 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Restore theme
       let theme = 'dark';
-      try { theme = localStorage.getItem('mc-theme') || 'dark'; } catch {}
+      try { theme = localStorage.getItem('theme') || localStorage.getItem('mc-theme') || 'dark'; } catch {}
       applyTheme(theme);
 
       mountIcons();
       bindChoices();
+      renderPresets();
+      bindMixChips();
+      syncMixUI();
+      updateMixPreview();
       bindBusinessDescAssembly();
       setProgress(1);
 
