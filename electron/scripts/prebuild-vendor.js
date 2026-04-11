@@ -367,6 +367,162 @@ function npmInstallVendorPackages() {
   log('✓ @tuyenhx/openzalo installed at', path.dirname(openzaloPlugin));
 }
 
+// Read the CPU architecture from a Mach-O / PE / ELF native binary header.
+// Used to verify better-sqlite3.node arch BEFORE shipping to users.
+// Returns 'arm64' | 'x64' | 'pe' | 'elf-arm64' | 'elf-x64' | 'unknown'.
+function detectBinaryArch(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(16);
+    fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    // Mach-O 64-bit magic (little-endian or big-endian)
+    if (buf.readUInt32BE(0) === 0xfeedfacf || buf.readUInt32LE(0) === 0xfeedfacf) {
+      const cpuType = buf.readUInt32LE(4);
+      if (cpuType === 0x0100000c) return 'arm64';
+      if (cpuType === 0x01000007) return 'x64';
+      return 'macho-unknown';
+    }
+    // PE (Windows .dll / .node)
+    if (buf[0] === 0x4d && buf[1] === 0x5a) return 'pe';
+    // ELF (Linux)
+    if (buf[0] === 0x7f && buf[1] === 0x45 && buf[2] === 0x4c && buf[3] === 0x46) {
+      const fd2 = fs.openSync(filePath, 'r');
+      const m = Buffer.alloc(2);
+      fs.readSync(fd2, m, 0, 2, 0x12);
+      fs.closeSync(fd2);
+      const machine = m.readUInt16LE(0);
+      if (machine === 0xb7) return 'arm64';
+      if (machine === 0x3e) return 'x64';
+    }
+  } catch {}
+  return 'unknown';
+}
+
+// Rebuild better-sqlite3 inside 9router's bundled Next.js app dir so it
+// matches the bundled Node binary (v22.x, not Electron). Without this step
+// the binary 9router ships in its npm package was compiled on the 9router
+// author's build machine — which may be a different arch or Node ABI.
+//
+// Root cause of "HTTP 500 on Mac wizard Thiết lập AI": 9router's
+// better-sqlite3 is arm64 in the package but running on x64 Mac (or the
+// reverse). Node can't load it → SQLite operations crash the server process
+// → every 9router API call returns 500.
+//
+// Strategy:
+//  1. Check if better_sqlite3.node exists; parse its Mach-O header.
+//  2. If arch doesn't match target → use prebuild-install to fetch the right
+//     prebuilt binary for plain Node (not Electron) at NODE_VERSION + arch.
+//  3. If prebuild-install fails → fall back to node-pre-gyp rebuild (needs
+//     C++ toolchain, which CI/dev machines have but user machines don't — this
+//     is only a build-time step so that's fine).
+//  4. Non-fatal: if both fail, log a loud warning and continue. The binary
+//     mismatch will surface as a 500 error for the user.
+function fixNineRouterNativeModules(platform, arch) {
+  if (platform !== 'darwin' && platform !== 'win32') return;
+
+  const nineRouterAppNm = path.join(VENDOR_NM, '9router', 'app', 'node_modules');
+  if (!fs.existsSync(nineRouterAppNm)) {
+    log('9router/app/node_modules not found — skipping native module fix');
+    return;
+  }
+
+  const bsqlDir = path.join(nineRouterAppNm, 'better-sqlite3');
+  if (!fs.existsSync(bsqlDir)) {
+    log('9router/app/node_modules/better-sqlite3 not found — skipping');
+    return;
+  }
+
+  const bsqlBin = path.join(bsqlDir, 'build', 'Release', 'better_sqlite3.node');
+
+  // Check arch
+  if (fs.existsSync(bsqlBin)) {
+    const actualArch = detectBinaryArch(bsqlBin);
+    if (platform === 'darwin') {
+      if (actualArch === arch) {
+        log(`✓ 9router better-sqlite3 arch=${actualArch} matches target — no rebuild needed`);
+        return;
+      }
+      log(`9router better-sqlite3 arch=${actualArch} but target=${arch} — rebuilding`);
+    } else {
+      // On Windows PE binaries don't need arch verification at this level since
+      // Node x64 on Windows x64 is the common case. Skip if binary exists.
+      log(`✓ 9router better-sqlite3 binary present (Windows) — skipping rebuild`);
+      return;
+    }
+  } else {
+    log('9router better-sqlite3 binary missing — building from source');
+  }
+
+  // Try prebuild-install (prebuilt binary for Node, not Electron)
+  const bundledNode = bundledNodeBinPath(platform);
+  const nodeVersionBare = NODE_VERSION.replace(/^v/, ''); // '22.22.2'
+
+  // prebuild-install may not be in PATH so we run it via npx or direct path.
+  // Use bundled Node so the ABI version is exactly right.
+  const prebuildScript = path.join(nineRouterAppNm, '.bin', 'prebuild-install');
+  const prebuildAvailable = fs.existsSync(prebuildScript);
+
+  if (prebuildAvailable) {
+    log(`running prebuild-install for 9router better-sqlite3 (node-${nodeVersionBare}, ${platform}-${arch})...`);
+    const r = spawnSync(bundledNode, [
+      prebuildScript,
+      '-r', 'node',
+      '-t', nodeVersionBare,
+      '--arch', arch,
+      '--platform', platform === 'darwin' ? 'darwin' : 'win32',
+    ], { cwd: bsqlDir, stdio: 'inherit', shell: false });
+    if (r.status === 0 && fs.existsSync(bsqlBin)) {
+      const verifiedArch = detectBinaryArch(bsqlBin);
+      log(`✓ 9router better-sqlite3 rebuilt — arch=${verifiedArch}`);
+      return;
+    }
+    warn('prebuild-install for 9router better-sqlite3 failed — trying node-pre-gyp');
+  }
+
+  // Fallback: node-pre-gyp rebuild (needs C++ toolchain on build machine)
+  const nodePreGyp = path.join(nineRouterAppNm, '.bin', 'node-pre-gyp');
+  if (fs.existsSync(nodePreGyp)) {
+    log('running node-pre-gyp rebuild for 9router better-sqlite3...');
+    const r = spawnSync(bundledNode, [
+      nodePreGyp, 'rebuild',
+      `--target=${nodeVersionBare}`,
+      `--target_arch=${arch}`,
+      `--target_platform=${platform === 'darwin' ? 'darwin' : 'win32'}`,
+    ], { cwd: bsqlDir, stdio: 'inherit', shell: false });
+    if (r.status === 0 && fs.existsSync(bsqlBin)) {
+      log('✓ 9router better-sqlite3 rebuilt via node-pre-gyp');
+      return;
+    }
+  }
+
+  // Last resort: use npx prebuild-install (will download if needed)
+  log('trying npx prebuild-install as last resort...');
+  const npm = platform === 'win32'
+    ? path.join(VENDOR_NODE, 'npm.cmd')
+    : path.join(VENDOR_NODE, 'bin', 'npm');
+  const npxBin = fs.existsSync(npm)
+    ? npm.replace('npm', 'npx')
+    : (platform === 'win32' ? 'npx.cmd' : 'npx');
+  const r = spawnSync(npxBin, [
+    '--yes', 'prebuild-install',
+    '-r', 'node',
+    '-t', nodeVersionBare,
+    '--arch', arch,
+  ], { cwd: bsqlDir, stdio: 'inherit', shell: platform === 'win32' });
+  if (r.status === 0 && fs.existsSync(bsqlBin)) {
+    log('✓ 9router better-sqlite3 rebuilt via npx prebuild-install');
+    return;
+  }
+
+  warn(
+    '9router better-sqlite3 rebuild FAILED on all attempts.\n' +
+    '  Users on this architecture will see HTTP 500 when connecting AI providers in wizard.\n' +
+    '  Manual fix: cd vendor/node_modules/9router/app/node_modules/better-sqlite3 &&\n' +
+    `  npx prebuild-install -r node -t ${nodeVersionBare} --arch ${arch}`
+  );
+}
+
 // On Windows ONLY, pack vendor/ into a single uncompressed tar + write a
 // meta.json sidecar. Reason: shipping ~50,000 loose files through NSIS is
 // pathologically slow (each file hits MFT + NTFS journal + Defender scan,
@@ -502,6 +658,7 @@ async function main() {
 
   await downloadAndExtractNode(platform, arch);
   npmInstallVendorPackages();
+  fixNineRouterNativeModules(platform, arch);
 
   if (platform === 'win32') {
     packVendorForWindows();

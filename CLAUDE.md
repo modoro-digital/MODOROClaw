@@ -367,6 +367,20 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 **Files:** `electron/package.json` (postinstall + bsqlite version), `electron/scripts/fix-better-sqlite3.js` (mới), `electron/main.js` (fallback + backfill + better error).
 **Verify:** Upload file qua Knowledge → hiện trong list ngay → restart Electron → file vẫn còn. Smoke test bằng Electron: `electron -e "const db=require('better-sqlite3')(':memory:'); console.log(db.prepare('select 1').get())"` phải in `{ '1': 1 }`.
 
+### 9router better-sqlite3 arch mismatch — Mac wizard "Thiết lập AI" 500 error
+**Bug:** User nhấn "Thiết lập AI" trong wizard step 2 (setup-9router-auto) → lỗi 500 trên Mac. getMe Telegram pass, sidebar xanh, nhưng kết nối AI provider fail.
+**Root cause:** `9router@0.3.82` npm package ship `app/node_modules/better-sqlite3/` với binary được build sẵn bởi tác giả 9router. Binary đó có thể là x64 trong khi user đang chạy arm64 Mac (hoặc ngược lại). Node không load được `better_sqlite3.node` → crash SQLite operations → 9router server process return 500 cho mọi API call.
+**Fix:** `fixNineRouterNativeModules(platform, arch)` trong `electron/scripts/prebuild-vendor.js` — chạy SAU `npmInstallVendorPackages()`:
+1. Parse Mach-O header của `9router/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node` để detect arch
+2. Nếu arch không match target → chạy `prebuild-install -r node -t 22.22.2 --arch <arch>` (plain Node, KHÔNG phải Electron) dùng bundled Node binary
+3. Fallback: `node-pre-gyp rebuild` rồi `npx prebuild-install`
+4. Non-fatal: nếu tất cả fail → log warning rõ ràng, không block build
+**Auto-apply:** Wire vào `main()` trong `prebuild-vendor.js` → chạy mỗi `npm run build:mac:arm` / `build:mac:intel`. Detect arch từ `TARGET_ARCH` env var giống phần Node binary download.
+**Verify:** Sau `npm run build:mac:arm`:
+- Mở wizard trên arm64 Mac → step 2 "Thiết lập AI" → KHÔNG còn lỗi 500
+- Check log `[prebuild-vendor] ✓ 9router better-sqlite3 rebuilt — arch=arm64`
+- Hoặc: `file vendor/node_modules/9router/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node` → "Mach-O 64-bit dynamically linked shared library arm64"
+
 ### 9Router default password (`ensure9RouterDefaultPassword`)
 **Bug:** CEO không login được 9Router với mật khẩu mặc định `123456`. Root cause **thật** (đã verify bằng `curl POST /api/auth/login` → 200 + set-cookie thành công): backend OK, nhưng `<iframe>` trong page `file://` của Electron khiến origin `127.0.0.1:20128` thành "third-party" → cookie `auth_token` bị Electron drop → form login submit OK nhưng request kế tiếp không có cookie → user thấy login "không vào được". (Phụ: pin `INITIAL_PASSWORD` + `JWT_SECRET` để chắc chắn backend luôn nhận `123456`.)
 **Fix chính:** Đổi `<iframe>` → `<webview partition="persist:embed-9router">` (cùng cho OpenClaw). `<webview>` có browsing context riêng, cookie không bị treat third-party. Cần `webPreferences.webviewTag: true` trong `BrowserWindow`. CSS `.embed-frame` chuyển sang `display:flex`/`inline-flex` cho phù hợp.

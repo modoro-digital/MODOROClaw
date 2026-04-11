@@ -5113,13 +5113,27 @@ function nineRouterApi(method, path, body = null, timeoutMs = 5000) {
   });
 }
 
-// Wait for 9router to be reachable. Polls /api/settings (lightweight,
-// always present) every 500ms up to maxMs. Returns true if responsive.
+// Wait for 9router to be reachable. Polls /api/settings every 500ms up to maxMs.
+// Returns { ready: true } on success, or { ready: false, reason: '...' } on timeout.
+// Distinguishes between "never started" (ECONNREFUSED) vs "started but 5xx" (native
+// module crash — e.g. better-sqlite3 arch mismatch on Mac).
 async function waitFor9RouterReady(maxMs = 10000) {
   const start = Date.now();
+  let consecutiveFiveXx = 0;
   while (Date.now() - start < maxMs) {
     const r = await nineRouterApi('GET', '/api/settings', null, 1500);
     if (r.success || (r.statusCode && r.statusCode < 500)) return true;
+    if (r.statusCode && r.statusCode >= 500) {
+      consecutiveFiveXx++;
+      // 3 consecutive 5xx while process IS accepting connections = internal crash
+      // (e.g. better-sqlite3 native module arch mismatch). No point waiting longer.
+      if (consecutiveFiveXx >= 3) {
+        console.warn('[waitFor9RouterReady] 9router accepting connections but returning 5xx consistently — likely native module crash');
+        return false;
+      }
+    } else {
+      consecutiveFiveXx = 0; // reset on ECONNREFUSED / timeout
+    }
     await new Promise(res => setTimeout(res, 500));
   }
   return false;
