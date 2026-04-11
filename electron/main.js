@@ -2100,15 +2100,23 @@ function trimZaloMemoryFile(filePath, maxBytes) {
     const header = fmEnd >= 0 ? content.slice(0, fmEnd + 5) : '';
     const body = fmEnd >= 0 ? content.slice(fmEnd + 5) : content;
 
-    // Split body into dated sections (split on \n\n## YYYY-MM-DD)
+    // Split body into dated sections (split on \n\n## YYYY-MM-DD).
+    // sections[0] may be a non-dated intro block (profile markdown heading, import note)
+    // — never drop it. Only drop sections that ARE dated (start with \n\n## YYYY-MM-DD).
     const sectionRe = /(?=\n\n## \d{4}-\d{2}-\d{2})/g;
     const sections = body.split(sectionRe).filter(Boolean);
+    const datedRe = /^\n\n## \d{4}-\d{2}-\d{2}/;
 
-    // Drop oldest sections until under cap
-    while (sections.length > 1) {
+    // Find index of first dated section; everything before it is the intro block (preserved)
+    let firstDatedIdx = sections.findIndex(s => datedRe.test(s));
+    if (firstDatedIdx < 0) firstDatedIdx = sections.length; // no dated sections — nothing to drop
+
+    // Drop oldest DATED sections until under cap
+    while (firstDatedIdx < sections.length) {
       const trimmed = header + sections.join('');
       if (Buffer.byteLength(trimmed, 'utf-8') <= maxBytes) break;
-      sections.shift(); // remove oldest
+      sections.splice(firstDatedIdx, 1); // remove oldest dated section
+      // firstDatedIdx stays the same (next oldest is now at the same index)
     }
 
     const newContent = header + sections.join('');
@@ -8603,10 +8611,12 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
   }
   const nodeBin = findNodeBin() || 'node';
 
-  // Split text into ≤780-char chunks at paragraph/sentence boundaries
+  // Split text into ≤780-char chunks at paragraph/sentence boundaries.
+  // Split is independent of skipFilter — even system alerts (cron errors) can exceed
+  // Zalo's hard limit and must be split to avoid openzca truncation on the wire.
   const ZALO_CHUNK = 780;
   const chunks = [];
-  if (!skipFilter && text.length > ZALO_CHUNK) {
+  if (text.length > ZALO_CHUNK) {
     let remaining = text;
     while (remaining.length > ZALO_CHUNK) {
       let cut = ZALO_CHUNK;
@@ -10138,6 +10148,17 @@ async function processFollowUpQueue() {
       }
       changed = true;
     }
+    // Re-read before writing: IPC handler may have added entries while runCronAgentPrompt
+    // was awaited (lock held for up to 600s). Merge by id: IPC-written entries that are
+    // not in our in-memory queue get appended; our in-memory updates (firedAt stamps) win.
+    if (changed) {
+      const freshQueue = readFollowUpQueue();
+      const ourIds = new Set(queue.map(q => q.id));
+      for (const fresh of freshQueue) {
+        if (!ourIds.has(fresh.id)) queue.push(fresh); // new entry written by IPC
+      }
+    }
+
     // Purge entries older than 24h
     const cutoff = now - 24 * 60 * 60 * 1000;
     const before = queue.length;
@@ -10158,17 +10179,13 @@ function startFollowUpChecker() {
 }
 
 // IPC: bot or dashboard can queue a follow-up.
-// IMPORTANT: must check _followUpQueueLock. processFollowUpQueue is async — between
-// its `readFollowUpQueue()` and `writeFollowUpQueue()` calls, Node may yield to the
-// event loop and this IPC handler can fire. Without the lock check, the IPC write
-// would be overwritten by processFollowUpQueue's subsequent write (last-writer-wins
-// = lost follow-up entry). With the lock check we retry once after a short yield.
+// Race safety: processFollowUpQueue holds _followUpQueueLock for the entire async duration
+// (up to 600s while runCronAgentPrompt executes). A 150ms yield was insufficient.
+// Instead, processFollowUpQueue re-reads the queue file before its final write (see above),
+// so any IPC-written entries that arrived during the long await are merged back in.
+// The IPC handler itself simply writes immediately — it only appends, never overwrites.
 ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipientName, question, prompt, delayMinutes }) => {
   try {
-    // Retry once if queue is being processed — wait for current process to finish
-    if (_followUpQueueLock) {
-      await new Promise(r => setTimeout(r, 150));
-    }
     const queue = readFollowUpQueue();
     const id = 'fu_' + Date.now();
     const fireAt = new Date(Date.now() + (delayMinutes || 15) * 60 * 1000).toISOString();
