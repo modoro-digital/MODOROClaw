@@ -210,6 +210,17 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 **Auto-apply:** `ensureOpenzaloShellFix()` trong `main.js` — gọi trong `startOpenClaw()`
 **Verify:** Group Zalo @mention → bot reply đến được group
 
+### DELIVER-COALESCE patch v4 — reliable split fix + group error surfacing
+**Bug (v3 fragility):** v3 dùng exact string match cho `deliver` callback trong `inbound.ts`. Nếu openzalo update dù chỉ 1 space/biến, `content.includes(oldDeliver)` = false → callback NOT replaced → split tái xuất. Tệ hơn: v3 marker vẫn được ghi vào file dù callback không được replace → `ensureOpenzaloForceOneMessageFix()` bỏ qua mọi lần startup sau → broken state persist vĩnh viễn.
+**Bug (group error swallowed):** Timer flush dùng `.catch(() => {})` → khi group send fail (Zalo API error, bot bị kick khỏi group, rate-limit), error bị nuốt hoàn toàn. CEO không thấy gì, gateway log cũng không có.
+**Fix v4:**
+- Thay exact string match bằng regex `/([ \t]+deliver:\s*async\s*\(payload\)\s*=>\s*\{\n[ \t]+await deliverAndRememberOpenzaloReply\(\{[\s\S]*?\}\);\n[ \t]+\},)/` — flexible với whitespace thay đổi
+- Nếu regex không match (openzalo thay đổi lớn hơn): revert partial injection → KHÔNG ghi marker → retry tự động lần start kế tiếp
+- Timer `.catch(() => {})` → `.catch((e) => { runtime.error?.("[deliver-coalesce] flush error: " + String(e)) })` — group send error bây giờ visible trong gateway logs
+- Marker v4 chỉ được ghi sau khi TOÀN BỘ patch (buffer setup + callback + flush) thành công
+**Auto-apply:** `ensureOpenzaloForceOneMessageFix()` trong `main.js`. Existing installs có v3 marker → re-patch với v4 tự động vì marker khác tên
+**Verify:** Restart Electron → console: `[zalo-force-one-msg] Part 3 deliver callback replaced with coalescing version (v4)`. Nếu group send fail → gateway log show `[deliver-coalesce] flush error: ...`
+
 ### Block streaming disabled (per-channel only)
 **Bug:** Default `blockStreaming: true` + `coalesceIdleMs: 1000` → khi model chậm, token đầu ("D") fire idle timeout trước khi token tiếp theo ("ạ") đến → split thành 2 message.
 **Fix:** `blockStreaming: false` ở 2 chỗ per-channel trong `openclaw.json`:

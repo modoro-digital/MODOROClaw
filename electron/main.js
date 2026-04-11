@@ -4030,13 +4030,20 @@ function ensureOpenzaloForceOneMessageFix() {
     // Openclaw creates 2 separate payloads from 2 text parts. disableBlockStreaming
     // only kills streaming, not this post-split. Fix: wrap the deliver callback
     // to buffer text-only payloads by 400ms and merge them into one send.
-    if (!content.includes('MODOROClaw DELIVER-COALESCE PATCH v3')) {
+    //
+    // v4 vs v3: (1) regex-based callback match instead of exact string → survives
+    //   minor openzalo whitespace/var-name changes without silent failure.
+    //   (2) v3 marker only written after FULL patch (buffer + callback + flush).
+    //   If callback not found → revert partial state → retry on next startup.
+    //   (3) timer flush logs errors instead of swallowing → group send failures
+    //   surface in gateway logs instead of silently disappearing.
+    if (!content.includes('MODOROClaw DELIVER-COALESCE PATCH v4')) {
       const coalesceAnchor = '  const dispatchResult = await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({';
       if (!content.includes(coalesceAnchor)) {
         console.warn('[zalo-force-one-msg] Part 3 anchor missing — dispatchReply not found');
       } else {
         const coalesceInjection =
-          '  // MODOROClaw DELIVER-COALESCE PATCH v3:\n' +
+          '  // MODOROClaw DELIVER-COALESCE PATCH v4:\n' +
           '  // Root cause of "Dạ" → "D" + "ạ..." split: model (reasoning-enabled) emits\n' +
           '  // interleaved content array like [text:"D", thinking:"", text:"ạ..."].\n' +
           '  // Openclaw turns each text part into a separate final payload. disableBlockStreaming\n' +
@@ -4067,12 +4074,13 @@ function ensureOpenzaloForceOneMessageFix() {
           coalesceAnchor;
         content = content.replace(coalesceAnchor, coalesceInjection);
 
-        // Now replace the original deliver callback body with coalescing logic.
-        // Indentation: deliver is at 6 spaces (inside dispatcherOptions), body at 8/10.
-        const oldDeliver = '      deliver: async (payload) => {\n        await deliverAndRememberOpenzaloReply({\n          payload,\n          target: outboundTarget,\n          sessionKey: route.sessionKey,\n          account,\n          cfg,\n          runtime,\n          statusSink,\n        });\n      },';
+        // Replace the original deliver callback with coalescing logic.
+        // Use REGEX instead of exact string — survives minor openzalo whitespace/var changes.
+        // Matches: deliver: async (payload) => { \n  await deliverAndRememberOpenzaloReply({...}); \n },
+        const deliverCallbackRegex = /([ \t]+deliver:\s*async\s*\(payload\)\s*=>\s*\{\n[ \t]+await deliverAndRememberOpenzaloReply\(\{[\s\S]*?\}\);\n[ \t]+\},)/;
         const newDeliver =
           '      deliver: async (payload) => {\n' +
-          '        // MODOROClaw DELIVER-COALESCE v3: route through buffer so consecutive text chunks\n' +
+          '        // MODOROClaw DELIVER-COALESCE v4: route through buffer so consecutive text chunks\n' +
           '        // (model emits [text:"D", thinking:"", text:"ạ..."]) get merged before send.\n' +
           '        const hasMedia = (payload?.mediaUrl || (payload?.mediaUrls?.length ?? 0) > 0 || (payload?.mediaPaths?.length ?? 0) > 0);\n' +
           '        const text = String(payload?.text || "").trim();\n' +
@@ -4088,32 +4096,42 @@ function ensureOpenzaloForceOneMessageFix() {
           '          __mcBuffer.firstPayload = payload;\n' +
           '        }\n' +
           '        if (__mcBuffer.timer) clearTimeout(__mcBuffer.timer);\n' +
-          '        __mcBuffer.timer = setTimeout(() => { __mcFlush().catch(() => {}); }, __mcFlushDelay);\n' +
+          // v4 fix: log errors instead of silently catching — group send failures
+          // (Zalo API errors, bot not in group, rate-limit) now surface in gateway logs.
+          '        __mcBuffer.timer = setTimeout(() => { __mcFlush().catch((e) => { try { runtime.error?.("[deliver-coalesce] flush error: " + String(e)); } catch {} }); }, __mcFlushDelay);\n' +
           '      },';
-        if (content.includes(oldDeliver)) {
-          content = content.replace(oldDeliver, newDeliver);
-          console.log('[zalo-force-one-msg] Part 3 deliver callback replaced with coalescing version');
+        const deliverMatch = content.match(deliverCallbackRegex);
+        if (deliverMatch) {
+          content = content.replace(deliverMatch[1], newDeliver);
+          console.log('[zalo-force-one-msg] Part 3 deliver callback replaced with coalescing version (v4)');
         } else {
-          console.warn('[zalo-force-one-msg] Part 3 deliver body not found — coalesce setup injected but callback not replaced');
+          // Callback not found — revert partial injection so next startup retries cleanly.
+          // Do NOT write the v4 marker; the patching will re-attempt on next Electron start.
+          console.warn('[zalo-force-one-msg] Part 3 deliver callback not found (regex miss) — reverting partial injection, will retry on next startup');
+          content = content.replace(coalesceInjection, coalesceAnchor);
+          fs.writeFileSync(pluginFile, content, 'utf-8');
+          return; // skip marker write
         }
 
-        // Inject final flush after the dispatchResult assignment
-        const dispatchEndMarker = '  const dispatchResult = await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({';
-        // We need to inject AFTER the closing `});` of this call. Look for the pattern.
+        // Inject final flush after the dispatchReplyWithBufferedBlockDispatcher call closes.
+        // Uses flexible regex to find the closing }); of the call.
         const dispatchCallEnd = /(\s+},\s*\n\s*replyOptions:\s*\{[\s\S]*?\n\s*\}\s*,?\s*\n\s*\}\);)/;
         const m = content.match(dispatchCallEnd);
         if (m) {
           const injectAfter = '\n  await __mcFlush(); // MODOROClaw DELIVER-COALESCE flush';
           content = content.replace(m[1], m[1] + injectAfter);
+        } else {
+          // Timer-based flush still fires after 400ms — not critical, but log for visibility.
+          console.warn('[zalo-force-one-msg] Part 3 dispatch end not found — final flush will rely on 400ms timer only');
         }
 
-        // Add v3 marker so we don't re-patch
+        // Add v4 marker ONLY when patch is fully applied (buffer setup + callback + flush).
         content = content.replace(
-          '  // MODOROClaw DELIVER-COALESCE PATCH v3:',
-          '  // MODOROClaw DELIVER-COALESCE PATCH v3 — marker\n  // MODOROClaw DELIVER-COALESCE PATCH v3:'
+          '  // MODOROClaw DELIVER-COALESCE PATCH v4:',
+          '  // MODOROClaw DELIVER-COALESCE PATCH v4 — marker\n  // MODOROClaw DELIVER-COALESCE PATCH v4:'
         );
         fs.writeFileSync(pluginFile, content, 'utf-8');
-        console.log('[zalo-force-one-msg] Part 3 deliver-coalesce patch applied');
+        console.log('[zalo-force-one-msg] Part 3 deliver-coalesce patch v4 applied');
       }
     }
   } catch (e) {
