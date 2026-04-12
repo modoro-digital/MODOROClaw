@@ -1,4 +1,4 @@
-; MODOROClaw custom uninstaller cleanup
+; 9BizClaw custom uninstaller cleanup
 ;
 ; DESIGN PRINCIPLE: Uninstaller NEVER touches user data. Windows convention —
 ; uninstall removes the app, keeps %APPDATA%. If user wants a full factory

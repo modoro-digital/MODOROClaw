@@ -84,7 +84,7 @@ function initFileLogger() {
     });
 
     console.log('==========================================');
-    console.log('MODOROClaw starting —', new Date().toISOString());
+    console.log('9BizClaw starting —', new Date().toISOString());
     console.log('log file:', logPath);
     console.log('platform:', process.platform, 'arch:', process.arch);
     console.log('electron:', process.versions.electron, 'node:', process.versions.node);
@@ -382,7 +382,7 @@ async function ensureVendorExtracted({ onProgress } = {}) {
       });
       const actual = hash.digest('hex');
       if (actual !== meta.sha256) {
-        throw new Error(`vendor-bundle.tar SHA256 mismatch (expected ${meta.sha256.slice(0, 16)}..., got ${actual.slice(0, 16)}...). File is corrupt or tampered. Re-install MODOROClaw.`);
+        throw new Error(`vendor-bundle.tar SHA256 mismatch (expected ${meta.sha256.slice(0, 16)}..., got ${actual.slice(0, 16)}...). File is corrupt or tampered. Re-install 9BizClaw.`);
       }
       console.log('[vendor-extract] sha256 verified');
     } catch (e) {
@@ -2340,7 +2340,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: 'MODOROClaw',
+    title: '9BizClaw',
     resizable: true,
     backgroundColor: '#0A0A0F',
     show: false,
@@ -2511,7 +2511,7 @@ function createTray() {
   }
 
   tray = new Tray(icon);
-  tray.setToolTip('MODOROClaw — Trợ lý AI cho CEO');
+  tray.setToolTip('9BizClaw — Trợ lý AI cho CEO');
   try { global.__tray = tray; } catch {}
 
   const show = () => {
@@ -2558,7 +2558,7 @@ function createTray() {
       }
     },
     { type: 'separator' },
-    { label: 'Thoát MODOROClaw', click: () => { app.isQuitting = true; stopOpenClaw(); app.quit(); } },
+    { label: 'Thoát 9BizClaw', click: () => { app.isQuitting = true; stopOpenClaw(); app.quit(); } },
   ]));
   // Single-click toggles window visibility (Windows). On Mac, click shows the
   // context menu natively — this handler still runs and is harmless.
@@ -5232,7 +5232,7 @@ async function validateOllamaKeyDirect(apiKey) {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
-        'User-Agent': 'MODOROClaw-Wizard/1.0',
+        'User-Agent': '9BizClaw-Wizard/1.0',
       },
       timeout: 10000,
     }, (res) => {
@@ -5646,7 +5646,7 @@ ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
         if (activeKey) {
           apiKeyValue = activeKey.key;
         } else {
-          const createKey = await nineRouterApi('POST', '/api/keys', { name: 'MODOROClaw' });
+          const createKey = await nineRouterApi('POST', '/api/keys', { name: '9BizClaw' });
           apiKeyValue = createKey.data?.key?.key || createKey.data?.key || null;
         }
 
@@ -5734,7 +5734,7 @@ ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
     if (!apiKey) {
       const machineId = randomBytes(8).toString('hex');
       const keyValue = `sk-${machineId}-modoro-${randomBytes(4).toString('hex')}`;
-      apiKey = { id: randomUUID(), name: 'MODOROClaw', key: keyValue, machineId, isActive: true, createdAt: new Date().toISOString() };
+      apiKey = { id: randomUUID(), name: '9BizClaw', key: keyValue, machineId, isActive: true, createdAt: new Date().toISOString() };
       db.apiKeys.push(apiKey);
     }
 
@@ -7362,7 +7362,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       // Bot name — replace the "[Tên trợ lý của bạn]" placeholder or update
       // an existing name. If botName is empty, write a sensible default so the
       // template placeholder doesn't show up in bot introductions.
-      const botNameLine = `- **Tên:** ${botName || 'Trợ lý MODOROClaw'}`;
+      const botNameLine = `- **Tên:** ${botName || 'Trợ lý 9BizClaw'}`;
       content = content.replace(/- \*\*Tên:\*\* .*/, botNameLine);
       content = content.replace(/- \*\*Cách xưng hô:\*\* .*/, xunghoLine);
       content = content.replace(/- \*\*Phong cách:\*\* .*/, phongcachLine);
@@ -7600,7 +7600,7 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       try { fs.mkdirSync(goalsDir, { recursive: true }); } catch {}
       const goalsPath = path.join(goalsDir, 'business-goals.md');
       const goalsContent =
-        '# Mục tiêu CEO khi dùng MODOROClaw\n\n' +
+        '# Mục tiêu CEO khi dùng 9BizClaw\n\n' +
         '> Tự fill từ wizard onboarding. CEO chọn các việc trợ lý nên giúp nhiều nhất.\n' +
         '> Bot đọc file này MỖI session để biết focus area.\n\n' +
         '## Ưu tiên hỗ trợ\n\n' +
@@ -8489,7 +8489,7 @@ const _outputFilterPatterns = [
   // are all-Latin but legitimate CS replies. CoT leaks are long walls of English text (>200c).
   { name: 'no-vietnamese-diacritic', re: /^(?!.*https?:\/\/)(?=[\s\S]{200,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
   // Layer E: brand + internal name leakage
-  { name: 'brand-modoroclaw', re: /\bMODOROClaw\b/i },
+  { name: 'brand-9bizclaw', re: /\b9BizClaw\b/i },
   { name: 'brand-openclaw', re: /\bOpenClaw\b/i },
   { name: 'brand-9router', re: /\b9Router\b/i },
   { name: 'brand-openzca', re: /\bopenzca\b/i },
@@ -11386,7 +11386,7 @@ ipcMain.handle('test-telegram', async (_event, { token, chatId }) => {
   return new Promise((resolve) => {
     const https = require('https');
     const payload = JSON.stringify({
-      chat_id: chatId, text: '🦞 MODOROClaw — Kết nối thành công!', parse_mode: 'Markdown',
+      chat_id: chatId, text: '9BizClaw — Kết nối thành công!', parse_mode: 'Markdown',
     });
     const req = https.request(
       `https://api.telegram.org/bot${token}/sendMessage`,
@@ -11894,14 +11894,14 @@ ipcMain.handle('install-openclaw', async (event) => {
     return {
       success: false,
       error: isMac
-        ? 'Khong tim thay Node.js tren may.\n\nCai Node 22 LTS tu https://nodejs.org\n(hoac: brew install node@22)\n\nSau do mo lai MODOROClaw.'
-        : 'Khong tim thay Node.js tren may.\n\nCai Node 22 LTS tu https://nodejs.org\n\nSau do mo lai MODOROClaw.',
+        ? 'Khong tim thay Node.js tren may.\n\nCai Node 22 LTS tu https://nodejs.org\n(hoac: brew install node@22)\n\nSau do mo lai 9BizClaw.'
+        : 'Khong tim thay Node.js tren may.\n\nCai Node 22 LTS tu https://nodejs.org\n\nSau do mo lai 9BizClaw.',
     };
   }
   if (nodeVersionMajor < 22) {
     return {
       success: false,
-      error: `Node.js qua cu (v${nodeVersionMajor}). MODOROClaw can Node 22+ de chay openzca (Zalo plugin).\n\n` +
+      error: `Node.js qua cu (v${nodeVersionMajor}). 9BizClaw can Node 22+ de chay openzca (Zalo plugin).\n\n` +
              (isMac
                ? 'Cap nhat:\n  brew upgrade node\nhoac tai installer tu https://nodejs.org'
                : 'Cap nhat tu https://nodejs.org'),
@@ -12523,12 +12523,12 @@ async function runSplashAndExtractVendor() {
     await new Promise(r => setTimeout(r, 500));
   } catch (e) {
     console.error('[splash] vendor extract failed:', e);
-    sendError('Lỗi: ' + (e.message || 'không rõ nguyên nhân') + '. Vui lòng cài lại MODOROClaw.');
+    sendError('Lỗi: ' + (e.message || 'không rõ nguyên nhân') + '. Vui lòng cài lại 9BizClaw.');
     // Keep splash open 5s so user can read the error, then quit
     await new Promise(r => setTimeout(r, 5000));
     try { splashWindow.close(); } catch {}
     const { dialog } = require('electron');
-    dialog.showErrorBox('Lỗi khởi tạo MODOROClaw', 'Không thể giải nén thành phần cần thiết:\n\n' + (e.message || '?') + '\n\nVui lòng gỡ cài đặt và cài lại MODOROClaw.');
+    dialog.showErrorBox('Lỗi khởi tạo 9BizClaw', 'Không thể giải nén thành phần cần thiết:\n\n' + (e.message || '?') + '\n\nVui lòng gỡ cài đặt và cài lại 9BizClaw.');
     app.exit(1);
     return;
   }

@@ -1,7 +1,7 @@
 {
   "name": "modoro-claw",
   "version": "2.2.41",
-  "description": "MODOROClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
+  "description": "9BizClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
   "author": "MODORO Tech Corp",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   },
   "build": {
     "appId": "vn.modoro.claw",
-    "productName": "MODOROClaw",
+    "productName": "9BizClaw",
     "copyright": "© 2026 MODORO Tech Corp",
     "publish": null,
     "directories": {
@@ -204,13 +204,13 @@
       "extendInfo": {
         "NSHighResolutionCapable": true,
         "LSMinimumSystemVersion": "11.0.0",
-        "NSAppleEventsUsageDescription": "MODOROClaw spawns OpenClaw + 9Router subprocesses to power the AI assistant.",
-        "NSDesktopFolderUsageDescription": "MODOROClaw stores workspace files (knowledge, schedules, logs) under your user data folder."
+        "NSAppleEventsUsageDescription": "9BizClaw spawns OpenClaw + 9Router subprocesses to power the AI assistant.",
+        "NSDesktopFolderUsageDescription": "9BizClaw stores workspace files (knowledge, schedules, logs) under your user data folder."
       },
       "darkModeSupport": true
     },
     "dmg": {
-      "title": "MODOROClaw ${version}",
+      "title": "9BizClaw ${version}",
       "icon": "build/icon.icns",
       "background": null,
       "window": {
@@ -240,7 +240,7 @@
       "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MODOROClaw",
+      "shortcutName": "9BizClaw",
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh"
     }
