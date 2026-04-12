@@ -435,21 +435,24 @@ function fixNineRouterNativeModules(platform, arch) {
 
   const bsqlBin = path.join(bsqlDir, 'build', 'Release', 'better_sqlite3.node');
 
-  // Check arch
-  if (fs.existsSync(bsqlBin)) {
-    const actualArch = detectBinaryArch(bsqlBin);
-    if (platform === 'darwin') {
-      if (actualArch === arch) {
-        log(`✓ 9router better-sqlite3 arch=${actualArch} matches target — no rebuild needed`);
-        return;
-      }
-      log(`9router better-sqlite3 arch=${actualArch} but target=${arch} — rebuilding`);
-    } else {
-      // On Windows PE binaries don't need arch verification at this level since
-      // Node x64 on Windows x64 is the common case. Skip if binary exists.
-      log(`✓ 9router better-sqlite3 binary present (Windows) — skipping rebuild`);
+  // Stamp tracks platform-arch-nodeVersion. Arch match alone is insufficient:
+  // a binary compiled for arm64+Node18 passes the arch check but crashes with
+  // Node22 (different ABI). We must rebuild whenever Node version changes too.
+  const stampFile = path.join(bsqlDir, '.prebuild-stamp');
+  const expectedStamp = `${platform}-${arch}-node${NODE_VERSION}`;
+
+  if (fs.existsSync(bsqlBin) && fs.existsSync(stampFile)) {
+    const actualStamp = fs.readFileSync(stampFile, 'utf-8').trim();
+    if (actualStamp === expectedStamp) {
+      log(`✓ 9router better-sqlite3 already built for ${expectedStamp} — skipping`);
       return;
     }
+    log(`9router better-sqlite3 stamp="${actualStamp}" but need "${expectedStamp}" — rebuilding`);
+  } else if (fs.existsSync(bsqlBin)) {
+    // Binary exists but no stamp — could be wrong Node ABI even if arch matches.
+    // Always rebuild so we write a stamp and future runs can skip safely.
+    const actualArch = detectBinaryArch(bsqlBin);
+    log(`9router better-sqlite3 arch=${actualArch} but no ABI stamp — rebuilding for ${expectedStamp}`);
   } else {
     log('9router better-sqlite3 binary missing — building from source');
   }
@@ -474,6 +477,7 @@ function fixNineRouterNativeModules(platform, arch) {
     ], { cwd: bsqlDir, stdio: 'inherit', shell: false });
     if (r.status === 0 && fs.existsSync(bsqlBin)) {
       const verifiedArch = detectBinaryArch(bsqlBin);
+      fs.writeFileSync(stampFile, expectedStamp + '\n');
       log(`✓ 9router better-sqlite3 rebuilt — arch=${verifiedArch}`);
       return;
     }
@@ -491,6 +495,7 @@ function fixNineRouterNativeModules(platform, arch) {
       `--target_platform=${platform === 'darwin' ? 'darwin' : 'win32'}`,
     ], { cwd: bsqlDir, stdio: 'inherit', shell: false });
     if (r.status === 0 && fs.existsSync(bsqlBin)) {
+      fs.writeFileSync(stampFile, expectedStamp + '\n');
       log('✓ 9router better-sqlite3 rebuilt via node-pre-gyp');
       return;
     }
@@ -511,6 +516,7 @@ function fixNineRouterNativeModules(platform, arch) {
     '--arch', arch,
   ], { cwd: bsqlDir, stdio: 'inherit', shell: platform === 'win32' });
   if (r.status === 0 && fs.existsSync(bsqlBin)) {
+    fs.writeFileSync(stampFile, expectedStamp + '\n');
     log('✓ 9router better-sqlite3 rebuilt via npx prebuild-install');
     return;
   }
