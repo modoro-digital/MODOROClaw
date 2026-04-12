@@ -280,8 +280,14 @@ function checkPatchAnchor(name, file, anchorRegex, patchMarker, hint) {
     pass(name + ' (anchor matches — unpatched)');
     return;
   }
+  // Accept both current marker and legacy MODOROClaw marker (rebrand transition)
+  const legacyMarker = patchMarker.replace('9BizClaw', 'MODOROClaw');
   if (patchMarker && content.includes(patchMarker)) {
     pass(name + ' (already patched — marker present)');
+    return;
+  }
+  if (legacyMarker !== patchMarker && content.includes(legacyMarker)) {
+    pass(name + ' (already patched — legacy marker present, will re-patch on next launch)');
     return;
   }
   fail(name, `neither anchor regex NOR patch marker "${patchMarker}" found. ${hint}`);
