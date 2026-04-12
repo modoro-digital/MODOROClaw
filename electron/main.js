@@ -5594,58 +5594,43 @@ ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
 
         // 4. Test it (THIS is the fast validator — usually 1-3 seconds)
         const testRes = await nineRouterApi('POST', `/api/providers/${providerId}/test`, null, 8000);
+        const testErrMsg = testRes.data?.error || testRes.error || 'Ollama key không hợp lệ';
         const testValid = testRes.success && (testRes.data?.valid !== false);
+
         if (!testValid) {
-          // Delete the bad provider so it doesn't pollute db.json
-          await nineRouterApi('DELETE', `/api/providers/${providerId}`);
-          const errMsg = testRes.data?.error || testRes.error || 'Ollama key không hợp lệ';
-          console.warn('[setup-9router-auto] provider test failed:', errMsg);
+          console.warn('[setup-9router-auto] provider test failed:', testErrMsg);
 
-          // If error is a raw HTTP 5xx from 9router itself (not from the AI provider),
-          // it means 9router crashed internally — most likely better-sqlite3 ABI mismatch.
-          // waitFor9RouterReady passes (health endpoint works) but /test crashes SQLite.
-          // Attempt native module auto-fix + ask user to retry once.
-          if (/^HTTP [5]\d{2}$/.test(String(errMsg)) && !_9routerSqliteFixAttempted) {
-            console.log('[setup-9router-auto] provider test returned raw HTTP 5xx → likely 9router SQLite crash, attempting auto-fix');
-            const fixed = await autoFix9RouterSqlite();
-            if (fixed) {
-              stop9Router();
-              await new Promise(r => setTimeout(r, 2500));
-              try { killPort(20128); } catch {}
-              start9Router();
-              const readyAfterFix = await waitFor9RouterReady(30000);
-              if (readyAfterFix) {
-                console.log('[setup-9router-auto] 9router ready after SQLite auto-fix — ask user to retry');
-                return { success: false, error: 'Đã tự sửa xong lỗi nội bộ. Nhấn "Thiết lập AI" lại để thử nhé.', sqliteFixed: true };
-              }
+          // HTTP 5xx = 9router internal unhandled exception (NOT a key validation failure).
+          // Root cause: testConnection() in 9router writes the test result to SQLite AFTER
+          // the fetch completes, and that write throws without a try/catch → propagates to
+          // the route handler catch → 500. This is a 9router bug, not an invalid key.
+          //
+          // Key was already validated directly via validateOllamaKey() in wizard.html
+          // before this IPC was called, so we KNOW the key is valid.
+          // Skip the test result, do NOT delete the provider, fall through to models.
+          if (/^HTTP [5]\d{2}$/.test(String(testErrMsg))) {
+            console.warn('[setup-9router-auto] HTTP 5xx = 9router internal bug (testConnection SQLite write crash) — key was pre-validated, skipping test result');
+            // fall through to step 5 (models)
+          } else {
+            // Non-5xx = genuine key/network failure (401, ENOTFOUND, etc.)
+            // Delete the bad provider so it doesn't pollute db.json
+            await nineRouterApi('DELETE', `/api/providers/${providerId}`);
+            let viError = testErrMsg;
+            if (/401|unauthor/i.test(testErrMsg)) {
+              viError = 'Ollama API key sai hoặc đã hết hạn. Vào ollama.com/settings/keys → tạo key mới → paste lại.';
+            } else if (/timeout|ETIMEDOUT/i.test(testErrMsg)) {
+              viError = 'Timeout khi gọi Ollama. Kiểm tra kết nối Internet.';
+            } else if (/ENOTFOUND|DNS/i.test(testErrMsg)) {
+              viError = 'Không kết nối được ollama.com. Kiểm tra Internet.';
+            } else if (/429|rate/i.test(testErrMsg)) {
+              viError = 'Ollama trả về 429 (rate limit). Đợi 1 phút rồi thử lại.';
+            } else if (/\b5\d{2}\b|internal.server.error/i.test(testErrMsg)) {
+              viError = 'Ollama đang gặp sự cố tạm thời (HTTP 5xx). Thử lại sau vài phút hoặc kiểm tra status.ollama.com.';
             }
-            return { success: false, error: '9router gặp lỗi nội bộ (HTTP 500) và không thể tự sửa. Mở thư mục log (9router.log) để xem chi tiết.' };
+            return { success: false, error: viError, validationFailed: true };
           }
-
-          // Map common AI provider errors to Vietnamese
-          let viError = errMsg;
-          if (/401|unauthor/i.test(errMsg)) {
-            viError = 'Ollama API key sai hoặc đã hết hạn. Vào ollama.com/settings/keys → tạo key mới → paste lại.';
-          } else if (/timeout|ETIMEDOUT/i.test(errMsg)) {
-            viError = 'Timeout khi gọi Ollama. Kiểm tra kết nối Internet.';
-          } else if (/ENOTFOUND|DNS/i.test(errMsg)) {
-            viError = 'Không kết nối được ollama.com. Kiểm tra Internet.';
-          } else if (/429|rate/i.test(errMsg)) {
-            viError = 'Ollama trả về 429 (rate limit). Đợi 1 phút rồi thử lại.';
-          } else if (/^HTTP [5]\d{2}$/.test(String(errMsg))) {
-            // Raw HTTP 5xx from 9router itself (not from Ollama) — SQLite or internal crash.
-            // The auto-fix path above already ran and failed — show accurate message.
-            viError = '9router gặp lỗi nội bộ khi kiểm tra kết nối. Thử tắt app và mở lại, sau đó nhấn "Thiết lập AI" lại. Nếu vẫn lỗi, mở thư mục log → xem 9router.log.';
-          } else if (/\b5\d{2}\b|internal.server.error/i.test(errMsg)) {
-            viError = 'Ollama đang gặp sự cố tạm thời (HTTP 5xx). Thử lại sau vài phút hoặc kiểm tra status.ollama.com.';
-          }
-          return {
-            success: false,
-            error: viError,
-            validationFailed: true,
-          };
         }
-        console.log('[setup-9router-auto] provider test PASSED');
+        console.log('[setup-9router-auto] provider test PASSED (or bypassed — key pre-validated)');
 
         // 5. Get models for this provider
         const modelsRes = await nineRouterApi('GET', `/api/providers/${providerId}/models`);
