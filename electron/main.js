@@ -5913,10 +5913,18 @@ function ensureOpenzaloNodeModulesLink() {
     if (!vendorDir) return;
     const vendorNodeModules = path.join(vendorDir, 'node_modules');
     if (!fs.existsSync(vendorNodeModules)) return;
-    // Clean up broken state if exists
-    if (fs.existsSync(pluginNodeModules)) {
-      try { fs.rmSync(pluginNodeModules, { recursive: true, force: true }); } catch {}
-    }
+    // Remove ANY existing entry — fs.existsSync follows symlinks so it returns
+    // false for broken symlinks, leaving them in place → symlinkSync EEXIST →
+    // fallback mkdirSync also fails because path is a broken symlink (not a dir).
+    // Use lstatSync (does NOT follow symlinks) to detect all cases.
+    try {
+      const lstat = fs.lstatSync(pluginNodeModules);
+      if (lstat.isSymbolicLink() || lstat.isFile()) {
+        fs.unlinkSync(pluginNodeModules);       // remove symlink / broken symlink
+      } else {
+        fs.rmSync(pluginNodeModules, { recursive: true, force: true }); // remove dir
+      }
+    } catch {}
     const linkType = process.platform === 'win32' ? 'junction' : 'dir';
     try {
       fs.symlinkSync(vendorNodeModules, pluginNodeModules, linkType);
