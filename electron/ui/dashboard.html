@@ -3551,6 +3551,15 @@
       if (embedLoaded[name]) return;
       const wv = document.getElementById('iframe-' + name);
       if (!wv) return;
+      // Intercept new-window events (OAuth popups, external links) → open in
+      // default browser instead of Electron. Without this, 9Router's ChatGPT
+      // OAuth flow opens inside Electron's restricted webview → freezes on Mac.
+      wv.addEventListener('new-window', (e) => {
+        e.preventDefault();
+        if (e.url && window.claw && window.claw.openExternal) {
+          window.claw.openExternal(e.url);
+        }
+      });
       // <webview> uses .src setter (or loadURL once attached). About:blank → real URL.
       try { wv.src = EMBED_URLS[name]; } catch { wv.setAttribute('src', EMBED_URLS[name]); }
       embedLoaded[name] = true;

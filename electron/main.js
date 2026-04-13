@@ -13661,6 +13661,19 @@ function installEmbedHeaderStripper() {
     attach(session.fromPartition('persist:embed-openclaw'), 'persist:embed-openclaw');
     attach(session.fromPartition('persist:embed-9router'), 'persist:embed-9router');
     attach(session.fromPartition('persist:embed-gcal'), 'persist:embed-gcal');
+    // Redirect new-window requests (OAuth popups, external links) from webview
+    // partitions to the default browser. Without this, 9Router's ChatGPT OAuth
+    // opens inside Electron's restricted context → freezes on Mac.
+    for (const partName of ['persist:embed-9router', 'persist:embed-openclaw', 'persist:embed-gcal']) {
+      try {
+        session.fromPartition(partName).setWindowOpenHandler(({ url }) => {
+          if (url && url.startsWith('http')) {
+            require('electron').shell.openExternal(url).catch(() => {});
+          }
+          return { action: 'deny' };
+        });
+      } catch (e) { console.warn('[embed] setWindowOpenHandler failed for', partName, e?.message); }
+    }
   } catch (e) {
     console.error('[embed] Failed to install header stripper:', e.message);
   }
