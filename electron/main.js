@@ -6485,7 +6485,6 @@ ipcMain.handle('save-persona-mix', async (_event, mix) => {
     if (!ws) return { ok: false, error: 'no workspace' };
     if (!mix || typeof mix !== 'object') return { ok: false, error: 'invalid mix' };
     const normalized = {
-      region: mix.region || 'trung-tinh',
       voice: mix.voice || 'em-nu-tre',
       customer: mix.customer || 'anh-chi',
       traits: Array.isArray(mix.traits) ? mix.traits.slice(0, 5) : [],
@@ -6498,7 +6497,7 @@ ipcMain.handle('save-persona-mix', async (_event, mix) => {
     const mdPath = path.join(ws, 'active-persona.md');
     fs.writeFileSync(jsonPath, JSON.stringify(normalized, null, 2), 'utf-8');
     fs.writeFileSync(mdPath, compilePersonaMix(normalized), 'utf-8');
-    try { auditLog('persona_mix_updated', { region: normalized.region, voice: normalized.voice, traits: normalized.traits.length, formality: normalized.formality }); } catch {}
+    try { auditLog('persona_mix_updated', { voice: normalized.voice, traits: normalized.traits.length, formality: normalized.formality }); } catch {}
     console.log('[save-persona-mix] updated via Dashboard');
     return { ok: true };
   } catch (e) {
@@ -7223,13 +7222,6 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
 // + signature phrases it can apply naturally.
 function compilePersonaMix(mix) {
   if (!mix || typeof mix !== 'object') mix = {};
-  const regionMap = {
-    'bac': 'Miền Bắc (Hà Nội). Dùng tiếng Việt chuẩn mực, formal. Từ vựng chuẩn Bắc.',
-    'trung': 'Miền Trung (Huế / Đà Nẵng). Giọng nhẹ nhàng, chậm rãi, lễ phép.',
-    'nam': 'Miền Nam (Sài Gòn). Thẳng thắn, năng động, pragmatic, ít lòng vòng.',
-    'tay': 'Miền Tây. Mộc mạc, thân tình, gần gũi như người quen. Dùng "nha", "nè" cuối câu.',
-    'trung-tinh': 'Trung tính, không region-specific. Dùng tiếng Việt chuẩn phổ thông.',
-  };
   const voiceMap = {
     'em-nu-tre': { pronoun: 'em', gender: 'Nữ trẻ (20-28 tuổi). Giọng nhẹ nhàng, năng động, thân thiện.' },
     'em-nam-tre': { pronoun: 'em', gender: 'Nam trẻ (20-28 tuổi). Giọng thẳng thắn, nhanh nhẹn, lễ phép.' },
@@ -7269,7 +7261,6 @@ function compilePersonaMix(mix) {
     'tinh-te':      '[Tinh tế — Service] Để ý nuance ngôn ngữ, xử lý khéo tình huống nhạy cảm, vocabulary chọn lọc',
   };
 
-  const region = regionMap[mix.region] || regionMap['trung-tinh'];
   const voice = voiceMap[mix.voice] || voiceMap['em-nu-tre'];
   const customerAddr = customerMap[mix.customer] || customerMap['anh-chi'];
   const traits = Array.isArray(mix.traits) ? mix.traits : [];
@@ -7294,9 +7285,6 @@ function compilePersonaMix(mix) {
 - Giới tính archetype: ${voice.gender}
 - ${customerAddr}
 
-## Vùng miền
-${region}
-
 ## Tính cách đặc trưng (${traits.length}/5 đặc điểm đã chọn)
 ${traitList}
 
@@ -7320,10 +7308,9 @@ Bot nên dùng các cụm này tự nhiên trong reply (không ép).
 
 ` : ''}## Hướng dẫn áp dụng cho bot
 
-1. **Giọng văn**: Kết hợp vùng miền + tính cách + xưng hô thành reply tự nhiên. VD:
-   - Miền Tây + Ấm áp + Em nữ trẻ → "Dạ em chào anh/chị nè, anh/chị cần em tư vấn chi không nha?"
-   - Miền Bắc + Trang trọng + Chị trung niên → "Dạ vâng, em kính chào anh/chị ạ. Anh/chị cần em hỗ trợ thông tin gì ạ?"
-   - Trung tính + Chuyên nghiệp + Em nam trẻ → "Dạ em chào anh/chị. Anh/chị đang cần tư vấn về sản phẩm nào ạ?"
+1. **Giọng văn**: Kết hợp tính cách + xưng hô thành reply tự nhiên. VD:
+   - Ấm áp + Em nữ trẻ → "Dạ em chào anh/chị ạ, anh/chị cần em tư vấn gì không ạ?"
+   - Chuyên nghiệp + Em nam trẻ → "Dạ em chào anh/chị. Anh/chị đang cần tư vấn về sản phẩm nào ạ?"
 
 2. **Kết hợp trait, không isolated**: Nếu có trait "Thẳng thắn" + "Chu đáo" → vừa nói rõ cái được/không được, vừa gợi ý alternative. Đừng chỉ thẳng thắn mà thiếu chu đáo.
 
@@ -7460,7 +7447,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       let mix = personaMix;
       if (!mix || typeof mix !== 'object') {
         // Legacy fallback: single archetype id → default mix
-        mix = { region: 'trung-tinh', voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap', 'chu-dao'], formality: 5, greeting: '', closing: '', phrases: '' };
+        mix = { voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap', 'chu-dao'], formality: 5, greeting: '', closing: '', phrases: '' };
       }
       // Write structured JSON for Dashboard settings editor
       const mixJsonPath = path.join(ws, 'active-persona.json');
@@ -7473,7 +7460,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
         const legacyPath = path.join(ws, 'active-persona.txt');
         if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
       } catch {}
-      console.log('[save-personalization] persona mix saved: region=' + mix.region + ' traits=' + (mix.traits || []).length + ' formality=' + mix.formality);
+      console.log('[save-personalization] persona mix saved: voice=' + mix.voice + ' traits=' + (mix.traits || []).length + ' formality=' + mix.formality);
     } catch (e) { console.warn('[save-personalization] persona mix write failed:', e?.message); }
 
     // Delete BOOTSTRAP.md — it's single-use, wizard completion means bot is

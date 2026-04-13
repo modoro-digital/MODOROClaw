@@ -974,17 +974,6 @@
               <p class="wz-help" style="margin-top:-2px;margin-bottom:12px">Chọn các đặc điểm phù hợp. Bot sẽ kết hợp thành một phong cách giao tiếp riêng — không bị khóa vào khuôn mẫu cứng.</p>
 
               <div class="wz-mix-section">
-                <div class="wz-mix-label">Vùng miền</div>
-                <div class="wz-mix-options" id="mix-region">
-                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="bac">Miền Bắc</button>
-                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="trung">Miền Trung</button>
-                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="nam">Miền Nam</button>
-                  <button type="button" class="wz-mix-chip" data-mix="region" data-value="tay">Miền Tây</button>
-                  <button type="button" class="wz-mix-chip is-selected" data-mix="region" data-value="trung-tinh">Trung tính</button>
-                </div>
-              </div>
-
-              <div class="wz-mix-section">
                 <div class="wz-mix-label">Bot tự xưng + giới tính</div>
                 <div class="wz-mix-options" id="mix-voice">
                   <button type="button" class="wz-mix-chip is-selected" data-mix="voice" data-value="em-nu-tre">Em (nữ trẻ)</button>
@@ -1527,7 +1516,6 @@
     // CEO picks individual traits instead of a locked archetype. Config saved
     // as active-persona.json on wizard submit; bot reads + applies per reply.
     let personaMix = {
-      region: 'trung-tinh',
       voice: 'em-nu-tre',
       customer: 'anh-chi',
       traits: ['am-ap', 'chu-dao', 'chuyen-nghiep'],
@@ -1538,8 +1526,8 @@
     };
 
     function syncMixUI() {
-      // Single-select chips: region, voice (customer chip removed — derived from pronouns on save)
-      ['region', 'voice'].forEach(group => {
+      // Single-select chips: voice (customer chip removed — derived from pronouns on save)
+      ['voice'].forEach(group => {
         document.querySelectorAll(`.wz-mix-chip[data-mix="${group}"]`).forEach(chip => {
           chip.classList.toggle('is-selected', chip.getAttribute('data-value') === personaMix[group]);
         });
@@ -1608,29 +1596,22 @@
         bubble.textContent = personaMix.greeting.trim();
         return;
       }
-      // Generate preview based on region + voice + customer
+      // Generate preview based on voice + customer
       const addressMap = {
         'anh-chi': 'anh/chị',
         'quy-khach': 'quý khách',
         'mình': 'mình',
       };
       const address = addressMap[personaMix.customer] || 'anh/chị';
-      const regionSuffix = {
-        'bac': ' ạ',
-        'trung': ' ạ',
-        'nam': ' ạ',
-        'tay': ' nha',
-        'trung-tinh': ' ạ',
-      }[personaMix.region] || ' ạ';
       const isFormal = personaMix.formality >= 7;
       const isCasual = personaMix.formality <= 4;
       let preview;
       if (isFormal) {
-        preview = `Dạ em kính chào ${address}${regionSuffix}. ${address[0].toUpperCase() + address.slice(1)} cần em hỗ trợ về sản phẩm nào ạ?`;
+        preview = `Dạ em kính chào ${address} ạ. ${address[0].toUpperCase() + address.slice(1)} cần em hỗ trợ về sản phẩm nào ạ?`;
       } else if (isCasual) {
-        preview = `Dạ em chào ${address}${regionSuffix}, ${address} cần gì em tư vấn giúp${regionSuffix}?`;
+        preview = `Dạ em chào ${address} ạ, ${address} cần gì em tư vấn giúp ạ?`;
       } else {
-        preview = `Dạ em chào ${address}${regionSuffix}. ${address[0].toUpperCase() + address.slice(1)} cần em tư vấn gì không${regionSuffix}?`;
+        preview = `Dạ em chào ${address} ạ. ${address[0].toUpperCase() + address.slice(1)} cần em tư vấn gì không ạ?`;
       }
       bubble.textContent = preview;
     }
