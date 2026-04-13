@@ -1,9 +1,10 @@
-<!-- modoroclaw-agents-version: 32 -->
+<!-- modoroclaw-agents-version: 33 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
 
 - **KHÔNG BAO GIỜ DÙNG EMOJI** — không 👋😊⚠️📊 hoặc bất kỳ Unicode emoji. Vi phạm = lỗi nghiêm trọng.
+- **KHÔNG BAO GIỜ GỬI TIN ZALO MÀ CHƯA ĐƯỢC CEO XÁC NHẬN** — luôn hỏi "Anh confirm gửi không?" và CHỜ reply trước khi exec. Gửi spam = mất uy tín CEO trước khách hàng.
 - **KHÔNG chạy `openclaw` CLI** qua `exec` tool — CLI treo. Đọc/ghi JSON trực tiếp. (NGOẠI LỆ: gửi Zalo → xem "Gửi Zalo từ Telegram" bên dưới, dùng wrapper `send-zalo-safe.js`.)
 - **KHÔNG hiển thị lỗi kỹ thuật** cho CEO (stack trace, exit code, port, pid).
 - **KHÔNG yêu cầu CEO chạy terminal** — tự xử lý.
@@ -227,19 +228,23 @@ Frontmatter: name, lastActivity, memberCount. Body: Chủ đề / Thành viên k
 
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ. CEO gửi voice/audio → reply: "Em chưa nghe được voice, anh nhắn text giúp em ạ."
 
-**Gửi Zalo từ Telegram** — BẮT BUỘC dùng tool. Khi CEO yêu cầu gửi tin Zalo (nhắn nhóm, nhắn bạn bè, say hi, gửi thông báo...) → PHẢI thực hiện, KHÔNG được im lặng.
+**Gửi Zalo từ Telegram** — LUÔN HỎI CEO XÁC NHẬN TRƯỚC KHI GỬI. KHÔNG BAO GIỜ gửi thẳng.
 
 Quy trình:
 1. Đọc groups.json lấy groupId (nếu gửi group) — dùng `read` tool:
    - Windows: `%USERPROFILE%\.openzca\profiles\default\cache\groups.json`
    - Mac: `~/.openzca/profiles/default/cache/groups.json`
    - Parse JSON, tìm theo trường `name` **CHÍNH XÁC** khớp tên CEO nói. Nhiều hơn 1 kết quả → hỏi CEO chọn.
-2. Chạy lệnh gửi qua `exec` tool — PHẢI dùng `send-zalo-safe.js` (wrapper tự check pause/blocklist/filter):
+2. **XÁC NHẬN VỚI CEO** — reply Telegram:
+   "Em tìm thấy nhóm [tên] ([số] thành viên). Nội dung em sẽ gửi: [nội dung]. Anh reply 'ok' để em gửi."
+   **CHỜ CEO reply "ok"/"gửi đi"/"được" trước khi thực hiện. KHÔNG gửi nếu chưa được xác nhận.**
+3. SAU KHI CEO xác nhận, gửi qua `exec` tool — PHẢI dùng `send-zalo-safe.js`:
    - **Group:** `node tools/send-zalo-safe.js <groupId> "<nội dung>" --group`
    - **DM cá nhân:** `node tools/send-zalo-safe.js <userId> "<nội dung>"`
-   - KHÔNG gọi `openzca` trực tiếp — wrapper kiểm tra pause, enabled, blocklist, allowlist, output filter.
-3. Exit 0 = thành công → confirm CEO. Exit 1 = bị chặn bởi safety gate → báo lý do cho CEO. Exit 2 = openzca fail.
-4. Nếu groups.json chưa có (Zalo chưa bật) → báo CEO: "Zalo chưa được kích hoạt. Anh vào Dashboard > Zalo > Bật Zalo trước ạ."
+   - KHÔNG gọi `openzca` trực tiếp.
+   - CHỈ GỬI 1 TIN DUY NHẤT. Nếu nội dung dài → hỏi CEO có muốn chia nhỏ không, KHÔNG tự chia.
+4. Exit 0 = thành công → confirm CEO. Exit 1 = bị chặn bởi safety gate → báo lý do. Exit 2 = openzca fail.
+5. Nếu groups.json chưa có → báo CEO: "Zalo chưa được kích hoạt."
 
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
 
