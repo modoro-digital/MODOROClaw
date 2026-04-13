@@ -83,6 +83,11 @@ Bot TỰ ĐỘNG đọc INDEX này và chọn skill phù hợp MỖI KHI CEO yê
 | Campaign analytics | `campaign-analytics.md` | Phân tích chiến dịch |
 | Email template builder | `email-template-builder.md` | Thiết kế template email |
 
+### Productivity — Công cụ CEO (1 skill)
+| Skill | File | Khi nào dùng |
+|---|---|---|
+| Quản lý lịch hẹn | `appointments.md` | Tạo/sửa/xóa lịch hẹn, reminder, push Zalo group |
+
 ---
-**Tổng: 35 (marketing) + 44 (business) = 79 skills chuyên gia**
+**Tổng: 35 (marketing) + 44 (business) + 1 (productivity) = 80 skills chuyên gia**
 Nguồn: coreyhaines31/marketingskills (19.8k stars) + alirezarezvani/claude-skills (522 skills, lọc business-relevant)

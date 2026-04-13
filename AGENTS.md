@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 24 -->
+<!-- modoroclaw-agents-version: 25 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
@@ -241,14 +241,7 @@ Built-in: morning 07:30 | evening 21:00 | weekly T2 08:00 | monthly ngày-1 08:3
 
 1. Đọc `custom-crons.json` 2. Ghi `[..., {"id":"custom_<ts>","label":"...","cronExpr":"0 */2 8-18 * * *","prompt":"...","enabled":true,"createdAt":"<ISO>"}]` 3. Verify đọc lại. Chưa verify = KHÔNG nói "đã tạo".
 
-| Loại | cronExpr | prompt |
-|------|----------|--------|
-| Nhắc nhở | `0 */2 8-18 * * *` | "Nhắc [nội dung]. 1 câu." |
-| Nhắn Zalo group | `0 9 * * 1` | "exec: openzca msg send [groupId] \"[text]\" --group" |
-| Nhắc đăng bài | `0 15 * * 1-5` | "Nhắc đăng bài, gợi 3 ideas." |
-| Deadline | tính từ deadline | "Nhắc deadline [mô tả] vào [ngày]." |
-
-Nhắn Zalo PHẢI có groupId — đọc groups.json tìm ID trước khi ghi.
+cronExpr ví dụ: `0 */2 8-18 * * *` = nhắc 2h ban ngày · `0 9 * * 1` = T2 9am · `0 15 * * 1-5` = 15h thứ 2-6. Nhắn Zalo group → đọc groups.json lấy groupId trước, prompt = `exec: openzca msg send [id] "[text]" --group`.
 
 ## Thư viện kỹ năng — BẮT BUỘC
 
@@ -260,38 +253,7 @@ Quy trình: (1) đọc `skills/INDEX.md` → (2) match keyword → (3) đọc fi
 
 ## Quản lý lịch hẹn cho CEO
 
-File `workspace/appointments.json` (array). Dispatcher tick 60s. CHỈ CEO được tạo/sửa/xóa.
-
-### Schema
-
-```json
-{"id":"apt_<ms>_<rand>","title":"Họp anh Minh","customerName":"Anh Minh","phone":"09xx",
-"start":"2026-04-12T15:00:00+07:00","end":"2026-04-12T16:00:00+07:00",
-"meetingUrl":"https://zoom.us/j/...","location":"","note":"",
-"reminderMinutes":15,"reminderChannels":["telegram"],
-"pushTargets":[{"channel":"zalo_group","toId":"<groupId>","toName":"<tên>","atTime":"08:00","daily":true,"template":"Sáng nay có {title} lúc {startHHMM}. Link: {meetingUrl}"}],
-"status":"scheduled","reminderFiredAt":null,"pushedAt":{},"createdBy":"telegram","createdAt":"<ISO>"}
-```
-
-**Timezone BẮT BUỘC:** `YYYY-MM-DDTHH:MM:SS+07:00`. KHÔNG dùng `Z`. Không chắc ngày → HỎI CEO.
-
-**Placeholders:** `{title}`, `{customerName}`, `{phone}`, `{meetingUrl}`, `{startHHMM}`, `{startDate}`.
-
-### Tạo
-
-Parse NLP → fields. Đọc file (nếu chưa có → `[]`). Append + ghi (indent 2). Confirm CEO: title, time, reminder, push targets.
-
-**Push target Zalo:** Đọc `~/.openzca/profiles/default/groups.json`. Normalize accent-insensitive. 1 match → auto-fill + confirm CEO. Nhiều → list 2-3, chờ chọn. 0 → báo không tìm thấy, KHÔNG đoán groupId.
-
-### Sửa / Xóa / List
-
-- **Sửa giờ:** Dùng IPC `update-appointment` để engine reset `reminderFiredAt/pushedAt`. Không có IPC: tự set `null/{}`.
-- **Nhiều match:** hỏi CEO trước. **Hủy:** `status:"canceled"`. **Xóa:** filter bỏ array.
-- **List:** filter date VN timezone, bullet ngắn.
-
-### Quy tắc
-
-1. Khách xin đặt → escalate, KHÔNG tự ghi. 2. id `apt_<ms>_<rand>`. 3. `+07:00` bắt buộc — sai → fire nhầm. 4. Fuzzy match accent-insensitive, KHÔNG đoán groupId. 5. Confirm sau ghi. 6. KHÔNG touch `reminderFiredAt/pushedAt/status`. 7. KHÔNG nhắc file/JSON trong reply CEO.
+CEO request (tạo/sửa/xóa/list lịch hẹn, reminder, push Zalo group) → đọc `skills/appointments.md`.
 
 ## Xưng hô theo kênh
 
