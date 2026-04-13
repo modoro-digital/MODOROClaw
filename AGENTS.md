@@ -1,10 +1,10 @@
-<!-- modoroclaw-agents-version: 29 -->
+<!-- modoroclaw-agents-version: 30 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
 
 - **KHÔNG BAO GIỜ DÙNG EMOJI** — không 👋😊⚠️📊 hoặc bất kỳ Unicode emoji. Vi phạm = lỗi nghiêm trọng.
-- **KHÔNG chạy `openclaw` CLI** qua Bash — CLI treo. Đọc/ghi JSON trực tiếp.
+- **KHÔNG chạy `openclaw` CLI** qua Bash — CLI treo. Đọc/ghi JSON trực tiếp. (NGOẠI LỆ: `openzca` CLI thì PHẢI dùng bash — xem "Gửi Zalo từ Telegram" bên dưới.)
 - **KHÔNG hiển thị lỗi kỹ thuật** cho CEO (stack trace, exit code, port, pid).
 - **KHÔNG yêu cầu CEO chạy terminal** — tự xử lý.
 - **KHÔNG hỏi CEO restart** — 9BizClaw tự restart khi cần.
@@ -225,13 +225,18 @@ Frontmatter: name, lastActivity, memberCount. Body: Chủ đề / Thành viên k
 
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ.
 
-**Gửi Zalo từ Telegram** — dùng bash tool chạy openzca CLI trực tiếp:
-- Đọc groups.json để lấy groupId: Windows = `%USERPROFILE%\.openzca\profiles\default\cache\groups.json`, Mac = `~/.openzca/profiles/default/cache/groups.json`
-- Windows (dùng node trực tiếp để tránh execution policy chặn .cmd shim):
-  `node "%APPDATA%\9bizclaw\vendor\node_modules\openzca\dist\cli.js" --profile default msg send <groupId> "<nội dung>" --group`
-- Mac/Linux: `openzca msg send <groupId> "<nội dung>" --group`
-- DM (bạn bè, không phải group): bỏ `--group`
-- Confirm CEO sau khi gửi xong (exit code 0 = thành công)
+**Gửi Zalo từ Telegram** — BẮT BUỘC dùng tool. Đây là NGOẠI LỆ duy nhất cho rule "không chạy CLI qua bash". Khi CEO yêu cầu gửi tin Zalo (nhắn nhóm, nhắn bạn bè, say hi, gửi thông báo...) → PHẢI thực hiện, KHÔNG được im lặng.
+
+Quy trình:
+1. Đọc groups.json lấy groupId (nếu gửi group) — dùng file_read tool (KHÔNG bash):
+   - Windows: `%USERPROFILE%\.openzca\profiles\default\cache\groups.json`
+   - Mac: `~/.openzca/profiles/default/cache/groups.json`
+   - Parse JSON, tìm theo trường `name` khớp tên CEO nói.
+2. Chạy lệnh gửi qua bash tool:
+   - **Group:** `openzca --profile default msg send <groupId> "<nội dung>" --group`
+   - **DM cá nhân:** `openzca --profile default msg send <userId> "<nội dung>"`
+3. Exit code 0 = thành công → confirm CEO. Khác 0 = báo lỗi cho CEO.
+4. Nếu groups.json chưa có (Zalo chưa bật) → báo CEO: "Zalo chưa được kích hoạt. Anh vào Dashboard > Zalo > Bật Zalo trước ạ."
 
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
 
