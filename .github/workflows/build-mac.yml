@@ -98,6 +98,55 @@ jobs:
             npx electron-builder --mac --x64 --publish never
           fi
 
+      - name: Verify + fix better-sqlite3 arch in final build
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+        run: |
+          # electron-builder's @electron/rebuild may have overridden the binary
+          # with host arch (arm64) even when targeting x64. Check the FINAL
+          # binary inside dist/ and fix if mismatched.
+          BINARY=$(find ../dist -name "better_sqlite3.node" -path "*/app.asar.unpacked/*" | head -1)
+          if [ -z "$BINARY" ]; then
+            echo "WARN: better_sqlite3.node not found in dist (may be inside asar)"
+            exit 0
+          fi
+          DETECTED=$(node -e "
+            const fs=require('fs'),fd=fs.openSync('$BINARY','r'),b=Buffer.alloc(16);
+            fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
+            const cpu=b.readUInt32LE(4);
+            console.log(cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown');
+          ")
+          echo "Final binary arch: $DETECTED, target: ${{ matrix.arch }}"
+          if [ "$DETECTED" = "${{ matrix.arch }}" ]; then
+            echo "OK — arch matches"
+          else
+            echo "MISMATCH — rebuilding better-sqlite3 for ${{ matrix.arch }}"
+            cd node_modules/better-sqlite3
+            npx --yes prebuild-install -r electron -t 28.3.3 --arch ${{ matrix.arch }} --platform darwin
+            FIXED_BINARY="build/Release/better_sqlite3.node"
+            if [ -f "$FIXED_BINARY" ]; then
+              cp "$FIXED_BINARY" "$BINARY"
+              echo "FIXED — copied correct binary into dist"
+              # Verify fix
+              VERIFY=$(node -e "
+                const fs=require('fs'),fd=fs.openSync('$BINARY','r'),b=Buffer.alloc(16);
+                fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
+                const cpu=b.readUInt32LE(4);
+                console.log(cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown');
+              ")
+              echo "Verified: $VERIFY"
+              if [ "$VERIFY" != "${{ matrix.arch }}" ]; then
+                echo "FATAL: still mismatched after fix"
+                exit 1
+              fi
+            else
+              echo "FATAL: prebuild-install did not produce binary"
+              exit 1
+            fi
+          fi
+
       - name: List dist output
         run: ls -lh dist/ || true
 
