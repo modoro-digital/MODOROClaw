@@ -5003,10 +5003,11 @@ async function _startOpenClawImpl() {
   // :18789 before returning. Otherwise `await startOpenClaw()` returns when
   // the process is *spawned* but not yet ready to accept connections, and
   // the very first cron handler that tries to spawn `openclaw agent ...`
-  // gets ECONNREFUSED. Cold-start budget: 90 seconds. On a slow first install,
-  // openclaw may take that long to load all plugins + bind ports. The Path B
-  // retry loop covers any case where this still isn't enough.
-  const gwReadyDeadline = Date.now() + 90000;
+  // gets ECONNREFUSED. Cold-start budget: 240 seconds (bumped from 90s —
+  // slow machines with Windows Defender scanning vendor files on first install
+  // can take 2-3 minutes before gateway binds port 18789).
+  const gwStartMs = Date.now();
+  const gwReadyDeadline = Date.now() + 240000;
   let gwReady = false;
   let probeAttempts = 0;
   while (Date.now() < gwReadyDeadline) {
@@ -5017,14 +5018,31 @@ async function _startOpenClawImpl() {
     await new Promise((r) => setTimeout(r, 500));
   }
   if (gwReady) {
-    const elapsedMs = 90000 - (gwReadyDeadline - Date.now());
+    const elapsedMs = Date.now() - gwStartMs;
     console.log(`[startOpenClaw] gateway WS ready on :18789 after ${elapsedMs}ms (${probeAttempts} probes)`);
     auditLog('gateway_ready', { elapsedMs, probeAttempts });
   } else {
-    // Don't WARN — that scared the user last time. The retry+Telegram path
-    // catches any first-cron-fire that races a still-warming gateway.
-    console.log(`[startOpenClaw] gateway WS still not responding to GET / after 90s (${probeAttempts} probes). Cron retries will handle warmup.`);
+    console.log(`[startOpenClaw] gateway WS still not responding after 240s (${probeAttempts} probes). Spawning background monitor.`);
     auditLog('gateway_slow_start', { probeAttempts });
+    // Background monitor: keep probing every 5s for up to 10 more minutes.
+    // When gateway finally comes up, log + emit audit so dashboard dot updates.
+    (async () => {
+      const bgDeadline = Date.now() + 600000;
+      let bgProbes = 0;
+      while (Date.now() < bgDeadline) {
+        await new Promise((r) => setTimeout(r, 5000));
+        bgProbes++;
+        try {
+          if (await isGatewayAlive(3000)) {
+            const totalMs = Date.now() - gwStartMs;
+            console.log(`[startOpenClaw] gateway finally ready after ${totalMs}ms (bg probe #${bgProbes})`);
+            auditLog('gateway_ready_late', { totalMs, bgProbes });
+            return;
+          }
+        } catch {}
+      }
+      console.warn('[startOpenClaw] gateway never came up after 10min — may need manual restart');
+    })();
   }
 
   // Register Telegram slash commands. DELAYED 15s so it runs AFTER OpenClaw
