@@ -7113,9 +7113,9 @@ function readZaloChannelState() {
       const oz = cfg?.channels?.openzalo || {};
       state.enabled = oz.enabled !== false;
       state.groupPolicy = oz.groupPolicy || 'open';
-      state.groupAllowFrom = Array.isArray(oz.groupAllowFrom) && oz.groupAllowFrom.length
+      state.groupAllowFrom = Array.isArray(oz.groupAllowFrom)
         ? oz.groupAllowFrom.map(String)
-        : ['*'];
+        : (state.groupPolicy === 'allowlist' ? [] : ['*']);
     }
   } catch (e) {
     state.configError = e?.message || String(e);

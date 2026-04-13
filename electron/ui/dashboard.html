@@ -3826,7 +3826,6 @@
     // Helper: is bot currently set to reply to ALL groups? (open mode via "*")
     function isOpenGroupMode() {
       return !zaloMgrConfig.groupAllowFrom
-        || zaloMgrConfig.groupAllowFrom.length === 0
         || zaloMgrConfig.groupAllowFrom.includes('*')
         || zaloMgrConfig.groupPolicy === 'open';
     }
@@ -3999,8 +3998,9 @@
 
     async function saveZaloManager() {
       zaloMgrConfig.enabled = document.getElementById('zalo-mgr-enabled').checked;
-      // groupPolicy is derived: "open" if allowlist is empty or contains "*", else "allowlist"
-      if (!zaloMgrConfig.groupAllowFrom || zaloMgrConfig.groupAllowFrom.length === 0 || zaloMgrConfig.groupAllowFrom.includes('*')) {
+      // groupPolicy is derived: explicit "*" or all groups selected => "open".
+      // Empty allowlist means "không cho nhóm nào", not open mode.
+      if (!zaloMgrConfig.groupAllowFrom || zaloMgrConfig.groupAllowFrom.includes('*')) {
         zaloMgrConfig.groupPolicy = 'open';
         zaloMgrConfig.groupAllowFrom = ['*'];
       } else if (zaloGroups.length > 0 && zaloMgrConfig.groupAllowFrom.length === zaloGroups.length) {
