@@ -8257,6 +8257,21 @@ function buildZaloFollowUpPrompt() {
   );
 }
 
+function buildMeditationPrompt() {
+  return (
+    `Bây giờ là 01:00 sáng. Đây là phiên TỐI ƯU BAN ĐÊM — em tự review bài học và tối ưu bộ nhớ.\n\n` +
+    `1. Đọc .learnings/LEARNINGS.md — liệt kê những learning nào xuất hiện > 2 lần hoặc có impact cao\n` +
+    `2. Đọc memory/ (journal entries, weekly-digest.md nếu có) — tìm patterns: khách hay hỏi gì, CEO cần gì thường xuyên, điểm nào bot hay sai\n` +
+    `3. Nếu tìm thấy pattern đáng ghi nhận: append vào .learnings/LEARNINGS.md với format L-XXX (tiếp số hiện có)\n` +
+    `4. Gửi CEO báo cáo ngắn qua Telegram:\n` +
+    `**TỐI ƯU BAN ĐÊM**\n` +
+    `- Đã review N learning entries\n` +
+    `- Pattern mới phát hiện: [bullet nếu có, hoặc "Không có gì mới"]\n` +
+    `- Điểm cần cải thiện: [1-2 bullet ngắn]\n\n` +
+    `KHÔNG dùng emoji. KHÔNG hỏi lại CEO. KHÔNG sửa AGENTS.md (chỉ ghi vào LEARNINGS.md).`
+  );
+}
+
 function buildMemoryCleanupPrompt() {
   return (
     `Dọn dẹp memory. Đọc tất cả file trong memory/ (trừ zalo-users/).\n\n` +
@@ -8294,8 +8309,9 @@ ipcMain.handle('test-cron', async (_event, { type, id }) => {
         const sent = await sendTelegram(`*Heartbeat*\n\nHệ thống đang hoạt động bình thường.`);
         return { success: sent === true, sent };
       } else if (id === 'meditation') {
-        const sent = await sendTelegram(`*Tối ưu ban đêm*\n\nCron thật sẽ ghi queue lúc ${s.time}.`);
-        return { success: sent === true, sent };
+        const prompt = buildMeditationPrompt();
+        const ok = await runCronAgentPrompt(prompt, { label: 'TEST — meditation' });
+        return { success: ok, sent: ok };
       } else if (id === 'weekly') {
         const prompt = await buildWeeklyReportPrompt();
         const ok = await runCronAgentPrompt(prompt, { label: 'TEST — weekly-report' });
@@ -10463,14 +10479,16 @@ function startCronJobs() {
         cronExpr = '0 1 * * *';
         handler = async () => {
           console.log('[cron] Meditation triggered at', new Date().toISOString());
-          // Silent — writes to memory/meditation-queue.md which bot reads on next session
+          if (global._cronInFlight?.get('meditation')) return;
+          global._cronInFlight?.set('meditation', true);
           try {
-            const ws = getWorkspace();
-            const queueFile = path.join(ws, 'memory', 'meditation-queue.md');
-            fs.mkdirSync(path.dirname(queueFile), { recursive: true });
-            const stamp = new Date().toISOString();
-            fs.appendFileSync(queueFile, `\n## Pending meditation ${stamp}\n\nRun night reflection: read .learnings/LEARNINGS.md, review patterns, promote repeating ones to AGENTS.md.\n`, 'utf-8');
-          } catch (e) { console.error('[cron] meditation queue write error:', e.message); }
+            const prompt = buildMeditationPrompt();
+            await runCronAgentPrompt(prompt, { label: 'meditation' });
+            try { auditLog('cron_fired', { id: 'meditation', label: 'Tối ưu ban đêm' }); } catch {}
+          } catch (e) {
+            console.error('[cron] Meditation threw:', e?.message || e);
+            try { auditLog('cron_failed', { id: 'meditation', label: 'Tối ưu ban đêm', error: String(e?.message || e).slice(0, 200) }); } catch {}
+          } finally { global._cronInFlight?.delete('meditation'); }
         };
         break;
       }
