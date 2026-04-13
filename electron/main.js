@@ -9457,24 +9457,38 @@ async function probeTelegramReady() {
 function findOpenzcaListenerPid() {
   try {
     if (process.platform === 'win32') {
-      const out = require('child_process').execSync(
-        `wmic process where "name='node.exe' and CommandLine like '%%openzca%%listen%%'" get ProcessId /format:csv 2>nul`,
-        { encoding: 'utf-8', timeout: 3000 }
-      );
-      // CSV format: header row "Node,ProcessId" then "<hostname>,<pid>".
-      // STRICT VALIDATION: skip header, require ≥2 cols, pid must be ≥100
-      // (filter system PIDs 0-99 + reject malformed wmic output that could
-      // otherwise return PID 0 or negative). Header row "ProcessId" string
-      // parses to NaN so it's auto-skipped by Number.isFinite check.
-      for (const line of out.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.toLowerCase().startsWith('node')) continue;
-        const cols = trimmed.split(',');
-        if (cols.length < 2) continue;
-        const pidStr = cols[cols.length - 1].trim();
-        const pid = parseInt(pidStr, 10);
-        if (Number.isFinite(pid) && pid >= 100) return pid;
+      // Try wmic first; fall back to PowerShell (wmic deprecated/disabled on some Win11 configs).
+      let wmicOut = null;
+      try {
+        wmicOut = require('child_process').execSync(
+          `wmic process where "name='node.exe' and CommandLine like '%%openzca%%listen%%'" get ProcessId /format:csv 2>nul`,
+          { encoding: 'utf-8', timeout: 3000 }
+        );
+      } catch { wmicOut = null; }
+
+      if (wmicOut) {
+        for (const line of wmicOut.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.toLowerCase().startsWith('node')) continue;
+          const cols = trimmed.split(',');
+          if (cols.length < 2) continue;
+          const pidStr = cols[cols.length - 1].trim();
+          const pid = parseInt(pidStr, 10);
+          if (Number.isFinite(pid) && pid >= 100) return pid;
+        }
       }
+
+      // PowerShell fallback (works even when wmic is disabled)
+      try {
+        const psOut = require('child_process').execSync(
+          `powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \\"name='node.exe'\\" | Where-Object { $_.CommandLine -like '*openzca*listen*' } | Select-Object -ExpandProperty ProcessId"`,
+          { encoding: 'utf-8', timeout: 5000, windowsHide: true }
+        );
+        for (const line of psOut.trim().split('\n')) {
+          const pid = parseInt(line.trim(), 10);
+          if (Number.isFinite(pid) && pid >= 100) return pid;
+        }
+      } catch {}
     } else {
       // Mac/Linux: pgrep -f matches command line. Returns one PID per line.
       // pgrep exit 1 = no matches → empty string. Iterate to be safe.
@@ -9607,6 +9621,22 @@ async function probeZaloReady() {
         try { require('process').kill(ownerPid, 0); aliveAndOpenzca = true; } catch {}
       }
       if (!aliveAndOpenzca) {
+        // openzca auto-reconnects in 1-2s after periodic session refresh.
+        // Debounce: wait 3s and re-check before declaring down, to avoid
+        // false "stale lock" flashes during the normal reconnect window.
+        await new Promise(r => setTimeout(r, 3000));
+        // Re-read lock file — if PID changed, new process is up
+        try {
+          const freshOwner = JSON.parse(fs.readFileSync(ownerFile, 'utf-8'));
+          if (freshOwner.pid && freshOwner.pid !== ownerPid) {
+            return { ready: true, listenerPid: freshOwner.pid, lastRefreshMinAgo: cacheAgeMin };
+          }
+        } catch {}
+        // Also retry process search (PowerShell fallback may now succeed)
+        const retryPid = findOpenzcaListenerPid();
+        if (retryPid) {
+          return { ready: true, listenerPid: retryPid, lastRefreshMinAgo: cacheAgeMin };
+        }
         return {
           ready: false,
           error: 'Listener đã thoát (lock file còn nhưng pid ' + ownerPid + ' không còn chạy)',
