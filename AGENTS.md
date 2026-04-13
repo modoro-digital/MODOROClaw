@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 27 -->
+<!-- modoroclaw-agents-version: 28 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
