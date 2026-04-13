@@ -657,23 +657,6 @@ function seedWorkspace() {
     }
   } catch {}
 
-  // Default: Zalo is disabled on fresh install. CEO must explicitly enable it
-  // via Dashboard → Zalo → "Tiếp tục". This prevents the bot from replying to
-  // unknown Zalo users/groups before the CEO has configured the channel.
-  // Uses permanent:true (no expiry) so the pause persists across restarts.
-  // resumeChannel('zalo') (triggered by "Tiếp tục" button) deletes the file.
-  try {
-    const zaloPausePath = path.join(ws, 'zalo-paused.json');
-    if (!fs.existsSync(zaloPausePath)) {
-      fs.writeFileSync(zaloPausePath, JSON.stringify({
-        permanent: true,
-        reason: 'default-disabled',
-        pausedAt: new Date().toISOString(),
-      }, null, 2), 'utf-8');
-      console.log('[seedWorkspace] zalo-paused.json created (default-disabled)');
-    }
-  } catch {}
-
   // Seed default active-persona mix if missing (wizard overwrites later).
   // Format: active-persona.json (structured config) + active-persona.md
   // (compiled prompt bot reads on bootstrap).
@@ -11968,6 +11951,21 @@ ipcMain.handle('wizard-complete', async () => {
   if (!mainWindow || mainWindow.isDestroyed()) return { success: false };
   // Fresh install: seed workspace files with defaults + cleanup any stale listener
   try { seedWorkspace(); } catch (e) { console.error('[wizard-complete seed] error:', e.message); }
+  // Default: Zalo disabled on fresh install. CEO must click "Bật Zalo" in Dashboard.
+  // IMPORTANT: this lives in wizard-complete (not seedWorkspace) so it only fires
+  // once on fresh install. seedWorkspace runs on every boot — putting it there would
+  // re-disable Zalo every restart after CEO has explicitly enabled it.
+  try {
+    const zaloPausePath = path.join(getWorkspace(), 'zalo-paused.json');
+    if (!fs.existsSync(zaloPausePath)) {
+      fs.writeFileSync(zaloPausePath, JSON.stringify({
+        permanent: true,
+        reason: 'default-disabled',
+        pausedAt: new Date().toISOString(),
+      }, null, 2), 'utf-8');
+      console.log('[wizard-complete] zalo-paused.json created (default-disabled)');
+    }
+  } catch {}
   try { cleanupOrphanZaloListener(); } catch {}
   mainWindow.loadFile(path.join(__dirname, 'ui', 'dashboard.html'));
   mainWindow.maximize();
