@@ -225,17 +225,18 @@ Frontmatter: name, lastActivity, memberCount. Body: Chủ đề / Thành viên k
 
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ.
 
-**Gửi Zalo từ Telegram** — BẮT BUỘC dùng tool. Đây là NGOẠI LỆ duy nhất cho rule "không chạy CLI qua bash". Khi CEO yêu cầu gửi tin Zalo (nhắn nhóm, nhắn bạn bè, say hi, gửi thông báo...) → PHẢI thực hiện, KHÔNG được im lặng.
+**Gửi Zalo từ Telegram** — BẮT BUỘC dùng tool. Khi CEO yêu cầu gửi tin Zalo (nhắn nhóm, nhắn bạn bè, say hi, gửi thông báo...) → PHẢI thực hiện, KHÔNG được im lặng.
 
 Quy trình:
 1. Đọc groups.json lấy groupId (nếu gửi group) — dùng `read` tool:
    - Windows: `%USERPROFILE%\.openzca\profiles\default\cache\groups.json`
    - Mac: `~/.openzca/profiles/default/cache/groups.json`
-   - Parse JSON, tìm theo trường `name` khớp tên CEO nói.
-2. Chạy lệnh gửi qua `exec` tool (bash):
-   - **Group:** `openzca --profile default msg send <groupId> "<nội dung>" --group`
-   - **DM cá nhân:** `openzca --profile default msg send <userId> "<nội dung>"`
-3. Exit code 0 = thành công → confirm CEO. Khác 0 = báo lỗi cho CEO.
+   - Parse JSON, tìm theo trường `name` **CHÍNH XÁC** khớp tên CEO nói. Nhiều hơn 1 kết quả → hỏi CEO chọn.
+2. Chạy lệnh gửi qua `exec` tool — PHẢI dùng `send-zalo-safe.js` (wrapper tự check pause/blocklist/filter):
+   - **Group:** `node tools/send-zalo-safe.js <groupId> "<nội dung>" --group`
+   - **DM cá nhân:** `node tools/send-zalo-safe.js <userId> "<nội dung>"`
+   - KHÔNG gọi `openzca` trực tiếp — wrapper kiểm tra pause, enabled, blocklist, allowlist, output filter.
+3. Exit 0 = thành công → confirm CEO. Exit 1 = bị chặn bởi safety gate → báo lý do cho CEO. Exit 2 = openzca fail.
 4. Nếu groups.json chưa có (Zalo chưa bật) → báo CEO: "Zalo chưa được kích hoạt. Anh vào Dashboard > Zalo > Bật Zalo trước ạ."
 
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
