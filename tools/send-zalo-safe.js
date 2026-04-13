@@ -167,22 +167,34 @@ for (const p of FILTER_PATTERNS) {
 
 // --- All gates passed — find openzca and send ---
 function findOpenzca() {
-  // 1. vendor bundled
-  const vendorRoots = [];
+  const candidates = [];
+  // 1. BIZCLAW_OPENZCA_CLI_JS env var (set by gateway enrichedEnv)
+  if (process.env.BIZCLAW_OPENZCA_CLI_JS) {
+    candidates.push(process.env.BIZCLAW_OPENZCA_CLI_JS);
+  }
+  // 2. vendor bundled — userData paths
   if (isWin) {
-    vendorRoots.push(path.join(process.env.APPDATA || '', '9bizclaw', 'vendor'));
+    candidates.push(path.join(process.env.APPDATA || '', '9bizclaw', 'vendor', 'node_modules', 'openzca', 'dist', 'cli.js'));
   } else if (process.platform === 'darwin') {
-    vendorRoots.push(path.join(HOME, 'Library', 'Application Support', '9bizclaw', 'vendor'));
+    candidates.push(path.join(HOME, 'Library', 'Application Support', '9bizclaw', 'vendor', 'node_modules', 'openzca', 'dist', 'cli.js'));
   }
-  for (const vr of vendorRoots) {
-    const cli = path.join(vr, 'node_modules', 'openzca', 'dist', 'cli.js');
-    if (fs.existsSync(cli)) return cli;
+  // 3. Mac packaged app bundle (DMG install)
+  if (process.platform === 'darwin') {
+    candidates.push('/Applications/9BizClaw.app/Contents/Resources/vendor/node_modules/openzca/dist/cli.js');
   }
-  // 2. npm global
-  const npmGlobal = isWin
-    ? path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js')
-    : '/usr/local/lib/node_modules/openzca/dist/cli.js';
-  if (fs.existsSync(npmGlobal)) return npmGlobal;
+  // 4. npm global
+  if (isWin) {
+    candidates.push(path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'));
+  } else {
+    candidates.push('/usr/local/lib/node_modules/openzca/dist/cli.js');
+    candidates.push('/opt/homebrew/lib/node_modules/openzca/dist/cli.js');
+    // nvm
+    const nvmDir = path.join(HOME, '.nvm', 'versions', 'node');
+    try { if (fs.existsSync(nvmDir)) { for (const v of fs.readdirSync(nvmDir)) { candidates.push(path.join(nvmDir, v, 'lib', 'node_modules', 'openzca', 'dist', 'cli.js')); } } } catch {}
+  }
+  for (const c of candidates) {
+    try { if (fs.existsSync(c)) return c; } catch {}
+  }
   return null;
 }
 
