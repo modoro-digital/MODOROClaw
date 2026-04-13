@@ -618,6 +618,30 @@ function seedWorkspace() {
           // important than preserving the backup.
         }
         try { fs.unlinkSync(existingAgents); } catch {}
+        // PIGGYBACK: when AGENTS.md upgrades, also force-overwrite other
+        // template .md files that changed significantly. These don't have
+        // their own version stamps, so they only get updated on AGENTS.md
+        // version bumps. CEO customizations in these files are rare (they're
+        // bot-internal, not user-facing), so overwriting is safe.
+        const alsoOverwrite = ['MEMORY.md', 'HEARTBEAT.md'];
+        for (const f of alsoOverwrite) {
+          const fp = path.join(ws, f);
+          if (fs.existsSync(fp)) {
+            try { fs.unlinkSync(fp); console.log('[seedWorkspace] ' + f + ' force-overwritten (piggyback on AGENTS.md upgrade)'); } catch {}
+          }
+        }
+        // Clean up fake sample memory files from older templates
+        const fakeFiles = [
+          'memory/people/colleague.md',
+          'memory/projects/knowledge-management.md',
+          'memory/projects/microservices-migration.md',
+        ];
+        for (const f of fakeFiles) {
+          const fp = path.join(ws, f);
+          if (fs.existsSync(fp)) {
+            try { fs.unlinkSync(fp); console.log('[seedWorkspace] removed fake memory file: ' + f); } catch {}
+          }
+        }
       }
     } catch (e) {
       console.warn('[seedWorkspace] AGENTS.md version check failed:', e && e.message ? e.message : String(e));
