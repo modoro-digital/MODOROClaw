@@ -6779,7 +6779,16 @@ async function _ensureZaloPluginImpl() {
     // Heal missing node_modules link even when plugin is already present
     // (upgrade path from prior build that copied plugin without linking deps).
     ensureOpenzaloNodeModulesLink();
-    if (vendorDir && !fs.existsSync(path.join(extensionsDir, 'openclaw.plugin.json'))) {
+    // FAST PATH: plugin already installed (common on subsequent boots).
+    // Skip both bundled-copy AND network-install. Without this early return,
+    // the code falls through to `npm install -g openzca` (60s timeout) on
+    // EVERY boot — the root cause of the 50s startup delay.
+    if (fs.existsSync(path.join(extensionsDir, 'openclaw.plugin.json'))) {
+      console.log('[ensureZaloPlugin] plugin already present — skipping install');
+      _zaloReady = true;
+      return;
+    }
+    if (vendorDir) {
       const bundledPlugin = path.join(vendorDir, 'node_modules', '@tuyenhx', 'openzalo');
       if (fs.existsSync(path.join(bundledPlugin, 'openclaw.plugin.json'))) {
         try {
