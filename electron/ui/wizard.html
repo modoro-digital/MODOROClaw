@@ -1440,7 +1440,29 @@
         if (!/^\d{5,15}$/.test(u)) { markFieldError('tg-user-id'); return showError('User ID chỉ gồm chữ số (ví dụ: 123456789).'); }
       }
       if (currentStep === 4) {
-        // Last step before finish — call finishSetup
+        // Gate: warn (but allow skip) if Zalo is not logged in. Without login
+        // bot can NEVER receive Zalo messages — CEO would discover only when
+        // first customer message goes silent. Confirm modal makes intent
+        // explicit instead of silent skip.
+        try {
+          const st = await withTimeout(window.claw.checkZaloLogin(), 4000);
+          const loggedIn = !!(st && st.loggedIn);
+          if (!loggedIn) {
+            const ok = window.confirm(
+              'Zalo chưa đăng nhập.\n\n' +
+              'Bot sẽ KHÔNG nhận tin Zalo cho đến khi anh login lại ở Dashboard → Zalo.\n\n' +
+              'Vẫn tiếp tục hoàn tất cài đặt?'
+            );
+            if (!ok) return;
+          }
+        } catch (_) {
+          // checkZaloLogin failed (timeout/IPC error) — don't block CEO, just warn
+          const ok = window.confirm(
+            'Không kiểm tra được trạng thái Zalo.\n\n' +
+            'Có thể Zalo chưa được login. Vẫn tiếp tục?'
+          );
+          if (!ok) return;
+        }
         finishSetup();
         return;
       }

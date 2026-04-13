@@ -120,9 +120,9 @@ pkill -f "9router" || true
 
 # Wipe state
 rm -rf ~/.openclaw ~/.openzca
-rm -rf "~/Library/Application Support/9router"
-rm -rf "~/Library/Application Support/MODOROClaw"
-rm -rf "~/Library/Application Support/modoro-claw"
+rm -rf "$HOME/Library/Application Support/9router"
+rm -rf "$HOME/Library/Application Support/MODOROClaw"
+rm -rf "$HOME/Library/Application Support/modoro-claw"
 rm -rf ~/Library/Logs/MODOROClaw
 
 # Uninstall global npm tools

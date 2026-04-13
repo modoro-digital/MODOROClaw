@@ -174,11 +174,11 @@ if ! command -v node >/dev/null 2>&1; then
   esac
 fi
 
-# Verify Node version (must be >= 18)
+# Verify Node version (must be >= 22 — openzca builds with --target node22 và yêu cầu 22.13+)
 NODE_MAJOR=$(node -v | sed 's/v//' | cut -d. -f1)
-if [ "${NODE_MAJOR:-0}" -lt 18 ]; then
-  echo "  ⚠  Node.js phiên bản quá cũ ($(node -v)). Cần Node 18+ (khuyến nghị 22+)."
-  echo "     Cập nhật: brew upgrade node  hoặc  https://nodejs.org"
+if [ "${NODE_MAJOR:-0}" -lt 22 ]; then
+  echo "  ⚠  Node.js phiên bản quá cũ ($(node -v)). Cần Node 22.13+ (openzca/Zalo plugin yêu cầu)."
+  echo "     Cập nhật: brew install node@22  hoặc  https://nodejs.org"
   echo ""
   read -p "  Tiếp tục với Node cũ? [y/N]: " -n 1 -r
   echo

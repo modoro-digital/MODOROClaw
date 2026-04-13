@@ -596,7 +596,11 @@ function seedWorkspace() {
       const existingContent = fs.readFileSync(existingAgents, 'utf-8');
       const m = existingContent.match(AGENTS_MD_VERSION_RE);
       const existingVersion = m ? parseInt(m[1], 10) : 0;
-      if (existingVersion < CURRENT_AGENTS_MD_VERSION) {
+      // Spoof guard: version suspiciously far ahead of template → treat as
+      // stale/tampered and force overwrite. Prevents CEO (or anyone) from
+      // accidentally editing the stamp higher and freezing the file forever.
+      const spoofed = existingVersion > CURRENT_AGENTS_MD_VERSION + 10;
+      if (existingVersion < CURRENT_AGENTS_MD_VERSION || spoofed) {
         // Back up the stale file to .learnings/ so any user-added custom
         // rules (or bot self-improvement promotions) survive the overwrite.
         try {
@@ -605,7 +609,8 @@ function seedWorkspace() {
           const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
           const backupName = 'AGENTS-backup-v' + existingVersion + '-' + ts + '.md';
           fs.writeFileSync(path.join(backupDir, backupName), existingContent, 'utf-8');
-          console.log('[seedWorkspace] AGENTS.md upgrade ' + existingVersion + ' → ' +
+          const label = spoofed ? 'spoof-reset' : 'upgrade';
+          console.log('[seedWorkspace] AGENTS.md ' + label + ' ' + existingVersion + ' → ' +
             CURRENT_AGENTS_MD_VERSION + ' (backup: .learnings/' + backupName + ')');
         } catch (be) {
           console.warn('[seedWorkspace] AGENTS.md backup failed:', be && be.message ? be.message : String(be));
@@ -2462,11 +2467,22 @@ function findGlobalPackageFile(packageName, relativeFile) {
   // This covers the case where dev runs RUN.bat but vendor/ was deleted by prebuild-vendor.
   if (!v) {
     try {
-      const userDataVendor = path.join(
-        process.env.APPDATA || path.join(HOME, 'AppData', 'Roaming'),
-        '9bizclaw', 'vendor', 'node_modules', packageName, relativeFile
-      );
-      if (fs.existsSync(userDataVendor)) return userDataVendor;
+      const userDataRoots = [];
+      if (process.platform === 'darwin') {
+        userDataRoots.push(path.join(HOME, 'Library', 'Application Support', '9bizclaw'));
+        userDataRoots.push(path.join(HOME, 'Library', 'Application Support', 'modoro-claw'));
+      } else if (process.platform === 'win32') {
+        const appdata = process.env.APPDATA || path.join(HOME, 'AppData', 'Roaming');
+        userDataRoots.push(path.join(appdata, '9bizclaw'));
+        userDataRoots.push(path.join(appdata, 'modoro-claw'));
+      } else {
+        userDataRoots.push(path.join(HOME, '.config', '9bizclaw'));
+        userDataRoots.push(path.join(HOME, '.config', 'modoro-claw'));
+      }
+      for (const root of userDataRoots) {
+        const cand = path.join(root, 'vendor', 'node_modules', packageName, relativeFile);
+        if (fs.existsSync(cand)) return cand;
+      }
     } catch {}
   }
   for (const lib of enumerateNodeManagerLibDirs()) {
@@ -3469,56 +3485,95 @@ function ensureZaloSystemMsgFix() {
 // 9BizClaw PATCH: OpenZalo plugin doesn't natively honor Modoro's user blocklist
 // (zalo-blocklist.json) — only its own allowFrom whitelist. We inject a small check
 // at the top of handleOpenzaloInbound that drops messages from blocklisted senders.
-// Idempotent via "9BizClaw BLOCKLIST PATCH" marker.
+//
+// v2 changes:
+//   - Resolve workspace paths at RUNTIME (9BIZ_WORKSPACE + platform fallback)
+//     instead of hardcoding the machine path at patch time. Without this, a
+//     plugin patched on Windows keeps looking at AppData paths even when the
+//     exact same build runs on macOS, so per-user "không xử lý" switches fail.
+//   - Treat parse errors as fail-closed. Better to drop a message than leak a
+//     reply to a user who was explicitly disabled in the manager UI.
 function ensureZaloBlocklistFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    if (content.includes('9BizClaw BLOCKLIST PATCH')) return; // already patched
+    const CURRENT_MARKER = '9BizClaw BLOCKLIST PATCH v2';
+    if (content.includes('9BizClaw BLOCKLIST PATCH')) {
+      if (content.includes(CURRENT_MARKER)) return;
+      content = content.replace(/\n\s*\/\/ === 9BizClaw BLOCKLIST PATCH ===[\s\S]*?\/\/ === END 9BizClaw BLOCKLIST PATCH ===/g, '');
+      console.log('[zalo-blocklist-fix] Removed old blocklist patch (upgrading to v2)');
+    }
 
     const anchor = '  if (!rawBody && !hasMedia) {\n    return;\n  }';
     if (!content.includes(anchor)) {
       console.error('[zalo-blocklist-fix] anchor not found, skipping');
       return;
     }
-    // Resolve workspace at patch time so packaged installs work too. We hard-code
-    // the candidate paths here because we cannot import Electron from the plugin.
-    const blocklistPaths = [
-      path.join(getWorkspace(), 'zalo-blocklist.json').replace(/\\/g, '/'),
-      path.join(HOME, '.openclaw', 'workspace', 'zalo-blocklist.json').replace(/\\/g, '/'),
-    ];
     const injection = `
 
   // === 9BizClaw BLOCKLIST PATCH ===
+  // 9BizClaw BLOCKLIST PATCH v2: resolve workspace at runtime so the same
+  // patched plugin works on Windows/macOS/Linux and fail closed on parse errors.
   // Drop messages from senders listed in zalo-blocklist.json (workspace file
   // managed via Dashboard → Zalo → Bạn bè). OpenZalo upstream only supports
   // allowFrom (whitelist); this gives Modoro CEOs a working blocklist UX.
   try {
     const __mzFs = require("node:fs");
-    const __mzCandidates = ${JSON.stringify(blocklistPaths)};
+    const __mzPath = require("node:path");
+    const __mzOs = require("node:os");
+    const __mzHome = __mzOs.homedir();
+    const __mzAppDir = "9bizclaw";
+    const __mzCandidates: string[] = [];
+    if (process.env['9BIZ_WORKSPACE']) {
+      __mzCandidates.push(__mzPath.join(process.env['9BIZ_WORKSPACE'], "zalo-blocklist.json"));
+    }
+    if (process.platform === "darwin") {
+      __mzCandidates.push(__mzPath.join(__mzHome, "Library", "Application Support", __mzAppDir, "zalo-blocklist.json"));
+    } else if (process.platform === "win32") {
+      const __mzAppData = process.env.APPDATA || __mzPath.join(__mzHome, "AppData", "Roaming");
+      __mzCandidates.push(__mzPath.join(__mzAppData, __mzAppDir, "zalo-blocklist.json"));
+    } else {
+      const __mzConfig = process.env.XDG_CONFIG_HOME || __mzPath.join(__mzHome, ".config");
+      __mzCandidates.push(__mzPath.join(__mzConfig, __mzAppDir, "zalo-blocklist.json"));
+    }
+    __mzCandidates.push(__mzPath.join(__mzHome, ".openclaw", "workspace", "zalo-blocklist.json"));
     let __mzBlocked: string[] = [];
+    let __mzPolicyError = false;
+    const __mzSeen = new Set<string>();
     for (const __p of __mzCandidates) {
       try {
-        if (__mzFs.existsSync(__p)) {
-          const __raw = __mzFs.readFileSync(__p, "utf-8");
-          const __parsed = JSON.parse(__raw);
-          if (Array.isArray(__parsed)) {
-            __mzBlocked = __parsed.map((x: any) => String(x));
-            break;
-          }
+        const __resolved = __mzPath.resolve(__p);
+        if (__mzSeen.has(__resolved)) continue;
+        __mzSeen.add(__resolved);
+        if (!__mzFs.existsSync(__resolved)) continue;
+        const __raw = __mzFs.readFileSync(__resolved, "utf-8");
+        const __parsed = JSON.parse(__raw);
+        if (!Array.isArray(__parsed)) {
+          __mzPolicyError = true;
+          runtime.log?.(\`openzalo: blocklist invalid at \${__resolved} → fail closed\`);
+          break;
         }
-      } catch {}
-    }
-    if (__mzBlocked.length > 0) {
-      const __sender = String(message.senderId || "").trim();
-      if (__sender && __mzBlocked.includes(__sender)) {
-        runtime.log?.(\`openzalo: drop sender=\${__sender} (9BizClaw blocklist)\`);
-        return;
+        __mzBlocked = __parsed.map((x: any) => String(x || "").trim()).filter(Boolean);
+        break;
+      } catch (__mzReadErr) {
+        __mzPolicyError = true;
+        runtime.log?.(\`openzalo: blocklist parse error: \${String(__mzReadErr)}\`);
+        break;
       }
+    }
+    if (__mzPolicyError) {
+      runtime.log?.("openzalo: blocklist policy error → fail closed");
+      return;
+    }
+    const __sender = String(message.senderId || "").trim();
+    if (__sender && __mzBlocked.includes(__sender)) {
+      runtime.log?.(\`openzalo: drop sender=\${__sender} (9BizClaw blocklist)\`);
+      return;
     }
   } catch (__e) {
     runtime.log?.(\`openzalo: blocklist check error: \${String(__e)}\`);
+    return;
   }
   // === END 9BizClaw BLOCKLIST PATCH ===
 `;
@@ -3532,19 +3587,24 @@ function ensureZaloBlocklistFix() {
 
 // 9BizClaw PAUSE PATCH: When CEO/staff types /pause in Zalo, bot stops
 // replying for 30 min so human can take over. Also auto-detect staff reply.
-// Idempotent via "9BizClaw PAUSE PATCH" marker.
+//
+// v5 changes:
+//   - Resolve workspace/owner files at RUNTIME so a plugin patched on one OS
+//     still honors pause + disable on another OS.
+//   - Keep fail-closed behavior for config/pause parse errors.
 function ensureZaloPauseFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    const CURRENT_MARKER = '9BizClaw PAUSE PATCH v4';
-    // v4: owner-only /pause + honor permanent pause + enabled=false + parse errors fail-closed.
+    const CURRENT_MARKER = '9BizClaw PAUSE PATCH v5';
+    // v5: runtime path resolution + owner-only /pause + honor permanent pause +
+    // enabled=false + parse errors fail-closed.
     if (content.includes('9BizClaw PAUSE PATCH')) {
       if (content.includes(CURRENT_MARKER)) return;
       // Strip old patch so we can inject the current version
       content = content.replace(/\n\n  \/\/ === 9BizClaw PAUSE PATCH ===[\s\S]*?\/\/ === END 9BizClaw PAUSE PATCH ===/m, '');
-      console.log('[zalo-pause-fix] Removed old pause patch (upgrading to v4 fail-closed)');
+      console.log('[zalo-pause-fix] Removed old pause patch (upgrading to v5 runtime-path)');
     }
 
     // Inject after blocklist patch (or after the rawBody anchor if blocklist absent)
@@ -3555,15 +3615,6 @@ function ensureZaloPauseFix() {
       console.error('[zalo-pause-fix] anchor not found');
       return;
     }
-    const pausePaths = [
-      path.join(getWorkspace(), 'zalo-paused.json').replace(/\\/g, '/'),
-      path.join(HOME, '.openclaw', 'workspace', 'zalo-paused.json').replace(/\\/g, '/'),
-    ];
-    // Build owner paths for pause auth check (same paths as owner marker patch)
-    const ownerPaths = [];
-    const _ws = getWorkspace();
-    if (_ws) ownerPaths.push(path.join(_ws, 'zalo-owner.json').replace(/\\/g, '/'));
-    ownerPaths.push(path.join(HOME, '.openclaw', 'workspace', 'zalo-owner.json').replace(/\\/g, '/'));
     const configPaths = [
       path.join(HOME, '.openclaw', 'openclaw.json').replace(/\\/g, '/'),
     ];
@@ -3574,19 +3625,44 @@ function ensureZaloPauseFix() {
   // /pause and /resume: ONLY accepted from the Zalo account the bot is logged
   // into (ownerUserId in zalo-owner.json). This is the CEO/staff using the
   // same Zalo account as the bot. Customers typing /pause are ignored.
-  // 9BizClaw PAUSE PATCH v4: also honor permanent pause files and
-  // openclaw.json channels.openzalo.enabled=false, and treat parse errors as blocked.
+  // 9BizClaw PAUSE PATCH v5: runtime path resolution + honor permanent pause
+  // files + openclaw.json channels.openzalo.enabled=false + parse errors blocked.
   try {
     const __pzFs = require("node:fs");
     const __pzPath = require("node:path");
-    const __pzPaths = ${JSON.stringify(pausePaths)};
+    const __pzOs = require("node:os");
     const __pzConfigPaths = ${JSON.stringify(configPaths)};
     const __pzBody = String(rawBody || "").trim().toLowerCase();
     const __pzSender = String(message.senderId || "").trim();
+    const __pzHome = __pzOs.homedir();
+    const __pzAppDir = "9bizclaw";
+    const __pzWorkspaceDirs: string[] = [];
+    if (process.env['9BIZ_WORKSPACE']) {
+      __pzWorkspaceDirs.push(process.env['9BIZ_WORKSPACE']);
+    }
+    if (process.platform === "darwin") {
+      __pzWorkspaceDirs.push(__pzPath.join(__pzHome, "Library", "Application Support", __pzAppDir));
+    } else if (process.platform === "win32") {
+      const __pzAppData = process.env.APPDATA || __pzPath.join(__pzHome, "AppData", "Roaming");
+      __pzWorkspaceDirs.push(__pzPath.join(__pzAppData, __pzAppDir));
+    } else {
+      const __pzConfig = process.env.XDG_CONFIG_HOME || __pzPath.join(__pzHome, ".config");
+      __pzWorkspaceDirs.push(__pzPath.join(__pzConfig, __pzAppDir));
+    }
+    __pzWorkspaceDirs.push(__pzPath.join(__pzHome, ".openclaw", "workspace"));
+    const __pzPaths: string[] = [];
+    const __pzOwnerPaths: string[] = [];
+    const __pzSeen = new Set<string>();
+    for (const __pzDir of __pzWorkspaceDirs) {
+      const __resolvedDir = __pzPath.resolve(__pzDir);
+      if (__pzSeen.has(__resolvedDir)) continue;
+      __pzSeen.add(__resolvedDir);
+      __pzPaths.push(__pzPath.join(__resolvedDir, "zalo-paused.json"));
+      __pzOwnerPaths.push(__pzPath.join(__resolvedDir, "zalo-owner.json"));
+    }
 
     // Resolve owner senderId from zalo-owner.json
     let __pzOwner = "";
-    const __pzOwnerPaths = ${JSON.stringify(ownerPaths)};
     for (const __op of __pzOwnerPaths) {
       try {
         if (__pzFs.existsSync(__op)) {
@@ -4169,7 +4245,18 @@ function ensureOpenzcaFriendEventFix() {
   }
 }
 
-// 9BizClaw OUTPUT-FILTER PATCH v4 — Security Layer 2
+// 9BizClaw OUTPUT-FILTER PATCH v6 — Security Layer 2
+// v6 changes vs v5:
+//   - Extend the transport kill-switch into a full policy kill-switch. Besides
+//     pause/disable, the outbound send now re-checks user blocklist and group
+//     allowlist right before calling openzca. This guarantees that a user/group
+//     switched off in Dashboard cannot still receive an in-flight AI reply.
+//   - Resolve workspace paths at runtime (9BIZ_WORKSPACE + platform fallback)
+//     so the same patched plugin behaves correctly on macOS too.
+//
+// v5 changes vs v4:
+//   - Fail closed on filter runtime errors instead of silently falling through.
+//
 // v4 changes vs v3:
 //   - Add transport kill-switch: if Zalo is paused permanently/temporarily or
 //     channels.openzalo.enabled=false, abort the send at the plugin boundary.
@@ -4214,7 +4301,7 @@ function ensureZaloOutputFilterFix() {
     let content = fs.readFileSync(pluginFile, 'utf-8');
     const originalLength = content.length;
 
-    const CURRENT_VERSION = '9BizClaw OUTPUT-FILTER PATCH v5';
+    const CURRENT_VERSION = '9BizClaw OUTPUT-FILTER PATCH v6';
 
     // Fast path: file is already on the current version, nothing to do.
     if (content.includes(CURRENT_VERSION)) return;
@@ -4239,73 +4326,134 @@ function ensureZaloOutputFilterFix() {
 
     const injection = `
 
-  // === 9BizClaw OUTPUT-FILTER PATCH v5 ===
+  // === 9BizClaw OUTPUT-FILTER PATCH v6 ===
   // Scan outbound Zalo text for sensitive patterns + AI failure modes.
-  // See main.js ensureZaloOutputFilterFix for v5 changelog vs v4.
+  // See main.js ensureZaloOutputFilterFix for v6 changelog vs v5.
   try {
     const __ofFs = require("node:fs");
     const __ofPath = require("node:path");
     const __ofOs = require("node:os");
-    // Transport kill-switch: if Dashboard says Zalo is off/paused, abort
-    // RIGHT BEFORE send. This catches in-flight replies generated before
-    // the toggle changed and keeps customer-facing safety fail-closed.
+    // Policy kill-switch: if Dashboard says Zalo is off/paused, this target
+    // is blocklisted, or this group is outside the allowlist, abort RIGHT
+    // BEFORE send. This catches in-flight replies generated before the CEO
+    // flipped a switch and keeps customer-facing behavior fail-closed.
     try {
       const __ofHome = __ofOs.homedir();
       const __ofAppDir = "9bizclaw";
-      let __ofWsDir;
+      const __ofWorkspaceDirs: string[] = [];
       if (process.env['9BIZ_WORKSPACE']) {
-        __ofWsDir = process.env['9BIZ_WORKSPACE'];
-      } else if (process.platform === "darwin") {
-        __ofWsDir = __ofPath.join(__ofHome, "Library", "Application Support", __ofAppDir);
+        __ofWorkspaceDirs.push(process.env['9BIZ_WORKSPACE']);
+      }
+      if (process.platform === "darwin") {
+        __ofWorkspaceDirs.push(__ofPath.join(__ofHome, "Library", "Application Support", __ofAppDir));
       } else if (process.platform === "win32") {
         const __ofAppData = process.env.APPDATA || __ofPath.join(__ofHome, "AppData", "Roaming");
-        __ofWsDir = __ofPath.join(__ofAppData, __ofAppDir);
+        __ofWorkspaceDirs.push(__ofPath.join(__ofAppData, __ofAppDir));
       } else {
         const __ofConfig = process.env.XDG_CONFIG_HOME || __ofPath.join(__ofHome, ".config");
-        __ofWsDir = __ofPath.join(__ofConfig, __ofAppDir);
+        __ofWorkspaceDirs.push(__ofPath.join(__ofConfig, __ofAppDir));
       }
-      const __ofPausePaths = [
-        __ofPath.join(__ofWsDir, "zalo-paused.json"),
-        __ofPath.join(__ofHome, ".openclaw", "workspace", "zalo-paused.json"),
-      ];
+      __ofWorkspaceDirs.push(__ofPath.join(__ofHome, ".openclaw", "workspace"));
+      const __ofPausePaths: string[] = [];
+      const __ofBlocklistPaths: string[] = [];
+      const __ofSeenWs = new Set<string>();
+      for (const __ofWsDir of __ofWorkspaceDirs) {
+        const __ofResolvedWs = __ofPath.resolve(__ofWsDir);
+        if (__ofSeenWs.has(__ofResolvedWs)) continue;
+        __ofSeenWs.add(__ofResolvedWs);
+        __ofPausePaths.push(__ofPath.join(__ofResolvedWs, "zalo-paused.json"));
+        __ofBlocklistPaths.push(__ofPath.join(__ofResolvedWs, "zalo-blocklist.json"));
+      }
       const __ofConfigPaths = [
         __ofPath.join(__ofHome, ".openclaw", "openclaw.json"),
       ];
       let __ofTransportBlocked = false;
+      let __ofBlockReason = "";
       for (const __ofPause of __ofPausePaths) {
         try {
           if (!__ofFs.existsSync(__ofPause)) continue;
           const __ofPauseData = JSON.parse(__ofFs.readFileSync(__ofPause, "utf-8"));
           if (__ofPauseData?.permanent) {
             __ofTransportBlocked = true;
+            __ofBlockReason = "paused-permanent";
             break;
           }
           if (__ofPauseData?.pausedUntil && new Date(__ofPauseData.pausedUntil) > new Date()) {
             __ofTransportBlocked = true;
+            __ofBlockReason = "paused";
             break;
           }
         } catch {
           __ofTransportBlocked = true;
+          __ofBlockReason = "pause-parse-error";
           break;
         }
       }
+      let __ofZaloCfg: any = null;
       if (!__ofTransportBlocked) {
         for (const __ofCfgPath of __ofConfigPaths) {
           try {
             if (!__ofFs.existsSync(__ofCfgPath)) continue;
             const __ofCfg = JSON.parse(__ofFs.readFileSync(__ofCfgPath, "utf-8"));
+            __ofZaloCfg = __ofCfg?.channels?.openzalo || {};
             if (__ofCfg?.channels?.openzalo?.enabled === false) {
               __ofTransportBlocked = true;
+              __ofBlockReason = "disabled";
               break;
             }
           } catch {
             __ofTransportBlocked = true;
+            __ofBlockReason = "config-parse-error";
             break;
           }
         }
       }
+      if (!__ofTransportBlocked) {
+        let __ofBlockedUsers: string[] = [];
+        for (const __ofBlockPath of __ofBlocklistPaths) {
+          try {
+            if (!__ofFs.existsSync(__ofBlockPath)) continue;
+            const __ofRaw = JSON.parse(__ofFs.readFileSync(__ofBlockPath, "utf-8"));
+            if (!Array.isArray(__ofRaw)) {
+              __ofTransportBlocked = true;
+              __ofBlockReason = "blocklist-invalid";
+              break;
+            }
+            __ofBlockedUsers = __ofRaw.map((x: any) => String(x || "").trim()).filter(Boolean);
+            break;
+          } catch {
+            __ofTransportBlocked = true;
+            __ofBlockReason = "blocklist-parse-error";
+            break;
+          }
+        }
+        const __ofTargetId = String(target.threadId || "").trim();
+        if (!__ofTransportBlocked && __ofTargetId) {
+          if (target.isGroup) {
+            const __ofGroupPolicy = __ofZaloCfg?.groupPolicy || "open";
+            const __ofGroupAllowFrom = Array.isArray(__ofZaloCfg?.groupAllowFrom)
+              ? __ofZaloCfg.groupAllowFrom.map((x: any) => String(x))
+              : ["*"];
+            const __ofAllowAll = __ofGroupPolicy !== "allowlist" || __ofGroupAllowFrom.includes("*");
+            if (!__ofAllowAll && !__ofGroupAllowFrom.includes(__ofTargetId)) {
+              __ofTransportBlocked = true;
+              __ofBlockReason = "group-not-allowed";
+            }
+          } else if (__ofBlockedUsers.includes(__ofTargetId)) {
+            __ofTransportBlocked = true;
+            __ofBlockReason = "user-blocked";
+          }
+        }
+      }
       if (__ofTransportBlocked) {
-        try { logOutbound("info", "transport gated by zalo pause/disable", { accountId: account.accountId, to: target.threadId }); } catch {}
+        try {
+          logOutbound("info", "transport gated by zalo policy", {
+            accountId: account.accountId,
+            to: target.threadId,
+            isGroup: target.isGroup,
+            reason: __ofBlockReason || "policy",
+          });
+        } catch {}
         return { messageId: "transport-gated", kind: "text" as const };
       }
     } catch {
@@ -4483,7 +4631,7 @@ function ensureZaloOutputFilterFix() {
     }
 
     fs.writeFileSync(pluginFile, patched, 'utf-8');
-    console.log('[zalo-output-filter-fix] Injected output filter v5 into send.ts (' +
+    console.log('[zalo-output-filter-fix] Injected output filter v6 into send.ts (' +
       originalLength + ' → ' + patched.length + ' bytes)');
   } catch (e) {
     console.error('[zalo-output-filter-fix] error:', e.message);

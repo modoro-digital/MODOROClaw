@@ -275,10 +275,24 @@ function npmInstallVendorPackages() {
     '@tuyenhx/openzalo': readVendorVersion(path.join(VENDOR_NM, '@tuyenhx', 'openzalo', 'package.json')),
   };
   const allMatch = Object.entries(expectedVersions).every(([k, v]) => installedVersions[k] === v);
-  if (allMatch) {
-    log('vendor packages already installed at pinned versions — skipping npm install');
+  // Arch marker — vendor/node_modules has native binaries (better-sqlite3 etc).
+  // Cached install from a previous build for a DIFFERENT arch (e.g. last build
+  // was --x64, now --arm64) MUST trigger reinstall, otherwise we ship an x64
+  // .node into an arm64 .dmg (and 9router HTTP 500 on first launch).
+  const platform = detectTargetPlatform();
+  const arch = detectTargetArch();
+  const archKey = `${platform}-${arch}`;
+  const archMarkerPath = path.join(VENDOR, '.vendor-arch');
+  const cachedArch = (() => { try { return fs.readFileSync(archMarkerPath, 'utf8').trim(); } catch { return ''; } })();
+  const archMatch = cachedArch === archKey;
+  if (allMatch && archMatch) {
+    log('vendor packages already installed at pinned versions + matching arch — skipping npm install');
     log('  versions: ' + Object.entries(installedVersions).map(([k, v]) => `${k}@${v}`).join(', '));
+    log('  arch: ' + archKey);
     return;
+  } else if (allMatch && !archMatch) {
+    log(`arch drift detected: cached=${cachedArch || 'none'} target=${archKey} — wiping vendor/node_modules to force native rebuild`);
+    try { fs.rmSync(VENDOR_NM, { recursive: true, force: true }); } catch {}
   } else {
     const drift = Object.entries(expectedVersions)
       .filter(([k, v]) => installedVersions[k] !== v)
@@ -365,6 +379,14 @@ function npmInstallVendorPackages() {
     );
   }
   log('✓ @tuyenhx/openzalo installed at', path.dirname(openzaloPlugin));
+
+  // Stamp arch marker so next prebuild can detect arch drift and force rebuild.
+  try {
+    fs.writeFileSync(archMarkerPath, archKey + '\n');
+    log('✓ wrote arch marker:', archKey);
+  } catch (e) {
+    warn('failed to write arch marker (non-fatal):', e.message);
+  }
 }
 
 // Read the CPU architecture from a Mach-O / PE / ELF native binary header.
