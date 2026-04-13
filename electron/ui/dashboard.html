@@ -1960,7 +1960,7 @@
                 <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">Bot nhận diện tài khoản này là chủ doanh nghiệp (như Telegram), trả lời theo persona CEO và nhận lệnh quản trị.</div>
                 <div style="display:flex;gap:8px;align-items:center;position:relative">
                   <div style="flex:1;position:relative">
-                    <input type="text" id="zalo-owner-search" placeholder="Tim theo ten..." autocomplete="off"
+                    <input type="text" id="zalo-owner-search" placeholder="Tìm theo tên..." autocomplete="off"
                       style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;box-sizing:border-box"
                       onfocus="showOwnerDropdown()" oninput="filterOwnerDropdown()">
                     <div id="zalo-owner-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:2px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
@@ -4473,7 +4473,7 @@
       try {
         const friends = await window.claw.listZaloFriends();
         if (!Array.isArray(friends) || friends.length === 0) {
-          searchInput.placeholder = 'Chua co ban be (dang nhap Zalo truoc)';
+          searchInput.placeholder = 'Chưa có bạn bè (đăng nhập Zalo trước)';
           _ownerFriendsList = [];
           return;
         }
@@ -4503,19 +4503,19 @@
       const q = (document.getElementById('zalo-owner-search').value || '').toLowerCase();
       const filtered = _ownerFriendsList.filter(f => !q || (f.displayName || '').toLowerCase().includes(q) || (f.phoneNumber || '').includes(q));
       if (filtered.length === 0) {
-        dd.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px;text-align:center">Khong tim thay</div>';
+        dd.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px;text-align:center">Không tìm thấy</div>';
         return;
       }
       dd.innerHTML = filtered.slice(0, 50).map(f => {
         const id = String(f.userId || '');
-        const name = esc(f.displayName || '(khong ten)');
+        const name = esc(f.displayName || '(không tên)');
         const phone = f.phoneNumber ? ' <span style="color:var(--text-muted)">· ' + esc(f.phoneNumber) + '</span>' : '';
         const isCurrent = id === _ownerSavedId ? ' style="background:var(--accent-muted,#e8f4ff)"' : '';
         return '<div class="zalo-mgr-row" onclick="selectOwner(\'' + id + '\', \'' + esc(f.displayName || '') + '\')"' + isCurrent + '>' +
           (f.avatar ? '<img src="' + esc(f.avatar) + '" style="width:28px;height:28px;border-radius:50%" onerror="this.style.display=\'none\'">' : '') +
           '<div class="info"><div class="name">' + name + phone + '</div><div class="sub">ID: ' + id + '</div></div></div>';
       }).join('');
-      if (filtered.length > 50) dd.innerHTML += '<div style="padding:8px;color:var(--text-muted);font-size:11px;text-align:center">... con ' + (filtered.length - 50) + ' ket qua. Go ten cu the hon.</div>';
+      if (filtered.length > 50) dd.innerHTML += '<div style="padding:8px;color:var(--text-muted);font-size:11px;text-align:center">... còn ' + (filtered.length - 50) + ' kết quả. Gõ tên cụ thể hơn.</div>';
     }
     async function selectOwner(userId, name) {
       document.getElementById('zalo-owner-dropdown').style.display = 'none';
@@ -4523,17 +4523,17 @@
       document.getElementById('zalo-owner-dashboard-select').value = userId;
       const status = document.getElementById('zalo-owner-dashboard-status');
       status.style.display = 'block';
-      status.textContent = 'Dang luu...';
+      status.textContent = 'Đang lưu...';
       status.style.color = 'var(--text-muted)';
       try {
         const res = await window.claw.saveZaloOwner({ ownerUserId: userId, ownerName: name });
         if (res && res.success) {
           _ownerSavedId = userId;
-          status.textContent = 'Da luu — bot se nhan dien ' + name + ' la chu doanh nghiep.';
+          status.textContent = 'Đã lưu — bot sẽ nhận diện ' + name + ' là chủ doanh nghiệp.';
           status.style.color = 'var(--success,#16a34a)';
-          addActivity('Da dat chu nhan Zalo: ' + name);
+          addActivity('Đã đặt chủ nhân Zalo: ' + name);
         } else {
-          status.textContent = 'Loi: ' + (res?.error || 'khong xac dinh');
+          status.textContent = 'Lỗi: ' + (res?.error || 'không xác định');
           status.style.color = 'var(--danger,#e74c3c)';
         }
       } catch (e) {
