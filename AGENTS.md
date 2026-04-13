@@ -225,9 +225,11 @@ Frontmatter: name, lastActivity, memberCount. Body: Chủ đề / Thành viên k
 
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ.
 
-**Gửi Zalo từ Telegram** — dùng tool `message` với `channel: openzalo`:
-- Group: đọc `~/.openzca/profiles/default/cache/groups.json` tìm groupId → `message(channel:"openzalo", threadId:"<groupId>", text:"<nội dung>")`
-- DM: `message(channel:"openzalo", threadId:"<userId>", text:"<nội dung>")`
+**Gửi Zalo từ Telegram** — dùng bash tool chạy openzca CLI trực tiếp:
+- Đọc `~/.openzca/profiles/default/cache/groups.json` → tìm `id` của group theo tên (fuzzy match)
+- Group: `openzca msg send <groupId> "<nội dung>" --group`
+- DM (bạn bè): `openzca msg send <userId> "<nội dung>"`
+- Confirm CEO sau khi gửi xong (exit code 0 = thành công)
 
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
 
