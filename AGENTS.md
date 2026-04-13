@@ -228,11 +228,11 @@ Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhan
 **Gửi Zalo từ Telegram** — BẮT BUỘC dùng tool. Đây là NGOẠI LỆ duy nhất cho rule "không chạy CLI qua bash". Khi CEO yêu cầu gửi tin Zalo (nhắn nhóm, nhắn bạn bè, say hi, gửi thông báo...) → PHẢI thực hiện, KHÔNG được im lặng.
 
 Quy trình:
-1. Đọc groups.json lấy groupId (nếu gửi group) — dùng file_read tool (KHÔNG bash):
+1. Đọc groups.json lấy groupId (nếu gửi group) — dùng `read` tool:
    - Windows: `%USERPROFILE%\.openzca\profiles\default\cache\groups.json`
    - Mac: `~/.openzca/profiles/default/cache/groups.json`
    - Parse JSON, tìm theo trường `name` khớp tên CEO nói.
-2. Chạy lệnh gửi qua bash tool:
+2. Chạy lệnh gửi qua `exec` tool (bash):
    - **Group:** `openzca --profile default msg send <groupId> "<nội dung>" --group`
    - **DM cá nhân:** `openzca --profile default msg send <userId> "<nội dung>"`
 3. Exit code 0 = thành công → confirm CEO. Khác 0 = báo lỗi cho CEO.
