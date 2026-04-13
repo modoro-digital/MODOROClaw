@@ -4337,12 +4337,16 @@
         const zlBtn = document.getElementById('zalo-pause-label');
         const zlBanner = document.getElementById('zalo-pause-banner');
         if (zl.paused) {
-          if (zlBtn) zlBtn.textContent = 'Tiếp tục';
+          if (zlBtn) zlBtn.textContent = 'Bật Zalo';
           if (zlBanner) { zlBanner.style.display = 'flex'; }
           const zlUntil = document.getElementById('zalo-pause-until');
-          if (zlUntil && zl.until) {
-            const d = new Date(zl.until);
-            zlUntil.textContent = 'Đến ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          if (zlUntil) {
+            if (zl.permanent) {
+              zlUntil.textContent = 'Zalo chưa được bật — bấm "Bật Zalo" để bot bắt đầu nhận tin.';
+            } else if (zl.until) {
+              const d = new Date(zl.until);
+              zlUntil.textContent = 'Đến ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            }
           }
         } else {
           if (zlBtn) zlBtn.textContent = 'Tạm dừng';

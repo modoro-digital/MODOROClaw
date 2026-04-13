@@ -657,6 +657,23 @@ function seedWorkspace() {
     }
   } catch {}
 
+  // Default: Zalo is disabled on fresh install. CEO must explicitly enable it
+  // via Dashboard → Zalo → "Tiếp tục". This prevents the bot from replying to
+  // unknown Zalo users/groups before the CEO has configured the channel.
+  // Uses permanent:true (no expiry) so the pause persists across restarts.
+  // resumeChannel('zalo') (triggered by "Tiếp tục" button) deletes the file.
+  try {
+    const zaloPausePath = path.join(ws, 'zalo-paused.json');
+    if (!fs.existsSync(zaloPausePath)) {
+      fs.writeFileSync(zaloPausePath, JSON.stringify({
+        permanent: true,
+        reason: 'default-disabled',
+        pausedAt: new Date().toISOString(),
+      }, null, 2), 'utf-8');
+      console.log('[seedWorkspace] zalo-paused.json created (default-disabled)');
+    }
+  } catch {}
+
   // Seed default active-persona mix if missing (wizard overwrites later).
   // Format: active-persona.json (structured config) + active-persona.md
   // (compiled prompt bot reads on bootstrap).
@@ -8711,6 +8728,8 @@ function isChannelPaused(channel) {
       console.error(`[pause] ${channel} pause file corrupt — treating as paused (fail closed)`);
       return true;
     }
+    // Permanent pause (e.g. default-disabled on fresh install) — no expiry
+    if (data.permanent) return true;
     if (data.pausedUntil && new Date(data.pausedUntil) > new Date()) return true;
     // Expired — clean up
     try { fs.unlinkSync(p); } catch {}
@@ -8744,6 +8763,7 @@ function getChannelPauseStatus(channel) {
   try {
     if (!fs.existsSync(p)) return { paused: false };
     const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    if (data.permanent) return { paused: true, permanent: true };
     if (data.pausedUntil && new Date(data.pausedUntil) > new Date()) {
       return { paused: true, until: data.pausedUntil };
     }
