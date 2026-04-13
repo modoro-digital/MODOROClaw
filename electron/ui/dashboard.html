@@ -2776,6 +2776,8 @@
     const statusMap = {
       ok: ['channel-status ok', 'Online'],
       configured: ['channel-status ok', 'OK'],
+      disabled: ['channel-status wait', 'Đang tắt'],
+      paused: ['channel-status wait', 'Tạm dừng'],
       not_configured: ['channel-status wait', 'Chưa kết nối'],
       error: ['channel-status err', 'Lỗi'],
       stopped: ['channel-status err', 'Chưa chạy'],
@@ -4310,6 +4312,7 @@
         await window.claw.pauseZalo(30);
         showToast('Zalo tạm dừng 30 phút', 'info');
       }
+      try { await loadZaloManagerData(); } catch {}
       refreshPauseUI();
     }
     async function refreshPauseUI() {

@@ -2168,6 +2168,101 @@ async function sendCeoAlert(text) {
 // Run an agent turn from a cron handler and deliver the reply to the CEO via Telegram.
 // Sends the OUTPUT, not the prompt text. Retries on transient failures, journals every
 // fire, and never fails silently — total failure always yields a notice on ALL channels.
+function tokenizeShellish(command) {
+  const tokens = [];
+  let cur = '';
+  let quote = null;
+  let escaped = false;
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+    if (escaped) {
+      cur += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+      } else {
+        cur += ch;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (cur) {
+        tokens.push(cur);
+        cur = '';
+      }
+      continue;
+    }
+    cur += ch;
+  }
+  if (escaped) cur += '\\';
+  if (quote) return null;
+  if (cur) tokens.push(cur);
+  return tokens;
+}
+
+function parseSafeOpenzcaMsgSend(shellCmd) {
+  const tokens = tokenizeShellish(shellCmd);
+  if (!tokens || !tokens.length) return null;
+  let i = 0;
+  // node <cli.js> ...
+  if (/^(?:node|node\.exe)$/i.test(tokens[i] || '')) {
+    const cli = String(tokens[i + 1] || '');
+    if (!/openzca[\\\/].*dist[\\\/]cli\.js$/i.test(cli) && !/openzca.*cli\.js$/i.test(cli)) return null;
+    i += 2;
+  } else {
+    const bin = String(tokens[i] || '');
+    if (!/^(?:openzca(?:\.cmd|\.ps1)?|openzca)$/i.test(bin)) return null;
+    i += 1;
+  }
+  let profile = null;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (t === '--profile' || t === '-p') {
+      profile = tokens[i + 1] || null;
+      i += 2;
+      continue;
+    }
+    if (t === '--debug' || t === '--debug-file') {
+      i += (t === '--debug-file') ? 2 : 1;
+      continue;
+    }
+    break;
+  }
+  if ((tokens[i] || '').toLowerCase() !== 'msg') return null;
+  if ((tokens[i + 1] || '').toLowerCase() !== 'send') return null;
+  const targetId = tokens[i + 2];
+  const text = tokens[i + 3];
+  if (!targetId || text == null) return null;
+  const trailing = tokens.slice(i + 4);
+  const isGroup = trailing.includes('--group');
+  const unsupported = trailing.filter(t => t !== '--group');
+  if (unsupported.length > 0) return null;
+  return { profile: profile || getZcaProfile(), targetId, text, isGroup };
+}
+
+async function runSafeExecCommand(shellCmd, { label } = {}) {
+  const parsed = parseSafeOpenzcaMsgSend(shellCmd);
+  if (!parsed) return null;
+  console.log(`[cron-exec] "${label || 'cron'}" rerouted to safe Zalo sender`);
+  const ok = await sendZaloTo(
+    { id: parsed.targetId, isGroup: parsed.isGroup },
+    parsed.text,
+    { profile: parsed.profile }
+  );
+  return ok ? true : false;
+}
+
 async function runCronAgentPrompt(prompt, { label, timeoutMs = 600000 } = {}) {
   const niceLabel = label || 'cron';
 
@@ -2179,6 +2274,21 @@ async function runCronAgentPrompt(prompt, { label, timeoutMs = 600000 } = {}) {
   const execMatch = prompt.trim().match(/^exec:\s+(.+)$/s);
   if (execMatch) {
     const shellCmd = execMatch[1].trim();
+    const safeResult = await runSafeExecCommand(shellCmd, { label: niceLabel });
+    if (safeResult !== null) {
+      if (safeResult) {
+        journalCronRun({ phase: 'ok', label: niceLabel, mode: 'safe-openzca' });
+      } else {
+        journalCronRun({ phase: 'fail', label: niceLabel, mode: 'safe-openzca', err: 'safe-openzca command blocked or failed' });
+        sendCeoAlert(`*Cron "${niceLabel}" bị chặn vì không an toàn hoặc gửi Zalo thất bại*\n\nLệnh gửi Zalo đã được kéo về đường an toàn và không được phép đi tiếp.`).catch(() => {});
+      }
+      return safeResult;
+    }
+    if (/\bopenzca(?:\.cmd|\.ps1)?\b/i.test(shellCmd) || /openzca[\\\/].*cli\.js/i.test(shellCmd)) {
+      journalCronRun({ phase: 'fail', label: niceLabel, mode: 'safe-openzca', err: 'unsafe openzca exec rejected' });
+      sendCeoAlert(`*Cron "${niceLabel}" bị chặn vì dùng lệnh Zalo không an toàn*\n\nChỉ cho phép mẫu gửi Zalo chuẩn để đi qua lớp kiểm soát policy, pause và allowlist.`).catch(() => {});
+      return false;
+    }
     console.log(`[cron-exec] "${niceLabel}" running direct: ${shellCmd.slice(0, 120)}`);
     const enrichedEnv = { ...process.env };
     try {
@@ -2386,6 +2496,40 @@ function isValidConfigKey(key) {
   return typeof key === 'string' && /^[a-zA-Z0-9._-]+$/.test(key);
 }
 
+function getSetupCompletePath() {
+  try {
+    const dir = (app && app.isReady()) ? app.getPath('userData') : userDataDir;
+    return path.join(dir || HOME, 'setup-complete.json');
+  } catch {
+    return path.join(userDataDir || HOME, 'setup-complete.json');
+  }
+}
+
+function hasCompletedOnboarding() {
+  try {
+    return fs.existsSync(getSetupCompletePath());
+  } catch {
+    return false;
+  }
+}
+
+function markOnboardingComplete(source = 'wizard') {
+  try {
+    const p = getSetupCompletePath();
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify({
+      completed: true,
+      source,
+      at: new Date().toISOString(),
+      appVersion: app?.getVersion?.() || null,
+    }, null, 2), 'utf-8');
+    return true;
+  } catch (e) {
+    console.error('[setup-complete] write error:', e.message);
+    return false;
+  }
+}
+
 // ============================================
 //  WINDOW
 // ============================================
@@ -2440,7 +2584,9 @@ function createWindow() {
     console.log('[createWindow] findBundledOpenClawMjs():', findBundledOpenClawMjs());
   }
   const configured = openclawBin ? isOpenClawConfigured() : false;
+  const onboardingComplete = hasCompletedOnboarding();
   console.log('[createWindow] configured:', configured);
+  console.log('[createWindow] onboardingComplete:', onboardingComplete);
 
   if (!openclawBin) {
     console.error('[createWindow] → no-openclaw.html (findOpenClawBinSync returned null)');
@@ -2451,28 +2597,34 @@ function createWindow() {
     mainWindow.maximize();
     // Ensure workspace files exist BEFORE cron jobs try to read them
     try { seedWorkspace(); } catch (e) { console.error('[seedWorkspace early] error:', e.message); }
-    // ORDER MATTERS — same 3-step chain as wizard-complete:
-    //   1. ensureZaloPlugin() — copy bundled plugin / heal missing plugin
-    //      BEFORE gateway boots. Without this, the gateway config-reload
-    //      watcher races with the bundled-copy and can miss the openzalo
-    //      channel registration on cold boot.
-    //   2. startOpenClaw() — ensureDefaultConfig + gateway spawn.
-    //   3. startCronJobs() — AFTER both above so first cron fire sees a
-    //      healed config with a running gateway.
-    (async () => {
-      try { await ensureZaloPlugin(); } catch (e) { console.error('[boot] ensureZaloPlugin error:', e?.message || e); }
-      // Seed customer profiles from openzca cache AFTER plugin is ready but
-      // BEFORE startOpenClaw so gateway's first message sees populated memory.
-      try { seedZaloCustomersFromCache(); } catch (e) { console.error('[boot] seedZaloCustomers error:', e?.message || e); }
-      try { await startOpenClaw(); } catch (e) { console.error('[boot] startOpenClaw error:', e?.message || e); }
-      startCronJobs();
-      startFollowUpChecker();
-      watchCustomCrons();
-      startZaloCacheAutoRefresh();
-      startAppointmentDispatcher();
-      // Warm cookie age check 30s after boot, then broadcast loop handles daily cadence.
-      setTimeout(() => { try { checkZaloCookieAge(); } catch {} }, 30000);
-    })();
+    if (!onboardingComplete) {
+      try { setZaloChannelEnabled(false); } catch {}
+      try { setChannelPermanentPause('zalo', 'review-required-before-autoboot'); } catch {}
+      console.log('[createWindow] onboarding marker missing → dashboard only, skip auto-start');
+    } else {
+      // ORDER MATTERS — same 3-step chain as wizard-complete:
+      //   1. ensureZaloPlugin() — copy bundled plugin / heal missing plugin
+      //      BEFORE gateway boots. Without this, the gateway config-reload
+      //      watcher races with the bundled-copy and can miss the openzalo
+      //      channel registration on cold boot.
+      //   2. startOpenClaw() — ensureDefaultConfig + gateway spawn.
+      //   3. startCronJobs() — AFTER both above so first cron fire sees a
+      //      healed config with a running gateway.
+      (async () => {
+        try { await ensureZaloPlugin(); } catch (e) { console.error('[boot] ensureZaloPlugin error:', e?.message || e); }
+        // Seed customer profiles from openzca cache AFTER plugin is ready but
+        // BEFORE startOpenClaw so gateway's first message sees populated memory.
+        try { seedZaloCustomersFromCache(); } catch (e) { console.error('[boot] seedZaloCustomers error:', e?.message || e); }
+        try { await startOpenClaw(); } catch (e) { console.error('[boot] startOpenClaw error:', e?.message || e); }
+        startCronJobs();
+        startFollowUpChecker();
+        watchCustomCrons();
+        startZaloCacheAutoRefresh();
+        startAppointmentDispatcher();
+        // Warm cookie age check 30s after boot, then broadcast loop handles daily cadence.
+        setTimeout(() => { try { checkZaloCookieAge(); } catch {} }, 30000);
+      })();
+    }
   } else {
     console.log('[createWindow] → wizard.html');
     mainWindow.loadFile(path.join(__dirname, 'ui', 'wizard.html'));
@@ -2969,19 +3121,16 @@ async function ensureDefaultConfig() {
     }
     // ALSO: if the openzalo plugin files exist at ~/.openclaw/extensions/openzalo/
     // (either because bundled vendor copy placed them there, or `openclaw plugins
-    // install` did), make sure `plugins.entries.openzalo.enabled = true` so the
-    // gateway actually loads it. Without this flag the plugin dir exists but
-    // gateway skips registration → openzalo channel never registered → Zalo dead.
+    // install` did), make sure the plugin entry EXISTS. We sync its enabled
+    // state later from channels.openzalo.enabled so "Tắt Zalo" is a real
+    // hard-off, not merely a soft gate after the plugin already loaded.
     try {
       const openzaloPluginManifest = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'openclaw.plugin.json');
       if (fs.existsSync(openzaloPluginManifest)) {
         if (!config.plugins) config.plugins = {};
         if (!config.plugins.entries) config.plugins.entries = {};
         if (!config.plugins.entries.openzalo) {
-          config.plugins.entries.openzalo = { enabled: true };
-          changed = true;
-        } else if (config.plugins.entries.openzalo.enabled !== true) {
-          config.plugins.entries.openzalo.enabled = true;
+          config.plugins.entries.openzalo = { enabled: false };
           changed = true;
         }
       }
@@ -3017,6 +3166,23 @@ async function ensureDefaultConfig() {
       // augmentation in augmentPathWithBundledNode() prepends
       // vendor/node_modules/.bin so the bundled openzca shim is found.
     }
+    // Sync plugin hard-off with the master Zalo enabled flag. If Zalo is off,
+    // the gateway should not load openzalo at all.
+    try {
+      const openzaloPluginManifest = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'openclaw.plugin.json');
+      if (fs.existsSync(openzaloPluginManifest)) {
+        if (!config.plugins) config.plugins = {};
+        if (!config.plugins.entries) config.plugins.entries = {};
+        const wantOpenzaloEnabled = config.channels.openzalo.enabled !== false;
+        if (!config.plugins.entries.openzalo) {
+          config.plugins.entries.openzalo = { enabled: wantOpenzaloEnabled };
+          changed = true;
+        } else if (config.plugins.entries.openzalo.enabled !== wantOpenzaloEnabled) {
+          config.plugins.entries.openzalo.enabled = wantOpenzaloEnabled;
+          changed = true;
+        }
+      }
+    } catch (e) { console.warn('[config] plugin hard-off sync failed:', e?.message); }
     // Telegram — disable both block streaming AND preview streaming so bot
     // replies arrive as exactly 1 complete message, never split. Telegram
     // schema DOES support `streaming` field ("off"|"partial"|"block"|"progress").
@@ -3372,12 +3538,13 @@ function ensureZaloPauseFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    // v2: owner-only /pause (was: anyone could /pause). Force re-inject if old version.
+    const CURRENT_MARKER = '9BizClaw PAUSE PATCH v4';
+    // v4: owner-only /pause + honor permanent pause + enabled=false + parse errors fail-closed.
     if (content.includes('9BizClaw PAUSE PATCH')) {
-      if (content.includes('__pzIsOwner')) return; // v2 already applied
-      // Strip old patch so we can inject v2
+      if (content.includes(CURRENT_MARKER)) return;
+      // Strip old patch so we can inject the current version
       content = content.replace(/\n\n  \/\/ === 9BizClaw PAUSE PATCH ===[\s\S]*?\/\/ === END 9BizClaw PAUSE PATCH ===/m, '');
-      console.log('[zalo-pause-fix] Removed old pause patch (upgrading to v2 owner-only)');
+      console.log('[zalo-pause-fix] Removed old pause patch (upgrading to v4 fail-closed)');
     }
 
     // Inject after blocklist patch (or after the rawBody anchor if blocklist absent)
@@ -3397,6 +3564,9 @@ function ensureZaloPauseFix() {
     const _ws = getWorkspace();
     if (_ws) ownerPaths.push(path.join(_ws, 'zalo-owner.json').replace(/\\/g, '/'));
     ownerPaths.push(path.join(HOME, '.openclaw', 'workspace', 'zalo-owner.json').replace(/\\/g, '/'));
+    const configPaths = [
+      path.join(HOME, '.openclaw', 'openclaw.json').replace(/\\/g, '/'),
+    ];
 
     const injection = `
 
@@ -3404,10 +3574,13 @@ function ensureZaloPauseFix() {
   // /pause and /resume: ONLY accepted from the Zalo account the bot is logged
   // into (ownerUserId in zalo-owner.json). This is the CEO/staff using the
   // same Zalo account as the bot. Customers typing /pause are ignored.
+  // 9BizClaw PAUSE PATCH v4: also honor permanent pause files and
+  // openclaw.json channels.openzalo.enabled=false, and treat parse errors as blocked.
   try {
     const __pzFs = require("node:fs");
     const __pzPath = require("node:path");
     const __pzPaths = ${JSON.stringify(pausePaths)};
+    const __pzConfigPaths = ${JSON.stringify(configPaths)};
     const __pzBody = String(rawBody || "").trim().toLowerCase();
     const __pzSender = String(message.senderId || "").trim();
 
@@ -3444,23 +3617,52 @@ function ensureZaloPauseFix() {
       // Don't return — let this message be processed normally
     }
 
+    // Respect the Dashboard master toggle even if the pause file is missing.
+    let __pzDisabledInConfig = false;
+    for (const __cp of __pzConfigPaths) {
+      try {
+        if (!__pzFs.existsSync(__cp)) continue;
+        const __cfg = JSON.parse(__pzFs.readFileSync(__cp, "utf-8"));
+        if (__cfg?.channels?.openzalo?.enabled === false) {
+          __pzDisabledInConfig = true;
+          break;
+        }
+      } catch {
+        __pzDisabledInConfig = true;
+        runtime.log?.("openzalo: config parse error → fail closed");
+        break;
+      }
+    }
+    if (__pzDisabledInConfig) {
+      runtime.log?.("openzalo: DISABLED in config — ignoring message from " + message.senderId);
+      return;
+    }
+
     // Check if currently paused
     for (const __p of __pzPaths) {
       try {
         if (__pzFs.existsSync(__p)) {
           const __pzData = JSON.parse(__pzFs.readFileSync(__p, "utf-8"));
+          if (__pzData?.permanent) {
+            runtime.log?.("openzalo: PERMANENTLY PAUSED — ignoring message from " + message.senderId);
+            return;
+          }
           if (__pzData.pausedUntil && new Date(__pzData.pausedUntil) > new Date()) {
             runtime.log?.("openzalo: PAUSED — ignoring message from " + message.senderId);
             return;
-          } else {
+          } else if (__pzData.pausedUntil) {
             // Expired — clean up
             try { __pzFs.unlinkSync(__p); } catch {}
           }
         }
-      } catch {}
+      } catch {
+        runtime.log?.("openzalo: pause file parse error → fail closed");
+        return;
+      }
     }
   } catch (__e) {
     runtime.log?.("openzalo: pause check error: " + String(__e));
+    return;
   }
   // === END 9BizClaw PAUSE PATCH ===
 `;
@@ -3967,7 +4169,13 @@ function ensureOpenzcaFriendEventFix() {
   }
 }
 
-// 9BizClaw OUTPUT-FILTER PATCH v3 — Security Layer 2
+// 9BizClaw OUTPUT-FILTER PATCH v4 — Security Layer 2
+// v4 changes vs v3:
+//   - Add transport kill-switch: if Zalo is paused permanently/temporarily or
+//     channels.openzalo.enabled=false, abort the send at the plugin boundary.
+//     This closes the last race where an in-flight reply could still go out
+//     after CEO had already turned Zalo off.
+//
 // v3 changes vs v2 (deep audit findings):
 //   - Fix \b regex bug for Vietnamese-leading branches. JS \b only works
 //     on [a-zA-Z0-9_]; for đ/ạ/ơ etc it never matches, so v2's
@@ -4006,7 +4214,7 @@ function ensureZaloOutputFilterFix() {
     let content = fs.readFileSync(pluginFile, 'utf-8');
     const originalLength = content.length;
 
-    const CURRENT_VERSION = '9BizClaw OUTPUT-FILTER PATCH v3';
+    const CURRENT_VERSION = '9BizClaw OUTPUT-FILTER PATCH v5';
 
     // Fast path: file is already on the current version, nothing to do.
     if (content.includes(CURRENT_VERSION)) return;
@@ -4031,13 +4239,78 @@ function ensureZaloOutputFilterFix() {
 
     const injection = `
 
-  // === 9BizClaw OUTPUT-FILTER PATCH v3 ===
+  // === 9BizClaw OUTPUT-FILTER PATCH v5 ===
   // Scan outbound Zalo text for sensitive patterns + AI failure modes.
-  // See main.js ensureZaloOutputFilterFix for v3 changelog vs v2.
+  // See main.js ensureZaloOutputFilterFix for v5 changelog vs v4.
   try {
     const __ofFs = require("node:fs");
     const __ofPath = require("node:path");
     const __ofOs = require("node:os");
+    // Transport kill-switch: if Dashboard says Zalo is off/paused, abort
+    // RIGHT BEFORE send. This catches in-flight replies generated before
+    // the toggle changed and keeps customer-facing safety fail-closed.
+    try {
+      const __ofHome = __ofOs.homedir();
+      const __ofAppDir = "9bizclaw";
+      let __ofWsDir;
+      if (process.env['9BIZ_WORKSPACE']) {
+        __ofWsDir = process.env['9BIZ_WORKSPACE'];
+      } else if (process.platform === "darwin") {
+        __ofWsDir = __ofPath.join(__ofHome, "Library", "Application Support", __ofAppDir);
+      } else if (process.platform === "win32") {
+        const __ofAppData = process.env.APPDATA || __ofPath.join(__ofHome, "AppData", "Roaming");
+        __ofWsDir = __ofPath.join(__ofAppData, __ofAppDir);
+      } else {
+        const __ofConfig = process.env.XDG_CONFIG_HOME || __ofPath.join(__ofHome, ".config");
+        __ofWsDir = __ofPath.join(__ofConfig, __ofAppDir);
+      }
+      const __ofPausePaths = [
+        __ofPath.join(__ofWsDir, "zalo-paused.json"),
+        __ofPath.join(__ofHome, ".openclaw", "workspace", "zalo-paused.json"),
+      ];
+      const __ofConfigPaths = [
+        __ofPath.join(__ofHome, ".openclaw", "openclaw.json"),
+      ];
+      let __ofTransportBlocked = false;
+      for (const __ofPause of __ofPausePaths) {
+        try {
+          if (!__ofFs.existsSync(__ofPause)) continue;
+          const __ofPauseData = JSON.parse(__ofFs.readFileSync(__ofPause, "utf-8"));
+          if (__ofPauseData?.permanent) {
+            __ofTransportBlocked = true;
+            break;
+          }
+          if (__ofPauseData?.pausedUntil && new Date(__ofPauseData.pausedUntil) > new Date()) {
+            __ofTransportBlocked = true;
+            break;
+          }
+        } catch {
+          __ofTransportBlocked = true;
+          break;
+        }
+      }
+      if (!__ofTransportBlocked) {
+        for (const __ofCfgPath of __ofConfigPaths) {
+          try {
+            if (!__ofFs.existsSync(__ofCfgPath)) continue;
+            const __ofCfg = JSON.parse(__ofFs.readFileSync(__ofCfgPath, "utf-8"));
+            if (__ofCfg?.channels?.openzalo?.enabled === false) {
+              __ofTransportBlocked = true;
+              break;
+            }
+          } catch {
+            __ofTransportBlocked = true;
+            break;
+          }
+        }
+      }
+      if (__ofTransportBlocked) {
+        try { logOutbound("info", "transport gated by zalo pause/disable", { accountId: account.accountId, to: target.threadId }); } catch {}
+        return { messageId: "transport-gated", kind: "text" as const };
+      }
+    } catch {
+      return { messageId: "transport-gated", kind: "text" as const };
+    }
     // Patterns that MUST NEVER appear in a customer-facing Zalo reply.
     // Case-insensitive, matching any occurrence. Order matters: more
     // specific patterns first so audit log shows the most informative match.
@@ -4178,8 +4451,8 @@ function ensureZaloOutputFilterFix() {
       })();
     }
   } catch (__ofE) {
-    // Filter error must not break legit sends. Log and fall through.
     try { logOutbound("error", "output filter error", { err: String(__ofE) }); } catch {}
+    return { messageId: "transport-gated", kind: "text" as const };
   }
   // === END 9BizClaw OUTPUT-FILTER PATCH ===`;
 
@@ -4210,7 +4483,7 @@ function ensureZaloOutputFilterFix() {
     }
 
     fs.writeFileSync(pluginFile, patched, 'utf-8');
-    console.log('[zalo-output-filter-fix] Injected output filter v3 into send.ts (' +
+    console.log('[zalo-output-filter-fix] Injected output filter v5 into send.ts (' +
       originalLength + ' → ' + patched.length + ' bytes)');
   } catch (e) {
     console.error('[zalo-output-filter-fix] error:', e.message);
@@ -6307,16 +6580,18 @@ async function _ensureZaloPluginImpl() {
           // Recursive copy — use fs.cpSync (Node 16.7+). Safe on Electron 28 (Node 18).
           fs.cpSync(bundledPlugin, extensionsDir, { recursive: true, force: true, errorOnExist: false });
           console.log('[ensureZaloPlugin] copied bundled openzalo plugin from vendor →', extensionsDir);
-          // Also ensure plugins.entries.openzalo.enabled=true in openclaw.json
-          // so the gateway knows to load it on next boot.
+          // Also ensure the plugin entry exists in openclaw.json, but mirror
+          // the actual master Zalo enabled flag so copied plugin files do not
+          // silently turn Zalo back on.
           try {
             const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
             if (fs.existsSync(configPath)) {
               const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
               if (!cfg.plugins) cfg.plugins = {};
               if (!cfg.plugins.entries) cfg.plugins.entries = {};
-              if (!cfg.plugins.entries.openzalo) cfg.plugins.entries.openzalo = { enabled: true };
-              else cfg.plugins.entries.openzalo.enabled = true;
+              const wantOpenzaloEnabled = cfg?.channels?.openzalo?.enabled !== false;
+              if (!cfg.plugins.entries.openzalo) cfg.plugins.entries.openzalo = { enabled: wantOpenzaloEnabled };
+              else cfg.plugins.entries.openzalo.enabled = wantOpenzaloEnabled;
               writeOpenClawConfigIfChanged(configPath, cfg);
             }
           } catch (e) { console.warn('[ensureZaloPlugin] config update failed:', e?.message); }
@@ -6667,6 +6942,87 @@ function getZcaProfile() {
 
 function getZcaCacheDir() {
   return path.join(HOME, '.openzca', 'profiles', getZcaProfile(), 'cache');
+}
+
+function getZcaCacheDirForProfile(profile) {
+  return path.join(HOME, '.openzca', 'profiles', profile || getZcaProfile(), 'cache');
+}
+
+function readZaloChannelState() {
+  const state = {
+    enabled: false,
+    groupPolicy: 'open',
+    groupAllowFrom: ['*'],
+    userBlocklist: [],
+    profile: getZcaProfile(),
+    configError: null,
+    blocklistError: null,
+  };
+  try {
+    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+    if (fs.existsSync(configPath)) {
+      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const oz = cfg?.channels?.openzalo || {};
+      state.enabled = oz.enabled !== false;
+      state.groupPolicy = oz.groupPolicy || 'open';
+      state.groupAllowFrom = Array.isArray(oz.groupAllowFrom) && oz.groupAllowFrom.length
+        ? oz.groupAllowFrom.map(String)
+        : ['*'];
+    }
+  } catch (e) {
+    state.configError = e?.message || String(e);
+  }
+  try {
+    const bp = getZaloBlocklistPath();
+    if (fs.existsSync(bp)) {
+      const raw = JSON.parse(fs.readFileSync(bp, 'utf-8'));
+      state.userBlocklist = Array.isArray(raw) ? raw.map(String) : [];
+    }
+  } catch (e) {
+    state.blocklistError = e?.message || String(e);
+  }
+  return state;
+}
+
+function isZaloTargetAllowed(targetId, { isGroup = false } = {}) {
+  const state = readZaloChannelState();
+  if (state.configError || state.blocklistError) {
+    return { allowed: false, reason: 'policy-error', state };
+  }
+  if (state.enabled === false) {
+    return { allowed: false, reason: 'disabled', state };
+  }
+  const id = String(targetId || '').trim();
+  if (!id) return { allowed: false, reason: 'missing-target', state };
+  if (isGroup) {
+    const allowAll = state.groupPolicy !== 'allowlist' || state.groupAllowFrom.includes('*');
+    if (!allowAll && !state.groupAllowFrom.includes(id)) {
+      return { allowed: false, reason: 'group-not-allowed', state };
+    }
+  } else if (state.userBlocklist.includes(id)) {
+    return { allowed: false, reason: 'user-blocked', state };
+  }
+  return { allowed: true, state };
+}
+
+function isKnownZaloTarget(targetId, { isGroup = false, profile } = {}) {
+  try {
+    const cacheDir = getZcaCacheDirForProfile(profile);
+    const filename = isGroup ? 'groups.json' : 'friends.json';
+    const file = path.join(cacheDir, filename);
+    if (!fs.existsSync(file)) return { known: false, reason: 'cache-missing' };
+    const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    if (isGroup) {
+      const arr = Array.isArray(data) ? data : (Array.isArray(data?.groups) ? data.groups : []);
+      const known = arr.some(g => String(g.groupId || g.id || '') === String(targetId));
+      return { known, reason: known ? null : 'group-not-in-cache' };
+    }
+    const arr = Array.isArray(data) ? data : [];
+    const known = arr.some(f => String(f.userId || f.userKey || '') === String(targetId));
+    return { known, reason: known ? null : 'user-not-in-cache' };
+  } catch (e) {
+    return { known: false, reason: 'cache-error', error: e?.message || String(e) };
+  }
 }
 
 ipcMain.handle('list-zalo-friends', async () => {
@@ -7281,7 +7637,7 @@ ipcMain.handle('get-zalo-manager-config', async () => {
       userBlocklist: Array.isArray(blocklist) ? blocklist : [],
     };
   } catch (e) {
-    return { enabled: true, groupPolicy: 'open', groupAllowFrom: [], dmPolicy: 'open', userBlocklist: [] };
+    return { enabled: false, groupPolicy: 'open', groupAllowFrom: [], dmPolicy: 'open', userBlocklist: [] };
   }
 });
 
@@ -7314,10 +7670,16 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
       }
       writeOpenClawConfigIfChanged(configPath, cfg);
     }
+    let gateOk = true;
+    if (enabled === false) gateOk = setChannelPermanentPause('zalo', 'manager-disabled');
+    else {
+      gateOk = clearChannelPermanentPause('zalo');
+      markOnboardingComplete('zalo-manager-enable');
+    }
     // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
     const bp = getZaloBlocklistPath();
     fs.writeFileSync(bp, JSON.stringify(userBlocklist || [], null, 2), 'utf-8');
-    return { success: true };
+    return { success: gateOk };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -8759,6 +9121,77 @@ function _getPausePath(channel) {
   return path.join(ws, `${channel}-paused.json`);
 }
 
+function setChannelPermanentPause(channel, reason = 'manual-disabled') {
+  const p = _getPausePath(channel);
+  if (!p) return false;
+  try {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify({
+      permanent: true,
+      reason,
+      pausedAt: new Date().toISOString(),
+    }, null, 2), 'utf-8');
+    console.log(`[pause] ${channel} permanently paused (${reason})`);
+    return true;
+  } catch (e) {
+    console.error(`[pause] ${channel} permanent pause error:`, e.message);
+    return false;
+  }
+}
+
+function clearChannelPermanentPause(channel) {
+  const p = _getPausePath(channel);
+  if (!p) return false;
+  try {
+    if (!fs.existsSync(p)) return true;
+    let data = null;
+    try {
+      data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    } catch {
+      data = { permanent: true, reason: 'corrupt' };
+    }
+    if (data?.permanent) {
+      fs.unlinkSync(p);
+      console.log(`[pause] ${channel} permanent pause cleared`);
+    }
+    return true;
+  } catch (e) {
+    console.error(`[pause] ${channel} clear permanent pause error:`, e.message);
+    return false;
+  }
+}
+
+function isZaloChannelEnabled() {
+  try {
+    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+    if (!fs.existsSync(configPath)) return false;
+    const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    return cfg?.channels?.openzalo?.enabled !== false;
+  } catch (e) {
+    console.error('[zalo] read enabled state error:', e.message);
+    return false;
+  }
+}
+
+function setZaloChannelEnabled(enabled) {
+  try {
+    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+    if (!fs.existsSync(configPath)) return false;
+    const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (!cfg.channels) cfg.channels = {};
+    if (!cfg.channels.openzalo || typeof cfg.channels.openzalo !== 'object') {
+      cfg.channels.openzalo = {};
+    }
+    const next = enabled !== false;
+    if (cfg.channels.openzalo.enabled === next) return true;
+    cfg.channels.openzalo.enabled = next;
+    return writeOpenClawConfigIfChanged(configPath, cfg);
+  } catch (e) {
+    console.error('[zalo] set enabled state error:', e.message);
+    return false;
+  }
+}
+
 function isChannelPaused(channel) {
   const p = _getPausePath(channel);
   if (!p) return false;
@@ -8814,7 +9247,9 @@ function getChannelPauseStatus(channel) {
     }
     try { fs.unlinkSync(p); } catch {}
     return { paused: false };
-  } catch { return { paused: false }; }
+  } catch {
+    return { paused: true, permanent: true, error: 'corrupt' };
+  }
 }
 
 // skipFilter: bypass output filter for system alerts (cron errors, boot pings)
@@ -8865,6 +9300,10 @@ async function sendTelegram(text, { skipFilter = false, skipPauseCheck = false }
 // Send a direct Zalo message to the CEO's personal Zalo account via openzca CLI.
 // Mirrors sendTelegram() for parity. Used by cron alerts and fallback delivery.
 async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {}) {
+  if (!isZaloChannelEnabled()) {
+    console.log('[sendZalo] channel disabled in config — skipping');
+    return null;
+  }
   // Check pause state
   if (!skipPauseCheck && isChannelPaused('zalo')) {
     console.log('[sendZalo] channel paused — skipping');
@@ -8893,6 +9332,7 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
     return null;
   }
   const nodeBin = findNodeBin() || 'node';
+  const zcaProfile = getZcaProfile();
 
   // Split text into ≤780-char chunks at paragraph/sentence boundaries.
   // Split is independent of skipFilter — even system alerts (cron errors) can exceed
@@ -8926,9 +9366,19 @@ async function sendZalo(text, { skipFilter = false, skipPauseCheck = false } = {
 
   const sendOneChunk = (chunk) => new Promise((resolve) => {
     try {
+      if (!isZaloChannelEnabled()) {
+        console.log('[sendZalo] disabled before chunk send — aborting');
+        resolve(null);
+        return;
+      }
+      if (isChannelPaused('zalo')) {
+        console.log('[sendZalo] paused before chunk send — aborting');
+        resolve(null);
+        return;
+      }
       const child = require('child_process').spawn(
         nodeBin,
-        [zcaBin, 'msg', 'send', owner.ownerUserId, chunk],
+        [zcaBin, '--profile', zcaProfile, 'msg', 'send', owner.ownerUserId, chunk],
         { shell: false, timeout: 20000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] }
       );
       let stdout = '', stderr = '';
@@ -9154,6 +9604,10 @@ async function sendZaloTo(target, text, opts = {}) {
   if (!targetId) { console.error('[sendZaloTo] missing target id'); return null; }
 
   const { skipFilter = false, skipPauseCheck = false } = opts;
+  if (!isZaloChannelEnabled()) {
+    console.log('[sendZaloTo] channel disabled in config — skipping');
+    return null;
+  }
   if (!skipPauseCheck && isChannelPaused('zalo')) {
     console.log('[sendZaloTo] channel paused — skipping');
     return null;
@@ -9165,17 +9619,68 @@ async function sendZaloTo(target, text, opts = {}) {
       console.warn(`[sendZaloTo] output filter blocked (${filtered.pattern})`);
       text = filtered.text;
     }
-    if (text.length > 800) text = text.slice(0, 780) + '...';
+  }
+
+  const allow = isZaloTargetAllowed(targetId, { isGroup });
+  if (!allow.allowed) {
+    console.warn(`[sendZaloTo] blocked by policy (${allow.reason}) target=${targetId}`);
+    return null;
   }
 
   const zcaBin = findGlobalPackageFile('openzca', 'dist/cli.js');
   if (!zcaBin) { console.error('[sendZaloTo] openzca CLI not found'); return null; }
   const nodeBin = findNodeBin() || 'node';
-  const args = [zcaBin, 'msg', 'send', targetId, text];
-  if (isGroup) args.push('--group');
+  const zcaProfile = opts.profile || allow.state?.profile || getZcaProfile();
+  const knownTarget = isKnownZaloTarget(targetId, { isGroup, profile: zcaProfile });
+  if (!knownTarget.known) {
+    console.warn(`[sendZaloTo] target not in cache (${knownTarget.reason}) target=${targetId}`);
+    return null;
+  }
 
-  return new Promise((resolve) => {
+  const ZALO_CHUNK = 780;
+  const chunks = [];
+  if (text.length > ZALO_CHUNK) {
+    let remaining = text;
+    while (remaining.length > ZALO_CHUNK) {
+      let cut = ZALO_CHUNK;
+      const paraBreak = remaining.lastIndexOf('\n\n', ZALO_CHUNK);
+      if (paraBreak > 200) { cut = paraBreak + 2; }
+      else {
+        const sentBreak = remaining.slice(0, ZALO_CHUNK).search(/[.!?][^.!?]*$/);
+        if (sentBreak > 200) { cut = sentBreak + 1; }
+        else {
+          const spaceBreak = remaining.lastIndexOf(' ', ZALO_CHUNK);
+          if (spaceBreak > 200) { cut = spaceBreak + 1; }
+        }
+      }
+      chunks.push(remaining.slice(0, cut).trimEnd());
+      remaining = remaining.slice(cut).trimStart();
+    }
+    if (remaining.length > 0) chunks.push(remaining);
+  } else {
+    chunks.push(text);
+  }
+
+  const sendOneChunk = (chunk) => new Promise((resolve) => {
     try {
+      const liveAllow = isZaloTargetAllowed(targetId, { isGroup });
+      if (!liveAllow.allowed) {
+        console.log(`[sendZaloTo] blocked before chunk send (${liveAllow.reason})`);
+        resolve(null);
+        return;
+      }
+      if (!isZaloChannelEnabled()) {
+        console.log('[sendZaloTo] disabled before chunk send — aborting');
+        resolve(null);
+        return;
+      }
+      if (isChannelPaused('zalo')) {
+        console.log('[sendZaloTo] paused before chunk send — aborting');
+        resolve(null);
+        return;
+      }
+      const args = [zcaBin, '--profile', zcaProfile, 'msg', 'send', targetId, chunk];
+      if (isGroup) args.push('--group');
       const child = require('child_process').spawn(
         nodeBin, args,
         { shell: false, timeout: 20000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] }
@@ -9184,7 +9689,6 @@ async function sendZaloTo(target, text, opts = {}) {
       child.stderr.on('data', (d) => { stderr += d; });
       child.on('close', (code) => {
         if (code === 0) {
-          console.log(`[sendZaloTo] sent to ${isGroup ? 'group' : 'user'} ${targetId}`);
           resolve(true);
         } else {
           console.error(`[sendZaloTo] exit ${code}: ${stderr.slice(0, 200)}`);
@@ -9197,6 +9701,20 @@ async function sendZaloTo(target, text, opts = {}) {
       resolve(null);
     }
   });
+
+  let lastResult = null;
+  for (let i = 0; i < chunks.length; i++) {
+    lastResult = await sendOneChunk(chunks[i]);
+    if (!lastResult) {
+      console.error(`[sendZaloTo] chunk ${i + 1}/${chunks.length} failed`);
+      break;
+    }
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 800));
+  }
+  if (lastResult) {
+    console.log(`[sendZaloTo] sent to ${isGroup ? 'group' : 'user'} ${targetId}${chunks.length > 1 ? ` (${chunks.length} chunks)` : ''}`);
+  }
+  return lastResult;
 }
 
 function substituteApptTemplate(tpl, apt) {
@@ -9603,7 +10121,38 @@ function findOpenzcaListenerPid() {
 
 async function probeZaloReady() {
   try {
-    const ozDir = path.join(HOME, '.openzca', 'profiles', 'default');
+    const state = readZaloChannelState();
+    const pause = getChannelPauseStatus('zalo');
+    if (state.configError) {
+      return {
+        ready: false,
+        reason: 'config-error',
+        error: 'Cấu hình Zalo đang lỗi hoặc chưa đọc được. Bot giữ trạng thái tắt để an toàn.',
+      };
+    }
+    if (state.enabled === false) {
+      return {
+        ready: false,
+        reason: 'disabled',
+        error: 'Zalo đang tắt trong Dashboard. Bot sẽ không tự trả lời.',
+      };
+    }
+    if (pause?.permanent) {
+      return {
+        ready: false,
+        reason: 'paused-permanent',
+        error: 'Zalo đang bị khóa an toàn trong Dashboard. Chỉ bật lại khi đã kiểm tra xong.',
+      };
+    }
+    if (pause?.paused) {
+      return {
+        ready: false,
+        reason: 'paused',
+        error: pause.until ? `Zalo đang tạm dừng đến ${pause.until}.` : 'Zalo đang tạm dừng.',
+      };
+    }
+
+    const ozDir = path.join(HOME, '.openzca', 'profiles', state.profile || 'default');
     const ownerFile = path.join(ozDir, 'listener-owner.json');
     const credsFile = path.join(ozDir, 'credentials.json');
 
@@ -9789,7 +10338,11 @@ ipcMain.handle('pause-zalo', async (_e, { minutes } = {}) => {
   return { success: pauseChannel('zalo', minutes || 30) };
 });
 ipcMain.handle('resume-zalo', async () => {
-  return { success: resumeChannel('zalo') };
+  const resumed = resumeChannel('zalo');
+  const enabled = setZaloChannelEnabled(true);
+  const cleared = clearChannelPermanentPause('zalo');
+  if (enabled && cleared) markOnboardingComplete('resume-zalo');
+  return { success: resumed && enabled && cleared };
 });
 ipcMain.handle('get-zalo-pause-status', async () => {
   return getChannelPauseStatus('zalo');
@@ -11641,7 +12194,15 @@ ipcMain.handle('check-all-channels', async () => {
 
   // 3. Zalo — check credentials file
   try {
-    if (fs.existsSync(path.join(HOME, '.openzca', 'profiles', 'default', 'credentials.json'))) {
+    const state = readZaloChannelState();
+    const pause = getChannelPauseStatus('zalo');
+    if (state.configError) {
+      r.zalo = 'error';
+    } else if (state.enabled === false || pause?.permanent) {
+      r.zalo = 'disabled';
+    } else if (pause?.paused) {
+      r.zalo = 'paused';
+    } else if (fs.existsSync(path.join(HOME, '.openzca', 'profiles', state.profile || 'default', 'credentials.json'))) {
       r.zalo = botRunning ? 'ok' : 'configured';
     }
   } catch {}
@@ -12029,6 +12590,7 @@ ipcMain.handle('wizard-complete', async () => {
     }
   } catch {}
   try { cleanupOrphanZaloListener(); } catch {}
+  try { markOnboardingComplete('wizard-complete'); } catch {}
   mainWindow.loadFile(path.join(__dirname, 'ui', 'dashboard.html'));
   mainWindow.maximize();
   // ORDER MATTERS — three hard dependencies:

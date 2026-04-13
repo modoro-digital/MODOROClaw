@@ -19,7 +19,7 @@
    ```bash
    cd electron
    npm install
-   npm run build:mac        # universal binary (chậm)
+   npm run build:mac        # tự chọn đúng arch của máy đang build
    # hoặc
    npm run build:mac:arm    # chỉ M1/M2/M3
    npm run build:mac:intel  # chỉ Intel
@@ -86,7 +86,7 @@ cd electron
 npm run build:mac
 ```
 
-electron-builder sẽ tự sign + notarize. User mở app không thấy warning.
+Không được giả định chỉ cần set env là build sẽ tự notarize an toàn. Luồng ký/notarize của repo này chưa được coi là release path đã xác nhận. Với bản giao khách, hiện nên coi DMG là unsigned trừ khi anh kiểm tra thực tế `codesign` và `notarytool` trên đúng máy build.
 
 ## Build artifacts
 
@@ -185,7 +185,7 @@ User home:
 
 ## Verification trên Mac sau khi build
 
-Sau khi `npm run build:mac` xong, kiểm tra:
+Sau khi `npm run build:mac` hoặc `npm run build:mac:arm|intel` xong, kiểm tra:
 
 ```bash
 # 1. Verify DMG built
