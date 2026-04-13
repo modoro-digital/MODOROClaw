@@ -4913,6 +4913,22 @@ async function _startOpenClawImpl() {
   }
   try {
     const npmBinDirs = [];
+    // HIGHEST PRIORITY: bundled vendor node dir. On packaged Windows installs,
+    // augmentPathWithBundledNode() is called at module load (before vendor is
+    // extracted from tar on first boot) so process.env.PATH does NOT yet have
+    // the vendor node dir. We must add it explicitly here so the gateway
+    // process and its children (openzalo plugin → spawn('node', [openzca cli.js]))
+    // can find the bundled node.exe even on machines with no system Node.
+    try {
+      const vd = getBundledVendorDir();
+      if (vd) {
+        const isWin = process.platform === 'win32';
+        const vendorNodeBin = isWin ? path.join(vd, 'node') : path.join(vd, 'node', 'bin');
+        const vendorNpmBin = path.join(vd, 'node_modules', '.bin');
+        if (fs.existsSync(vendorNodeBin)) npmBinDirs.push(vendorNodeBin);
+        if (fs.existsSync(vendorNpmBin)) npmBinDirs.push(vendorNpmBin);
+      }
+    } catch {}
     if (process.platform === 'win32') {
       // Windows: ~/AppData/Roaming/npm and ~/AppData/Local/npm
       npmBinDirs.push(path.join(HOME, 'AppData', 'Roaming', 'npm'));
