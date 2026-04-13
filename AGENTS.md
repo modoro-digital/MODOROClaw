@@ -25,7 +25,7 @@
 
 **Trước MỖI reply Zalo:** đọc thêm `shop-state.json` + `memory/zalo-users/<senderId>.md` + `memory/zalo-groups/<groupId>.md` (nếu group).
 
-Prompt cron có `--- LỊCH SỬ 24H ---`: data thật. Block rỗng → "Hôm qua không có hoạt động đáng chú ý."
+Prompt cron có `--- LỊCH SỬ TIN NHẮN 24H ---`: data thật. Block rỗng → "Hôm qua không có hoạt động đáng chú ý."
 
 ## Bộ nhớ & Knowledge
 
