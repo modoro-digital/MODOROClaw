@@ -171,15 +171,35 @@ if (!openclawCli) {
   const tmpDir = path.join(os.tmpdir(), 'modoro-smoketest-' + Date.now());
   fs.mkdirSync(tmpDir, { recursive: true });
   fs.mkdirSync(path.join(tmpDir, '.openclaw'), { recursive: true });
-  // Minimal valid config that matches what ensureDefaultConfig writes
+  // FULL config that matches ALL fields ensureDefaultConfig() writes.
+  // CRITICAL: every field ensureDefaultConfig adds to openclaw.json MUST appear
+  // here. If a new field is added to ensureDefaultConfig but not here, and that
+  // field is invalid in openclaw's schema, the smoke test CATCHES IT before shipping.
+  // This is the EXACT test that would have caught the execSecurity bug.
   const minimalConfig = {
     gateway: { mode: 'local', auth: { mode: 'token', token: 'a'.repeat(48) } },
     channels: {
-      telegram: { botToken: '0000000:fake_token_for_smoke_test_only', enabled: false, blockStreaming: false, streaming: 'off' },
-      openzalo: { enabled: false, dmPolicy: 'open', allowFrom: ['*'], groupPolicy: 'open', groupAllowFrom: ['*'], blockStreaming: false },
+      telegram: {
+        botToken: '0000000:fake_token_for_smoke_test_only', enabled: false,
+        blockStreaming: false, streaming: 'off',
+        groupPolicy: 'open', requireMention: true,
+      },
+      openzalo: {
+        enabled: false, dmPolicy: 'open', allowFrom: ['*'],
+        groupPolicy: 'open', groupAllowFrom: ['*'], blockStreaming: false,
+        groups: {
+          'fake-group-id-for-smoke-test': { requireMention: false, enabled: true },
+        },
+      },
+    },
+    plugins: {
+      entries: { openzalo: { enabled: false } },
+      allow: ['openzalo'],
     },
     models: { providers: { ninerouter: { baseUrl: 'http://127.0.0.1:20128/v1', apiKey: 'sk-fake', api: 'openai-completions', models: [{ id: 'main', name: 'fake' }] } } },
     agents: { defaults: { model: 'ninerouter/main', workspace: tmpDir, blockStreamingDefault: 'off' } },
+    tools: { message: { crossContext: { allowAcrossProviders: true } } },
+    messages: { inbound: { debounceMs: 3000 } },
   };
   fs.writeFileSync(path.join(tmpDir, '.openclaw', 'openclaw.json'), JSON.stringify(minimalConfig, null, 2));
 
