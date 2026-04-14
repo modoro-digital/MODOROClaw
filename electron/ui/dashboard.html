@@ -402,6 +402,10 @@
     .zalo-mgr-row .info { flex:1; min-width:0; overflow:hidden; }
     .zalo-mgr-row .name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .zalo-mgr-row .sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .prompt-row { cursor:pointer; position:relative; display:flex; align-items:center; gap:6px; }
+    .prompt-row::after { content:''; display:inline-flex; width:14px; height:14px; flex-shrink:0; margin-left:auto; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='13' height='13' rx='2' ry='2'%3E%3C/rect%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'%3E%3C/path%3E%3C/svg%3E"); background-repeat:no-repeat; background-size:contain; opacity:0.4; transition:opacity 0.15s; }
+    .prompt-row:hover::after { opacity:0.8; }
+    .prompt-row.copied::after { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E"); opacity:1; }
     .zalo-mgr-empty { text-align:center; color:var(--text-muted); padding:40px 20px; font-size:13px; }
     .zalo-mgr-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--border); margin-top:12px; flex-shrink:0; }
     .zalo-mgr-badge { background:var(--bg); padding:3px 8px; border-radius:10px; font-size:11px; color:var(--text-muted); }
@@ -1910,8 +1914,8 @@
           <h3 style="margin-bottom:10px">Điều khiển Zalo từ Telegram</h3>
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Nhắn tiếng Việt tự nhiên — bot sẽ hỏi xác nhận trước khi gửi.</div>
           <div style="display:flex;flex-direction:column;gap:6px">
-            <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText('Nhắn vào nhóm Zalo [tên nhóm]: Chào mọi người, hôm nay shop có chương trình giảm giá 20% tất cả sản phẩm!')"><code style="font-size:12px;background:var(--bg);padding:8px 12px;border-radius:6px;display:block;line-height:1.5">Nhắn vào nhóm Zalo [tên nhóm]: Chào mọi người, hôm nay shop có chương trình giảm giá 20% tất cả sản phẩm!</code></div>
-            <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText('Nhắn cho [tên bạn bè] trên Zalo: Anh ơi, đơn hàng của anh đã sẵn sàng giao rồi ạ')"><code style="font-size:12px;background:var(--bg);padding:8px 12px;border-radius:6px;display:block;line-height:1.5">Nhắn cho [tên bạn bè] trên Zalo: Anh ơi, đơn hàng của anh đã sẵn sàng giao rồi ạ</code></div>
+            <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:8px 12px;border-radius:6px;display:block;line-height:1.5">Nhắn vào nhóm Zalo [tên nhóm]: Chào mọi người, hôm nay shop có chương trình giảm giá 20% tất cả sản phẩm!</code></div>
+            <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:8px 12px;border-radius:6px;display:block;line-height:1.5">Nhắn cho [tên bạn bè] trên Zalo: Anh ơi, đơn hàng của anh đã sẵn sàng giao rồi ạ</code></div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">Click để copy. Paste vào Telegram rồi sửa tên nhóm/nội dung.</div>
         </div>
@@ -1925,9 +1929,9 @@
           <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="briefcase" data-icon-size="16"></span> Cố vấn C-Level (11 skills)</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Em phân tích dòng tiền tháng này, đề xuất cắt giảm chi phí nào trước</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CFO</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Đánh giá nên build hay mua hệ thống CRM, team 5 dev</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CTO</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tư vấn chiến lược tuyển dụng Q3, cần 10 người, budget hạn chế</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CHRO</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Em phân tích dòng tiền tháng này, đề xuất cắt giảm chi phí nào trước</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CFO</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Đánh giá nên build hay mua hệ thống CRM, team 5 dev</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CTO</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tư vấn chiến lược tuyển dụng Q3, cần 10 người, budget hạn chế</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">CHRO</span></div>
             </div>
           </div>
 
@@ -1935,13 +1939,13 @@
           <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="trending-up" data-icon-size="16"></span> Marketing & Growth (35 skills)</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết bài quảng cáo Facebook cho sản phẩm mới, target nữ 25-35</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Paid Ads</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Phân tích đối thủ ABC, điểm mạnh yếu, cơ hội cho mình</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Competitor</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Soạn chuỗi 3 email nurturing cho khách đã download ebook</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Email Sequence</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết copy landing page bán khóa học online, có headline + CTA + testimonial</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Copywriting</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Audit SEO website, đề xuất 10 cải thiện quan trọng nhất</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">SEO Audit</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo lead magnet: checklist 10 bước cho người mới bắt đầu kinh doanh</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Lead Magnet</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Thiết kế A/B test cho trang pricing, 2 variant, metric = conversion</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">A/B Test</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết bài quảng cáo Facebook cho sản phẩm mới, target nữ 25-35</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Paid Ads</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Phân tích đối thủ ABC, điểm mạnh yếu, cơ hội cho mình</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Competitor</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Soạn chuỗi 3 email nurturing cho khách đã download ebook</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Email Sequence</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết copy landing page bán khóa học online, có headline + CTA + testimonial</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Copywriting</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Audit SEO website, đề xuất 10 cải thiện quan trọng nhất</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">SEO Audit</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo lead magnet: checklist 10 bước cho người mới bắt đầu kinh doanh</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Lead Magnet</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Thiết kế A/B test cho trang pricing, 2 variant, metric = conversion</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">A/B Test</span></div>
             </div>
           </div>
 
@@ -1949,8 +1953,8 @@
           <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="target" data-icon-size="16"></span> Chiến lược & Vận hành (9 skills)</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Chuẩn bị tài liệu họp ban điều hành tuần tới, focus KPI Q2</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Board Meeting</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Đề xuất chiến lược giá cho dịch vụ mới, 3 gói: starter, pro, enterprise</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Pricing</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Chuẩn bị tài liệu họp ban điều hành tuần tới, focus KPI Q2</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Board Meeting</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Đề xuất chiến lược giá cho dịch vụ mới, 3 gói: starter, pro, enterprise</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Pricing</span></div>
             </div>
           </div>
 
@@ -1958,8 +1962,8 @@
           <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="edit-3" data-icon-size="16"></span> Nội dung & Thương hiệu (9 skills)</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết bài tuyển dụng Senior Developer, tone trẻ trung chuyên nghiệp</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Content Creator</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Lên content plan tháng tới cho fanpage, 3 bài/tuần, chủ đề tết</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Content Strategy</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Viết bài tuyển dụng Senior Developer, tone trẻ trung chuyên nghiệp</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Content Creator</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Lên content plan tháng tới cho fanpage, 3 bài/tuần, chủ đề tết</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Content Strategy</span></div>
             </div>
           </div>
 
@@ -1967,8 +1971,8 @@
           <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="dollar-sign" data-icon-size="16"></span> Bán hàng & Doanh thu (5 skills)</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Soạn cold email B2B cho giám đốc công ty logistics, giới thiệu dịch vụ</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Cold Email</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Thiết kế chương trình giới thiệu khách hàng, thưởng 2 bên</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Referral</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Soạn cold email B2B cho giám đốc công ty logistics, giới thiệu dịch vụ</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Cold Email</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Thiết kế chương trình giới thiệu khách hàng, thưởng 2 bên</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Referral</span></div>
             </div>
           </div>
 
@@ -1976,9 +1980,9 @@
           <div>
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-icon="clock" data-icon-size="16"></span> Hàng ngày</div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tóm tắt hoạt động hôm nay</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Báo cáo</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo lịch nhắc họp với đối tác ABC lúc 14h thứ 5</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Lịch hẹn</span></div>
-              <div class="how-item" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.querySelector('code').textContent)"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo cron mỗi sáng 8h nhắc nhân viên A báo cáo doanh số</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Tự động hóa</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tóm tắt hoạt động hôm nay</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Báo cáo</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo lịch nhắc họp với đối tác ABC lúc 14h thứ 5</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Lịch hẹn</span></div>
+              <div class="how-item" class="prompt-row"><code style="font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block">Tạo cron mỗi sáng 8h nhắc nhân viên A báo cáo doanh số</code><span style="font-size:11px;color:var(--text-muted);margin-left:8px">Tự động hóa</span></div>
             </div>
           </div>
         </div>
@@ -4683,6 +4687,17 @@
       const dd = document.getElementById('zalo-owner-dropdown');
       const search = document.getElementById('zalo-owner-search');
       if (dd && search && !dd.contains(e.target) && e.target !== search) dd.style.display = 'none';
+      // Prompt copy handler
+      const row = e.target.closest('.prompt-row');
+      if (row) {
+        const code = row.querySelector('code');
+        if (code) {
+          navigator.clipboard.writeText(code.textContent).then(() => {
+            row.classList.add('copied');
+            setTimeout(() => row.classList.remove('copied'), 1500);
+          });
+        }
+      }
     });
     async function refreshZaloOwnerList() {
       const status = document.getElementById('zalo-owner-dashboard-status');
