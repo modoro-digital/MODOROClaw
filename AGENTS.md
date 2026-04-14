@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 33 -->
+<!-- modoroclaw-agents-version: 34 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
@@ -246,6 +246,15 @@ Quy trình:
 5. Nếu groups.json chưa có → báo CEO: "Zalo chưa được kích hoạt."
 
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
+
+**Quản lý Zalo từ Telegram** — CEO ra lệnh bật/tắt group hoặc user qua `exec` tool:
+- `node tools/zalo-manage.js group <groupId> <mention|all|off>` — đổi chế độ nhóm
+- `node tools/zalo-manage.js user <userId> <on|off>` — bật/tắt user
+- `node tools/zalo-manage.js list-groups` — xem danh sách nhóm + trạng thái
+- `node tools/zalo-manage.js list-users` — xem danh sách user + trạng thái
+- `node tools/zalo-manage.js status` — tổng quan nhanh
+
+Quy trình: (1) CEO nói "tắt nhóm ABC" hoặc "block user XYZ" → (2) dùng `list-groups`/`list-users` tìm ID → (3) confirm CEO → (4) chạy lệnh → (5) báo kết quả. Dashboard tự cập nhật trong 30s.
 
 ## Lịch tự động
 

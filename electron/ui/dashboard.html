@@ -301,6 +301,22 @@
     .zalo-mgr-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; color:var(--text); }
     .zalo-mgr-row:hover { background:var(--surface); }
     .zalo-mgr-row:last-child { border-bottom:none; }
+    .zalo-card { padding:8px 12px; border-left:3px solid transparent; margin-bottom:0; background:transparent; transition:background 0.1s; border-bottom:1px solid var(--border); border-radius:0; }
+    .zalo-card:hover { background:var(--surface-hover); }
+    .zalo-card:last-child { border-bottom:none; }
+    .zalo-card-on { border-left-color:var(--success); }
+    .zalo-card-mention { border-left-color:var(--accent); }
+    .zalo-card-muted { opacity:0.55; border-left-color:transparent; }
+    .zalo-card-muted:hover { opacity:0.8; }
+    .zalo-card .name { font-size:13px; }
+    .zalo-card .sub { font-size:11px; }
+    .zalo-mode-badge { display:inline-flex; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; vertical-align:middle; margin-left:5px; }
+    .zalo-mode-all { background:rgba(74,222,128,0.18); color:var(--success); }
+    .zalo-mode-mention { background:var(--accent-soft); color:var(--accent); }
+    .zalo-mode-off { background:rgba(248,113,113,0.12); color:var(--danger); }
+    .zalo-mode-select { margin-left:auto; padding:3px 8px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:11px; min-width:100px; cursor:pointer; flex-shrink:0; }
+    .zalo-mode-select:focus { outline:none; border-color:var(--accent); }
+    .zalo-group-summary { font-size:10.5px; color:var(--text-tertiary); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .zalo-mgr-row img { width:32px; height:32px; border-radius:50%; flex-shrink:0; background:var(--bg); object-fit:cover; }
     .avatar-fallback { width:32px; height:32px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-muted); }
     .avatar-wrap { position:relative; width:32px; height:32px; flex-shrink:0; }
@@ -327,21 +343,25 @@
     .activity-drawer-backdrop.show { display:block; }
     /* Zalo 3-column layout */
     #page-zalo.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
-    .zalo-columns { display:grid; grid-template-columns:300px 1fr 1fr; gap:12px; flex:1; min-height:0; margin-bottom:12px; }
-    .zalo-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:visible; }
-    /* Kill fat native scrollbars inside Zalo columns (was showing as horizontal gray bar on Windows) */
-    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar { width:6px; height:6px; }
-    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-track { background:transparent; }
-    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-    .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
-    .zalo-col h4 { margin:0 0 10px; font-size:14px; }
+    .zalo-columns { display:flex; flex-direction:column; flex:1; min-height:0; margin-bottom:12px; }
+    .zalo-tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:16px; flex-shrink:0; }
+    .zalo-tab-btn { padding:10px 20px; font-size:13px; font-weight:500; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
+    .zalo-tab-btn:hover { color:var(--text); }
+    .zalo-tab-btn.active { color:var(--text); font-weight:600; border-bottom-color:var(--accent); }
+    .zalo-tab-btn .ztab-count { background:var(--bg); padding:1px 7px; border-radius:10px; font-size:11px; font-weight:500; color:var(--text-muted); }
+    .zalo-tab-pane { display:none; flex:1; min-height:0; }
+    .zalo-tab-pane.active { display:flex; flex-direction:column; }
+    .zalo-tab-pane#zalo-tab-settings { overflow-y:auto; }
+    .zalo-tab-pane .zalo-list-container { flex:1; min-height:0; max-height:none; overflow-y:auto; border:none; border-radius:0; background:transparent; }
+    /* Thin scrollbar for list containers */
+    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar { width:6px; height:6px; }
+    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-track { background:transparent; }
+    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
     .zalo-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0; }
     .zalo-col-header h4 { margin:0; }
-    .zalo-col .zalo-mgr-search { flex-shrink:0; }
-    .zalo-col .zalo-list-container { flex:1; min-height:0; max-height:none; }
     .zalo-col-help { font-size:11px; color:var(--text-muted); margin-bottom:8px; flex-shrink:0; line-height:1.4; }
     @media (max-width: 1200px) {
-      .zalo-columns { grid-template-columns:1fr; }
       #page-zalo.page.active { height:auto; }
     }
     /* Knowledge tab — 3 column layout */
@@ -2011,90 +2031,107 @@
         </div>
 
         <div class="zalo-columns">
-          <!-- Column 1: Settings -->
-          <div class="zalo-col">
-            <h4>Cài đặt</h4>
-            <div style="overflow-y:auto;overflow-x:hidden;flex:1;min-height:0">
-              <div class="switch-row" style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+          <!-- Tab bar -->
+          <div class="zalo-tab-bar">
+            <button class="zalo-tab-btn active" onclick="switchZaloTab('settings')">Cài đặt</button>
+            <button class="zalo-tab-btn" onclick="switchZaloTab('groups')">Nhóm <span class="ztab-count" id="zalo-mgr-group-count">0</span></button>
+            <button class="zalo-tab-btn" onclick="switchZaloTab('friends')">Bạn bè <span class="ztab-count" id="zalo-mgr-friend-count">0</span></button>
+          </div>
+
+          <!-- Tab 1: Settings -->
+          <div class="zalo-tab-pane active" id="zalo-tab-settings">
+            <div style="max-width:520px">
+              <div class="switch-row" style="padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px">
                 <div>
-                  <div style="font-weight:600;font-size:13px">Bật Zalo</div>
-                  <div style="font-size:11px;color:var(--text-muted)">Bot nhận và trả lời tin nhắn</div>
+                  <div style="font-weight:600;font-size:14px">Bật Zalo</div>
+                  <div style="font-size:12px;color:var(--text-muted)">Bot nhận và trả lời tin nhắn</div>
                 </div>
                 <label class="toggle-switch">
                   <input type="checkbox" id="zalo-mgr-enabled">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Chế độ trả lời:</div>
-              <select id="zalo-mode-select" onchange="changeZaloMode(this.value)" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
-                <option value="auto">Tự động trả lời</option>
-                <option value="read">Chỉ đọc — báo Telegram</option>
-                <option value="daily">Tóm tắt cuối ngày</option>
-              </select>
-              <div id="zalo-mode-status" style="display:none;margin-top:6px">
-                <div class="test-result success" style="margin:0;font-size:12px">Đã cập nhật</div>
+
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px">Chế độ trả lời</div>
+                <select id="zalo-mode-select" onchange="changeZaloMode(this.value)" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+                  <option value="auto">Tự động trả lời</option>
+                  <option value="read">Chỉ đọc — báo Telegram</option>
+                  <option value="daily">Tóm tắt cuối ngày</option>
+                </select>
+                <div id="zalo-mode-status" style="display:none;margin-top:6px">
+                  <div class="test-result success" style="margin:0;font-size:12px">Đã cập nhật</div>
+                </div>
               </div>
-              <div style="margin-top:14px">
-                <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600">Khi người lạ nhắn tin (chưa là bạn bè)</div>
-                <select id="zalo-stranger-policy" onchange="changeStrangerPolicy(this.value)" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Khi người lạ nhắn tin (chưa là bạn bè)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.4">Người lạ = chưa có trong danh sách bạn bè Zalo. Chọn "Trả lời bình thường" nếu muốn bot CSKH cho tất cả.</div>
+                <select id="zalo-stranger-policy" onchange="changeStrangerPolicy(this.value)" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
                   <option value="reply">Trả lời bình thường</option>
                   <option value="greet-only">Chỉ chào 1 lần, sau đó im</option>
                   <option value="ignore">Không trả lời</option>
                 </select>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4">Người lạ = chưa có trong danh sách bạn bè Zalo. Chọn "Trả lời bình thường" nếu muốn bot CSKH cho tất cả.</div>
               </div>
 
-              <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-                <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Tài khoản Zalo cá nhân của chủ nhân <span class="tip" data-tooltip="Bot nhận diện tài khoản này là chủ, trả lời khác với khách">?</span></div>
-                <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">Bot nhận diện tài khoản này là chủ doanh nghiệp (như Telegram), trả lời theo persona CEO và nhận lệnh quản trị.</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Tài khoản Zalo cá nhân của chủ nhân <span class="tip" data-tooltip="Bot nhận diện tài khoản này là chủ, trả lời khác với khách">?</span></div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.4">Bot nhận diện tài khoản này là chủ doanh nghiệp (như Telegram), trả lời theo persona CEO và nhận lệnh quản trị.</div>
                 <div style="display:flex;gap:8px;align-items:center;position:relative">
                   <div style="flex:1;position:relative">
                     <input type="text" id="zalo-owner-search" placeholder="Tìm theo tên..." autocomplete="off"
-                      style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;box-sizing:border-box"
+                      style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box"
                       onfocus="showOwnerDropdown()" oninput="filterOwnerDropdown()">
                     <div id="zalo-owner-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:2px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
                   </div>
                   <input type="hidden" id="zalo-owner-dashboard-select" value="">
-                  <button class="btn btn-secondary btn-small" onclick="refreshZaloOwnerList()" style="flex-shrink:0;padding:6px 12px;font-size:11px">Refresh</button>
+                  <button class="btn btn-secondary btn-small" onclick="refreshZaloOwnerList()" style="flex-shrink:0;padding:8px 14px;font-size:12px">Refresh</button>
                 </div>
                 <div id="zalo-owner-dashboard-status" style="display:none;font-size:11px;margin-top:6px"></div>
               </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ từ Zalo</button>
-              <button id="zalo-mgr-save-btn" class="btn btn-small" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;box-shadow:0 4px 14px rgba(22,163,74,0.2)"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
+
+              <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ từ Zalo</button>
+                <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;box-shadow:0 4px 14px rgba(22,163,74,0.2);flex:1"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
+              </div>
             </div>
           </div>
 
-          <!-- Column 2: Groups -->
-          <div class="zalo-col">
-            <div class="zalo-col-header">
-              <h4>Nhóm Zalo <span class="zalo-mgr-badge" id="zalo-mgr-group-count">0</span></h4>
-              <div style="display:flex;gap:4px">
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
+          <!-- Tab 2: Groups -->
+          <div class="zalo-tab-pane" id="zalo-tab-groups">
+            <div class="zalo-col-header" style="flex-shrink:0">
+              <div style="font-size:12px;color:var(--text-muted)">Chọn chế độ cho mỗi nhóm: @mention, mọi tin, hoặc tắt.</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
+                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
               </div>
             </div>
-            <div class="zalo-col-help">Chọn chế độ cho mỗi nhóm: @mention, mọi tin, hoặc tắt.</div>
-            <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()">
+            <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()" style="flex-shrink:0">
             <div class="zalo-list-container">
               <div id="zalo-mgr-groups-list"></div>
             </div>
+            <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-shrink:0">
+              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ</button>
+              <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;flex:1"><span data-icon="save" data-icon-size="14"></span>Lưu</button>
+            </div>
           </div>
 
-          <!-- Column 3: Friends -->
-          <div class="zalo-col">
-            <div class="zalo-col-header">
-              <h4>Bạn bè <span class="zalo-mgr-badge" id="zalo-mgr-friend-count">0</span></h4>
-              <div style="display:flex;gap:4px">
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllFriends(true)">Tất cả</button>
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllFriends(false)">Bỏ</button>
+          <!-- Tab 3: Friends -->
+          <div class="zalo-tab-pane" id="zalo-tab-friends">
+            <div class="zalo-col-header" style="flex-shrink:0">
+              <div style="font-size:12px;color:var(--text-muted)">Bật = bot trả lời tin nhắn riêng. Tắt = bỏ qua. Đang tắt: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong></div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="toggleAllFriends(true)">Bật tất cả</button>
+                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="toggleAllFriends(false)">Tắt tất cả</button>
               </div>
             </div>
-            <div class="zalo-col-help">Bật = bot trả lời tin nhắn riêng. Tắt = bỏ qua. Đang tắt: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong></div>
-            <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()">
+            <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()" style="flex-shrink:0">
             <div class="zalo-list-container">
               <div id="zalo-mgr-friends-list"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-shrink:0">
+              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ</button>
+              <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;flex:1"><span data-icon="save" data-icon-size="14"></span>Lưu</button>
             </div>
           </div>
         </div>
@@ -2721,6 +2758,7 @@
 
   <script>
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function escAttr(s) { return esc(s).replace(/'/g, '&#39;'); }
 
     // ============================================
     //  ICONS — Lucide (SVG inline, premium look)
@@ -3233,9 +3271,13 @@
       const backdrop = document.getElementById('activity-drawer-backdrop');
       if (drawer) drawer.classList.remove('show');
       if (backdrop) backdrop.classList.remove('show');
-      // Lazy load heavy data when entering Zalo page
-      if (page === 'zalo' && !zaloDataLoaded) {
-        loadZaloManagerData();
+      // Lazy load heavy data when entering Zalo page, refresh if already loaded
+      if (page === 'zalo') {
+        if (!zaloDataLoaded) loadZaloManagerData();
+        else loadZaloManagerData({ preserveDraft: true });
+        startZaloAutoRefresh();
+      } else {
+        stopZaloAutoRefresh();
       }
       if (page === 'schedules') {
         loadSchedules();
@@ -3929,7 +3971,30 @@
     // ============================================
     let zaloFriends = [];
     let zaloGroups = [];
+    let zaloGroupSummaries = {};
     let zaloMgrConfig = { enabled: true, groupPolicy: 'open', groupAllowFrom: [], userBlocklist: [] };
+
+    let _zaloRefreshTimer = null;
+    function startZaloAutoRefresh() {
+      stopZaloAutoRefresh();
+      _zaloRefreshTimer = setInterval(() => {
+        if (currentPage === 'zalo') loadZaloManagerData({ preserveDraft: true });
+      }, 30000);
+    }
+    function stopZaloAutoRefresh() {
+      if (_zaloRefreshTimer) { clearInterval(_zaloRefreshTimer); _zaloRefreshTimer = null; }
+    }
+
+    function switchZaloTab(tabName) {
+      document.querySelectorAll('.zalo-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.zalo-tab-pane').forEach(pane => pane.classList.remove('active'));
+      const pane = document.getElementById('zalo-tab-' + tabName);
+      if (pane) pane.classList.add('active');
+      // Highlight the clicked tab button
+      const buttons = document.querySelectorAll('.zalo-tab-btn');
+      const tabIndex = tabName === 'settings' ? 0 : tabName === 'groups' ? 1 : 2;
+      if (buttons[tabIndex]) buttons[tabIndex].classList.add('active');
+    }
 
     // Helper: is bot currently set to reply to ALL groups? (open mode via "*")
     function isOpenGroupMode() {
@@ -3990,13 +4055,15 @@
       const preserveDraft = !!opts.preserveDraft;
       try {
         const draft = preserveDraft && zaloDataLoaded ? getCurrentZaloManagerDraft() : null;
-        const [friends, groups, config] = await Promise.all([
+        const [friends, groups, config, groupSums] = await Promise.all([
           window.claw.listZaloFriends(),
           window.claw.listZaloGroups(),
           window.claw.getZaloManagerConfig(),
+          window.claw.getZaloGroupSummaries().catch(() => ({})),
         ]);
         zaloFriends = friends || [];
         zaloGroups = groups || [];
+        zaloGroupSummaries = groupSums || {};
         if (draft) {
           zaloMgrConfig = {
             ...(config || {}),
@@ -4040,22 +4107,28 @@
         const gSettings = (zaloMgrConfig.groupSettings || {})[g.groupId] || {};
         const mode = gSettings.mode || (checked ? 'mention' : 'off');
         const avatarHtml = g.avatar
-          ? `<div class="avatar-wrap"><img class="avatar-img" src="${esc(g.avatar)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('failed')"><div class="avatar-fallback">${icon('users', 18)}</div></div>`
-          : `<div class="avatar-fallback">${icon('users', 18)}</div>`;
+          ? `<img class="avatar-img" src="${esc(g.avatar)}" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span style="display:none;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('users', 14)}</span>`
+          : `<span style="display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('users', 14)}</span>`;
+        const borderClass = mode === 'off' ? 'zalo-card-muted' : mode === 'all' ? 'zalo-card-on' : 'zalo-card-mention';
+        const summary = zaloGroupSummaries[g.groupId];
+        const infoExtra = [
+          `${g.memberCount} tv`,
+          g.desc ? g.desc : '',
+          summary?.topics ? summary.topics : '',
+        ].filter(Boolean).join(' · ');
         return `
-          <div class="zalo-mgr-row" style="flex-wrap:wrap">
+          <div class="zalo-mgr-row zalo-card ${borderClass}">
             ${avatarHtml}
-            <div class="info">
+            <div class="info" style="flex:1;min-width:0">
               <div class="name">${esc(g.name)}</div>
-              <div class="sub">${g.memberCount} thành viên</div>
+              <div class="sub">${esc(infoExtra)}</div>
             </div>
-            <select style="margin-left:auto;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;min-width:100px" onchange="setGroupMode('${esc(g.groupId)}', this.value)">
-              <option value="mention" ${mode === 'mention' ? 'selected' : ''}>Khi @mention</option>
-              <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin nhắn</option>
+            <select class="zalo-mode-select" onchange="setGroupMode('${escAttr(g.groupId)}', this.value)">
+              <option value="mention" ${mode === 'mention' ? 'selected' : ''}>@mention</option>
+              <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin</option>
               <option value="off" ${mode === 'off' ? 'selected' : ''}>Tắt</option>
             </select>
-          </div>
-        `;
+          </div>`;
       }).join('');
     }
 
@@ -4090,6 +4163,7 @@
       } else {
         if (!arr.includes(groupId)) arr.push(groupId);
       }
+      renderZaloGroups();
     }
 
     function setAllGroupsMode(mode) {
@@ -4137,37 +4211,31 @@
         return (a.displayName || '').localeCompare(b.displayName || '');
       });
       list.innerHTML = sorted.slice(0, 500).map(f => {
-        // INVERTED semantic: checked = bot REPLIES (not in blocklist). Default = all checked.
         const blocked = (zaloMgrConfig.userBlocklist || []).includes(f.userId);
         const checked = !blocked;
         const avatarHtml = f.avatar
-          ? `<div class="avatar-wrap"><img class="avatar-img" src="${esc(f.avatar)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('failed')"><div class="avatar-fallback">${icon('user', 18)}</div></div>`
-          : `<div class="avatar-fallback">${icon('user', 18)}</div>`;
-        const mutedBadge = blocked
-          ? `<span style="color:var(--danger,#e74c3c);font-size:11px;display:inline-flex;align-items:center;gap:4px;margin-left:6px">${icon('ban', 12)} Bỏ qua</span>`
-          : '';
-        const phoneIcon = f.phoneNumber
-          ? `<span style="display:inline-flex;align-items:center;gap:3px">${icon('phone-call', 11)} ${esc(f.phoneNumber)}</span> · `
-          : '';
+          ? `<img src="${esc(f.avatar)}" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span style="display:none;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('user', 14)}</span>`
+          : `<span style="display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('user', 14)}</span>`;
         const lastAct = f.lastActionTime ? new Date(f.lastActionTime) : null;
         const lastActLabel = lastAct ? (() => {
           const diff = Date.now() - lastAct.getTime();
-          if (diff < 3600000) return Math.floor(diff/60000) + ' phút trước';
-          if (diff < 86400000) return Math.floor(diff/3600000) + ' giờ trước';
-          if (diff < 604800000) return Math.floor(diff/86400000) + ' ngày trước';
+          if (diff < 3600000) return Math.floor(diff/60000) + 'ph';
+          if (diff < 86400000) return Math.floor(diff/3600000) + 'h';
+          if (diff < 604800000) return Math.floor(diff/86400000) + 'd';
           return lastAct.toLocaleDateString('vi');
         })() : '';
+        const infoLine = [f.phoneNumber, lastActLabel].filter(Boolean).join(' · ');
+        const borderClass = blocked ? 'zalo-card-muted' : 'zalo-card-on';
         return `
-          <div class="zalo-mgr-row">
+          <div class="zalo-mgr-row zalo-card ${borderClass}">
             ${avatarHtml}
-            <div class="info">
-              <div class="name">${esc(f.displayName)}${mutedBadge}</div>
-              <div class="sub">${phoneIcon}${lastActLabel ? lastActLabel + ' · ' : ''}ID: ${esc(f.userId)}</div>
+            <div class="info" style="flex:1;min-width:0">
+              <div class="name">${esc(f.displayName)}</div>
+              ${infoLine ? `<div class="sub">${esc(infoLine)}</div>` : ''}
             </div>
-            <button type="button" class="zum-open-btn" onclick="openZaloUserMemory('${esc(f.userId)}', '${esc(f.displayName)}')" title="Xem hồ sơ khách">${icon('file-text', 14)}</button>
-            <label class="toggle-switch"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${esc(f.userId)}', this.checked)"><span class="toggle-slider"></span></label>
-          </div>
-        `;
+            <button type="button" class="zum-open-btn" onclick="openZaloUserMemory('${escAttr(f.userId)}', '${escAttr(f.displayName)}')" title="Hồ sơ" style="padding:3px 5px">${icon('file-text', 12)}</button>
+            <label class="toggle-switch" style="transform:scale(0.85)"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${escAttr(f.userId)}', this.checked)"><span class="toggle-slider"></span></label>
+          </div>`;
       }).join('');
       if (filtered.length > 500) {
         list.innerHTML += `<div class="zalo-mgr-empty">... còn ${filtered.length - 500} user. Dùng tìm kiếm để lọc.</div>`;
@@ -4203,7 +4271,7 @@
       zaloMgrConfig.enabled = document.getElementById('zalo-mgr-enabled').checked;
       // groupPolicy is derived: explicit "*" or all groups selected => "open".
       // Empty allowlist means "không cho nhóm nào", not open mode.
-      if (!zaloMgrConfig.groupAllowFrom || zaloMgrConfig.groupAllowFrom.includes('*')) {
+      if (!zaloMgrConfig.groupAllowFrom || zaloMgrConfig.groupAllowFrom.includes('*') || zaloMgrConfig.groupPolicy === 'open') {
         zaloMgrConfig.groupPolicy = 'open';
         zaloMgrConfig.groupAllowFrom = ['*'];
       } else if (zaloGroups.length > 0 && zaloMgrConfig.groupAllowFrom.length === zaloGroups.length) {
@@ -4213,20 +4281,9 @@
       } else {
         zaloMgrConfig.groupPolicy = 'allowlist';
       }
-      const btn = document.getElementById('zalo-mgr-save-btn');
-      const labelEl = btn?.querySelector('.btn-label');
-      const iconEl = btn?.querySelector('[data-icon="save"]');
-      const originalLabel = labelEl ? labelEl.textContent : '';
-      let spinnerEl = null;
-      if (btn) {
-        btn.classList.add('is-loading');
-        btn.disabled = true;
-        if (iconEl) iconEl.style.display = 'none';
-        spinnerEl = document.createElement('span');
-        spinnerEl.className = 'btn-spinner';
-        btn.insertBefore(spinnerEl, labelEl);
-        if (labelEl) labelEl.textContent = 'Đang lưu...';
-      }
+      // Apply loading state to ALL save buttons (one per tab)
+      const saveBtns = document.querySelectorAll('.zalo-save-btn');
+      saveBtns.forEach(btn => { btn.disabled = true; btn.classList.add('is-loading'); });
       try {
         const result = await window.claw.saveZaloManagerConfig(zaloMgrConfig);
         if (result?.success) {
@@ -4242,13 +4299,7 @@
         addActivity('Lỗi: ' + e.message);
         showToast('Lỗi: ' + e.message, 'error');
       } finally {
-        if (btn) {
-          btn.classList.remove('is-loading');
-          btn.disabled = false;
-          if (spinnerEl) spinnerEl.remove();
-          if (iconEl) iconEl.style.display = '';
-          if (labelEl) labelEl.textContent = originalLabel || 'Lưu cấu hình';
-        }
+        saveBtns.forEach(btn => { btn.disabled = false; btn.classList.remove('is-loading'); });
       }
     }
     async function deleteCustomCron(id) {
@@ -4660,7 +4711,7 @@
         const name = esc(f.displayName || '(không tên)');
         const phone = f.phoneNumber ? ' <span style="color:var(--text-muted)">· ' + esc(f.phoneNumber) + '</span>' : '';
         const isCurrent = id === _ownerSavedId ? ' style="background:var(--accent-muted,#e8f4ff)"' : '';
-        return '<div class="zalo-mgr-row" onclick="selectOwner(\'' + id + '\', \'' + esc(f.displayName || '') + '\')"' + isCurrent + '>' +
+        return '<div class="zalo-mgr-row" onclick="selectOwner(\'' + id + '\', \'' + escAttr(f.displayName || '') + '\')"' + isCurrent + '>' +
           (f.avatar ? '<img src="' + esc(f.avatar) + '" style="width:28px;height:28px;border-radius:50%" onerror="this.style.display=\'none\'">' : '') +
           '<div class="info"><div class="name">' + name + phone + '</div><div class="sub">ID: ' + id + '</div></div></div>';
       }).join('');

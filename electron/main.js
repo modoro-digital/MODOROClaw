@@ -562,7 +562,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 33;
+const CURRENT_AGENTS_MD_VERSION = 34;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -624,6 +624,14 @@ function seedWorkspace() {
         // version bumps. CEO customizations in these files are rare (they're
         // bot-internal, not user-facing), so overwriting is safe.
         const alsoOverwrite = ['MEMORY.md', 'HEARTBEAT.md'];
+        // Also force-refresh tools/ directory on upgrade — these are bot
+        // utility scripts (send-zalo-safe.js, zalo-manage.js) that may have
+        // bug fixes. copyDirRecursive only copies missing files, so we delete
+        // the existing tools/ to force re-copy from template.
+        const toolsDir = path.join(ws, 'tools');
+        if (fs.existsSync(toolsDir)) {
+          try { fs.rmSync(toolsDir, { recursive: true, force: true }); console.log('[seedWorkspace] tools/ force-refreshed (piggyback on AGENTS.md upgrade)'); } catch {}
+        }
         for (const f of alsoOverwrite) {
           const fp = path.join(ws, f);
           if (fs.existsSync(fp)) {
@@ -2334,7 +2342,7 @@ async function runCronAgentPrompt(prompt, { label, timeoutMs = 600000 } = {}) {
     return new Promise((resolve) => {
       const child = require('child_process').spawn(
         shellCmd, [],
-        { shell: true, env: enrichedEnv, timeout: Math.min(timeoutMs, 60000), stdio: ['ignore', 'pipe', 'pipe'] }
+        { shell: true, cwd: getWorkspace(), env: enrichedEnv, timeout: Math.min(timeoutMs, 60000), stdio: ['ignore', 'pipe', 'pipe'] }
       );
       let stdout = '', stderr = '';
       child.stdout?.on('data', d => { stdout += d; });
@@ -7411,8 +7419,10 @@ ipcMain.handle('list-zalo-groups', async () => {
     return (Array.isArray(data) ? data : []).map(g => ({
       groupId: String(g.groupId || g.id || ''),
       name: g.name || g.groupName || '(không tên)',
-      avatar: g.avatar || g.groupAvatar || '',
-      memberCount: g.totalMember || g.memberCount || (g.memberIds?.length) || 0,
+      avatar: g.avatar || g.groupAvatar || g.avt || g.fullAvt || '',
+      memberCount: g.totalMember || g.memberCount || (g.memberIds?.length) || (g.memVerList?.length) || 0,
+      desc: g.desc || '',
+      createdTime: g.createdTime || 0,
     })).filter(g => g.groupId);
   } catch (e) {
     console.error('[zalo] list groups error:', e.message);
@@ -7622,6 +7632,55 @@ ipcMain.handle('delete-zalo-user-note', async (_event, { senderId, noteTimestamp
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
+  }
+});
+
+// === Zalo group memory ===
+function getZaloGroupsDir() {
+  const agentWs = getOpenclawAgentWorkspace();
+  if (agentWs) return path.join(agentWs, 'memory', 'zalo-groups');
+  const ws = getWorkspace();
+  if (!ws) return null;
+  return path.join(ws, 'memory', 'zalo-groups');
+}
+
+ipcMain.handle('get-zalo-group-summaries', async () => {
+  try {
+    const dir = getZaloGroupsDir();
+    if (!dir || !fs.existsSync(dir)) return {};
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+    const summaries = {};
+    for (const f of files) {
+      const groupId = f.replace('.md', '');
+      try {
+        const content = fs.readFileSync(path.join(dir, f), 'utf-8');
+        // Extract key sections from the group memory file
+        const lines = content.split('\n');
+        let topics = '', members = '', decisions = '';
+        let currentSection = '';
+        for (const line of lines) {
+          if (line.startsWith('## Chủ đề thường thảo luận')) { currentSection = 'topics'; continue; }
+          if (line.startsWith('## Thành viên key')) { currentSection = 'members'; continue; }
+          if (line.startsWith('## Quyết định/thông báo')) { currentSection = 'decisions'; continue; }
+          if (line.startsWith('## ') || line.startsWith('---')) { currentSection = ''; continue; }
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === '(chưa có)') continue;
+          if (currentSection === 'topics') topics += (topics ? ', ' : '') + trimmed.replace(/^[-*]\s*/, '');
+          if (currentSection === 'members') members += (members ? ', ' : '') + trimmed.replace(/^[-*]\s*/, '');
+          if (currentSection === 'decisions') decisions += (decisions ? ', ' : '') + trimmed.replace(/^[-*]\s*/, '');
+        }
+        summaries[groupId] = {
+          topics: topics.slice(0, 120) || '',
+          members: members.slice(0, 120) || '',
+          decisions: decisions.slice(0, 120) || '',
+          hasContent: !!(topics || members || decisions),
+        };
+      } catch {}
+    }
+    return summaries;
+  } catch (e) {
+    console.error('[zalo-group-memory] error:', e?.message);
+    return {};
   }
 });
 
