@@ -152,8 +152,13 @@ jobs:
             ls -la "$BSQL_DIR/build/Release/" 2>/dev/null || true
             exit 1
           fi
-          cp "$FIXED" "$BINARY"
-          echo "Copied fixed binary to $BINARY"
+          # electron-rebuild may write directly to the same file (hardlink/symlink
+          # from dist/ → node_modules/). cp fails with "are identical". Use cp -f
+          # or skip if same inode.
+          if [ "$FIXED" != "$BINARY" ]; then
+            cp -f "$FIXED" "$BINARY" 2>/dev/null || true
+          fi
+          echo "Binary in place at $BINARY"
           VERIFY=$(node -e "
             const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);
             fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
