@@ -7936,19 +7936,31 @@ ipcMain.handle('get-zalo-manager-config', async () => {
     if (fs.existsSync(bp)) {
       try { blocklist = JSON.parse(fs.readFileSync(bp, 'utf-8')); } catch {}
     }
+    let groupSettings = {};
+    try {
+      const gsPath = path.join(getWorkspace(), 'zalo-group-settings.json');
+      if (fs.existsSync(gsPath)) groupSettings = JSON.parse(fs.readFileSync(gsPath, 'utf-8'));
+    } catch {}
+    let strangerPolicy = 'reply';
+    try {
+      const spPath = path.join(getWorkspace(), 'zalo-stranger-policy.json');
+      if (fs.existsSync(spPath)) strangerPolicy = JSON.parse(fs.readFileSync(spPath, 'utf-8')).mode || 'reply';
+    } catch {}
     return {
       enabled: zalo.enabled !== false,
       groupPolicy: zalo.groupPolicy || 'open',
       groupAllowFrom: Array.isArray(zalo.groupAllowFrom) ? zalo.groupAllowFrom.filter(x => x !== '*') : [],
       dmPolicy: zalo.dmPolicy || 'open',
       userBlocklist: Array.isArray(blocklist) ? blocklist : [],
+      groupSettings,
+      strangerPolicy,
     };
   } catch (e) {
     return { enabled: false, groupPolicy: 'open', groupAllowFrom: [], dmPolicy: 'open', userBlocklist: [] };
   }
 });
 
-ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy, groupAllowFrom, userBlocklist }) => {
+ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy, groupAllowFrom, userBlocklist, groupSettings, strangerPolicy }) => {
   try {
     // 1. Update openclaw.json (groups handled natively by OpenZalo)
     const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
@@ -7986,6 +7998,16 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
     // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
     const bp = getZaloBlocklistPath();
     fs.writeFileSync(bp, JSON.stringify(userBlocklist || [], null, 2), 'utf-8');
+    // 3. Write per-group settings (mention/all/off) to workspace
+    if (groupSettings && typeof groupSettings === 'object') {
+      const gsPath = path.join(getWorkspace(), 'zalo-group-settings.json');
+      fs.writeFileSync(gsPath, JSON.stringify(groupSettings, null, 2), 'utf-8');
+    }
+    // 4. Write stranger policy to workspace
+    if (strangerPolicy) {
+      const spPath = path.join(getWorkspace(), 'zalo-stranger-policy.json');
+      fs.writeFileSync(spPath, JSON.stringify({ mode: strangerPolicy }, null, 2), 'utf-8');
+    }
     return { success: gateOk };
   } catch (e) {
     return { success: false, error: e.message };

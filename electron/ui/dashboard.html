@@ -1951,8 +1951,14 @@
               <div id="zalo-mode-status" style="display:none;margin-top:6px">
                 <div class="test-result success" style="margin:0;font-size:12px">Đã cập nhật</div>
               </div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;line-height:1.5">
-                <strong>Lưu ý:</strong> Trong nhóm, bot chỉ trả lời khi được <strong>@mention</strong>.
+              <div style="margin-top:14px">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600">Khi người lạ nhắn tin (chưa là bạn bè)</div>
+                <select id="zalo-stranger-policy" onchange="changeStrangerPolicy(this.value)" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+                  <option value="reply">Trả lời bình thường</option>
+                  <option value="greet-only">Chỉ chào 1 lần, sau đó im</option>
+                  <option value="ignore">Không trả lời</option>
+                </select>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4">Người lạ = chưa có trong danh sách bạn bè Zalo. Chọn "Trả lời bình thường" nếu muốn bot CSKH cho tất cả.</div>
               </div>
 
               <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
@@ -3869,11 +3875,14 @@
 
     function getCurrentZaloManagerDraft() {
       const enabledEl = document.getElementById('zalo-mgr-enabled');
+      const spEl = document.getElementById('zalo-stranger-policy');
       return {
         ...zaloMgrConfig,
         enabled: enabledEl ? enabledEl.checked : (zaloMgrConfig.enabled !== false),
         groupAllowFrom: Array.isArray(zaloMgrConfig.groupAllowFrom) ? [...zaloMgrConfig.groupAllowFrom] : [],
         userBlocklist: Array.isArray(zaloMgrConfig.userBlocklist) ? [...zaloMgrConfig.userBlocklist] : [],
+        groupSettings: zaloMgrConfig.groupSettings || {},
+        strangerPolicy: spEl ? spEl.value : (zaloMgrConfig.strangerPolicy || 'reply'),
       };
     }
 
@@ -3881,6 +3890,8 @@
       document.getElementById('zalo-mgr-friend-count').textContent = zaloFriends.length;
       document.getElementById('zalo-mgr-group-count').textContent = zaloGroups.length;
       document.getElementById('zalo-mgr-enabled').checked = zaloMgrConfig.enabled !== false;
+      const spEl = document.getElementById('zalo-stranger-policy');
+      if (spEl) spEl.value = zaloMgrConfig.strangerPolicy || 'reply';
       updateBlockedCount();
       renderZaloGroups();
       renderZaloFriends();
@@ -3937,17 +3948,23 @@
       });
       list.innerHTML = sorted.map(g => {
         const checked = openMode || (zaloMgrConfig.groupAllowFrom || []).includes(g.groupId);
+        const gSettings = (zaloMgrConfig.groupSettings || {})[g.groupId] || {};
+        const mode = gSettings.mode || (checked ? 'mention' : 'off');
         const avatarHtml = g.avatar
           ? `<div class="avatar-wrap"><img class="avatar-img" src="${esc(g.avatar)}" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('failed')"><div class="avatar-fallback">${icon('users', 18)}</div></div>`
           : `<div class="avatar-fallback">${icon('users', 18)}</div>`;
         return `
-          <div class="zalo-mgr-row">
+          <div class="zalo-mgr-row" style="flex-wrap:wrap">
             ${avatarHtml}
             <div class="info">
               <div class="name">${esc(g.name)}</div>
-              <div class="sub">${g.memberCount} thành viên · ID: ${esc(g.groupId)}</div>
+              <div class="sub">${g.memberCount} thành viên</div>
             </div>
-            <label class="toggle-switch" style="margin-left:auto"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleGroupAllow('${esc(g.groupId)}', this.checked)"><span class="toggle-slider"></span></label>
+            <select style="margin-left:auto;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;min-width:100px" onchange="setGroupMode('${esc(g.groupId)}', this.value)">
+              <option value="mention" ${mode === 'mention' ? 'selected' : ''}>Khi @mention</option>
+              <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin nhắn</option>
+              <option value="off" ${mode === 'off' ? 'selected' : ''}>Tắt</option>
+            </select>
           </div>
         `;
       }).join('');
@@ -3966,6 +3983,28 @@
         const i = arr.indexOf(groupId);
         if (i !== -1) arr.splice(i, 1);
       }
+    }
+
+    function setGroupMode(groupId, mode) {
+      if (!zaloMgrConfig.groupSettings) zaloMgrConfig.groupSettings = {};
+      zaloMgrConfig.groupSettings[groupId] = { mode };
+      // Sync allowFrom: "off" = remove from allowlist, "mention"/"all" = add
+      if (!zaloMgrConfig.groupAllowFrom) zaloMgrConfig.groupAllowFrom = [];
+      if (isOpenGroupMode()) {
+        zaloMgrConfig.groupAllowFrom = zaloGroups.map(g => g.groupId);
+        zaloMgrConfig.groupPolicy = 'allowlist';
+      }
+      const arr = zaloMgrConfig.groupAllowFrom;
+      if (mode === 'off') {
+        const i = arr.indexOf(groupId);
+        if (i !== -1) arr.splice(i, 1);
+      } else {
+        if (!arr.includes(groupId)) arr.push(groupId);
+      }
+    }
+
+    function changeStrangerPolicy(value) {
+      zaloMgrConfig.strangerPolicy = value;
     }
 
     function toggleAllGroups(checked) {
