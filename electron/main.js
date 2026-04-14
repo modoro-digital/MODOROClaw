@@ -3279,11 +3279,12 @@ async function ensureDefaultConfig() {
       config.agents.defaults.blockStreamingDefault = 'off';
       changed = true;
     }
-    // CRITICAL: exec tool must be enabled for bot to run send-zalo-safe.js
-    // and zalo-manage.js from Telegram commands. Gateway default is "deny"
-    // which silently blocks all exec calls → "gửi Zalo từ Telegram" never works.
-    if (config.agents.defaults.execSecurity !== 'full') {
-      config.agents.defaults.execSecurity = 'full';
+    // CLEANUP: execSecurity is NOT valid under agents.defaults (it's a runtime
+    // agent config key). A prior buggy version wrote it here → gateway rejects
+    // entire config with "Unrecognized key: execSecurity" → bot never starts.
+    // Must actively delete to heal machines that already have the bad key.
+    if ('execSecurity' in config.agents.defaults) {
+      delete config.agents.defaults.execSecurity;
       changed = true;
     }
     // Inbound message batching: wait 3s for rapid messages from same sender,
@@ -3317,7 +3318,7 @@ async function ensureDefaultConfig() {
     }
 
     // Remove any unknown keys that OpenClaw rejects
-    const validKeys = ['plugins', 'meta', 'channels', 'gateway', 'models', 'agents', 'wizard', 'security', 'tools', 'messages'];
+    const validKeys = ['plugins', 'meta', 'channels', 'gateway', 'models', 'agents', 'wizard', 'tools', 'messages'];
     for (const key of Object.keys(config)) {
       if (!validKeys.includes(key)) { delete config[key]; changed = true; }
     }
