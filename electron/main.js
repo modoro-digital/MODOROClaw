@@ -3596,7 +3596,7 @@ function ensureZaloBlocklistFix() {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
-    const CURRENT_MARKER = '9BizClaw BLOCKLIST PATCH v2';
+    const CURRENT_MARKER = '9BizClaw BLOCKLIST PATCH v3';
     if (content.includes('9BizClaw BLOCKLIST PATCH')) {
       if (content.includes(CURRENT_MARKER)) return;
       content = content.replace(/\n\s*\/\/ === 9BizClaw BLOCKLIST PATCH ===[\s\S]*?\/\/ === END 9BizClaw BLOCKLIST PATCH ===/g, '');
@@ -3611,7 +3611,7 @@ function ensureZaloBlocklistFix() {
     const injection = `
 
   // === 9BizClaw BLOCKLIST PATCH ===
-  // 9BizClaw BLOCKLIST PATCH v2: resolve workspace at runtime so the same
+  // 9BizClaw BLOCKLIST PATCH v3: resolve workspace at runtime so the same
   // patched plugin works on Windows/macOS/Linux and fail closed on parse errors.
   // Drop messages from senders listed in zalo-blocklist.json (workspace file
   // managed via Dashboard → Zalo → Bạn bè). OpenZalo upstream only supports
@@ -3664,9 +3664,11 @@ function ensureZaloBlocklistFix() {
       runtime.log?.("openzalo: blocklist policy error → fail closed");
       return;
     }
+    // Blocklist applies ONLY to DMs — in groups, everyone should be answered
+    // if the group is enabled. Otherwise one blocked user silences the whole group.
     const __sender = String(message.senderId || "").trim();
-    if (__sender && __mzBlocked.includes(__sender)) {
-      runtime.log?.(\`openzalo: drop sender=\${__sender} (9BizClaw blocklist)\`);
+    if (!message.isGroup && __sender && __mzBlocked.includes(__sender)) {
+      runtime.log?.(\`openzalo: drop sender=\${__sender} (9BizClaw blocklist, DM only)\`);
       return;
     }
   } catch (__e) {
