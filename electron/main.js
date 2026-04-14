@@ -11813,13 +11813,27 @@ function startCronJobs() {
         cronExpr = `*/${everyMin} * * * *`;
         handler = async () => {
           try {
-            // Require 2 CONSECUTIVE failures (with a 5s gap) before restart.
-            // A single timeout often means the gateway was busy serving an AI
-            // request, not dead. Killing it mid-completion creates a real
-            // restart loop because the next heartbeat finds another in-flight
-            // request and false-positives again.
             const alive1 = await isGatewayAlive(8000);
-            if (alive1) return;
+            if (alive1) {
+              // Gateway alive → also verify openzca listener is running.
+              // Listener can die silently if openzca crashes; gateway stays
+              // up but Zalo channel is dead. Only restart gateway if
+              // Zalo is enabled in config.
+              try {
+                const cfgPath = path.join(HOME, '.openclaw', 'openclaw.json');
+                const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+                if (cfg?.channels?.openzalo?.enabled === true && !isChannelPaused('zalo')) {
+                  const lpid = findOpenzcaListenerPid();
+                  if (!lpid) {
+                    console.log('[heartbeat] gateway alive but Zalo listener dead — restarting gateway to respawn listener');
+                    try { stopOpenClaw(); } catch {}
+                    await new Promise(r => setTimeout(r, 2000));
+                    try { await startOpenClaw(); } catch (e) { console.error('[heartbeat] zalo restart failed:', e.message); }
+                  }
+                }
+              } catch {}
+              return;
+            }
             await new Promise(r => setTimeout(r, 5000));
             const alive2 = await isGatewayAlive(8000);
             if (alive2) {
@@ -11827,7 +11841,6 @@ function startCronJobs() {
               return;
             }
             console.log('[heartbeat] Gateway not responding (2 consecutive failures) — auto-restarting');
-            // Silent auto-restart (no CEO-facing error per L-002 rule)
             try { stopOpenClaw(); } catch {}
             await new Promise(r => setTimeout(r, 2000));
             try { await startOpenClaw(); } catch (e) {
