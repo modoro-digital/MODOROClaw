@@ -11047,7 +11047,7 @@ function startChannelStatusBroadcast() {
       const probes = { telegram: tg, zalo: zl };
       const labels = { telegram: 'Telegram', zalo: 'Zalo' };
       if (!global._channelDownSince) global._channelDownSince = {};
-      const DOWN_GRACE_MS = 2 * 60 * 1000; // Only alert after 2 minutes of continuous disconnect
+      const DOWN_GRACE_MS = 5 * 60 * 1000; // Only alert after 5 minutes of continuous disconnect (skip transient crashes/restarts)
       for (const ch of ['telegram', 'zalo']) {
         const prev = _lastChannelState[ch];
         const cur = probes[ch];
@@ -11065,7 +11065,7 @@ function startChannelStatusBroadcast() {
             const hhmm = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
             const reason = (cur && cur.error) ? String(cur.error) : 'không rõ';
             const downMin = Math.round((now - global._channelDownSince[ch]) / 60000);
-            const msg = `Kênh ${labels[ch]} mất kết nối đã ${downMin} phút (từ ${hhmm}). Lý do: ${reason}. Mở Dashboard để kiểm tra.`;
+            const msg = `Kênh ${labels[ch]} mất kết nối đã ${downMin} phút (từ ${hhmm}). Tự khôi phục không thành công. Anh mở Dashboard kiểm tra giúp em ạ. Lý do: ${reason}.`;
             try { sendCeoAlert(msg); } catch (e) { console.error('[channel-status] sendCeoAlert error:', e.message); }
             _lastChannelAlertAt[ch] = now;
             delete global._channelDownSince[ch]; // Reset so next alert needs another 2min
