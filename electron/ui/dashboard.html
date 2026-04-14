@@ -1986,13 +1986,13 @@
           <!-- Column 2: Groups -->
           <div class="zalo-col">
             <div class="zalo-col-header">
-              <h4>Nhóm Zalo <span class="tip" data-tooltip="Tick nhóm nào bot được trả lời khi @mention">?</span> <span class="zalo-mgr-badge" id="zalo-mgr-group-count">0</span></h4>
+              <h4>Nhóm Zalo <span class="zalo-mgr-badge" id="zalo-mgr-group-count">0</span></h4>
               <div style="display:flex;gap:4px">
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllGroups(true)">Tất cả</button>
-                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllGroups(false)">Bỏ</button>
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
+                <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
               </div>
             </div>
-            <div class="zalo-col-help">Tick = bot trả lời trong nhóm. Bỏ tick = im lặng.</div>
+            <div class="zalo-col-help">Chọn chế độ cho mỗi nhóm: @mention, mọi tin, hoặc tắt.</div>
             <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()">
             <div class="zalo-list-container">
               <div id="zalo-mgr-groups-list"></div>
@@ -2008,7 +2008,7 @@
                 <button class="btn btn-secondary btn-small" style="padding:3px 8px;font-size:11px" onclick="toggleAllFriends(false)">Bỏ</button>
               </div>
             </div>
-            <div class="zalo-col-help">Tick = bot trả lời DM. Đang bỏ qua: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong> user.</div>
+            <div class="zalo-col-help">Bật = bot trả lời tin nhắn riêng. Tắt = bỏ qua. Đang tắt: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong></div>
             <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()">
             <div class="zalo-list-container">
               <div id="zalo-mgr-friends-list"></div>
@@ -4003,6 +4003,19 @@
       }
     }
 
+    function setAllGroupsMode(mode) {
+      if (!zaloMgrConfig.groupSettings) zaloMgrConfig.groupSettings = {};
+      zaloMgrConfig.groupPolicy = 'allowlist';
+      if (mode === 'off') {
+        zaloMgrConfig.groupAllowFrom = [];
+        for (const g of zaloGroups) zaloMgrConfig.groupSettings[g.groupId] = { mode: 'off' };
+      } else {
+        zaloMgrConfig.groupAllowFrom = zaloGroups.map(g => g.groupId);
+        for (const g of zaloGroups) zaloMgrConfig.groupSettings[g.groupId] = { mode };
+      }
+      renderZaloGroups();
+    }
+
     function changeStrangerPolicy(value) {
       zaloMgrConfig.strangerPolicy = value;
     }
@@ -4047,12 +4060,20 @@
         const phoneIcon = f.phoneNumber
           ? `<span style="display:inline-flex;align-items:center;gap:3px">${icon('phone-call', 11)} ${esc(f.phoneNumber)}</span> · `
           : '';
+        const lastAct = f.lastActionTime ? new Date(f.lastActionTime) : null;
+        const lastActLabel = lastAct ? (() => {
+          const diff = Date.now() - lastAct.getTime();
+          if (diff < 3600000) return Math.floor(diff/60000) + ' phút trước';
+          if (diff < 86400000) return Math.floor(diff/3600000) + ' giờ trước';
+          if (diff < 604800000) return Math.floor(diff/86400000) + ' ngày trước';
+          return lastAct.toLocaleDateString('vi');
+        })() : '';
         return `
           <div class="zalo-mgr-row">
             ${avatarHtml}
             <div class="info">
               <div class="name">${esc(f.displayName)}${mutedBadge}</div>
-              <div class="sub">${phoneIcon}ID: ${esc(f.userId)}</div>
+              <div class="sub">${phoneIcon}${lastActLabel ? lastActLabel + ' · ' : ''}ID: ${esc(f.userId)}</div>
             </div>
             <button type="button" class="zum-open-btn" onclick="openZaloUserMemory('${esc(f.userId)}', '${esc(f.displayName)}')" title="Xem hồ sơ khách">${icon('file-text', 14)}</button>
             <label class="toggle-switch"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${esc(f.userId)}', this.checked)"><span class="toggle-slider"></span></label>
