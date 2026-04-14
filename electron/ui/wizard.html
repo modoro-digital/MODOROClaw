@@ -959,14 +959,24 @@
 
             <div class="wz-field-row">
               <div class="wz-field">
-                <label class="wz-label">Giờ bắt đầu làm việc</label>
-                <input type="time" class="wz-input" id="work-start" value="07:30">
-                <p class="wz-help">Bot gửi báo cáo sáng vào đúng giờ này.</p>
+                <label class="wz-label">Giờ mở cửa</label>
+                <input type="time" class="wz-input" id="work-start" value="08:00">
+                <p class="wz-help">Bot trả lời khách "giờ làm từ..." + gửi báo cáo sáng vào giờ này.</p>
               </div>
               <div class="wz-field">
-                <label class="wz-label">Giờ kết thúc làm việc</label>
-                <input type="time" class="wz-input" id="work-end" value="21:00">
-                <p class="wz-help">Bot gửi tóm tắt cuối ngày vào đúng giờ này.</p>
+                <label class="wz-label">Giờ đóng cửa</label>
+                <input type="time" class="wz-input" id="work-end" value="17:30">
+                <p class="wz-help">Ngoài giờ: bot trả lời khách "sếp phản hồi vào..." + gửi tóm tắt cuối ngày.</p>
+              </div>
+            </div>
+            <div class="wz-field-row">
+              <div class="wz-field">
+                <label class="wz-label">SĐT liên hệ (khách gọi)</label>
+                <input type="text" class="wz-input" id="biz-phone" placeholder="Ví dụ: 0901 234 567">
+              </div>
+              <div class="wz-field">
+                <label class="wz-label">Địa chỉ (không bắt buộc)</label>
+                <input type="text" class="wz-input" id="biz-address" placeholder="Ví dụ: 123 Nguyễn Huệ, Q.1, TP.HCM">
               </div>
             </div>
           </section>
@@ -1925,12 +1935,14 @@
         const bizAudience = (document.getElementById('biz-audience')?.value || '').trim();
         const bizHighlight = (document.getElementById('biz-highlight')?.value || '').trim();
         const teamSize = document.getElementById('team-size').value || 'small';
-        const workStart = document.getElementById('work-start').value || '07:30';
-        const workEnd = document.getElementById('work-end').value || '21:00';
+        const workStart = document.getElementById('work-start').value || '08:00';
+        const workEnd = document.getElementById('work-end').value || '17:30';
+        const bizPhone = (document.getElementById('biz-phone')?.value || '').trim();
+        const bizAddress = (document.getElementById('biz-address')?.value || '').trim();
         const goals = Array.from(document.querySelectorAll('input[name="goals"]:checked')).map(el => el.value);
         await withTimeout(window.claw.saveBusinessProfile({
           companyName: company, companyDesc, teamSize, workStart, workEnd, goals, ceoName: name,
-          bizProduct, bizAudience, bizHighlight,
+          bizProduct, bizAudience, bizHighlight, bizPhone, bizAddress,
         }));
 
         status.textContent = 'Đang cá nhân hóa trợ lý...';

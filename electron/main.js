@@ -8306,6 +8306,8 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       bizProduct = '',
       bizAudience = '',
       bizHighlight = '',
+      bizPhone = '',
+      bizAddress = '',
     } = payload || {};
 
     // Sanitize inputs (file content goes into Markdown templates → strip control chars)
@@ -8316,6 +8318,8 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
     const bProduct = sanitize(bizProduct, 300);
     const bAudience = sanitize(bizAudience, 300);
     const bHighlight = sanitize(bizHighlight, 500);
+    const bPhone = sanitize(bizPhone, 20);
+    const bAddress = sanitize(bizAddress, 200);
     const VALID_TEAM = ['solo', 'small', 'medium', 'large'];
     const tSize = VALID_TEAM.includes(teamSize) ? teamSize : 'small';
     const VALID_GOALS = ['zalo-auto-reply', 'daily-reports', 'schedule-mgmt', 'staff-reminders', 'customer-followup', 'competitor-watch'];
@@ -8350,6 +8354,8 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
         (ceoN ? '- **Người đại diện:** ' + ceoN + '\n' : '') +
         '- **Quy mô:** ' + teamSizeLabel + '\n' +
         '- **Giờ làm việc:** ' + wStart + ' - ' + wEnd + '\n' +
+        (bPhone ? '- **SĐT:** ' + bPhone + '\n' : '') +
+        (bAddress ? '- **Địa chỉ:** ' + bAddress + '\n' : '') +
         (cDesc ? '\n## Giới thiệu\n\n' + cDesc + '\n' : '') +
         '<!-- /WIZARD AUTO-FILLED -->\n';
       // Replace block if marker present, else inject after first H1 or at top
@@ -8531,6 +8537,8 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       ];
       if (cName) profLines.push('- **Tên công ty:** ' + cName);
       if (ceoN) profLines.push('- **Người đại diện:** ' + ceoN);
+      if (bPhone) profLines.push('- **SĐT:** ' + bPhone);
+      if (bAddress) profLines.push('- **Địa chỉ:** ' + bAddress);
       const teamSizeLabel2 = {
         solo: 'Solo founder (1 người)',
         small: '2-10 người',
