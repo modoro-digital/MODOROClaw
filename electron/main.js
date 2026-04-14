@@ -7027,17 +7027,22 @@ ipcMain.handle('check-zalo-login', async () => {
     ];
     for (const p of sessionPaths) {
       if (fs.existsSync(p)) {
-        // Only count as new login if file was modified AFTER login started
+        // Count as logged in if file was modified AFTER login started OR within
+        // 5s tolerance (clock precision, filesystem timestamp rounding).
         const mtime = fs.statSync(p).mtimeMs;
-        if (_zaloLoginStartedAt && mtime < _zaloLoginStartedAt) continue; // old file, skip
+        if (_zaloLoginStartedAt && mtime < _zaloLoginStartedAt - 5000) continue;
         return { loggedIn: true };
       }
     }
-    // Also try openzca status command
+    // Also try openzca status command — use direct node path for reliability
+    // (execFile with shell=false on Mac can't resolve PATH-based commands).
     try {
-      const zcaBin = process.platform === 'win32' ? 'openzca.cmd' : 'openzca';
-      const { stdout } = await execFilePromise(zcaBin, ['auth', 'status'], { timeout: 5000, encoding: 'utf-8', stdio: 'pipe', shell: process.platform === 'win32', windowsHide: true });
-      if (stdout.toLowerCase().includes('logged in') || stdout.toLowerCase().includes('authenticated')) return { loggedIn: true };
+      const zcaScript = findGlobalPackageFile('openzca', 'dist/cli.js');
+      if (zcaScript) {
+        const nodeBin = findNodeBin() || 'node';
+        const { stdout } = await execFilePromise(nodeBin, [zcaScript, 'auth', 'status'], { timeout: 5000, encoding: 'utf-8', stdio: 'pipe', windowsHide: true });
+        if (stdout.toLowerCase().includes('logged in') || stdout.toLowerCase().includes('authenticated')) return { loggedIn: true };
+      }
     } catch {}
     return { loggedIn: false };
   } catch { return { loggedIn: false }; }
