@@ -73,7 +73,7 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-app-region: no-drag;
-  user-select: none;
+  user-select: text;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "ss01", "cv11";
@@ -164,7 +164,9 @@ label {
   cursor: pointer;
   transition: all 0.15s;
   width: 100%;
+  user-select: none;
 }
+.sidebar, .sidebar-item, .toggle-switch, h1, h2, h3, h4, label { user-select: none; }
 
 .btn-primary {
   background: var(--accent);
