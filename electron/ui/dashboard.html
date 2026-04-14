@@ -328,7 +328,7 @@
     /* Zalo 3-column layout */
     #page-zalo.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
     .zalo-columns { display:grid; grid-template-columns:300px 1fr 1fr; gap:12px; flex:1; min-height:0; margin-bottom:12px; }
-    .zalo-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .zalo-col { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; min-height:0; overflow:visible; }
     /* Kill fat native scrollbars inside Zalo columns (was showing as horizontal gray bar on Windows) */
     .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar { width:6px; height:6px; }
     .zalo-col div[style*="overflow-y:auto"]::-webkit-scrollbar-track { background:transparent; }
@@ -1979,7 +1979,7 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
               <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ từ Zalo</button>
-              <button id="zalo-mgr-save-btn" class="btn btn-primary btn-small" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
+              <button id="zalo-mgr-save-btn" class="btn btn-small" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;box-shadow:0 4px 14px rgba(22,163,74,0.2)"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
             </div>
           </div>
 
