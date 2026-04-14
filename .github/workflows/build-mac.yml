@@ -128,10 +128,27 @@ jobs:
           fi
           echo "MISMATCH — fetching correct binary for ${{ matrix.arch }}"
           BSQL_DIR="$(pwd)/node_modules/better-sqlite3"
-          npx --yes prebuild-install -r electron -t 28.3.3 --arch ${{ matrix.arch }} --platform darwin --cwd "$BSQL_DIR"
+          # Try 1: prebuild-install (prebuilt binary)
+          npx --yes prebuild-install -r electron -t 28.3.3 --arch ${{ matrix.arch }} --platform darwin --cwd "$BSQL_DIR" || true
           FIXED="$BSQL_DIR/build/Release/better_sqlite3.node"
+          # Check if prebuild worked and arch is correct
+          PREBUILD_OK=false
+          if [ -f "$FIXED" ]; then
+            PARCH=$(node -e "const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);fs.readSync(fd,b,0,16,0);fs.closeSync(fd);console.log(b.readUInt32LE(4)===0x0100000c?'arm64':'x64');" "$FIXED")
+            if [ "$PARCH" = "${{ matrix.arch }}" ]; then PREBUILD_OK=true; fi
+          fi
+          if [ "$PREBUILD_OK" = "false" ]; then
+            echo "prebuild-install failed or wrong arch — trying electron-rebuild"
+            # Try 2: electron-rebuild (compile from source, needs Xcode CLI tools)
+            # Use arch flag to cross-compile. On arm64 runner targeting x64,
+            # this uses Rosetta translation for the build.
+            arch -${{ matrix.arch }} npx --yes @electron/rebuild -f -w better-sqlite3 -v 28.3.3 --arch ${{ matrix.arch }} || {
+              echo "electron-rebuild with arch prefix failed — trying without"
+              npx --yes @electron/rebuild -f -w better-sqlite3 -v 28.3.3 --arch ${{ matrix.arch }}
+            }
+          fi
           if [ ! -f "$FIXED" ]; then
-            echo "FATAL: prebuild-install did not produce binary at $FIXED"
+            echo "FATAL: no binary produced at $FIXED"
             ls -la "$BSQL_DIR/build/Release/" 2>/dev/null || true
             exit 1
           fi
