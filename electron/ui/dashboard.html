@@ -63,7 +63,7 @@
 
     /* Cards in main */
     .main-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
-    .main-card h3 { margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); }
+    .main-card h3 { margin:0 0 12px; font-size:14px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--text-secondary); }
     .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 
     /* How it works */
@@ -301,22 +301,28 @@
     .zalo-mgr-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; color:var(--text); }
     .zalo-mgr-row:hover { background:var(--surface); }
     .zalo-mgr-row:last-child { border-bottom:none; }
-    .zalo-card { padding:8px 12px; border-left:3px solid transparent; margin-bottom:0; background:transparent; transition:background 0.1s; border-bottom:1px solid var(--border); border-radius:0; }
-    .zalo-card:hover { background:var(--surface-hover); }
-    .zalo-card:last-child { border-bottom:none; }
-    .zalo-card-on { border-left-color:var(--success); }
-    .zalo-card-mention { border-left-color:var(--accent); }
-    .zalo-card-muted { opacity:0.55; border-left-color:transparent; }
-    .zalo-card-muted:hover { opacity:0.8; }
-    .zalo-card .name { font-size:13px; }
-    .zalo-card .sub { font-size:11px; }
-    .zalo-mode-badge { display:inline-flex; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; vertical-align:middle; margin-left:5px; }
-    .zalo-mode-all { background:rgba(74,222,128,0.18); color:var(--success); }
-    .zalo-mode-mention { background:var(--accent-soft); color:var(--accent); }
-    .zalo-mode-off { background:rgba(248,113,113,0.12); color:var(--danger); }
-    .zalo-mode-select { margin-left:auto; padding:3px 8px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:11px; min-width:100px; cursor:pointer; flex-shrink:0; }
-    .zalo-mode-select:focus { outline:none; border-color:var(--accent); }
-    .zalo-group-summary { font-size:10.5px; color:var(--text-tertiary); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* Zalo cards — distinct card per group/user, colored by state */
+    .zc { padding:10px 14px; border-radius:10px; margin-bottom:8px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; gap:12px; transition:box-shadow 0.15s, border-color 0.15s; }
+    .zc:hover { box-shadow:var(--shadow-sm); border-color:var(--border-strong); }
+    .zc:last-child { margin-bottom:0; }
+    .zc .zc-avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg); border:1px solid var(--border); }
+    .zc .zc-avatar-fallback { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); }
+    .zc .zc-body { flex:1; min-width:0; }
+    .zc .zc-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
+    .zc .zc-meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .zc .zc-badge { display:inline-flex; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.2px; margin-left:8px; vertical-align:middle; white-space:nowrap; }
+    .zc .zc-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    /* 3 state colors: green (all/on), yellow (mention), red (off/blocked) */
+    .zc-state-on { border-left:4px solid #22c55e; }
+    .zc-state-on .zc-badge { background:rgba(34,197,94,0.15); color:#16a34a; }
+    .zc-state-mention { border-left:4px solid #eab308; }
+    .zc-state-mention .zc-badge { background:rgba(234,179,8,0.15); color:#ca8a04; }
+    .zc-state-off { border-left:4px solid #ef4444; opacity:0.6; }
+    .zc-state-off:hover { opacity:0.85; }
+    .zc-state-off .zc-badge { background:rgba(239,68,68,0.12); color:#dc2626; }
+    /* Dropdown inside card — compact, right-aligned */
+    .zc-select { padding:4px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; cursor:pointer; width:auto; min-width:0; }
+    .zc-select:focus { outline:none; border-color:var(--accent); }
     .zalo-mgr-row img { width:32px; height:32px; border-radius:50%; flex-shrink:0; background:var(--bg); object-fit:cover; }
     .avatar-fallback { width:32px; height:32px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-muted); }
     .avatar-wrap { position:relative; width:32px; height:32px; flex-shrink:0; }
@@ -343,25 +349,32 @@
     .activity-drawer-backdrop.show { display:block; }
     /* Zalo 3-column layout */
     #page-zalo.page.active { display:flex; flex-direction:column; height:calc(100vh - 32px); }
-    .zalo-columns { display:flex; flex-direction:column; flex:1; min-height:0; margin-bottom:12px; }
-    .zalo-tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:16px; flex-shrink:0; }
-    .zalo-tab-btn { padding:10px 20px; font-size:13px; font-weight:500; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
+    /* Zalo page: sidebar + main */
+    .zalo-layout { display:grid; grid-template-columns:260px 1fr; gap:16px; flex:1; min-height:0; }
+    .zalo-sidebar { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; overflow-y:auto; }
+    .zs-section { margin-bottom:14px; }
+    .zs-label { display:block; font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.3px; }
+    .zs-select { width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:12px; }
+    .zs-select:focus { outline:none; border-color:var(--accent); }
+    .zalo-main { display:flex; flex-direction:column; min-height:0; }
+    .zalo-tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:12px; flex-shrink:0; }
+    .zalo-tab-btn { padding:8px 16px; font-size:13px; font-weight:500; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
     .zalo-tab-btn:hover { color:var(--text); }
     .zalo-tab-btn.active { color:var(--text); font-weight:600; border-bottom-color:var(--accent); }
     .zalo-tab-btn .ztab-count { background:var(--bg); padding:1px 7px; border-radius:10px; font-size:11px; font-weight:500; color:var(--text-muted); }
     .zalo-tab-pane { display:none; flex:1; min-height:0; }
     .zalo-tab-pane.active { display:flex; flex-direction:column; }
-    .zalo-tab-pane#zalo-tab-settings { overflow-y:auto; }
-    .zalo-tab-pane .zalo-list-container { flex:1; min-height:0; max-height:none; overflow-y:auto; border:none; border-radius:0; background:transparent; }
-    /* Thin scrollbar for list containers */
-    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar { width:6px; height:6px; }
-    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-track { background:transparent; }
-    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-    .zalo-tab-pane .zalo-list-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+    .zalo-main .zalo-list-container { flex:1; min-height:0; max-height:none; overflow-y:auto; border:none; border-radius:0; background:transparent; }
+    .zalo-main .zalo-list-container::-webkit-scrollbar { width:6px; }
+    .zalo-main .zalo-list-container::-webkit-scrollbar-track { background:transparent; }
+    .zalo-main .zalo-list-container::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .zalo-main .zalo-list-container::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
     .zalo-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0; }
     .zalo-col-header h4 { margin:0; }
     .zalo-col-help { font-size:11px; color:var(--text-muted); margin-bottom:8px; flex-shrink:0; line-height:1.4; }
-    @media (max-width: 1200px) {
+    @media (max-width: 900px) {
+      .zalo-layout { grid-template-columns:1fr; }
+      .zalo-sidebar { max-height:300px; }
       #page-zalo.page.active { height:auto; }
     }
     /* Knowledge tab — 3 column layout */
@@ -1913,99 +1926,193 @@
           <span data-icon="pause-circle" data-icon-size="16"></span>
           <span>Bot Telegram đang tạm dừng. <span id="telegram-pause-until"></span></span>
         </div>
-        <div class="main-card">
-          <div style="font-size:13px;color:var(--text);line-height:1.6;padding:12px;background:var(--bg);border-radius:8px;display:flex;gap:10px;align-items:flex-start">
-            <span data-icon="lightbulb" data-icon-size="18" style="color:var(--accent);flex-shrink:0;margin-top:2px"></span>
-            <div>Nhắn bất kỳ thứ gì cho bot qua Telegram. Bot hiểu tiếng Việt tự nhiên — không cần học lệnh. Dưới đây là gợi ý để khai thác tối đa.</div>
-          </div>
+        <!-- Tip -->
+        <div class="ds-tip">
+          <span class="ds-tip-icon" data-icon="lightbulb" data-icon-size="18"></span>
+          <div>Nhắn bất kỳ thứ gì cho bot qua Telegram. Bot hiểu tiếng Việt tự nhiên — không cần học lệnh. Dưới đây là gợi ý để khai thác tối đa.</div>
         </div>
 
         <!-- Quick commands -->
-        <div class="main-card" style="margin-top:12px">
-          <h3 style="margin-bottom:10px">Lệnh nhanh</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <div class="how-item"><strong style="color:var(--accent)">/menu</strong> <span style="font-size:12px;color:var(--text-muted)">Mẫu giao việc theo ngành</span></div>
-            <div class="how-item"><strong style="color:var(--accent)">/baocao</strong> <span style="font-size:12px;color:var(--text-muted)">Báo cáo tổng hợp ngay</span></div>
-            <div class="how-item"><strong style="color:var(--accent)">/huongdan</strong> <span style="font-size:12px;color:var(--text-muted)">Hướng dẫn chi tiết</span></div>
-            <div class="how-item"><strong style="color:var(--accent)">/reset</strong> <span style="font-size:12px;color:var(--text-muted)">Xóa ngữ cảnh, bắt đầu lại</span></div>
+        <div class="ds-section">
+          <div class="ds-section-header">
+            <h3 class="ds-section-title">Lệnh nhanh</h3>
+          </div>
+          <div class="ds-card">
+            <div class="ds-grid-2">
+              <div class="ds-row"><span class="ds-cmd">/menu</span> <span class="ds-section-desc">Mẫu giao việc theo ngành</span></div>
+              <div class="ds-row"><span class="ds-cmd">/baocao</span> <span class="ds-section-desc">Báo cáo tổng hợp ngay</span></div>
+              <div class="ds-row"><span class="ds-cmd">/huongdan</span> <span class="ds-section-desc">Hướng dẫn chi tiết</span></div>
+              <div class="ds-row"><span class="ds-cmd">/reset</span> <span class="ds-section-desc">Xóa ngữ cảnh, bắt đầu lại</span></div>
+            </div>
           </div>
         </div>
 
         <!-- Zalo remote -->
-        <div class="main-card" style="margin-top:12px">
-          <h3 style="margin-bottom:10px">Điều khiển Zalo từ Telegram</h3>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Nhắn tiếng Việt tự nhiên — bot sẽ hỏi xác nhận trước khi gửi.</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div class="how-item prompt-row"><code style="font-size:14px;background:var(--bg);padding:10px 14px;border-radius:8px;display:block;line-height:1.5">Nhắn vào nhóm Zalo [tên nhóm]: Chào mọi người, hôm nay shop có chương trình giảm giá 20% tất cả sản phẩm!</code></div>
-            <div class="how-item prompt-row"><code style="font-size:14px;background:var(--bg);padding:10px 14px;border-radius:8px;display:block;line-height:1.5">Nhắn cho [tên bạn bè] trên Zalo: Anh ơi, đơn hàng của anh đã sẵn sàng giao rồi ạ</code></div>
+        <div class="ds-section">
+          <div class="ds-section-header">
+            <h3 class="ds-section-title">Điều khiển Zalo từ Telegram</h3>
+            <p class="ds-section-desc">Nhắn tiếng Việt tự nhiên — bot sẽ hỏi xác nhận trước khi gửi.</p>
           </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">Click để copy. Paste vào Telegram rồi sửa tên nhóm/nội dung.</div>
+          <div class="ds-card">
+            <div class="ds-prompt-list">
+              <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                <span class="ds-prompt-text">Nhắn vào nhóm Zalo [tên nhóm]: Chào mọi người, hôm nay shop có chương trình giảm giá 20% tất cả sản phẩm!</span>
+                <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+              </div>
+              <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                <span class="ds-prompt-text">Nhắn cho [tên bạn bè] trên Zalo: Anh ơi, đơn hàng của anh đã sẵn sàng giao rồi ạ</span>
+                <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+              </div>
+            </div>
+            <p class="ds-section-desc" style="margin-top:var(--sp-2)">Click để copy. Paste vào Telegram rồi sửa tên nhóm/nội dung.</p>
+          </div>
         </div>
 
         <!-- Skills showcase -->
-        <div class="main-card" style="margin-top:12px">
-          <h3 style="margin-bottom:4px">70+ Kỹ năng chuyên gia — sẵn sàng dùng ngay</h3>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Nhắn tiếng Việt tự nhiên — bot tự match keyword, đọc quy trình chuyên gia, rồi output theo template chuẩn. Click prompt mẫu để copy.</div>
-
-          <!-- Advisory -->
-          <div style="margin-bottom:16px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="briefcase" data-icon-size="16"></span> Cố vấn C-Level (11 skills)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Em phân tích dòng tiền tháng này, đề xuất cắt giảm chi phí nào trước</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">CFO</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Đánh giá nên build hay mua hệ thống CRM, team 5 dev</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">CTO</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Tư vấn chiến lược tuyển dụng Q3, cần 10 người, budget hạn chế</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">CHRO</span></div>
-            </div>
+        <div class="ds-section">
+          <div class="ds-section-header">
+            <h3 class="ds-section-title">70+ Kỹ năng chuyên gia</h3>
+            <p class="ds-section-desc">Nhắn tiếng Việt tự nhiên — bot tự match keyword, đọc quy trình chuyên gia, rồi output theo template chuẩn.</p>
           </div>
+          <div class="ds-card">
 
-          <!-- Marketing -->
-          <div style="margin-bottom:16px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="trending-up" data-icon-size="16"></span> Marketing & Growth (35 skills)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Viết bài quảng cáo Facebook cho sản phẩm mới, target nữ 25-35</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Paid Ads</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Phân tích đối thủ ABC, điểm mạnh yếu, cơ hội cho mình</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Competitor</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Soạn chuỗi 3 email nurturing cho khách đã download ebook</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Email Sequence</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Viết copy landing page bán khóa học online, có headline + CTA + testimonial</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Copywriting</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Audit SEO website, đề xuất 10 cải thiện quan trọng nhất</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">SEO Audit</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Tạo lead magnet: checklist 10 bước cho người mới bắt đầu kinh doanh</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Lead Magnet</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Thiết kế A/B test cho trang pricing, 2 variant, metric = conversion</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">A/B Test</span></div>
+            <!-- Advisory -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="briefcase" data-icon-size="16"></span> Cố vấn C-Level <span class="ds-group-count">11 skills</span></div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Em phân tích dòng tiền tháng này, đề xuất cắt giảm chi phí nào trước</span>
+                  <span class="ds-prompt-tag">CFO</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Đánh giá nên build hay mua hệ thống CRM, team 5 dev</span>
+                  <span class="ds-prompt-tag">CTO</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Tư vấn chiến lược tuyển dụng Q3, cần 10 người, budget hạn chế</span>
+                  <span class="ds-prompt-tag">CHRO</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Strategy -->
-          <div style="margin-bottom:16px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="target" data-icon-size="16"></span> Chiến lược & Vận hành (9 skills)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Chuẩn bị tài liệu họp ban điều hành tuần tới, focus KPI Q2</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Board Meeting</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Đề xuất chiến lược giá cho dịch vụ mới, 3 gói: starter, pro, enterprise</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Pricing</span></div>
+            <!-- Marketing -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="trending-up" data-icon-size="16"></span> Marketing & Growth <span class="ds-group-count">35 skills</span></div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Viết bài quảng cáo Facebook cho sản phẩm mới, target nữ 25-35</span>
+                  <span class="ds-prompt-tag">Paid Ads</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Phân tích đối thủ ABC, điểm mạnh yếu, cơ hội cho mình</span>
+                  <span class="ds-prompt-tag">Competitor</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Soạn chuỗi 3 email nurturing cho khách đã download ebook</span>
+                  <span class="ds-prompt-tag">Email Sequence</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Viết copy landing page bán khóa học online, có headline + CTA + testimonial</span>
+                  <span class="ds-prompt-tag">Copywriting</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Audit SEO website, đề xuất 10 cải thiện quan trọng nhất</span>
+                  <span class="ds-prompt-tag">SEO Audit</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Tạo lead magnet: checklist 10 bước cho người mới bắt đầu kinh doanh</span>
+                  <span class="ds-prompt-tag">Lead Magnet</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Thiết kế A/B test cho trang pricing, 2 variant, metric = conversion</span>
+                  <span class="ds-prompt-tag">A/B Test</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Content -->
-          <div style="margin-bottom:16px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="edit-3" data-icon-size="16"></span> Nội dung & Thương hiệu (9 skills)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Viết bài tuyển dụng Senior Developer, tone trẻ trung chuyên nghiệp</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Content Creator</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Lên content plan tháng tới cho fanpage, 3 bài/tuần, chủ đề tết</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Content Strategy</span></div>
+            <!-- Strategy -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="target" data-icon-size="16"></span> Chiến lược & Vận hành <span class="ds-group-count">9 skills</span></div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Chuẩn bị tài liệu họp ban điều hành tuần tới, focus KPI Q2</span>
+                  <span class="ds-prompt-tag">Board Meeting</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Đề xuất chiến lược giá cho dịch vụ mới, 3 gói: starter, pro, enterprise</span>
+                  <span class="ds-prompt-tag">Pricing</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Sales -->
-          <div style="margin-bottom:16px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="dollar-sign" data-icon-size="16"></span> Bán hàng & Doanh thu (5 skills)</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Soạn cold email B2B cho giám đốc công ty logistics, giới thiệu dịch vụ</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Cold Email</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Thiết kế chương trình giới thiệu khách hàng, thưởng 2 bên</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Referral</span></div>
+            <!-- Content -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="edit-3" data-icon-size="16"></span> Nội dung & Thương hiệu <span class="ds-group-count">9 skills</span></div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Viết bài tuyển dụng Senior Developer, tone trẻ trung chuyên nghiệp</span>
+                  <span class="ds-prompt-tag">Content Creator</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Lên content plan tháng tới cho fanpage, 3 bài/tuần, chủ đề tết</span>
+                  <span class="ds-prompt-tag">Content Strategy</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Daily operations -->
-          <div>
-            <div style="font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span data-icon="clock" data-icon-size="16"></span> Hàng ngày</div>
-            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px">
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Tóm tắt hoạt động hôm nay</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Báo cáo</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Tạo lịch nhắc họp với đối tác ABC lúc 14h thứ 5</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Lịch hẹn</span></div>
-              <div class="how-item prompt-row"><code style="background:var(--bg);padding:8px 12px;border-radius:8px;display:block">Tạo cron mỗi sáng 8h nhắc nhân viên A báo cáo doanh số</code><span style="font-size:13px;color:var(--text-muted);margin-left:8px">Tự động hóa</span></div>
+            <!-- Sales -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="dollar-sign" data-icon-size="16"></span> Bán hàng & Doanh thu <span class="ds-group-count">5 skills</span></div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Soạn cold email B2B cho giám đốc công ty logistics, giới thiệu dịch vụ</span>
+                  <span class="ds-prompt-tag">Cold Email</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Thiết kế chương trình giới thiệu khách hàng, thưởng 2 bên</span>
+                  <span class="ds-prompt-tag">Referral</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
             </div>
+
+            <!-- Daily operations -->
+            <div class="ds-group">
+              <div class="ds-group-title"><span data-icon="clock" data-icon-size="16"></span> Hàng ngày</div>
+              <div class="ds-prompt-list">
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Tóm tắt hoạt động hôm nay</span>
+                  <span class="ds-prompt-tag">Báo cáo</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Tạo lịch nhắc họp với đối tác ABC lúc 14h thứ 5</span>
+                  <span class="ds-prompt-tag">Lịch hẹn</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+                <div class="ds-prompt prompt-row" onclick="copyPrompt(this)">
+                  <span class="ds-prompt-text">Tạo cron mỗi sáng 8h nhắc nhân viên A báo cáo doanh số</span>
+                  <span class="ds-prompt-tag">Tự động hóa</span>
+                  <span class="ds-prompt-copy" data-icon="copy" data-icon-size="14"></span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -2030,108 +2137,84 @@
           <span>Bot Zalo đang tạm dừng. <span id="zalo-pause-until"></span></span>
         </div>
 
-        <div class="zalo-columns">
-          <!-- Tab bar -->
-          <div class="zalo-tab-bar">
-            <button class="zalo-tab-btn active" onclick="switchZaloTab('settings')">Cài đặt</button>
-            <button class="zalo-tab-btn" onclick="switchZaloTab('groups')">Nhóm <span class="ztab-count" id="zalo-mgr-group-count">0</span></button>
-            <button class="zalo-tab-btn" onclick="switchZaloTab('friends')">Bạn bè <span class="ztab-count" id="zalo-mgr-friend-count">0</span></button>
-          </div>
-
-          <!-- Tab 1: Settings -->
-          <div class="zalo-tab-pane active" id="zalo-tab-settings">
-            <div style="max-width:520px">
-              <div class="switch-row" style="padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px">
-                <div>
-                  <div style="font-weight:600;font-size:14px">Bật Zalo</div>
-                  <div style="font-size:12px;color:var(--text-muted)">Bot nhận và trả lời tin nhắn</div>
+        <div class="zalo-layout">
+          <!-- LEFT: Settings sidebar (always visible) -->
+          <div class="zalo-sidebar">
+            <div class="zs-section">
+              <div class="switch-row" style="padding:0;margin:0">
+                <div><div style="font-weight:600;font-size:13px">Bật Zalo</div></div>
+                <label class="toggle-switch"><input type="checkbox" id="zalo-mgr-enabled"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div class="zs-section">
+              <label class="zs-label">Chế độ trả lời</label>
+              <select id="zalo-mode-select" class="zs-select" onchange="changeZaloMode(this.value)">
+                <option value="auto">Tự động trả lời</option>
+                <option value="read">Chỉ đọc — báo Telegram</option>
+                <option value="daily">Tóm tắt cuối ngày</option>
+              </select>
+              <div id="zalo-mode-status" style="display:none;margin-top:4px"><div class="test-result success" style="margin:0;font-size:11px">Đã cập nhật</div></div>
+            </div>
+            <div class="zs-section">
+              <label class="zs-label">Người lạ nhắn tin</label>
+              <select id="zalo-stranger-policy" class="zs-select" onchange="changeStrangerPolicy(this.value)">
+                <option value="reply">Trả lời bình thường</option>
+                <option value="greet-only">Chỉ chào 1 lần</option>
+                <option value="ignore">Không trả lời</option>
+              </select>
+            </div>
+            <div class="zs-section">
+              <label class="zs-label">Chủ nhân Zalo <span class="tip" data-tooltip="Bot nhận diện tài khoản này là chủ doanh nghiệp">?</span></label>
+              <div style="display:flex;gap:6px;align-items:center;position:relative">
+                <div style="flex:1;position:relative">
+                  <input type="text" id="zalo-owner-search" placeholder="Tìm theo tên..." autocomplete="off" class="zs-select" style="padding:7px 10px" onfocus="showOwnerDropdown()" oninput="filterOwnerDropdown()">
+                  <div id="zalo-owner-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:180px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:2px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
                 </div>
-                <label class="toggle-switch">
-                  <input type="checkbox" id="zalo-mgr-enabled">
-                  <span class="toggle-slider"></span>
-                </label>
+                <input type="hidden" id="zalo-owner-dashboard-select" value="">
               </div>
-
-              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
-                <div style="font-size:13px;font-weight:600;margin-bottom:8px">Chế độ trả lời</div>
-                <select id="zalo-mode-select" onchange="changeZaloMode(this.value)" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
-                  <option value="auto">Tự động trả lời</option>
-                  <option value="read">Chỉ đọc — báo Telegram</option>
-                  <option value="daily">Tóm tắt cuối ngày</option>
-                </select>
-                <div id="zalo-mode-status" style="display:none;margin-top:6px">
-                  <div class="test-result success" style="margin:0;font-size:12px">Đã cập nhật</div>
-                </div>
-              </div>
-
-              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
-                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Khi người lạ nhắn tin (chưa là bạn bè)</div>
-                <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.4">Người lạ = chưa có trong danh sách bạn bè Zalo. Chọn "Trả lời bình thường" nếu muốn bot CSKH cho tất cả.</div>
-                <select id="zalo-stranger-policy" onchange="changeStrangerPolicy(this.value)" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
-                  <option value="reply">Trả lời bình thường</option>
-                  <option value="greet-only">Chỉ chào 1 lần, sau đó im</option>
-                  <option value="ignore">Không trả lời</option>
-                </select>
-              </div>
-
-              <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
-                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Tài khoản Zalo cá nhân của chủ nhân <span class="tip" data-tooltip="Bot nhận diện tài khoản này là chủ, trả lời khác với khách">?</span></div>
-                <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.4">Bot nhận diện tài khoản này là chủ doanh nghiệp (như Telegram), trả lời theo persona CEO và nhận lệnh quản trị.</div>
-                <div style="display:flex;gap:8px;align-items:center;position:relative">
-                  <div style="flex:1;position:relative">
-                    <input type="text" id="zalo-owner-search" placeholder="Tìm theo tên..." autocomplete="off"
-                      style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box"
-                      onfocus="showOwnerDropdown()" oninput="filterOwnerDropdown()">
-                    <div id="zalo-owner-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:2px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
-                  </div>
-                  <input type="hidden" id="zalo-owner-dashboard-select" value="">
-                  <button class="btn btn-secondary btn-small" onclick="refreshZaloOwnerList()" style="flex-shrink:0;padding:8px 14px;font-size:12px">Refresh</button>
-                </div>
-                <div id="zalo-owner-dashboard-status" style="display:none;font-size:11px;margin-top:6px"></div>
-              </div>
-
-              <div style="display:flex;gap:8px;margin-top:16px">
-                <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ từ Zalo</button>
-                <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;box-shadow:0 4px 14px rgba(22,163,74,0.2);flex:1"><span data-icon="save" data-icon-size="14"></span><span class="btn-label">Lưu cấu hình</span></button>
-              </div>
+              <div id="zalo-owner-dashboard-status" style="display:none;font-size:10px;margin-top:4px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid var(--border)">
+              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;font-size:12px"><span data-icon="refresh-cw" data-icon-size="13"></span>Đồng bộ</button>
+              <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;font-size:12px"><span data-icon="save" data-icon-size="13"></span>Lưu cấu hình</button>
             </div>
           </div>
 
-          <!-- Tab 2: Groups -->
-          <div class="zalo-tab-pane" id="zalo-tab-groups">
-            <div class="zalo-col-header" style="flex-shrink:0">
-              <div style="font-size:12px;color:var(--text-muted)">Chọn chế độ cho mỗi nhóm: @mention, mọi tin, hoặc tắt.</div>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
-                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
-              </div>
+          <!-- RIGHT: Groups/Friends tabs -->
+          <div class="zalo-main">
+            <div class="zalo-tab-bar">
+              <button class="zalo-tab-btn active" onclick="switchZaloTab('groups')">Nhóm <span class="ztab-count" id="zalo-mgr-group-count">0</span></button>
+              <button class="zalo-tab-btn" onclick="switchZaloTab('friends')">Bạn bè <span class="ztab-count" id="zalo-mgr-friend-count">0</span></button>
             </div>
-            <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()" style="flex-shrink:0">
-            <div class="zalo-list-container">
-              <div id="zalo-mgr-groups-list"></div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-shrink:0">
-              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ</button>
-              <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;flex:1"><span data-icon="save" data-icon-size="14"></span>Lưu</button>
-            </div>
-          </div>
 
-          <!-- Tab 3: Friends -->
-          <div class="zalo-tab-pane" id="zalo-tab-friends">
-            <div class="zalo-col-header" style="flex-shrink:0">
-              <div style="font-size:12px;color:var(--text-muted)">Bật = bot trả lời tin nhắn riêng. Tắt = bỏ qua. Đang tắt: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong></div>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="toggleAllFriends(true)">Bật tất cả</button>
-                <button class="btn btn-secondary btn-small" style="padding:5px 12px;font-size:12px" onclick="toggleAllFriends(false)">Tắt tất cả</button>
+            <!-- Groups pane -->
+            <div class="zalo-tab-pane active" id="zalo-tab-groups">
+              <div class="zalo-col-header" style="flex-shrink:0">
+                <div style="font-size:12px;color:var(--text-muted)">Xanh = mọi tin, Vàng = @mention, Đỏ = tắt</div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
+                  <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
+                </div>
+              </div>
+              <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()" style="flex-shrink:0">
+              <div class="zalo-list-container">
+                <div id="zalo-mgr-groups-list"></div>
               </div>
             </div>
-            <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()" style="flex-shrink:0">
-            <div class="zalo-list-container">
-              <div id="zalo-mgr-friends-list"></div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-shrink:0">
-              <button class="btn btn-secondary btn-small" onclick="refreshZaloCache()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;flex:1"><span data-icon="refresh-cw" data-icon-size="14"></span>Đồng bộ</button>
-              <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;justify-content:center;background:#16a34a;color:#fff;flex:1"><span data-icon="save" data-icon-size="14"></span>Lưu</button>
+
+            <!-- Friends pane -->
+            <div class="zalo-tab-pane" id="zalo-tab-friends">
+              <div class="zalo-col-header" style="flex-shrink:0">
+                <div style="font-size:12px;color:var(--text-muted)">Đang tắt: <strong id="zalo-mgr-blocked-count" style="color:var(--danger,#e74c3c)">0</strong></div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="toggleAllFriends(true)">Bật tất cả</button>
+                  <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="toggleAllFriends(false)">Tắt tất cả</button>
+                </div>
+              </div>
+              <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()" style="flex-shrink:0">
+              <div class="zalo-list-container">
+                <div id="zalo-mgr-friends-list"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -3654,8 +3737,8 @@
       loadOverview();
       startOverviewAutoRefresh();
       initAppPrefsToggle();
-      // Inject copy icons into all prompt rows
-      document.querySelectorAll('.prompt-row').forEach(row => {
+      // Inject copy icons into legacy prompt rows (ds-prompt rows use ds-prompt-copy instead)
+      document.querySelectorAll('.prompt-row:not(.ds-prompt)').forEach(row => {
         if (!row.querySelector('.prompt-copy-icon')) {
           row.insertAdjacentHTML('beforeend', '<span class="prompt-copy-icon"></span>');
         }
@@ -3986,13 +4069,12 @@
     }
 
     function switchZaloTab(tabName) {
-      document.querySelectorAll('.zalo-tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.zalo-tab-pane').forEach(pane => pane.classList.remove('active'));
+      document.querySelectorAll('.zalo-main .zalo-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.zalo-main .zalo-tab-pane').forEach(pane => pane.classList.remove('active'));
       const pane = document.getElementById('zalo-tab-' + tabName);
       if (pane) pane.classList.add('active');
-      // Highlight the clicked tab button
-      const buttons = document.querySelectorAll('.zalo-tab-btn');
-      const tabIndex = tabName === 'settings' ? 0 : tabName === 'groups' ? 1 : 2;
+      const buttons = document.querySelectorAll('.zalo-main .zalo-tab-btn');
+      const tabIndex = tabName === 'groups' ? 0 : 1;
       if (buttons[tabIndex]) buttons[tabIndex].classList.add('active');
     }
 
@@ -4107,27 +4189,27 @@
         const gSettings = (zaloMgrConfig.groupSettings || {})[g.groupId] || {};
         const mode = gSettings.mode || (checked ? 'mention' : 'off');
         const avatarHtml = g.avatar
-          ? `<img class="avatar-img" src="${esc(g.avatar)}" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span style="display:none;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('users', 14)}</span>`
-          : `<span style="display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('users', 14)}</span>`;
-        const borderClass = mode === 'off' ? 'zalo-card-muted' : mode === 'all' ? 'zalo-card-on' : 'zalo-card-mention';
+          ? `<img class="zc-avatar" src="${esc(g.avatar)}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span class="zc-avatar-fallback" style="display:none">${icon('users', 16)}</span>`
+          : `<span class="zc-avatar-fallback">${icon('users', 16)}</span>`;
+        const stateClass = mode === 'off' ? 'zc-state-off' : mode === 'all' ? 'zc-state-on' : 'zc-state-mention';
+        const badgeLabel = mode === 'all' ? 'Mọi tin' : mode === 'mention' ? '@mention' : 'Tắt';
         const summary = zaloGroupSummaries[g.groupId];
-        const infoExtra = [
-          `${g.memberCount} tv`,
-          g.desc ? g.desc : '',
-          summary?.topics ? summary.topics : '',
-        ].filter(Boolean).join(' · ');
-        return `
-          <div class="zalo-mgr-row zalo-card ${borderClass}">
+        const metaParts = [`${g.memberCount} thành viên`];
+        if (g.desc) metaParts.push(g.desc);
+        if (summary?.topics) metaParts.push(summary.topics);
+        return `<div class="zc ${stateClass}">
             ${avatarHtml}
-            <div class="info" style="flex:1;min-width:0">
-              <div class="name">${esc(g.name)}</div>
-              <div class="sub">${esc(infoExtra)}</div>
+            <div class="zc-body">
+              <div class="zc-name">${esc(g.name)}<span class="zc-badge">${badgeLabel}</span></div>
+              <div class="zc-meta">${esc(metaParts.join(' · '))}</div>
             </div>
-            <select class="zalo-mode-select" onchange="setGroupMode('${escAttr(g.groupId)}', this.value)">
-              <option value="mention" ${mode === 'mention' ? 'selected' : ''}>@mention</option>
-              <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin</option>
-              <option value="off" ${mode === 'off' ? 'selected' : ''}>Tắt</option>
-            </select>
+            <div class="zc-actions">
+              <select class="zc-select" onchange="setGroupMode('${escAttr(g.groupId)}', this.value)">
+                <option value="mention" ${mode === 'mention' ? 'selected' : ''}>@mention</option>
+                <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin</option>
+                <option value="off" ${mode === 'off' ? 'selected' : ''}>Tắt</option>
+              </select>
+            </div>
           </div>`;
       }).join('');
     }
@@ -4214,27 +4296,31 @@
         const blocked = (zaloMgrConfig.userBlocklist || []).includes(f.userId);
         const checked = !blocked;
         const avatarHtml = f.avatar
-          ? `<img src="${esc(f.avatar)}" referrerpolicy="no-referrer" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span style="display:none;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('user', 14)}</span>`
-          : `<span style="display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--bg);align-items:center;justify-content:center;flex-shrink:0">${icon('user', 14)}</span>`;
+          ? `<img class="zc-avatar" src="${esc(f.avatar)}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span class="zc-avatar-fallback" style="display:none">${icon('user', 16)}</span>`
+          : `<span class="zc-avatar-fallback">${icon('user', 16)}</span>`;
+        const stateClass = blocked ? 'zc-state-off' : 'zc-state-on';
+        const badgeLabel = blocked ? 'Tắt' : 'Bật';
         const lastAct = f.lastActionTime ? new Date(f.lastActionTime) : null;
         const lastActLabel = lastAct ? (() => {
           const diff = Date.now() - lastAct.getTime();
-          if (diff < 3600000) return Math.floor(diff/60000) + 'ph';
-          if (diff < 86400000) return Math.floor(diff/3600000) + 'h';
-          if (diff < 604800000) return Math.floor(diff/86400000) + 'd';
+          if (diff < 3600000) return Math.floor(diff/60000) + ' phút trước';
+          if (diff < 86400000) return Math.floor(diff/3600000) + ' giờ trước';
+          if (diff < 604800000) return Math.floor(diff/86400000) + ' ngày trước';
           return lastAct.toLocaleDateString('vi');
         })() : '';
-        const infoLine = [f.phoneNumber, lastActLabel].filter(Boolean).join(' · ');
-        const borderClass = blocked ? 'zalo-card-muted' : 'zalo-card-on';
-        return `
-          <div class="zalo-mgr-row zalo-card ${borderClass}">
+        const metaParts = [];
+        if (f.phoneNumber) metaParts.push(f.phoneNumber);
+        if (lastActLabel) metaParts.push(lastActLabel);
+        return `<div class="zc ${stateClass}">
             ${avatarHtml}
-            <div class="info" style="flex:1;min-width:0">
-              <div class="name">${esc(f.displayName)}</div>
-              ${infoLine ? `<div class="sub">${esc(infoLine)}</div>` : ''}
+            <div class="zc-body">
+              <div class="zc-name">${esc(f.displayName)}<span class="zc-badge">${badgeLabel}</span></div>
+              ${metaParts.length ? `<div class="zc-meta">${esc(metaParts.join(' · '))}</div>` : ''}
             </div>
-            <button type="button" class="zum-open-btn" onclick="openZaloUserMemory('${escAttr(f.userId)}', '${escAttr(f.displayName)}')" title="Hồ sơ" style="padding:3px 5px">${icon('file-text', 12)}</button>
-            <label class="toggle-switch" style="transform:scale(0.85)"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${escAttr(f.userId)}', this.checked)"><span class="toggle-slider"></span></label>
+            <div class="zc-actions">
+              <button type="button" class="zum-open-btn" onclick="openZaloUserMemory('${escAttr(f.userId)}', '${escAttr(f.displayName)}')" title="Xem hồ sơ">${icon('file-text', 14)}</button>
+              <label class="toggle-switch"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleUserReply('${escAttr(f.userId)}', this.checked)"><span class="toggle-slider"></span></label>
+            </div>
           </div>`;
       }).join('');
       if (filtered.length > 500) {
@@ -4746,12 +4832,12 @@
       const dd = document.getElementById('zalo-owner-dropdown');
       const search = document.getElementById('zalo-owner-search');
       if (dd && search && !dd.contains(e.target) && e.target !== search) dd.style.display = 'none';
-      // Prompt copy handler
+      // Prompt copy handler — supports both legacy <code> and ds-prompt-text
       const row = e.target.closest('.prompt-row');
       if (row) {
-        const code = row.querySelector('code');
-        if (code) {
-          navigator.clipboard.writeText(code.textContent).then(() => {
+        const textEl = row.querySelector('.ds-prompt-text') || row.querySelector('code');
+        if (textEl) {
+          navigator.clipboard.writeText(textEl.textContent).then(() => {
             row.classList.add('copied');
             showToast('Copied!');
             setTimeout(() => row.classList.remove('copied'), 1500);

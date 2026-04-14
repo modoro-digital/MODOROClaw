@@ -562,7 +562,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 34;
+const CURRENT_AGENTS_MD_VERSION = 36;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -3181,6 +3181,15 @@ async function ensureDefaultConfig() {
           config.plugins.entries.openzalo = { enabled: false };
           changed = true;
         }
+        // plugins.allow tells gateway which non-bundled plugins are trusted.
+        // Without this, gateway warns "plugins.allow is empty" on every boot.
+        if (!Array.isArray(config.plugins.allow)) {
+          config.plugins.allow = ['openzalo'];
+          changed = true;
+        } else if (!config.plugins.allow.includes('openzalo')) {
+          config.plugins.allow.push('openzalo');
+          changed = true;
+        }
       }
     } catch (e) { console.warn('[config] plugin entry heal failed:', e?.message); }
     {
@@ -3268,6 +3277,13 @@ async function ensureDefaultConfig() {
     // protects against any future schema flip + makes intent clear in config.)
     if (config.agents.defaults.blockStreamingDefault !== 'off') {
       config.agents.defaults.blockStreamingDefault = 'off';
+      changed = true;
+    }
+    // CRITICAL: exec tool must be enabled for bot to run send-zalo-safe.js
+    // and zalo-manage.js from Telegram commands. Gateway default is "deny"
+    // which silently blocks all exec calls → "gửi Zalo từ Telegram" never works.
+    if (config.agents.defaults.execSecurity !== 'full') {
+      config.agents.defaults.execSecurity = 'full';
       changed = true;
     }
     // Inbound message batching: wait 3s for rapid messages from same sender,
@@ -3369,33 +3385,18 @@ function cleanupOrphanZaloListener() {
     // Kill any openzca listen process tree on Windows/Unix
     if (process.platform === 'win32') {
       try {
-        // Find node.exe processes running "openzca" "listen" — use WMIC command line match
+        // Use PowerShell (always available on Win10+) instead of wmic (deprecated/removed on Win11 24H2+)
         const { execSync } = require('child_process');
-        const out = execSync(
-          'wmic process where "name=\'node.exe\' and CommandLine like \'%openzca%listen%\'" get ProcessId /format:csv 2>nul',
-          { encoding: 'utf-8', timeout: 5000 }
-        );
-        const pids = out.split('\n')
-          .map(l => l.trim().split(',').pop())
-          .filter(p => /^\d+$/.test(p));
+        const psCmd = `powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*openzca*listen*' } | Select-Object -ExpandProperty ProcessId"`;
+        const out = execSync(psCmd, { encoding: 'utf-8', timeout: 8000 }).trim();
+        const pids = out.split(/\r?\n/).map(l => l.trim()).filter(p => /^\d+$/.test(p));
         for (const pid of pids) {
           try {
             execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore', timeout: 3000 });
             console.log('[zalo-cleanup] Killed listener tree pid', pid);
           } catch {}
         }
-        // Also kill any cmd.exe wrapping openzca
-        const cmdOut = execSync(
-          'wmic process where "name=\'cmd.exe\' and CommandLine like \'%openzca%listen%\'" get ProcessId /format:csv 2>nul',
-          { encoding: 'utf-8', timeout: 5000 }
-        );
-        const cmdPids = cmdOut.split('\n')
-          .map(l => l.trim().split(',').pop())
-          .filter(p => /^\d+$/.test(p));
-        for (const pid of cmdPids) {
-          try { execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore', timeout: 3000 }); } catch {}
-        }
-      } catch (e) { console.error('[zalo-cleanup] wmic error:', e.message); }
+      } catch (e) { console.error('[zalo-cleanup] error:', e.message); }
     } else {
       try {
         require('child_process').execSync('pkill -f "openzca.*listen" 2>/dev/null || true', { stdio: 'ignore' });
@@ -5666,11 +5667,21 @@ async function _startOpenClawImpl() {
   // recovery path still works silently — channel is ready, just no duplicate
   // notification. A fresh boot after >10min gap (app restart next day) still
   // fires normally.
-  const READY_NOTIFY_THROTTLE_MS = 10 * 60 * 1000;
+  const READY_NOTIFY_THROTTLE_MS = 30 * 60 * 1000;
+  // Persist last boot ping timestamp across Electron restarts so we don't
+  // spam CEO with "Telegram đã sẵn sàng" on every app relaunch.
+  const _bootPingTsFile = path.join(getWorkspace(), '.boot-ping-ts.json');
+  const _loadBootPingTs = () => {
+    try { if (fs.existsSync(_bootPingTsFile)) return JSON.parse(fs.readFileSync(_bootPingTsFile, 'utf-8')); } catch {} return {};
+  };
+  const _saveBootPingTs = (channel) => {
+    try { const d = _loadBootPingTs(); d[channel] = Date.now(); fs.writeFileSync(_bootPingTsFile, JSON.stringify(d), 'utf-8'); } catch {}
+  };
   const readyNotifyThrottled = (channel) => {
-    const lastNotifyOkAt = notifyState[channel]?.lastNotifyOkAt || 0;
-    return !!lastNotifyOkAt &&
-      (Date.now() - lastNotifyOkAt) < READY_NOTIFY_THROTTLE_MS;
+    const inMemory = notifyState[channel]?.lastNotifyOkAt || 0;
+    const onDisk = _loadBootPingTs()[channel] || 0;
+    const last = Math.max(inMemory, onDisk);
+    return !!last && (Date.now() - last) < READY_NOTIFY_THROTTLE_MS;
   };
   const markChannelConfirmed = (channel, by, ts = Date.now()) => {
     const st = notifyState[channel];
@@ -5679,6 +5690,7 @@ async function _startOpenClawImpl() {
     st.confirmedBy = by;
     st.lastNotifyOkAt = ts;
     st.lastError = '';
+    _saveBootPingTs(channel);
   };
   const readinessBuf = { tg: '', zl: '' };
   const scanForReadiness = (chunk) => {
@@ -8050,6 +8062,27 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
       cfg.channels.openzalo.dmPolicy = 'open';
       if (!Array.isArray(cfg.channels.openzalo.allowFrom)) {
         cfg.channels.openzalo.allowFrom = ['*'];
+      }
+      // Sync per-group requireMention to openclaw.json so openzalo plugin
+      // respects the "Mọi tin" / "@mention" / "Tắt" setting from dashboard.
+      // Default openzalo is requireMention=true — we set false for "all" mode.
+      if (groupSettings && typeof groupSettings === 'object') {
+        if (!cfg.channels.openzalo.groups) cfg.channels.openzalo.groups = {};
+        for (const [gid, gs] of Object.entries(groupSettings)) {
+          if (!gid) continue;
+          if (!cfg.channels.openzalo.groups[gid]) cfg.channels.openzalo.groups[gid] = {};
+          const mode = gs && gs.mode;
+          if (mode === 'all') {
+            cfg.channels.openzalo.groups[gid].requireMention = false;
+            cfg.channels.openzalo.groups[gid].enabled = true;
+          } else if (mode === 'mention') {
+            cfg.channels.openzalo.groups[gid].requireMention = true;
+            cfg.channels.openzalo.groups[gid].enabled = true;
+          } else {
+            // "off" — disable the group entirely
+            cfg.channels.openzalo.groups[gid].enabled = false;
+          }
+        }
       }
       writeOpenClawConfigIfChanged(configPath, cfg);
     }
@@ -10534,12 +10567,12 @@ async function probeTelegramReady() {
 function findOpenzcaListenerPid() {
   try {
     if (process.platform === 'win32') {
-      // Try wmic first; fall back to PowerShell (wmic deprecated/disabled on some Win11 configs).
+      // PowerShell primary (wmic deprecated/removed on Win11 24H2+).
       let wmicOut = null;
       try {
         wmicOut = require('child_process').execSync(
-          `wmic process where "name='node.exe' and CommandLine like '%%openzca%%listen%%'" get ProcessId /format:csv 2>nul`,
-          { encoding: 'utf-8', timeout: 3000 }
+          `powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*openzca*listen*' } | Select-Object -ExpandProperty ProcessId"`,
+          { encoding: 'utf-8', timeout: 5000 }
         );
       } catch { wmicOut = null; }
 

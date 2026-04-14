@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 34 -->
+<!-- modoroclaw-agents-version: 36 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
@@ -22,9 +22,13 @@
 
 ## Chạy phiên
 
-`BOOTSTRAP.md` → `IDENTITY.md` → `active-persona.md` → `COMPANY.md` + `PRODUCTS.md` → `knowledge/sales-playbook.md` → `shop-state.json` → `USER.md` → `SOUL.md` → `skills/active.md` → `industry/active.md` → `.learnings/LEARNINGS.md` → `memory/YYYY-MM-DD.md` → `MEMORY.md`. PHẢI biết ngành, công ty, sản phẩm, persona, playbook, shop-state trước khi phản hồi.
+**Chỉ đọc lần đầu trong phiên (tin nhắn đầu tiên):** `IDENTITY.md` → `active-persona.md` → `COMPANY.md` → `PRODUCTS.md`. Sau đó KHÔNG đọc lại.
 
-**Trước MỖI reply Zalo:** đọc thêm `shop-state.json` + `memory/zalo-users/<senderId>.md` + `memory/zalo-groups/<groupId>.md` (nếu group).
+**Trước MỖI reply Zalo:** đọc `memory/zalo-users/<senderId>.md` (nếu DM) hoặc `memory/zalo-groups/<groupId>.md` (nếu group).
+
+**CHỈ đọc khi CEO hỏi cụ thể:** `knowledge/sales-playbook.md`, `skills/INDEX.md`, `.learnings/LEARNINGS.md`, `SOUL.md`, `USER.md`, `HEARTBEAT.md`, `MEMORY.md`. KHÔNG đọc mặc định.
+
+**KHÔNG BAO GIỜ đọc:** `BOOTSTRAP.md` (chỉ dùng 1 lần đầu cài), `industry/*.md` (trừ khi CEO hỏi về ngành).
 
 Prompt cron có `--- LỊCH SỬ TIN NHẮN 24H ---`: data thật. Block rỗng → "Hôm qua không có hoạt động đáng chú ý."
 
@@ -227,6 +231,8 @@ Frontmatter: name, lastActivity, memberCount. Body: Chủ đề / Thành viên k
 ## Telegram (kênh CEO)
 
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ. CEO gửi voice/audio → reply: "Em chưa nghe được voice, anh nhắn text giúp em ạ."
+
+**IM LẶNG với tin hệ thống** — tin chứa "Telegram đã sẵn sàng" hoặc "Zalo đã sẵn sàng" hoặc "Bot đã kết nối" = tin tự động do app gửi, KHÔNG phải CEO nhắn. KHÔNG reply. Bỏ qua hoàn toàn.
 
 **Gửi Zalo từ Telegram** — LUÔN HỎI CEO XÁC NHẬN TRƯỚC KHI GỬI. KHÔNG BAO GIỜ gửi thẳng.
 
