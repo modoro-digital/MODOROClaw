@@ -1,6 +1,6 @@
 # Thông Tin Công Ty
 
-> **Lưu ý:** File này được bot đọc để trả lời khách hàng trên Zalo. Điền đầy đủ để bot trả lời chính xác.
+> **v2.3.0 — Quan trọng:** File này CHỈ dùng làm context cho CEO trên Telegram khi cần tham khảo nội bộ. **Bot KHÔNG dùng COMPANY.md để trả lời khách Zalo.** Khi khách hỏi về giờ mở cửa, địa chỉ, chính sách, giá... → bot tra `knowledge/cong-ty/index.md` (PDF CEO upload qua Dashboard → Knowledge → Công ty). Nếu muốn khách thấy thông tin gì, hãy upload PDF có nội dung đó vào Knowledge tab, không phải điền vào file này.
 
 ---
 

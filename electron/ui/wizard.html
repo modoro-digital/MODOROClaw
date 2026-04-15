@@ -914,7 +914,7 @@
       </div>
 
       <div class="wz-brand-content">
-        <div class="wz-eyebrow" id="brand-eyebrow">Bước 1 / 7</div>
+        <div class="wz-eyebrow" id="brand-eyebrow">Bước 1 / 6</div>
         <h1 class="wz-headline" id="brand-headline">Chào mừng đến với 9BizClaw</h1>
         <p class="wz-subhead" id="brand-subhead">Trợ lý AI 1-click giúp anh/chị quản lý khách hàng Zalo, Telegram và báo cáo doanh nghiệp tự động. Hướng dẫn cài đặt hoàn tất trong vài phút.</p>
       </div>
@@ -929,7 +929,7 @@
       <div class="wz-progress">
         <div class="wz-progress-bar"><div class="wz-progress-fill" id="progress-fill"></div></div>
         <div class="wz-progress-meta">
-          <span class="wz-progress-step" id="progress-step">Bước 1 trong 7</span>
+          <span class="wz-progress-step" id="progress-step">Bước 1 trong 6</span>
           <span id="progress-percent">14%</span>
         </div>
       </div>
@@ -958,115 +958,10 @@
               <p class="wz-help">Đây là tên riêng của trợ lý AI. Khách Zalo sẽ thấy bot tự giới thiệu bằng tên này.</p>
             </div>
 
-            <div class="wz-field">
-              <label class="wz-label">Mô tả doanh nghiệp</label>
-              <p class="wz-help" style="margin-top: -2px; margin-bottom: 10px;">Anh/chị trả lời 3 câu hỏi ngắn — hệ thống tự ghép thành đoạn mô tả cho bot dùng. Không cần viết văn dài.</p>
-
-              <div class="wz-field" style="margin-bottom: 10px;">
-                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Bán gì? (sản phẩm hoặc dịch vụ chính)</label>
-                <input type="text" class="wz-input" id="biz-product" placeholder="Ví dụ: cà phê specialty và máy pha gia đình">
-              </div>
-
-              <div class="wz-field" style="margin-bottom: 10px;">
-                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Bán cho ai? (khách hàng mục tiêu)</label>
-                <input type="text" class="wz-input" id="biz-audience" placeholder="Ví dụ: dân văn phòng và cafe lover ở Sài Gòn">
-              </div>
-
-              <div class="wz-field" style="margin-bottom: 10px;">
-                <label class="wz-label" style="font-size: 13px; font-weight: 500;">Điểm nổi bật / quy mô (tùy chọn)</label>
-                <input type="text" class="wz-input" id="biz-highlight" placeholder="Ví dụ: 3 chi nhánh, giao tận nơi trong 1 giờ">
-              </div>
-
-              <div id="biz-preview-wrap" class="wz-hidden" style="margin-top: 12px; padding: 12px 14px; background: var(--surface-2, #f5f5f7); border-radius: 10px; border: 1px solid var(--border, #e5e5ea);">
-                <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.3px; color: var(--text-tertiary, #888); margin-bottom: 6px;">Bot sẽ thấy</div>
-                <div id="biz-preview" style="font-size: 14px; line-height: 1.5; color: var(--text-primary, #1d1d1f);"></div>
-              </div>
-
-              <textarea id="company-desc" style="display: none;"></textarea>
-            </div>
-
-            <div class="wz-field">
-              <label class="wz-label">Quy mô đội ngũ</label>
-              <select class="wz-select" id="team-size">
-                <option value="solo">Solo founder (chỉ 1 mình)</option>
-                <option value="small" selected>2 - 10 người</option>
-                <option value="medium">11 - 50 người</option>
-                <option value="large">51+ người</option>
-              </select>
-            </div>
-          </section>
-
-          <!-- ============ STEP 1C: Goals & work hours ============ -->
-          <section class="wz-step" id="step-1c">
-            <h2>Trợ lý nên giúp việc gì nhiều nhất?</h2>
-            <p class="wz-step-desc">Anh/chị chọn các công việc cần trợ lý hỗ trợ. Có thể chọn nhiều — báo cáo và tự động hóa sẽ được tối ưu theo lựa chọn.</p>
-
-            <div class="wz-grid cols-3">
-              <label class="wz-choice" data-choice>
-                <input type="checkbox" name="goals" value="zalo-auto-reply" checked>
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="message-circle"></span></div>
-                  <div class="wz-choice-title">Trả tin Zalo tự động</div>
-                  <div class="wz-choice-desc">Bot tự trả lời khi khách hỏi giá, sản phẩm</div>
-                </div>
-              </label>
-              <label class="wz-choice" data-choice>
-                <input type="checkbox" name="goals" value="daily-reports" checked>
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="activity"></span></div>
-                  <div class="wz-choice-title">Báo cáo hàng ngày</div>
-                  <div class="wz-choice-desc">Doanh thu, KPI, vấn đề tồn đọng</div>
-                </div>
-              </label>
-              <label class="wz-choice" data-choice>
-                <input type="checkbox" name="goals" value="schedule-mgmt">
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="calendar"></span></div>
-                  <div class="wz-choice-title">Quản lý lịch họp</div>
-                  <div class="wz-choice-desc">Nhắc lịch, follow-up sau họp</div>
-                </div>
-              </label>
-              <label class="wz-choice" data-choice>
-                <input type="checkbox" name="goals" value="staff-reminders">
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="users"></span></div>
-                  <div class="wz-choice-title">Nhắc nhân viên</div>
-                  <div class="wz-choice-desc">Báo cáo, deadline, ca trực</div>
-                </div>
-              </label>
-              <label class="wz-choice" data-choice>
-                <input type="checkbox" name="goals" value="customer-followup">
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="phone-call"></span></div>
-                  <div class="wz-choice-title">Follow-up khách</div>
-                  <div class="wz-choice-desc">Khách quan tâm chưa chốt</div>
-                </div>
-              </label>
-              <label class="wz-choice is-disabled" title="Tính năng đang phát triển, chưa khả dụng">
-                <input type="checkbox" name="goals" value="competitor-watch" disabled>
-                <div class="wz-choice-body">
-                  <div class="wz-choice-icon"><span data-icon="search"></span></div>
-                  <div class="wz-choice-title">Theo dõi đối thủ <span class="wz-badge">Sắp ra mắt</span></div>
-                  <div class="wz-choice-desc">Tin tức, biến động thị trường</div>
-                </div>
-              </label>
-            </div>
-
-            <div class="wz-field-row">
-              <div class="wz-field">
-                <label class="wz-label">Giờ báo cáo sáng</label>
-                <input type="time" class="wz-input" id="work-start" value="07:30">
-                <p class="wz-help">Bot gửi báo cáo sáng qua Telegram vào giờ này.</p>
-              </div>
-              <div class="wz-field">
-                <label class="wz-label">Giờ tóm tắt cuối ngày</label>
-                <input type="time" class="wz-input" id="work-end" value="18:00">
-                <p class="wz-help">Bot gửi tóm tắt kinh doanh cuối ngày vào giờ này.</p>
-              </div>
-            </div>
-            <!-- Hidden low-priority fields — sau này có thể bật lại trong Dashboard -->
-            <input type="hidden" id="biz-phone" value="">
-            <input type="hidden" id="biz-address" value="">
+            <p class="wz-help" style="margin-top:-4px;color:var(--text-tertiary,#888);font-size:13px;">
+              Thông tin chi tiết về sản phẩm, dịch vụ, khách hàng sẽ được anh/chị tải lên qua
+              <strong>Dashboard → Knowledge</strong> sau khi hoàn tất cài đặt.
+            </p>
           </section>
 
           <!-- ============ STEP 1B: Industry & style ============ -->
@@ -1515,14 +1410,13 @@
     let selectedPronouns = 'em-anh-chi';
     let zaloMode = 'auto';
 
-    const STEP_ORDER = [1, '1c', '1b', 2, 3, 4, 5];
+    const STEP_ORDER = [1, '1b', 2, 3, 4, 5];
     const STEP_META = {
-      1:    { eyebrow: 'Bước 1 / 7', headline: 'Chào mừng đến với 9BizClaw', subhead: 'Trợ lý AI 1-click giúp anh/chị quản lý khách hàng Zalo, Telegram và báo cáo doanh nghiệp tự động. Hướng dẫn cài đặt hoàn tất trong vài phút.' },
-      '1c': { eyebrow: 'Bước 2 / 7', headline: 'Chọn việc trợ lý nên giúp', subhead: 'Lựa chọn của anh/chị quyết định thứ tự ưu tiên công việc — từ tự động trả tin Zalo, báo cáo doanh thu, đến follow-up khách hàng.' },
-      '1b': { eyebrow: 'Bước 3 / 7', headline: 'Cá nhân hóa theo ngành', subhead: 'Trợ lý được tối ưu kỹ năng khác nhau cho mỗi ngành — F&B, bất động sản, công nghệ, giáo dục… Chọn đúng ngành để trợ lý hiểu khách hàng của anh/chị tốt hơn.' },
-      2:    { eyebrow: 'Bước 4 / 7', headline: 'Kết nối trí tuệ nhân tạo', subhead: 'Trợ lý cần một AI model để hoạt động. Ollama cho miễn phí, chỉ mất 2 phút lấy API key.' },
-      3:    { eyebrow: 'Bước 5 / 7', headline: 'Kết nối Telegram', subhead: 'Telegram là kênh anh/chị nhận thông báo, ra lệnh, và đọc báo cáo. Hướng dẫn tạo bot từ BotFather ở bên dưới.' },
-      4:    { eyebrow: 'Bước 6 / 7', headline: 'Kết nối Zalo', subhead: 'Trợ lý sẽ đọc tin nhắn Zalo và tự động trả lời khách hàng của anh/chị. Đăng nhập bằng QR — không cần mật khẩu, không cần API.' },
+      1:    { eyebrow: 'Bước 1 / 6', headline: 'Chào mừng đến với 9BizClaw', subhead: 'Trợ lý AI 1-click giúp anh/chị quản lý khách hàng Zalo, Telegram và báo cáo doanh nghiệp tự động. Hướng dẫn cài đặt hoàn tất trong vài phút.' },
+      '1b': { eyebrow: 'Bước 2 / 6', headline: 'Cá nhân hóa theo ngành', subhead: 'Trợ lý được tối ưu kỹ năng khác nhau cho mỗi ngành — F&B, bất động sản, công nghệ, giáo dục… Chọn đúng ngành để trợ lý hiểu khách hàng của anh/chị tốt hơn.' },
+      2:    { eyebrow: 'Bước 3 / 6', headline: 'Kết nối trí tuệ nhân tạo', subhead: 'Trợ lý cần một AI model để hoạt động. Ollama cho miễn phí, chỉ mất 2 phút lấy API key.' },
+      3:    { eyebrow: 'Bước 4 / 6', headline: 'Kết nối Telegram', subhead: 'Telegram là kênh anh/chị nhận thông báo, ra lệnh, và đọc báo cáo. Hướng dẫn tạo bot từ BotFather ở bên dưới.' },
+      4:    { eyebrow: 'Bước 5 / 6', headline: 'Kết nối Zalo', subhead: 'Trợ lý sẽ đọc tin nhắn Zalo và tự động trả lời khách hàng của anh/chị. Đăng nhập bằng QR — không cần mật khẩu, không cần API.' },
       5:    { eyebrow: 'Hoàn tất', headline: 'Trợ lý đã sẵn sàng', subhead: 'Tất cả đã được thiết lập. Anh/chị có thể mở Dashboard và bắt đầu sử dụng 9BizClaw ngay bây giờ.' },
     };
 
@@ -1575,12 +1469,6 @@
       if (currentStep === 1) {
         const name = document.getElementById('ceo-name').value.trim();
         if (!name) { markFieldError('ceo-name'); return showError('Vui lòng nhập họ tên của anh/chị.'); }
-      }
-      if (currentStep === '1c') {
-        const start = document.getElementById('work-start').value;
-        const end = document.getElementById('work-end').value;
-        if (!start) { markFieldError('work-start'); return showError('Vui lòng chọn giờ bắt đầu làm việc.'); }
-        if (!end) { markFieldError('work-end'); return showError('Vui lòng chọn giờ kết thúc làm việc.'); }
       }
       if (currentStep === '1b') {
         if (!document.getElementById('industry').value) { markFieldError('industry'); return showError('Vui lòng chọn lĩnh vực kinh doanh.'); }
@@ -2055,20 +1943,13 @@
           { key: 'agents.defaults.model', value: `ninerouter/${routerModel}` },
         ]));
 
-        status.textContent = 'Đang lưu thông tin doanh nghiệp...';
-        const companyDesc = document.getElementById('company-desc').value.trim();
-        const bizProduct = (document.getElementById('biz-product')?.value || '').trim();
-        const bizAudience = (document.getElementById('biz-audience')?.value || '').trim();
-        const bizHighlight = (document.getElementById('biz-highlight')?.value || '').trim();
-        const teamSize = document.getElementById('team-size').value || 'small';
-        const workStart = document.getElementById('work-start').value || '08:00';
-        const workEnd = document.getElementById('work-end').value || '17:30';
-        const bizPhone = (document.getElementById('biz-phone')?.value || '').trim();
-        const bizAddress = (document.getElementById('biz-address')?.value || '').trim();
-        const goals = Array.from(document.querySelectorAll('input[name="goals"]:checked')).map(el => el.value);
+        status.textContent = 'Đang lưu thông tin cơ bản...';
+        // Wizard giờ chỉ gửi tên CEO + tên công ty. Mọi trường khác (sản phẩm,
+        // audience, quy mô, giờ làm việc, số mục tiêu) đã loại bỏ — CEO sẽ
+        // upload Knowledge file qua Dashboard và chỉnh giờ qua tab Schedules.
+        // Handler save-business-profile vẫn fallback default cho các field thiếu.
         await withTimeout(window.claw.saveBusinessProfile({
-          companyName: company, companyDesc, teamSize, workStart, workEnd, goals, ceoName: name,
-          bizProduct, bizAudience, bizHighlight, bizPhone, bizAddress,
+          companyName: company, ceoName: name,
         }));
 
         status.textContent = 'Đang cá nhân hóa trợ lý...';
@@ -2159,47 +2040,10 @@
       }, 2000);
     }
 
-    // ===== Business description auto-assembly =====
-    // User fills 3 short fields (product, audience, highlight). We assemble
-    // a natural Vietnamese sentence and stuff it into the hidden #company-desc
-    // textarea so the existing save handler works unchanged.
-    function assembleBusinessDesc() {
-      const product = (document.getElementById('biz-product').value || '').trim();
-      const audience = (document.getElementById('biz-audience').value || '').trim();
-      const highlight = (document.getElementById('biz-highlight').value || '').trim();
-      const hidden = document.getElementById('company-desc');
-      const previewWrap = document.getElementById('biz-preview-wrap');
-      const previewEl = document.getElementById('biz-preview');
-
-      // Need at least one field to show preview
-      if (!product && !audience && !highlight) {
-        if (hidden) hidden.value = '';
-        if (previewWrap) previewWrap.classList.add('wz-hidden');
-        return;
-      }
-
-      const parts = [];
-      if (product && audience) {
-        parts.push(`Chúng tôi cung cấp ${product} cho ${audience}.`);
-      } else if (product) {
-        parts.push(`Chúng tôi cung cấp ${product}.`);
-      } else if (audience) {
-        parts.push(`Khách hàng của chúng tôi: ${audience}.`);
-      }
-      if (highlight) parts.push(highlight.endsWith('.') ? highlight : highlight + '.');
-      const assembled = parts.join(' ');
-
-      if (hidden) hidden.value = assembled;
-      if (previewEl) previewEl.textContent = assembled;
-      if (previewWrap) previewWrap.classList.remove('wz-hidden');
-    }
-
-    function bindBusinessDescAssembly() {
-      ['biz-product', 'biz-audience', 'biz-highlight'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', assembleBusinessDesc);
-      });
-    }
+    // Business description auto-assembly removed in v2.3.0 — low-friction
+    // onboarding. CEO uploads PDF về sản phẩm/dịch vụ qua Dashboard Knowledge
+    // sau khi wizard xong. Bot đọc knowledge/*/index.md khi trả lời khách,
+    // không dùng COMPANY.md/PRODUCTS.md nữa.
 
     // ===== Init =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -2213,7 +2057,6 @@
       bindMixChips();
       syncMixUI();
       updateMixPreview();
-      bindBusinessDescAssembly();
       setProgress(1);
 
       // Theme toggle

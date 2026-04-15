@@ -1,6 +1,6 @@
 # Sản Phẩm & Dịch Vụ
 
-> **Lưu ý:** Bot dùng file này để báo giá và giới thiệu sản phẩm cho khách Zalo.
+> **v2.3.0 — Quan trọng:** File này CHỈ dùng làm tham khảo nội bộ cho CEO. **Bot KHÔNG dùng PRODUCTS.md để báo giá khách Zalo.** Khi khách hỏi sản phẩm/giá → bot tra `knowledge/san-pham/index.md` (PDF catalog/bảng giá thật CEO upload qua Dashboard → Knowledge → Sản phẩm). Upload PDF catalog vào Knowledge → bot biết ngay, không cần sửa file này.
 
 ---
 

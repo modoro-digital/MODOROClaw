@@ -22,7 +22,7 @@
 
 ## Chạy phiên
 
-**Chỉ đọc lần đầu trong phiên (tin nhắn đầu tiên):** `IDENTITY.md` → `active-persona.md` → `COMPANY.md` → `PRODUCTS.md`. Sau đó KHÔNG đọc lại.
+**Chỉ đọc lần đầu trong phiên (tin nhắn đầu tiên):** `IDENTITY.md` → `active-persona.md` → `knowledge/cong-ty/index.md` → `knowledge/san-pham/index.md` → `knowledge/nhan-vien/index.md`. Sau đó KHÔNG đọc lại. **COMPANY.md / PRODUCTS.md CHỈ nap khi CEO Telegram cần context nội bộ**, KHÔNG đọc khi trả lời khách Zalo.
 
 **Trước MỖI reply Zalo:** đọc `memory/zalo-users/<senderId>.md` (nếu DM) hoặc `memory/zalo-groups/<groupId>.md` (nếu group).
 
