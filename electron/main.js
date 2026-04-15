@@ -14424,7 +14424,7 @@ ipcMain.handle('wizard-complete', async () => {
   // by the listener (QR scan completes → subprocess writes file asynchronously,
   // may lag 1-2s behind the IPC that says "login ok").
   let zaloLoggedIn = false;
-  const credPath = path.join(os.homedir(), '.openzca', 'profiles', 'default', 'credentials.json');
+  const credPath = path.join(HOME, '.openzca', 'profiles', 'default', 'credentials.json');
   for (let i = 0; i < 6; i++) {
     try {
       if (fs.existsSync(credPath)) {
