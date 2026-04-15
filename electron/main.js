@@ -15505,6 +15505,232 @@ ipcMain.handle('toggle-bot', async () => {
 });
 
 // ============================================
+//  AUTO-UPDATE — GitHub Releases (gated via pre-release flag)
+//  Flow: /releases/latest only returns non-prerelease → CEO controls
+//  which version customers see by toggling pre-release flag.
+//  Windows: download .exe → shell open → user runs installer
+//  Mac: open release page in browser (no code signing = manual DMG)
+// ============================================
+
+const UPDATE_REPO = 'modoro-digital/MODOROClaw';
+let _latestRelease = null; // cached { version, body, html_url, assets }
+let _updateDownloadInFlight = false; // H1: concurrency guard
+
+function compareVersions(a, b) {
+  // Returns >0 if a > b, <0 if a < b, 0 if equal
+  const pa = String(a || '0').replace(/^v/, '').split('.').map(Number);
+  const pb = String(b || '0').replace(/^v/, '').split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] || 0) - (pb[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+async function checkForUpdates() {
+  const https = require('https');
+  const current = app.getVersion();
+  return new Promise((resolve) => {
+    const opts = {
+      hostname: 'api.github.com',
+      path: `/repos/${UPDATE_REPO}/releases/latest`,
+      headers: { 'User-Agent': '9BizClaw/' + current, 'Accept': 'application/vnd.github.v3+json' },
+      timeout: 10000,
+    };
+    let dataLen = 0;
+    const req = https.get(opts, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        dataLen += chunk.length;
+        // M3: cap response body at 1MB to prevent memory abuse
+        if (dataLen > 1024 * 1024) { req.destroy(); return resolve(null); }
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          if (res.statusCode !== 200) {
+            console.log('[update] GitHub API status', res.statusCode);
+            return resolve(null);
+          }
+          const release = JSON.parse(data);
+          const latest = String(release.tag_name || '').replace(/^v/, '');
+          if (compareVersions(latest, current) > 0) {
+            _latestRelease = {
+              version: latest,
+              body: release.body || '',
+              html_url: release.html_url || '',
+              published_at: release.published_at || '',
+              assets: (release.assets || []).map(a => ({
+                name: a.name,
+                size: a.size,
+                url: a.browser_download_url,
+              })),
+            };
+            console.log('[update] new version available:', latest, '(current:', current + ')');
+            // Notify renderer
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('update-available', _latestRelease);
+            }
+            return resolve(_latestRelease);
+          }
+          console.log('[update] up to date:', current);
+          resolve(null);
+        } catch (e) {
+          console.warn('[update] parse error:', e.message);
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', (e) => {
+      console.warn('[update] check failed:', e.message);
+      resolve(null);
+    });
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
+// Download installer to temp dir, return local path
+async function downloadUpdate(assetUrl, filename, expectedSize) {
+  const https = require('https');
+  const tmpDir = path.join(app.getPath('temp'), '9bizclaw-update');
+  fs.mkdirSync(tmpDir, { recursive: true });
+  // L2: clean old downloads before starting new one
+  try {
+    for (const f of fs.readdirSync(tmpDir)) {
+      if (f.endsWith('.exe') || f.endsWith('.dmg')) {
+        try { fs.unlinkSync(path.join(tmpDir, f)); } catch {}
+      }
+    }
+  } catch {}
+  const dest = path.join(tmpDir, filename);
+
+  // Follow redirects (GitHub assets redirect to S3)
+  function followRedirect(url, redirectCount) {
+    if (redirectCount > 5) throw new Error('Too many redirects');
+    // H3: only follow HTTPS redirects
+    if (!String(url).startsWith('https://')) throw new Error('Refused non-HTTPS redirect');
+    return new Promise((resolve, reject) => {
+      const req = https.get(url, { headers: { 'User-Agent': '9BizClaw' }, timeout: 120000 }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume(); // L1: drain response body to free socket
+          return resolve(followRedirect(res.headers.location, redirectCount + 1));
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          return reject(new Error('HTTP ' + res.statusCode));
+        }
+
+        const totalBytes = parseInt(res.headers['content-length'] || '0', 10);
+        let received = 0;
+        const file = fs.createWriteStream(dest);
+        let lastProgressAt = 0;
+
+        res.on('data', (chunk) => {
+          received += chunk.length;
+          file.write(chunk);
+          const now = Date.now();
+          if (now - lastProgressAt > 500 && mainWindow && !mainWindow.isDestroyed()) {
+            lastProgressAt = now;
+            mainWindow.webContents.send('update-download-progress', {
+              received, total: totalBytes,
+              percent: totalBytes > 0 ? Math.round(received / totalBytes * 100) : 0,
+            });
+          }
+        });
+        res.on('end', () => {
+          file.end(() => {
+            // M1: verify downloaded size matches expected asset size
+            if (expectedSize && expectedSize > 0 && received < expectedSize * 0.95) {
+              try { fs.unlinkSync(dest); } catch {}
+              return reject(new Error('Download incomplete: ' + received + '/' + expectedSize + ' bytes'));
+            }
+            resolve(dest);
+          });
+        });
+        res.on('error', (e) => {
+          file.destroy();
+          try { fs.unlinkSync(dest); } catch {} // H2: cleanup partial file
+          reject(e);
+        });
+      });
+      // C1: timeout handler — destroy request on stall, explicitly reject
+      // (req.destroy() should emit 'error' but we don't rely on that side-effect)
+      req.on('timeout', () => {
+        req.destroy();
+        try { fs.unlinkSync(dest); } catch {} // H2: cleanup partial file
+        reject(new Error('Download timed out'));
+      });
+      req.on('error', (e) => {
+        try { fs.unlinkSync(dest); } catch {} // H2: cleanup partial file
+        reject(e);
+      });
+    });
+  }
+
+  return followRedirect(assetUrl, 0);
+}
+
+// H4: validate URL is a safe GitHub URL before opening externally
+function openGitHubUrl(url) {
+  const { shell } = require('electron');
+  if (url && String(url).startsWith('https://github.com/')) {
+    shell.openExternal(url);
+    return true;
+  }
+  console.warn('[update] refused to open non-GitHub URL:', String(url).slice(0, 80));
+  return false;
+}
+
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const result = await checkForUpdates();
+    if (result) return { available: true, ...result };
+    return { available: false, version: app.getVersion() };
+  } catch (e) {
+    return { available: false, error: e.message };
+  }
+});
+
+ipcMain.handle('download-and-install-update', async () => {
+  if (!_latestRelease) return { success: false, error: 'No update available' };
+  // H1: concurrency guard — prevent double-click corruption
+  if (_updateDownloadInFlight) return { success: false, error: 'Download already in progress' };
+  _updateDownloadInFlight = true;
+  try {
+    const platform = process.platform;
+    let asset = null;
+    if (platform === 'win32') {
+      asset = _latestRelease.assets.find(a => a.name.endsWith('.exe'));
+    } else if (platform === 'darwin') {
+      // Mac: open release page in browser (no code signing → manual install)
+      openGitHubUrl(_latestRelease.html_url);
+      return { success: true, method: 'browser' };
+    }
+    if (!asset) {
+      // Fallback: open release page
+      openGitHubUrl(_latestRelease.html_url);
+      return { success: true, method: 'browser' };
+    }
+    // Windows: download EXE then launch installer
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-download-progress', { received: 0, total: asset.size, percent: 0 });
+    }
+    const localPath = await downloadUpdate(asset.url, asset.name, asset.size);
+    // Launch installer and quit
+    const { shell } = require('electron');
+    shell.openPath(localPath);
+    // Give installer 2s to start then quit app
+    setTimeout(() => { app.quit(); }, 2000);
+    return { success: true, method: 'installer', path: localPath };
+  } catch (e) {
+    console.error('[update] download error:', e.message);
+    return { success: false, error: e.message };
+  } finally {
+    _updateDownloadInFlight = false;
+  }
+});
+
+// ============================================
 //  GOOGLE CALENDAR
 // ============================================
 
@@ -15861,6 +16087,10 @@ app.whenReady().then(async () => {
   try { auditLog('app_boot', { platform: process.platform, node: process.versions.node, electron: process.versions.electron }); } catch {}
   // Start the real-readiness probe broadcast so sidebar dots stay accurate
   startChannelStatusBroadcast();
+  // Auto-update check 15s after boot — non-blocking, silent if no update
+  setTimeout(() => {
+    checkForUpdates().catch(e => console.warn('[update] boot check failed:', e?.message));
+  }, 15000);
 }).catch(console.error);
 
 app.on('window-all-closed', () => {});

@@ -185,4 +185,16 @@ contextBridge.exposeInMainWorld('claw', {
     ipcRenderer.removeAllListeners('gateway-booting');
     ipcRenderer.on('gateway-booting', (_event, data) => cb(data));
   },
+
+  // Auto-update
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadAndInstallUpdate: () => ipcRenderer.invoke('download-and-install-update'),
+  onUpdateAvailable: (cb) => {
+    ipcRenderer.removeAllListeners('update-available');
+    ipcRenderer.on('update-available', (_event, data) => cb(data));
+  },
+  onUpdateDownloadProgress: (cb) => {
+    ipcRenderer.removeAllListeners('update-download-progress');
+    ipcRenderer.on('update-download-progress', (_event, data) => cb(data));
+  },
 });

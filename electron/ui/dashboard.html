@@ -1803,6 +1803,9 @@
           <h1>9BizClaw</h1>
           <div class="sidebar-brand-tagline">Trợ lý AI doanh nghiệp</div>
           <div class="sidebar-brand-version" id="sidebar-version">v—</div>
+          <div id="update-banner" style="display:none; margin-top:6px; padding:6px 10px; background:var(--primary); color:#fff; border-radius:6px; font-size:11px; cursor:pointer; text-align:center; line-height:1.4;" onclick="startUpdate()">
+            <span id="update-banner-text"></span>
+          </div>
         </div>
       </div>
 
@@ -1861,6 +1864,10 @@
             <input type="checkbox" id="pref-start-minimized">
             <span class="toggle-slider"></span>
           </label>
+        </div>
+        <div class="sidebar-menu-item" onclick="manualCheckUpdate()" id="check-update-btn" style="margin-top:2px">
+          <span class="icon" data-icon="refresh-cw"></span>
+          <span class="label" id="check-update-label">Kiểm tra cập nhật</span>
         </div>
       </div>
       <div id="gateway-token-box" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:11px">
@@ -5040,6 +5047,65 @@
         if (el && v) el.textContent = 'v' + v;
       } catch {}
     })();
+
+    // Auto-update UI
+    let _pendingUpdate = null;
+    function showUpdateBanner(info) {
+      _pendingUpdate = info;
+      const banner = document.getElementById('update-banner');
+      const text = document.getElementById('update-banner-text');
+      if (!banner || !text) return;
+      text.innerHTML = '<b>v' + esc(info.version) + '</b> &mdash; Nh&#7845;n &#273;&#7875; c&#7853;p nh&#7853;t';
+      banner.style.display = 'block';
+    }
+    async function startUpdate() {
+      if (!_pendingUpdate) return;
+      const banner = document.getElementById('update-banner');
+      const text = document.getElementById('update-banner-text');
+      if (text) text.innerHTML = '&#272;ang t&#7843;i...';
+      try {
+        const r = await window.claw.downloadAndInstallUpdate();
+        if (r && r.method === 'browser') {
+          if (text) text.innerHTML = '&#272;&#227; m&#7903; trang t&#7843;i v&#7873;';
+        } else if (r && r.method === 'installer') {
+          if (text) text.innerHTML = '&#272;ang c&#224;i... &#272;&#7907;i kh&#7903;i &#273;&#7897;ng l&#7841;i';
+        } else if (r && !r.success) {
+          if (text) text.textContent = 'Loi: ' + (r.error || '');
+          setTimeout(() => { if (banner) banner.style.display = 'none'; }, 5000);
+        }
+      } catch (e) {
+        if (text) text.textContent = 'Loi: ' + e.message;
+        setTimeout(() => { if (banner) banner.style.display = 'none'; }, 5000);
+      }
+    }
+    async function manualCheckUpdate() {
+      const label = document.getElementById('check-update-label');
+      if (label) label.innerHTML = '&#272;ang ki&#7875;m tra...';
+      try {
+        const r = await window.claw.checkForUpdates();
+        if (r && r.available) {
+          showUpdateBanner(r);
+          if (label) label.innerHTML = 'C&#243; b&#7843;n m&#7899;i!';
+        } else {
+          if (label) label.innerHTML = '&#272;&#227; m&#7899;i nh&#7845;t';
+          setTimeout(() => { if (label) label.innerHTML = 'Ki&#7875;m tra c&#7853;p nh&#7853;t'; }, 3000);
+        }
+      } catch {
+        if (label) label.innerHTML = 'L&#7895;i k&#7871;t n&#7889;i';
+        setTimeout(() => { if (label) label.innerHTML = 'Ki&#7875;m tra c&#7853;p nh&#7853;t'; }, 3000);
+      }
+    }
+    // Listen for auto-check result from main process
+    if (window.claw.onUpdateAvailable) {
+      window.claw.onUpdateAvailable((info) => showUpdateBanner(info));
+    }
+    // Download progress
+    if (window.claw.onUpdateDownloadProgress) {
+      window.claw.onUpdateDownloadProgress((p) => {
+        const text = document.getElementById('update-banner-text');
+        if (text && p) text.innerHTML = '&#272;ang t&#7843;i... ' + (p.percent || 0) + '%';
+      });
+    }
 
     // === Zalo owner picker on Dashboard (searchable) ===
     let _ownerFriendsList = [];

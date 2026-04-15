@@ -173,15 +173,7 @@
       ]
     },
     "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ],
+      "target": "dmg",
       "icon": "build/icon.icns",
       "category": "public.app-category.productivity",
       "identity": null,
