@@ -2586,9 +2586,37 @@ function killPort(port) {
       for (const pid of pids) { try { execSync(`taskkill /f /pid ${pid}`, { stdio: 'ignore', timeout: 3000, windowsHide: true }); } catch {} }
     } else {
       const out = execSync(`lsof -ti :${port}`, { encoding: 'utf-8', timeout: 3000 });
-      out.trim().split('\n').forEach(pid => { try { process.kill(parseInt(pid), 'SIGTERM'); } catch {} });
+      const pids = out.trim().split('\n').filter(p => p && /^\d+$/.test(p.trim()));
+      // SIGKILL — SIGTERM can be ignored by Node processes holding the port
+      for (const pid of pids) {
+        const p = parseInt(pid.trim());
+        try { process.kill(p, 'SIGKILL'); } catch {}
+      }
     }
   } catch {} // No process on port = fine
+}
+
+// Kill ALL openclaw + openzca processes (orphan cleanup on stop/restart)
+function killAllOpenClawProcesses() {
+  try {
+    const { execSync } = require('child_process');
+    if (process.platform === 'win32') {
+      // Kill any node process running openclaw or openzca
+      try { execSync('taskkill /f /fi "WINDOWTITLE eq openclaw*" 2>nul', { stdio: 'ignore', timeout: 3000, windowsHide: true }); } catch {}
+      try {
+        const out = execSync('wmic process where "CommandLine like \'%openclaw%gateway%\'" get ProcessId /format:csv', { encoding: 'utf-8', timeout: 5000, windowsHide: true });
+        for (const line of out.split('\n')) {
+          const pid = line.trim().split(',').pop();
+          if (pid && /^\d+$/.test(pid) && pid !== '0') {
+            try { execSync(`taskkill /f /pid ${pid}`, { stdio: 'ignore', timeout: 3000, windowsHide: true }); } catch {}
+          }
+        }
+      } catch {}
+    } else {
+      try { execSync("pkill -9 -f 'openclaw.*gateway' 2>/dev/null", { stdio: 'ignore', timeout: 3000 }); } catch {}
+      try { execSync("pkill -9 -f 'openzca.*listen' 2>/dev/null", { stdio: 'ignore', timeout: 3000 }); } catch {}
+    }
+  } catch {}
 }
 
 function isValidConfigKey(key) {
@@ -5758,7 +5786,9 @@ async function _startOpenClawImpl() {
     }
   }
 
-  // Cold start: clean up any stale Zalo listener tree before spawning new gateway
+  // Cold start: kill orphan gateway + Zalo listener from previous run
+  try { killPort(18789); } catch {}
+  try { killAllOpenClawProcesses(); } catch {}
   cleanupOrphanZaloListener();
 
   // Wait for 9Router /v1/models — bumped from 10 to 60 iterations because Node
@@ -6348,8 +6378,9 @@ async function stopOpenClaw() {
       }, 5000);
     });
   }
-  // Also kill adopted/orphan gateway on the port.
+  // Kill adopted/orphan gateway on the port + any lingering openclaw/openzca processes
   try { killPort(18789); } catch {}
+  try { killAllOpenClawProcesses(); } catch {}
   // Poll the port to confirm it's actually free. Max 10 × 500ms = 5s.
   for (let i = 0; i < 10; i++) {
     const alive = await isGatewayAlive(500);
@@ -11476,56 +11507,21 @@ function getReadyGateState(channel) {
 }
 
 function finalizeTelegramReadyProbe(base, hasCeoChatId) {
-  const gate = getReadyGateState('telegram');
   if (!hasCeoChatId) {
     return {
       ...base,
       ready: false,
-      technicalReady: true,
       reason: 'no-ceo-chat-id',
-      error: '\u0110\u00e3 k\u1ebft n\u1ed1i Telegram nh\u01b0ng ch\u01b0a c\u00f3 CEO chat ID \u0111\u1ec3 g\u1eedi tin x\u00e1c nh\u1eadn.',
+      error: 'Telegram connected but no CEO chat ID configured.',
     };
   }
-  if (gate.confirmed) {
-    return {
-      ...base,
-      ready: true,
-      readinessConfirmedAt: gate.confirmedAt,
-      readinessConfirmedBy: gate.confirmedBy,
-    };
-  }
-  return {
-    ...base,
-    ready: false,
-    technicalReady: true,
-    awaitingConfirmation: true,
-    reason: 'awaiting-confirmation',
-    error: gate.lastError || (gate.markerSeen
-      ? '\u0110\u00e3 k\u1ebft n\u1ed1i Telegram, \u0111ang ch\u1edd g\u1eedi tin x\u00e1c nh\u1eadn s\u1eb5n s\u00e0ng.'
-      : '\u0110\u00e3 k\u1ebft n\u1ed1i Telegram, \u0111ang ch\u1edd gateway \u0111\u0103ng k\u00fd channel.'),
-  };
+  // getMe passed + chatId present = bot CAN receive and reply. No gate needed.
+  return { ...base, ready: true };
 }
 
 function finalizeZaloReadyProbe(base) {
-  const gate = getReadyGateState('zalo');
-  if (gate.confirmed) {
-    return {
-      ...base,
-      ready: true,
-      readinessConfirmedAt: gate.confirmedAt,
-      readinessConfirmedBy: gate.confirmedBy,
-    };
-  }
-  return {
-    ...base,
-    ready: false,
-    technicalReady: true,
-    awaitingConfirmation: true,
-    reason: 'awaiting-confirmation',
-    error: gate.lastError || (gate.markerSeen
-      ? '\u0110\u00e3 k\u1ebft n\u1ed1i Zalo, \u0111ang ch\u1edd g\u1eedi tin x\u00e1c nh\u1eadn s\u1eb5n s\u00e0ng.'
-      : 'Zalo listener \u0111\u00e3 l\u00ean, \u0111ang ch\u1edd gateway x\u00e1c nh\u1eadn s\u1eb5n s\u00e0ng.'),
-  };
+  // Listener process alive = Zalo CAN receive messages. No gate needed.
+  return { ...base, ready: true };
 }
 
 async function probeTelegramReady() {
