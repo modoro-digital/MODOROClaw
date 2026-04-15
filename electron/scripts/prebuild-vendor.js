@@ -38,7 +38,7 @@ const crypto = require('crypto');
 const { execSync, spawnSync } = require('child_process');
 const os = require('os');
 
-// openclaw 2026.4.5 requires Node >=22.14.0. We pin to v22.22.2 (latest 22.x
+// openclaw requires Node >=22.14.0. We pin to v22.22.2 (latest 22.x
 // LTS as of 2026-04) to give plenty of headroom above openclaw's minimum and
 // avoid another "requires Node >=X.Y.Z" surprise after every openclaw bump.
 // Previous bumps: v22.11.0 → v22.12.0 (insufficient) → v22.22.2.
