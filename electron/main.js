@@ -3353,6 +3353,27 @@ async function ensureDefaultConfig() {
       // DEFENSIVE CLEANUP: remove `streaming` if it crept in from a prior buggy
       // version of this function (2026-04-08 regression). Schema rejects it.
       if ('streaming' in oz) { delete oz.streaming; changed = true; }
+      // Whitelist-based strip: openzalo 2026.4.5 schema is strict
+      // (additionalProperties:false). CEOs upgrading from older openclaw CLI
+      // installs may have fields like `messages` (seen in real customer
+      // workspace 2026-04-15) or other legacy keys that make the gateway
+      // reject config with "channels.openzalo: must NOT have additional
+      // properties" → gateway never binds WS → bot dead silently.
+      // Fields valid per openzalo/src/config-schema-core.ts OpenzaloConfigSchema:
+      const OPENZALO_VALID_FIELDS = new Set([
+        'name', 'enabled', 'profile', 'zcaBinary', 'acpx', 'markdown',
+        'dmPolicy', 'allowFrom', 'groupPolicy', 'groupAllowFrom', 'groups',
+        'historyLimit', 'dmHistoryLimit', 'textChunkLimit', 'chunkMode',
+        'blockStreaming', 'mediaMaxMb', 'mediaLocalRoots', 'sendTypingIndicators',
+        'threadBindings', 'actions', 'accounts', 'defaultAccount',
+      ]);
+      for (const k of Object.keys(oz)) {
+        if (!OPENZALO_VALID_FIELDS.has(k)) {
+          console.log('[config] stripped unknown openzalo field: ' + k);
+          delete oz[k];
+          changed = true;
+        }
+      }
       // DO NOT set `zcaBinary` here: the openzalo plugin's
       // resolveOpenzcaCliJs() on Windows only searches hardcoded npm global
       // paths and ignores the config value during resolve, then falls back to
