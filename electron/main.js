@@ -3378,6 +3378,12 @@ async function ensureDefaultConfig() {
       // patch in ensureOpenzaloForceOneMessageFix (hardcoded
       // disableBlockStreaming:true in inbound.ts).
       if (oz.blockStreaming !== false) { oz.blockStreaming = false; changed = true; }
+      // History limits: prevent context window bloat over weeks of chat.
+      // historyLimit = max messages kept per group thread (default unlimited → OOM after weeks)
+      // dmHistoryLimit = max messages kept per DM thread
+      // Without these, a CEO with 50 active Zalo groups × 200 msg/day = compaction every reply after ~3 days.
+      if (!oz.historyLimit || oz.historyLimit > 50) { oz.historyLimit = 50; changed = true; }
+      if (!oz.dmHistoryLimit || oz.dmHistoryLimit > 30) { oz.dmHistoryLimit = 30; changed = true; }
       // DEFENSIVE CLEANUP: remove `streaming` if it crept in from a prior buggy
       // version of this function (2026-04-08 regression). Schema rejects it.
       if ('streaming' in oz) { delete oz.streaming; changed = true; }
@@ -3444,6 +3450,8 @@ async function ensureDefaultConfig() {
       // Require @mention in groups so bot only replies when explicitly called.
       // Otherwise bot would forward every group message to AI → huge token waste.
       if (tg.requireMention !== true) { tg.requireMention = true; changed = true; }
+      // History limit: prevent context bloat for CEO who chats 100+ msg/day
+      if (!tg.historyLimit || tg.historyLimit > 50) { tg.historyLimit = 50; changed = true; }
     }
     // Global default: openclaw 2026.4.x removed `agents.defaults.blockStreaming`
     // (boolean) and replaced it with `agents.defaults.blockStreamingDefault`
@@ -13245,6 +13253,26 @@ function startCronJobs() {
       } catch (e) { console.error(`[cron] Failed to schedule ${s.id}:`, e.message); }
     }
   }
+
+  // Weekly gateway restart — prevent memory bloat from accumulated context.
+  // Runs Wednesday 3:30 AM (low-traffic). Restarts gateway only (not Electron).
+  // Gateway process holds all agent context + openzca subprocess — fresh start
+  // clears accumulated heap. Telegram/Zalo reconnect within ~30s (fast watchdog).
+  try {
+    const weeklyRestart = cron.schedule('30 3 * * 3', async () => {
+      console.log('[cron] Weekly gateway restart for memory hygiene');
+      try { auditLog('cron_fired', { id: 'weekly-gateway-restart', label: 'Weekly memory hygiene' }); } catch {}
+      try {
+        await stopOpenClaw();
+        await startOpenClaw();
+        console.log('[cron] Weekly gateway restart completed');
+      } catch (e) {
+        console.error('[cron] Weekly gateway restart failed:', e?.message);
+      }
+    }, { timezone: 'Asia/Ho_Chi_Minh' });
+    cronJobs.push({ id: 'weekly-gateway-restart', job: weeklyRestart });
+    console.log('[cron] Scheduled weekly-gateway-restart: 30 3 * * 3');
+  } catch (e) { console.error('[cron] Failed to schedule weekly restart:', e?.message); }
 
   // --- Custom crons (created by bot via CEO request, permanent) ---
   const customs = loadCustomCrons();
