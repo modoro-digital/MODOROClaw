@@ -520,6 +520,24 @@
     .btn.is-loading { opacity:0.75; cursor:wait; pointer-events:none; }
     .zalo-saving-overlay { position:absolute; inset:0; background:var(--bg, rgba(0,0,0,0.15)); opacity:0.35; pointer-events:none; border-radius:inherit; transition:opacity 0.2s; z-index:5; }
     .page-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+    /* Telegram + Zalo: freeze header at top while body scrolls */
+    #page-telegram .page-header,
+    #page-zalo .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg);
+      margin-top: -20px;
+      padding-top: 20px;
+    }
+    @media (min-width: 768px) {
+      #page-telegram .page-header,
+      #page-zalo .page-header { margin-top: -28px; padding-top: 28px; }
+    }
+    @media (min-width: 1280px) {
+      #page-telegram .page-header,
+      #page-zalo .page-header { margin-top: -24px; padding-top: 24px; }
+    }
     .page-header h2 { margin:0; font-size:18px; }
     .page-header .page-icon { font-size:24px; }
     .page-header .page-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
