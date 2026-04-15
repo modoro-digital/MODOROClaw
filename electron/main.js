@@ -5469,6 +5469,18 @@ async function startOpenClaw() {
   try {
     const r = await _startOpenClawImpl();
     _gatewayLastStartedAt = Date.now();
+    // Auto-seed group history summaries in the background. Fire-and-forget
+    // after a 5s delay so gateway + openzca listener are fully ready before
+    // we probe. Never blocks startup; never throws to caller.
+    setTimeout(() => {
+      try {
+        seedAllGroupHistories({ source: 'startOpenClaw' }).catch(e => {
+          console.warn('[group-history-seed] auto-run error:', e && e.message ? e.message : String(e));
+        });
+      } catch (e) {
+        console.warn('[group-history-seed] auto-run dispatch error:', e && e.message ? e.message : String(e));
+      }
+    }, 5000);
     return r;
   }
   finally { _startOpenClawInFlight = false; }
@@ -7265,6 +7277,233 @@ memberCount: ${memberCount}
   }
 }
 
+// ==================== GROUP HISTORY AUTO-SEED ====================
+// When bot joins a new Zalo group, `seedZaloCustomersFromCache` writes metadata
+// (name, memberCount) but leaves topic/member/decision sections as "(chưa có)".
+// This helper fetches the last 30 actual messages via `openzca msg recent -g`,
+// summarizes them through 9Router, and fills in the 3 empty sections so the AI
+// has real context the FIRST time a customer in that group pings the bot.
+//
+// Fresh install parity: helper runs every `_startOpenClawImpl` completion →
+// fresh installs no-op (no groups yet) → after wizard + first group add →
+// auto-populates next boot. IPC `seed-group-history-all` exposed for manual
+// retry from dashboard.
+
+// Locate openzca CLI (mirrors gateway spawn candidate list from _startOpenClawImpl).
+let _cachedOpenzcaCliJs = null;
+function findOpenzcaCliJs() {
+  if (_cachedOpenzcaCliJs && fs.existsSync(_cachedOpenzcaCliJs)) return _cachedOpenzcaCliJs;
+  const candidates = [];
+  try {
+    const bundled = getBundledVendorDir && getBundledVendorDir();
+    if (bundled) candidates.push(path.join(bundled, 'node_modules', 'openzca', 'dist', 'cli.js'));
+  } catch {}
+  if (process.platform === 'win32') {
+    candidates.push(
+      path.join(HOME, 'AppData', 'Roaming', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'),
+      path.join(HOME, 'AppData', 'Local', 'npm', 'node_modules', 'openzca', 'dist', 'cli.js'),
+      'C:\\Program Files\\nodejs\\node_modules\\openzca\\dist\\cli.js',
+    );
+  } else {
+    candidates.push(
+      '/opt/homebrew/lib/node_modules/openzca/dist/cli.js',
+      '/usr/local/lib/node_modules/openzca/dist/cli.js',
+      '/opt/local/lib/node_modules/openzca/dist/cli.js',
+      path.join(HOME, '.npm-global/lib/node_modules/openzca/dist/cli.js'),
+      path.join(HOME, '.local/lib/node_modules/openzca/dist/cli.js'),
+    );
+    try {
+      const nvmDir = path.join(HOME, '.nvm', 'versions', 'node');
+      if (fs.existsSync(nvmDir)) {
+        for (const v of fs.readdirSync(nvmDir)) {
+          candidates.push(path.join(nvmDir, v, 'lib', 'node_modules', 'openzca', 'dist', 'cli.js'));
+        }
+      }
+    } catch {}
+    try {
+      const vendorCli = path.join(process.resourcesPath || '', 'vendor', 'node_modules', 'openzca', 'dist', 'cli.js');
+      candidates.push(vendorCli);
+    } catch {}
+  }
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) { _cachedOpenzcaCliJs = p; return p; } } catch {}
+  }
+  return null;
+}
+
+// Seed a single group's history summary. Returns { ok, reason }.
+//   - ok=true  → file updated (or already seeded / skipped for valid reason)
+//   - ok=false → transient failure; leave "(chưa có)" so next boot retries
+async function seedGroupHistorySummary(groupId, threadName) {
+  const placeholder = '(chưa có)';
+  try {
+    const dir = getZaloGroupsDir && getZaloGroupsDir();
+    if (!dir) return { ok: false, reason: 'no-groups-dir' };
+    const filePath = path.join(dir, `${groupId}.md`);
+    if (!fs.existsSync(filePath)) return { ok: true, reason: 'no-metadata-file' };
+    let content;
+    try { content = fs.readFileSync(filePath, 'utf-8'); }
+    catch { return { ok: false, reason: 'read-failed' }; }
+    // Only proceed if at least one section still has the placeholder.
+    const hasTopicsPlaceholder   = /##\s+Chủ đề thường thảo luận\s*\n\(chưa có\)/.test(content);
+    const hasMembersPlaceholder  = /##\s+Thành viên key\s*\n\(chưa có\)/.test(content);
+    const hasDecisionPlaceholder = /##\s+Quyết định\/thông báo gần đây\s*\n\(chưa có\)/.test(content);
+    if (!hasTopicsPlaceholder && !hasMembersPlaceholder && !hasDecisionPlaceholder) {
+      return { ok: true, reason: 'already-seeded' };
+    }
+    const cliJs = findOpenzcaCliJs();
+    if (!cliJs) return { ok: false, reason: 'openzca-cli-not-found' };
+    const nodeBin = findNodeBin();
+    if (!nodeBin) return { ok: false, reason: 'node-not-found' };
+    // Fetch last 30 messages from Zalo's live history for this group.
+    const stdout = await new Promise((resolve) => {
+      let out = '', err = '';
+      const child = spawn(nodeBin, [cliJs, '--profile', 'default', 'msg', 'recent', groupId, '-g', '-n', '30', '--source', 'live', '-j'], {
+        shell: false,
+        windowsHide: true,
+        timeout: 15000,
+      });
+      child.stdout.on('data', d => out += d.toString());
+      child.stderr.on('data', d => err += d.toString());
+      child.on('error', () => resolve({ out: '', err: 'spawn-error' }));
+      child.on('exit', (code) => resolve({ out, err, code }));
+    });
+    if (!stdout || !stdout.out) return { ok: false, reason: 'no-stdout' };
+    // openzca returns rate-limit error on stderr occasionally. Bail this run.
+    if (stdout.err && /rate|429/i.test(stdout.err)) return { ok: false, reason: 'rate-limited' };
+    let msgs;
+    try {
+      const parsed = JSON.parse(stdout.out);
+      msgs = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.messages) ? parsed.messages : null);
+    } catch { return { ok: false, reason: 'json-parse-failed' }; }
+    if (!msgs || msgs.length === 0) {
+      // New group with no pre-bot history → nothing to summarize. Leave placeholder.
+      return { ok: true, reason: 'empty-history' };
+    }
+    // Format messages for the prompt.
+    const formatted = msgs.map(m => {
+      const ts = m.timestamp || m.ts || m.time || '';
+      const name = String(m.senderName || m.fromName || m.sender || 'unknown').trim().slice(0, 40);
+      const body = String(m.body || m.content || m.text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+      if (!body) return null;
+      return `[${ts}] ${name}: ${body}`;
+    }).filter(Boolean).join('\n');
+    if (!formatted) return { ok: true, reason: 'no-text-messages' };
+    const prompt = `Dưới đây là 30 tin nhắn gần nhất trong nhóm Zalo "${threadName || 'không tên'}".\n` +
+      `Hãy tóm tắt ngắn gọn thành 3 phần:\n` +
+      `1. CHỦ ĐỀ THƯỜNG THẢO LUẬN: 2-4 bullet, mỗi bullet <20 từ.\n` +
+      `2. THÀNH VIÊN KEY: 2-4 bullet, format "Tên/ID — vai trò hoặc đặc điểm".\n` +
+      `3. QUYẾT ĐỊNH/THÔNG BÁO GẦN ĐÂY: 2-4 bullet, mỗi bullet <25 từ.\n` +
+      `Không thêm phần nào khác. Không viết emoji. Tiếng Việt tự nhiên.\n` +
+      `--- TIN NHẮN ---\n${formatted}`;
+    const llmOut = await call9Router(prompt, { maxTokens: 800, temperature: 0.3, timeoutMs: 20000 });
+    if (!llmOut) return { ok: false, reason: '9router-failed' };
+    // Parse 3 sections out of LLM response. Accept headings like "1.", "CHỦ ĐỀ...",
+    // "## CHỦ ĐỀ...", etc. Regex-based split on the key labels (case-insensitive).
+    const sectionPattern = /(?:^|\n)\s*(?:##\s*|\d+[.)]\s*|\*\*\s*)?(CHỦ ĐỀ[^\n:]*|THÀNH VIÊN[^\n:]*|QUYẾT ĐỊNH[^\n:]*)[:\s]*\n?/gi;
+    const parts = {};
+    const matches = [...llmOut.matchAll(sectionPattern)];
+    for (let i = 0; i < matches.length; i++) {
+      const m = matches[i];
+      const headerUpper = m[1].toUpperCase();
+      const startIdx = m.index + m[0].length;
+      const endIdx = (i + 1 < matches.length) ? matches[i + 1].index : llmOut.length;
+      let body = llmOut.slice(startIdx, endIdx).trim();
+      // Strip surrounding ** if any, normalize bullet prefix
+      body = body.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        const stripped = l.replace(/^[-*•·]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
+        return stripped ? `- ${stripped}` : '';
+      }).filter(Boolean).join('\n');
+      if (!body) continue;
+      if (/CHỦ ĐỀ/i.test(headerUpper)) parts.topics = body;
+      else if (/THÀNH VIÊN/i.test(headerUpper)) parts.members = body;
+      else if (/QUYẾT ĐỊNH/i.test(headerUpper)) parts.decisions = body;
+    }
+    if (!parts.topics && !parts.members && !parts.decisions) {
+      return { ok: false, reason: 'llm-unparseable' };
+    }
+    // Rewrite the MD file — replace each "(chưa có)" placeholder only if we got
+    // content for that section. Preserve file structure otherwise.
+    let updated = content;
+    if (parts.topics && hasTopicsPlaceholder) {
+      updated = updated.replace(/(##\s+Chủ đề thường thảo luận\s*\n)\(chưa có\)/, `$1${parts.topics}`);
+    }
+    if (parts.members && hasMembersPlaceholder) {
+      updated = updated.replace(/(##\s+Thành viên key\s*\n)\(chưa có\)/, `$1${parts.members}`);
+    }
+    if (parts.decisions && hasDecisionPlaceholder) {
+      updated = updated.replace(/(##\s+Quyết định\/thông báo gần đây\s*\n)\(chưa có\)/, `$1${parts.decisions}`);
+    }
+    // Update front-matter lastActivity
+    updated = updated.replace(/^(lastActivity:\s*)[^\n]*$/m, `$1${new Date().toISOString()}`);
+    // Append an auto-seed footer comment once (only if not already present)
+    if (!/auto-seeded via history summary/i.test(updated)) {
+      updated = updated.trimEnd() + `\n\n*Lịch sử nhóm được tự động tóm tắt từ ${msgs.length} tin gần nhất lúc ${new Date().toISOString().slice(0, 19)} (auto-seeded via history summary).*\n`;
+    }
+    if (updated === content) return { ok: true, reason: 'no-change' };
+    // Atomic-ish write: temp + rename. Safe enough for MD.
+    const tmpPath = filePath + '.tmp-' + Date.now();
+    try {
+      fs.writeFileSync(tmpPath, updated, 'utf-8');
+      fs.renameSync(tmpPath, filePath);
+    } catch (e) {
+      try { fs.unlinkSync(tmpPath); } catch {}
+      return { ok: false, reason: 'write-failed: ' + e.message };
+    }
+    console.log(`[group-history-seed] summarized ${msgs.length} messages for group ${groupId}`);
+    try { auditLog('group_history_seeded', { groupId, msgCount: msgs.length, sections: Object.keys(parts) }); } catch {}
+    return { ok: true, reason: 'seeded', msgCount: msgs.length };
+  } catch (e) {
+    return { ok: false, reason: 'exception: ' + (e && e.message ? e.message : String(e)) };
+  }
+}
+
+// Batch-seed all groups with unseeded placeholders. Rate limit: 1 per 3s.
+// Bail on rate-limit error. Fire-and-forget from startOpenClaw, never blocks boot.
+let _groupHistorySeedInFlight = false;
+async function seedAllGroupHistories({ source = 'auto' } = {}) {
+  if (_groupHistorySeedInFlight) {
+    return { started: false, reason: 'already-running' };
+  }
+  _groupHistorySeedInFlight = true;
+  const stats = { scanned: 0, seeded: 0, skipped: 0, failed: 0, failures: [] };
+  try {
+    const dir = getZaloGroupsDir && getZaloGroupsDir();
+    if (!dir || !fs.existsSync(dir)) {
+      return { started: true, ...stats, reason: 'no-groups-dir' };
+    }
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+    for (const f of files) {
+      stats.scanned++;
+      const groupId = f.replace(/\.md$/, '');
+      let threadName = groupId;
+      try {
+        const raw = fs.readFileSync(path.join(dir, f), 'utf-8');
+        const m = raw.match(/^name:\s*([^\n]+)/m);
+        if (m) threadName = m[1].trim();
+      } catch {}
+      const r = await seedGroupHistorySummary(groupId, threadName);
+      if (r.ok && r.reason === 'seeded') stats.seeded++;
+      else if (r.ok) stats.skipped++;
+      else {
+        stats.failed++;
+        stats.failures.push({ groupId, reason: r.reason });
+        // Hard bail on rate-limit so we don't hammer Zalo.
+        if (r.reason === 'rate-limited') {
+          console.warn('[group-history-seed] rate-limited — bailing this run');
+          break;
+        }
+      }
+      // 3s stagger between calls
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    console.log(`[group-history-seed] ${source} run done: scanned=${stats.scanned} seeded=${stats.seeded} skipped=${stats.skipped} failed=${stats.failed}`);
+    return { started: true, ...stats };
+  } finally {
+    _groupHistorySeedInFlight = false;
+  }
+}
+
 // Cookie expiry monitor — checks once per day, alerts CEO when Zalo
 // credentials.json mtime is >10 days (warning) or >13 days (critical).
 // Zalo web session cookies typically last ~14 days. Proactive alert lets CEO
@@ -8182,6 +8421,32 @@ ipcMain.handle('get-zalo-group-summaries', async () => {
   } catch (e) {
     console.error('[zalo-group-memory] error:', e?.message);
     return {};
+  }
+});
+
+// Manually re-seed a single group's history summary (dashboard "refresh context").
+// Returns { ok, reason, msgCount? }.
+ipcMain.handle('seed-group-history-now', async (_evt, groupId, threadName) => {
+  try {
+    if (!groupId || typeof groupId !== 'string') return { ok: false, reason: 'invalid-groupId' };
+    return await seedGroupHistorySummary(groupId, threadName || groupId);
+  } catch (e) {
+    return { ok: false, reason: 'exception: ' + (e && e.message ? e.message : String(e)) };
+  }
+});
+
+// Manually trigger batch re-seed across all groups (CEO "refresh all group context").
+// Fire-and-forget: returns immediately with started=true, run continues in background.
+ipcMain.handle('seed-group-history-all', async () => {
+  try {
+    if (_groupHistorySeedInFlight) return { started: false, reason: 'already-running' };
+    // Kick off in background, return immediately so dashboard isn't blocked.
+    seedAllGroupHistories({ source: 'ipc-manual' }).catch(e => {
+      console.warn('[group-history-seed] manual run error:', e && e.message ? e.message : String(e));
+    });
+    return { started: true };
+  } catch (e) {
+    return { started: false, reason: 'exception: ' + (e && e.message ? e.message : String(e)) };
   }
 });
 
