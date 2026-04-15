@@ -337,16 +337,17 @@
     .zalo-mgr-row:hover { background:var(--surface); }
     .zalo-mgr-row:last-child { border-bottom:none; }
     /* Zalo cards — distinct card per group/user, colored by state */
-    .zc { padding:10px 14px; border-radius:10px; margin-bottom:8px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; gap:12px; transition:box-shadow 0.15s, border-color 0.15s; }
+    .zc { padding:10px 14px; border-radius:10px; margin-bottom:8px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; gap:12px; transition:box-shadow 0.15s, border-color 0.15s; min-width:0; overflow:hidden; }
     .zc:hover { box-shadow:var(--shadow-sm); border-color:var(--border-strong); }
     .zc:last-child { margin-bottom:0; }
     .zc .zc-avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg); border:1px solid var(--border); }
     .zc .zc-avatar-fallback { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); }
-    .zc .zc-body { flex:1; min-width:0; }
-    .zc .zc-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
+    .zc .zc-body { flex:1 1 0; min-width:0; overflow:hidden; }
+    .zc .zc-name { display:flex; align-items:center; gap:8px; min-width:0; line-height:1.3; }
+    .zc .zc-name-text { font-size:14px; font-weight:600; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .zc .zc-meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .zc .zc-badge { display:inline-flex; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.2px; margin-left:8px; vertical-align:middle; white-space:nowrap; }
-    .zc .zc-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .zc .zc-badge { display:inline-flex; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:0.2px; vertical-align:middle; white-space:nowrap; flex-shrink:0; }
+    .zc .zc-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-basis:auto; }
     /* 3 state colors: green (all/on), yellow (mention), red (off/blocked) */
     .zc-state-on { border-left:4px solid #22c55e; }
     .zc-state-on .zc-badge { background:rgba(34,197,94,0.15); color:#16a34a; }
@@ -4320,7 +4321,7 @@
         return `<div class="zc ${stateClass}">
             ${avatarHtml}
             <div class="zc-body">
-              <div class="zc-name">${esc(g.name)}<span class="zc-badge">${badgeLabel}</span></div>
+              <div class="zc-name"><span class="zc-name-text" title="${escAttr(g.name)}">${esc(g.name)}</span><span class="zc-badge">${badgeLabel}</span></div>
               <div class="zc-meta">${esc(metaParts.join(' · '))}</div>
             </div>
             <div class="zc-actions">
