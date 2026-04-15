@@ -12152,6 +12152,107 @@ function startChannelStatusBroadcast() {
   }
 }
 
+// ============================================
+//  FAST SELF-HEAL WATCHDOG — 20s interval
+//  Goal: <30s downtime on any component failure
+//  Separate from cron heartbeat (runs every 10-30 min).
+// ============================================
+let _fastWatchdogInterval = null;
+let _fwGatewayFailCount = 0;
+let _fwZaloMissCount = 0;
+let _fw9routerRestartCount = 0;
+let _fwGatewayRestartCount = 0;
+const FW_INTERVAL_MS = 20000;
+const FW_RECHECK_MS = 3000;
+const FW_MAX_RESTARTS_PER_HOUR = 5;
+let _fwRestartTimestamps = []; // track restart times for rate limiting
+
+function _fwCanRestart() {
+  const now = Date.now();
+  _fwRestartTimestamps = _fwRestartTimestamps.filter(t => now - t < 3600000);
+  return _fwRestartTimestamps.length < FW_MAX_RESTARTS_PER_HOUR;
+}
+
+function startFastWatchdog() {
+  if (_fastWatchdogInterval) clearInterval(_fastWatchdogInterval);
+  // Delay first tick 30s to let boot complete
+  setTimeout(() => {
+    _fastWatchdogInterval = setInterval(fastWatchdogTick, FW_INTERVAL_MS);
+  }, 30000);
+}
+
+async function fastWatchdogTick() {
+  if (_appIsQuitting || !botRunning) return;
+  if (_startOpenClawInFlight || _gatewayRestartInFlight) return;
+
+  try {
+    // --- 9Router watchdog ---
+    if (!routerProcess) {
+      // Process gone — check if port is also dead
+      const https = require('https');
+      const routerAlive = await new Promise(r => {
+        const req = require('http').get('http://127.0.0.1:20128/v1/models', { timeout: 3000 }, (res) => {
+          res.resume(); r(res.statusCode === 200);
+        });
+        req.on('error', () => r(false));
+        req.on('timeout', () => { req.destroy(); r(false); });
+      });
+      if (!routerAlive && _fwCanRestart()) {
+        console.log('[fast-watchdog] 9Router dead — restarting');
+        _fwRestartTimestamps.push(Date.now());
+        _fw9routerRestartCount++;
+        try { start9Router(); } catch (e) { console.error('[fast-watchdog] 9Router restart error:', e.message); }
+      }
+    }
+
+    // --- Gateway watchdog ---
+    const gwAlive = await isGatewayAlive(4000);
+    if (!gwAlive) {
+      _fwGatewayFailCount++;
+      if (_fwGatewayFailCount === 1) {
+        // First fail — recheck after 3s
+        await new Promise(r => setTimeout(r, FW_RECHECK_MS));
+        const gwAlive2 = await isGatewayAlive(4000);
+        if (gwAlive2) {
+          _fwGatewayFailCount = 0; // recovered
+          return;
+        }
+      }
+      // 2 consecutive fails — restart
+      if (_fwGatewayFailCount >= 2 && _fwCanRestart()) {
+        console.log('[fast-watchdog] Gateway dead (' + _fwGatewayFailCount + ' fails) — restarting');
+        _fwGatewayFailCount = 0;
+        _fwRestartTimestamps.push(Date.now());
+        _fwGatewayRestartCount++;
+        try {
+          await stopOpenClaw();
+          await startOpenClaw();
+        } catch (e) { console.error('[fast-watchdog] gateway restart error:', e.message); }
+      }
+    } else {
+      _fwGatewayFailCount = 0;
+      // --- Zalo listener sub-check (only when gateway alive) ---
+      const zlPid = findOpenzcaListenerPid();
+      if (!zlPid) {
+        _fwZaloMissCount++;
+        if (_fwZaloMissCount >= 2 && _fwCanRestart()) {
+          console.log('[fast-watchdog] Zalo listener missing (' + _fwZaloMissCount + ' misses) — restarting gateway');
+          _fwZaloMissCount = 0;
+          _fwRestartTimestamps.push(Date.now());
+          try {
+            await stopOpenClaw();
+            await startOpenClaw();
+          } catch (e) { console.error('[fast-watchdog] Zalo restart error:', e.message); }
+        }
+      } else {
+        _fwZaloMissCount = 0;
+      }
+    }
+  } catch (e) {
+    console.warn('[fast-watchdog] tick error:', e.message);
+  }
+}
+
 async function registerTelegramCommands() {
   const { token } = getTelegramConfig();
   if (!token) return;
@@ -16254,6 +16355,12 @@ app.whenReady().then(async () => {
   setTimeout(() => {
     checkForUpdates().catch(e => console.warn('[update] boot check failed:', e?.message));
   }, 15000);
+  // Fast self-heal watchdog — 20s interval, separate from cron heartbeat.
+  // Goal: <30s downtime on any component failure.
+  // Gateway: 1st fail → 3s recheck → 2nd fail → immediate restart (~25s total)
+  // 9Router: dead (routerProcess=null + port down) → restart immediately
+  // Zalo listener: 2 consecutive misses → restart gateway (~45s total)
+  startFastWatchdog();
 }).catch(console.error);
 
 app.on('window-all-closed', () => {});
@@ -16271,6 +16378,7 @@ function _beforeQuitCleanup() {
   try { if (_channelStatusInterval) { clearInterval(_channelStatusInterval); _channelStatusInterval = null; } } catch (e2) { console.warn('[before-quit] _channelStatusInterval:', e2?.message); }
   try { if (_watchPollerInterval) { clearInterval(_watchPollerInterval); _watchPollerInterval = null; } } catch (e2) { console.warn('[before-quit] _watchPollerInterval:', e2?.message); }
   try { if (global._telegramCmdInterval) { clearInterval(global._telegramCmdInterval); global._telegramCmdInterval = null; } } catch (e2) { console.warn('[before-quit] _telegramCmdInterval:', e2?.message); }
+  try { if (_fastWatchdogInterval) { clearInterval(_fastWatchdogInterval); _fastWatchdogInterval = null; } } catch (e2) { console.warn('[before-quit] _fastWatchdogInterval:', e2?.message); }
 
   // (2) Clear boot-phase timeouts + close fs.watch handles
   try {
@@ -16289,8 +16397,13 @@ function _beforeQuitCleanup() {
   // (3) Stop all cron jobs — node-cron tasks hold setInterval internally
   try { stopCronJobs(); } catch (e2) { console.warn('[before-quit] stopCronJobs:', e2?.message); }
 
-  // (4) Stop child processes
+  // (4) Stop child processes — synchronous kill (stopOpenClaw is async, can't await here)
+  // Fire stopOpenClaw for its proc.kill + await-exit logic, but also do
+  // synchronous killPort + killAll as belt-and-suspenders (the async parts
+  // of stopOpenClaw may not complete before app.exit fires).
   try { stopOpenClaw(); } catch (e2) { console.warn('[before-quit] stopOpenClaw:', e2?.message); }
+  try { killPort(18789); } catch {}
+  try { killAllOpenClawProcesses(); } catch {}
   try { cleanupOrphanZaloListener(); } catch {}
   try { stop9Router(); } catch (e2) { console.warn('[before-quit] stop9Router:', e2?.message); }
 }
