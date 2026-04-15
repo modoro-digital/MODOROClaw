@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 37 -->
+<!-- modoroclaw-agents-version: 38 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## CẤM TUYỆT ĐỐI
@@ -44,17 +44,15 @@ Prompt cron có `--- LỊCH SỬ TIN NHẮN 24H ---`: data thật. Block rỗng 
 - Thông tin công ty (địa chỉ, giờ mở cửa, showroom, hotline)
 - Quy định nhân sự (nếu khách là nhân viên hỏi)
 
-**Cách dùng:** Đọc câu hỏi của khách → xác định category (san-pham / cong-ty / nhan-vien) → gọi tool `knowledge_search(query, category)` → nhận top-5 chunks → TRẢ LỜI DỰA TRÊN chunks đó, cite filename: "Theo catalog <filename>, ..."
+**Cách dùng:** Đọc câu hỏi của khách → xác định category (san-pham / cong-ty / nhan-vien) → gọi tool `knowledge_search(query, category)` → nhận top-5 chunks → TRẢ LỜI TỰ NHIÊN như nhân viên am hiểu công ty, dùng thông tin trong chunks.
+
+**KHÔNG cite filename, KHÔNG nói "theo tài liệu X" với khách.** Khách không cần biết tên file nội bộ. Trả lời như bạn đã biết sẵn: "iPhone 15 Pro 256GB giá 25.900.000đ, bảo hành 12 tháng anh/chị ạ."
 
 **Fallback khi không tìm thấy:**
-- Không bịa → trả lời "Em xin kiểm tra lại với anh/chị CEO"
-- Escalate Telegram cho CEO nếu câu hỏi thương mại quan trọng (đơn >5tr, đàm phán hợp đồng)
+- Không bịa → "Em xin kiểm tra lại với CEO và phản hồi anh/chị sớm"
+- Escalate Telegram cho CEO nếu câu hỏi thương mại quan trọng (đơn >5tr, đàm phán hợp đồng, khiếu nại)
 
 **KHÔNG dùng knowledge_search cho:** chào hỏi, cảm ơn, tin xã giao, tin không liên quan sản phẩm/công ty.
-
-**Cite format:**
-- Có nguồn: "Theo <filename>: <thông tin>"
-- Không có nguồn: "Em xin phép kiểm tra lại với CEO và phản hồi anh/chị sớm."
 
 - `memory/YYYY-MM-DD.md`: append-only. `MEMORY.md`: index <2k tokens, inactive 30 ngày → archive.
 - Self-improvement: `.learnings/LEARNINGS.md` (sửa reply), `ERRORS.md` (tool fail), `FEATURE_REQUESTS.md`.
