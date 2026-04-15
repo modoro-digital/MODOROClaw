@@ -490,6 +490,7 @@
     .ready-dot[data-state="not-ready"] { background:#ef4444; box-shadow:0 0 0 2px var(--surface), 0 0 6px rgba(239,68,68,0.6); }
     .ready-dot[data-state="checking"] { background:#94a3b8; animation:pulse-dot 1.4s ease-in-out infinite; }
     @keyframes pulse-dot { 0%,100%{opacity:0.5} 50%{opacity:1} }
+    @keyframes pulse-update { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
     /* Inline status pill in channel page headers — explicit text for CEO */
     .ready-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:500; line-height:1; }
     .ready-pill[data-state="ready"] { background:rgba(34,197,94,0.12); color:#16a34a; border:1px solid rgba(34,197,94,0.3); }
@@ -1803,7 +1804,7 @@
           <h1>9BizClaw</h1>
           <div class="sidebar-brand-tagline">Trợ lý AI doanh nghiệp</div>
           <div class="sidebar-brand-version" id="sidebar-version">v—</div>
-          <div id="update-banner" style="display:none; margin-top:6px; padding:6px 10px; background:var(--primary); color:#fff; border-radius:6px; font-size:11px; cursor:pointer; text-align:center; line-height:1.4;" onclick="startUpdate()">
+          <div id="update-banner" style="display:none; margin-top:8px; padding:10px 14px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; text-align:center; line-height:1.5; box-shadow:0 2px 8px rgba(37,99,235,0.4); animation:pulse-update 2s ease-in-out infinite;" onclick="startUpdate()">
             <span id="update-banner-text"></span>
           </div>
         </div>
@@ -5055,26 +5056,34 @@
       const banner = document.getElementById('update-banner');
       const text = document.getElementById('update-banner-text');
       if (!banner || !text) return;
-      text.innerHTML = '<b>v' + esc(info.version) + '</b> &mdash; Nh&#7845;n &#273;&#7875; c&#7853;p nh&#7853;t';
+      text.innerHTML = 'v' + esc(info.version) + ' &mdash; Nh&#7845;n &#273;&#7875; c&#7853;p nh&#7853;t';
       banner.style.display = 'block';
+      // Prominent toast so user can't miss it
+      showToast('B&#7843;n m&#7899;i v' + esc(info.version) + ' — nh&#7845;n banner xanh trong sidebar &#273;&#7875; c&#7853;p nh&#7853;t', 'success', 8000);
     }
     async function startUpdate() {
       if (!_pendingUpdate) return;
       const banner = document.getElementById('update-banner');
       const text = document.getElementById('update-banner-text');
-      if (text) text.innerHTML = '&#272;ang t&#7843;i...';
+      if (text) text.innerHTML = '&#272;ang t&#7843;i... 0%';
+      if (banner) banner.style.animation = 'none';
+      showToast('B&#7855;t &#273;&#7847;u t&#7843;i b&#7843;n c&#7853;p nh&#7853;t...', 'info', 3000);
       try {
         const r = await window.claw.downloadAndInstallUpdate();
         if (r && r.method === 'browser') {
           if (text) text.innerHTML = '&#272;&#227; m&#7903; trang t&#7843;i v&#7873;';
+          showToast('&#272;&#227; m&#7903; trang t&#7843;i v&#7873; trong tr&#236;nh duy&#7879;t', 'success', 5000);
         } else if (r && r.method === 'installer') {
           if (text) text.innerHTML = '&#272;ang c&#224;i... &#272;&#7907;i kh&#7903;i &#273;&#7897;ng l&#7841;i';
+          showToast('Installer &#273;ang ch&#7841;y — app s&#7869; t&#7921; t&#7855;t', 'success', 10000);
         } else if (r && !r.success) {
           if (text) text.textContent = 'Loi: ' + (r.error || '');
+          showToast('C&#7853;p nh&#7853;t th&#7845;t b&#7841;i: ' + esc(r.error || ''), 'error', 5000);
           setTimeout(() => { if (banner) banner.style.display = 'none'; }, 5000);
         }
       } catch (e) {
         if (text) text.textContent = 'Loi: ' + e.message;
+        showToast('L&#7895;i: ' + esc(e.message), 'error', 5000);
         setTimeout(() => { if (banner) banner.style.display = 'none'; }, 5000);
       }
     }
