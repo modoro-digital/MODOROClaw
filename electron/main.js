@@ -690,7 +690,7 @@ function seedWorkspace() {
   try {
     const shopStatePath = path.join(ws, 'shop-state.json');
     if (!fs.existsSync(shopStatePath)) {
-      fs.writeFileSync(shopStatePath, JSON.stringify({
+      writeJsonAtomic(shopStatePath, {
         updatedAt: new Date().toISOString(),
         updatedBy: 'seed',
         outOfStock: [],
@@ -699,7 +699,7 @@ function seedWorkspace() {
         activePromotions: [],
         earlyClosing: { active: false, time: null },
         specialNotes: '',
-      }, null, 2), 'utf-8');
+      });
     }
   } catch {}
 
@@ -777,7 +777,7 @@ function seedWorkspace() {
         };
       }
 
-      fs.writeFileSync(mixJsonPath, JSON.stringify(mixToSeed, null, 2), 'utf-8');
+      writeJsonAtomic(mixJsonPath, mixToSeed);
       if (typeof compilePersonaMix === 'function') {
         fs.writeFileSync(compiledPath, compilePersonaMix(mixToSeed), 'utf-8');
       }
@@ -791,7 +791,7 @@ function seedWorkspace() {
   // ALWAYS ensure runtime files exist (dev + packaged)
   const schedulesFile = path.join(ws, 'schedules.json');
   if (!fs.existsSync(schedulesFile)) {
-    try { fs.writeFileSync(schedulesFile, JSON.stringify(DEFAULT_SCHEDULES_JSON, null, 2), 'utf-8'); } catch {}
+    try { writeJsonAtomic(schedulesFile, DEFAULT_SCHEDULES_JSON); } catch {}
   }
   // INTENTIONAL: custom-crons.json is NOT in `templateFiles` above. It is user
   // data, never a template. Packaged fresh installs always get an empty list
@@ -799,11 +799,11 @@ function seedWorkspace() {
   // the repo get whatever is in the source tree (their problem to manage).
   const customCronsFile = path.join(ws, 'custom-crons.json');
   if (!fs.existsSync(customCronsFile)) {
-    try { fs.writeFileSync(customCronsFile, '[]', 'utf-8'); } catch {}
+    try { writeJsonAtomic(customCronsFile, []); } catch {}
   }
   const blocklistFile = path.join(ws, 'zalo-blocklist.json');
   if (!fs.existsSync(blocklistFile)) {
-    try { fs.writeFileSync(blocklistFile, '[]', 'utf-8'); } catch {}
+    try { writeJsonAtomic(blocklistFile, []); } catch {}
   }
 
   // Zalo per-user memory dir (bot writes <senderId>.md per customer).
@@ -2580,13 +2580,12 @@ function hasCompletedOnboarding() {
 function markOnboardingComplete(source = 'wizard') {
   try {
     const p = getSetupCompletePath();
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify({
+    writeJsonAtomic(p, {
       completed: true,
       source,
       at: new Date().toISOString(),
       appVersion: app?.getVersion?.() || null,
-    }, null, 2), 'utf-8');
+    });
     return true;
   } catch (e) {
     console.error('[setup-complete] write error:', e.message);
@@ -2744,7 +2743,7 @@ function loadAppPrefs() {
   try {
     const p = getAppPrefsPath();
     if (!fs.existsSync(p)) {
-      try { fs.writeFileSync(p, JSON.stringify(defaults, null, 2) + '\n'); } catch {}
+      try { writeJsonAtomic(p, defaults); } catch {}
       return { ...defaults };
     }
     const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
@@ -2759,7 +2758,7 @@ function saveAppPrefs(partial) {
   try {
     const cur = loadAppPrefs();
     const next = { ...cur, ...(partial && typeof partial === 'object' ? partial : {}) };
-    fs.writeFileSync(getAppPrefsPath(), JSON.stringify(next, null, 2) + '\n');
+    writeJsonAtomic(getAppPrefsPath(), next);
     return next;
   } catch (e) {
     console.warn('[app-prefs] save failed:', e?.message || e);
@@ -2900,6 +2899,69 @@ function sanitizeOpenClawConfigInPlace(config) {
       }
     }
   }
+}
+
+// =====================================================================
+// Atomic JSON writer — tmp-file + rename. Prevents half-written JSON when
+// the process crashes or antivirus interrupts between bytes. Drop-in for
+// `fs.writeFileSync(p, JSON.stringify(x, null, 2), 'utf-8')` against any
+// workspace JSON (schedules, custom-crons, zalo-*, follow-up-queue, ...).
+//
+// Do NOT use for openclaw.json — that has its own byte-equal guard via
+// writeOpenClawConfigIfChanged (rename would change inode and wake
+// openclaw's external-write detector → spurious "Gateway is restarting").
+// =====================================================================
+function writeJsonAtomic(filePath, data) {
+  const serialized = JSON.stringify(data, null, 2) + '\n';
+  const tmp = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+  try {
+    try { fs.mkdirSync(path.dirname(filePath), { recursive: true }); } catch {}
+    fs.writeFileSync(tmp, serialized, 'utf-8');
+    try {
+      fs.renameSync(tmp, filePath);
+    } catch (e1) {
+      // Windows + antivirus can transiently hold the target and make
+      // renameSync throw EBUSY/EPERM/EACCES. One retry after 100ms covers
+      // the vast majority of real-world flakes without blocking the caller.
+      const wait = Date.now() + 100;
+      while (Date.now() < wait) { /* short sync spin — 100ms */ }
+      try {
+        fs.renameSync(tmp, filePath);
+      } catch (e2) {
+        try {
+          const msg = `[writeJsonAtomic] rename fail: ${filePath} — ${e2.message}`;
+          if (typeof console !== 'undefined') console.error(msg);
+          try { logToFile && logToFile(msg); } catch {}
+        } catch {}
+        // Cleanup tmp before throwing so we don't leak tmp files.
+        try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch {}
+        throw e2;
+      }
+    }
+    return true;
+  } catch (e) {
+    // Ensure tmp cleanup on any path
+    try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch {}
+    throw e;
+  }
+}
+
+// =====================================================================
+// Single-writer mutex for openclaw.json read-modify-write sequences.
+// Multiple IPC handlers (save-zalo-manager-config, save-wizard-config,
+// set-batch-config, getTelegramConfigWithRecovery, setZaloChannelEnabled,
+// resume-zalo) all do: read → mutate → writeOpenClawConfigIfChanged.
+// Without serialization, two concurrent handlers can both read the same
+// snapshot, mutate independently, and the last writer silently clobbers
+// the first one's changes (TOCTOU).
+//
+// Usage: await withOpenClawConfigLock(async () => { ...read/mutate/write... })
+// =====================================================================
+let _openClawConfigMutex = Promise.resolve();
+function withOpenClawConfigLock(fn) {
+  const run = _openClawConfigMutex.then(() => fn());
+  _openClawConfigMutex = run.catch(() => {});
+  return run;
 }
 
 function writeOpenClawConfigIfChanged(configPath, config) {
@@ -3149,6 +3211,11 @@ function stop9Router() {
 }
 
 async function ensureDefaultConfig() {
+  // Wrap the entire read-modify-write in the global openclaw.json mutex.
+  // This fn runs at boot AND reactively (startOpenClaw from heartbeat / save-zalo-manager
+  // / wizard-complete) so it can race with IPC handlers that mutate the same file.
+  return withOpenClawConfigLock(async () => {
+  console.log('[config-lock] ensureDefaultConfig acquired');
   // Patch openclaw.json directly — no CLI "restart to apply" issue
   const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
   try {
@@ -3375,6 +3442,7 @@ async function ensureDefaultConfig() {
       fs.appendFileSync(errFile, `${new Date().toISOString()} ensureDefaultConfig: ${e?.message || e}\n`, 'utf-8');
     } catch {}
   }
+  });
 }
 
 // Check if gateway is already running on port 18789
@@ -5760,7 +5828,7 @@ async function _startOpenClawImpl() {
     try { if (fs.existsSync(_bootPingTsFile)) return JSON.parse(fs.readFileSync(_bootPingTsFile, 'utf-8')); } catch {} return {};
   };
   const _saveBootPingTs = (channel) => {
-    try { const d = _loadBootPingTs(); d[channel] = Date.now(); fs.writeFileSync(_bootPingTsFile, JSON.stringify(d), 'utf-8'); } catch {}
+    try { const d = _loadBootPingTs(); d[channel] = Date.now(); writeJsonAtomic(_bootPingTsFile, d); } catch {}
   };
   const readyNotifyThrottled = (channel) => {
     const inMemory = notifyState[channel]?.lastNotifyOkAt || 0;
@@ -6935,18 +7003,21 @@ async function _ensureZaloPluginImpl() {
           // Also ensure the plugin entry exists in openclaw.json, but mirror
           // the actual master Zalo enabled flag so copied plugin files do not
           // silently turn Zalo back on.
-          try {
-            const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
-            if (fs.existsSync(configPath)) {
-              const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-              if (!cfg.plugins) cfg.plugins = {};
-              if (!cfg.plugins.entries) cfg.plugins.entries = {};
-              const wantOpenzaloEnabled = cfg?.channels?.openzalo?.enabled !== false;
-              if (!cfg.plugins.entries.openzalo) cfg.plugins.entries.openzalo = { enabled: wantOpenzaloEnabled };
-              else cfg.plugins.entries.openzalo.enabled = wantOpenzaloEnabled;
-              writeOpenClawConfigIfChanged(configPath, cfg);
-            }
-          } catch (e) { console.warn('[ensureZaloPlugin] config update failed:', e?.message); }
+          await withOpenClawConfigLock(async () => {
+            try {
+              console.log('[config-lock] ensureZaloPlugin acquired');
+              const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+              if (fs.existsSync(configPath)) {
+                const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+                if (!cfg.plugins) cfg.plugins = {};
+                if (!cfg.plugins.entries) cfg.plugins.entries = {};
+                const wantOpenzaloEnabled = cfg?.channels?.openzalo?.enabled !== false;
+                if (!cfg.plugins.entries.openzalo) cfg.plugins.entries.openzalo = { enabled: wantOpenzaloEnabled };
+                else cfg.plugins.entries.openzalo.enabled = wantOpenzaloEnabled;
+                writeOpenClawConfigIfChanged(configPath, cfg);
+              }
+            } catch (e) { console.warn('[ensureZaloPlugin] config update failed:', e?.message); }
+          });
           // CRITICAL: after copying the plugin OUT of vendor/node_modules, its
           // hoisted dependencies (zod etc) are no longer reachable via Node's
           // normal module resolution. The plugin is "type": "module" (ESM) so
@@ -7193,7 +7264,7 @@ ipcMain.handle('set-shop-state', async (_event, state) => {
       updatedBy: 'CEO via Dashboard',
       ...(state || {}),
     };
-    fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf-8');
+    writeJsonAtomic(p, payload);
     try { auditLog('shop_state_updated', { fields: Object.keys(state || {}).length }); } catch {}
     return { ok: true };
   } catch (e) {
@@ -7236,7 +7307,7 @@ ipcMain.handle('save-persona-mix', async (_event, mix) => {
     };
     const jsonPath = path.join(ws, 'active-persona.json');
     const mdPath = path.join(ws, 'active-persona.md');
-    fs.writeFileSync(jsonPath, JSON.stringify(normalized, null, 2), 'utf-8');
+    writeJsonAtomic(jsonPath, normalized);
     fs.writeFileSync(mdPath, compilePersonaMix(normalized), 'utf-8');
     try { auditLog('persona_mix_updated', { voice: normalized.voice, traits: normalized.traits.length, formality: normalized.formality }); } catch {}
     console.log('[save-persona-mix] updated via Dashboard');
@@ -7818,7 +7889,7 @@ ipcMain.handle('save-zalo-owner', async (_event, payload) => {
     const name = String((payload && payload.ownerName) || '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, 100);
     if (!userId) return { success: false, error: 'userId rỗng hoặc không hợp lệ' };
     const data = { ownerUserId: userId, ownerName: name, savedAt: new Date().toISOString() };
-    fs.writeFileSync(getZaloOwnerPath(), JSON.stringify(data, null, 2), 'utf-8');
+    writeJsonAtomic(getZaloOwnerPath(), data);
     try { auditLog('zalo_owner_set', { ownerUserId: userId, ownerName: name }); } catch {}
     return { success: true };
   } catch (e) {
@@ -7910,8 +7981,7 @@ function readDashboardPin() {
 function writeDashboardPin(data) {
   try {
     const p = getDashboardPinPath();
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
+    writeJsonAtomic(p, data);
     // Restrict perms (defense in depth — Layer 1 scoped)
     try {
       if (process.platform !== 'win32') {
@@ -8122,7 +8192,9 @@ ipcMain.handle('get-zalo-manager-config', async () => {
 });
 
 ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy, groupAllowFrom, userBlocklist, groupSettings, strangerPolicy }) => {
+  return withOpenClawConfigLock(async () => {
   try {
+    console.log('[config-lock] save-zalo-manager-config acquired');
     // 1. Update openclaw.json (groups handled natively by OpenZalo)
     const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
     if (fs.existsSync(configPath)) {
@@ -8189,7 +8261,7 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
     }
     // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
     const bp = getZaloBlocklistPath();
-    fs.writeFileSync(bp, JSON.stringify(userBlocklist || [], null, 2), 'utf-8');
+    writeJsonAtomic(bp, userBlocklist || []);
     // 3. Write per-group settings (mention/all/off) to workspace.
     // CRITICAL: drop entries with mode='mention' (the implicit default) — only
     // persist EXPLICIT off/all overrides. Otherwise any save bloats the file
@@ -8204,16 +8276,23 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
         filtered[gid] = gs;
       }
       if (Object.keys(filtered).length > 0) {
-        fs.writeFileSync(gsPath, JSON.stringify(filtered, null, 2), 'utf-8');
+        writeJsonAtomic(gsPath, filtered);
       } else if (fs.existsSync(gsPath)) {
         // No explicit overrides — remove file so patch defaults to "all on"
         try { fs.unlinkSync(gsPath); } catch {}
       }
     }
-    // 4. Write stranger policy to workspace
-    if (strangerPolicy) {
+    // 4. Write stranger policy to workspace — mirror groupSettings pattern:
+    // if no explicit strangerPolicy provided, REMOVE file so patch falls back
+    // to plugin default (prevents stale policy file leaking after CEO clears
+    // the field in Dashboard).
+    {
       const spPath = path.join(getWorkspace(), 'zalo-stranger-policy.json');
-      fs.writeFileSync(spPath, JSON.stringify({ mode: strangerPolicy }, null, 2), 'utf-8');
+      if (strangerPolicy) {
+        writeJsonAtomic(spPath, { mode: strangerPolicy });
+      } else if (fs.existsSync(spPath)) {
+        try { fs.unlinkSync(spPath); } catch {}
+      }
     }
     // 5. Restart gateway so config changes take effect immediately.
     // Gateway caches config in-memory — writeOpenClawConfigIfChanged may
@@ -8227,6 +8306,7 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
   } catch (e) {
     return { success: false, error: e.message };
   }
+  });
 });
 
 // Save personalization (industry, tone, pronouns)
@@ -8650,7 +8730,7 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
       if (s.id === 'evening' && s.time !== wEnd) { s.time = wEnd; schedChanged = true; }
     }
     if (schedChanged) {
-      fs.writeFileSync(schedPath, JSON.stringify(schedules, null, 2), 'utf-8');
+      writeJsonAtomic(schedPath, schedules);
       console.log('[save-business-profile] schedules.json updated: morning=' + wStart + ' evening=' + wEnd);
     }
 
@@ -8825,68 +8905,74 @@ ipcMain.handle('setup-google', async () => {
 // Batch config set (for complex nested objects like model providers)
 // Batch config set — write JSON directly
 ipcMain.handle('set-batch-config', async (_event, ops) => {
-  try {
-    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
-    }
-    for (const op of ops) {
-      const parts = op.path.split('.');
-      let obj = config;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
-        obj = obj[parts[i]];
+  return withOpenClawConfigLock(async () => {
+    try {
+      console.log('[config-lock] set-batch-config acquired');
+      const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      let config = {};
+      if (fs.existsSync(configPath)) {
+        try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
       }
-      obj[parts[parts.length - 1]] = op.value;
-    }
-    writeOpenClawConfigIfChanged(configPath, config);
-    return { success: true };
-  } catch (e) { return { success: false, error: e.message }; }
+      for (const op of ops) {
+        const parts = op.path.split('.');
+        let obj = config;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+          obj = obj[parts[i]];
+        }
+        obj[parts[parts.length - 1]] = op.value;
+      }
+      writeOpenClawConfigIfChanged(configPath, config);
+      return { success: true };
+    } catch (e) { return { success: false, error: e.message }; }
+  });
 });
 
 // Save config by writing openclaw.json directly — no CLI dependency
 ipcMain.handle('save-wizard-config', async (_event, configs) => {
-  try {
-    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
-    }
-    for (const { key, value } of configs) {
-      const parts = key.split('.');
-      let obj = config;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
-        obj = obj[parts[i]];
+  return withOpenClawConfigLock(async () => {
+    try {
+      console.log('[config-lock] save-wizard-config acquired');
+      const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      let config = {};
+      if (fs.existsSync(configPath)) {
+        try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
       }
-      obj[parts[parts.length - 1]] = value;
-    }
+      for (const { key, value } of configs) {
+        const parts = key.split('.');
+        let obj = config;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+          obj = obj[parts[i]];
+        }
+        obj[parts[parts.length - 1]] = value;
+      }
 
-    // Auto-fix required fields OpenClaw expects
-    if (config.channels?.telegram?.botToken && !config.channels.telegram.enabled) {
-      config.channels.telegram.enabled = true;
-    }
-    // If wizard enabled openzalo, ensure dmPolicy="open" + allowFrom=["*"] so
-    // unknown DM senders don't get the "access not configured" pairing reply.
-    // (openzalo plugin defaults dmPolicy to "pairing" if missing.)
-    if (config.channels?.openzalo?.enabled) {
-      if (config.channels.openzalo.dmPolicy !== 'open') {
-        config.channels.openzalo.dmPolicy = 'open';
+      // Auto-fix required fields OpenClaw expects
+      if (config.channels?.telegram?.botToken && !config.channels.telegram.enabled) {
+        config.channels.telegram.enabled = true;
       }
-      if (!Array.isArray(config.channels.openzalo.allowFrom)) {
-        config.channels.openzalo.allowFrom = ['*'];
+      // If wizard enabled openzalo, ensure dmPolicy="open" + allowFrom=["*"] so
+      // unknown DM senders don't get the "access not configured" pairing reply.
+      // (openzalo plugin defaults dmPolicy to "pairing" if missing.)
+      if (config.channels?.openzalo?.enabled) {
+        if (config.channels.openzalo.dmPolicy !== 'open') {
+          config.channels.openzalo.dmPolicy = 'open';
+        }
+        if (!Array.isArray(config.channels.openzalo.allowFrom)) {
+          config.channels.openzalo.allowFrom = ['*'];
+        }
       }
-    }
-    // Create required dirs
-    const sessDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
-    fs.mkdirSync(sessDir, { recursive: true });
+      // Create required dirs
+      const sessDir = path.join(HOME, '.openclaw', 'agents', 'main', 'sessions');
+      fs.mkdirSync(sessDir, { recursive: true });
 
-    writeOpenClawConfigIfChanged(configPath, config);
-    return { success: true };
-  } catch (e) { return { success: false, error: e.message }; }
+      writeOpenClawConfigIfChanged(configPath, config);
+      return { success: true };
+    } catch (e) { return { success: false, error: e.message }; }
+  });
 });
 
 // Add cron — save custom times to claw-schedules.json (bypasses broken CLI)
@@ -8907,7 +8993,7 @@ ipcMain.handle('add-cron', async (_event, { name, cron, tz, message, channel }) 
         const s = schedules.find(x => x.id === 'evening');
         if (s) { s.time = time; s.enabled = true; }
       }
-      fs.writeFileSync(getSchedulesPath(), JSON.stringify(schedules, null, 2), 'utf-8');
+      writeJsonAtomic(getSchedulesPath(), schedules);
       restartCronJobs();
       console.log('[add-cron] Saved custom time:', name, time);
     }
@@ -8959,8 +9045,7 @@ function loadSchedules() {
         try {
           const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
           try {
-            fs.mkdirSync(path.dirname(schedulesPath), { recursive: true });
-            fs.writeFileSync(schedulesPath, JSON.stringify(data, null, 2), 'utf-8');
+            writeJsonAtomic(schedulesPath, data);
             console.log('[schedules] Migrated from', p, '→', schedulesPath);
           } catch {}
           return data;
@@ -9029,7 +9114,7 @@ ipcMain.handle('get-custom-crons', async () => {
 ipcMain.handle('save-custom-crons', async (_event, crons) => {
   try {
     if (!Array.isArray(crons)) return { success: false, error: 'crons must be an array' };
-    fs.writeFileSync(getCustomCronsPath(), JSON.stringify(crons, null, 2), 'utf-8');
+    writeJsonAtomic(getCustomCronsPath(), crons);
     // CRITICAL: do NOT rely on the file watcher alone — fs.watch is unreliable
     // on Windows + atomic-replace editors. Explicitly reload cron jobs after
     // every write so the new schedule takes effect immediately, even if the
@@ -9042,7 +9127,7 @@ ipcMain.handle('save-custom-crons', async (_event, crons) => {
 
 ipcMain.handle('save-schedules', async (_event, schedules) => {
   try {
-    fs.writeFileSync(getSchedulesPath(), JSON.stringify(schedules, null, 2), 'utf-8');
+    writeJsonAtomic(getSchedulesPath(), schedules);
     restartCronJobs(); // Re-schedule with new settings
     return { success: true };
   } catch (e) { return { success: false, error: e.message }; }
@@ -9395,14 +9480,13 @@ function persistStickyChatId(token, chatId) {
         }
       } catch {}
     }
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify({
+    writeJsonAtomic(file, {
       chatId: String(chatId),
       // Store a token hash (not the token itself) so we can verify the sticky
       // value belongs to the same bot if multiple bots are configured later.
       tokenFingerprint: fp,
       savedAt: new Date().toISOString(),
-    }, null, 2), 'utf-8');
+    });
   } catch (e) { console.error('[sticky-chatid] write error:', e.message); }
 }
 function loadStickyChatId(token) {
@@ -9517,19 +9601,23 @@ async function getTelegramConfigWithRecovery() {
   if (recovered) {
     persistStickyChatId(sync.token, recovered);
     // Also write it back into openclaw.json so subsequent calls don't need recovery.
-    try {
-      const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      if (!config.channels) config.channels = {};
-      if (!config.channels.telegram) config.channels.telegram = {};
-      const arr = Array.isArray(config.channels.telegram.allowFrom) ? config.channels.telegram.allowFrom : [];
-      const num = parseInt(recovered, 10);
-      if (Number.isFinite(num) && !arr.includes(num)) {
-        config.channels.telegram.allowFrom = [num, ...arr];
-        writeOpenClawConfigIfChanged(configPath, config);
-        console.log('[getTelegramConfigWithRecovery] wrote recovered chatId back into openclaw.json');
-      }
-    } catch (e) { console.error('[getTelegramConfigWithRecovery] write back failed:', e.message); }
+    // Wrapped in config lock to avoid clobbering concurrent wizard/manager writes.
+    await withOpenClawConfigLock(async () => {
+      try {
+        console.log('[config-lock] getTelegramConfigWithRecovery acquired');
+        const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        if (!config.channels) config.channels = {};
+        if (!config.channels.telegram) config.channels.telegram = {};
+        const arr = Array.isArray(config.channels.telegram.allowFrom) ? config.channels.telegram.allowFrom : [];
+        const num = parseInt(recovered, 10);
+        if (Number.isFinite(num) && !arr.includes(num)) {
+          config.channels.telegram.allowFrom = [num, ...arr];
+          writeOpenClawConfigIfChanged(configPath, config);
+          console.log('[getTelegramConfigWithRecovery] wrote recovered chatId back into openclaw.json');
+        }
+      } catch (e) { console.error('[getTelegramConfigWithRecovery] write back failed:', e.message); }
+    });
     return { token: sync.token, chatId: recovered, recovered: 'telegram-getUpdates' };
   }
   return sync;
@@ -9677,12 +9765,11 @@ function setChannelPermanentPause(channel, reason = 'manual-disabled') {
   const p = _getPausePath(channel);
   if (!p) return false;
   try {
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify({
+    writeJsonAtomic(p, {
       permanent: true,
       reason,
       pausedAt: new Date().toISOString(),
-    }, null, 2), 'utf-8');
+    });
     console.log(`[pause] ${channel} permanently paused (${reason})`);
     return true;
   } catch (e) {
@@ -9772,8 +9859,7 @@ function pauseChannel(channel, durationMin = 30) {
   if (!p) return false;
   const until = new Date(Date.now() + durationMin * 60 * 1000).toISOString();
   try {
-    fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify({ pausedUntil: until, pausedAt: new Date().toISOString() }, null, 2), 'utf-8');
+    writeJsonAtomic(p, { pausedUntil: until, pausedAt: new Date().toISOString() });
     console.log(`[pause] ${channel} paused until ${until}`);
     return true;
   } catch (e) { console.error(`[pause] ${channel} error:`, e.message); return false; }
@@ -10952,11 +11038,14 @@ ipcMain.handle('pause-zalo', async (_e, { minutes } = {}) => {
   return { success: pauseChannel('zalo', minutes || 30) };
 });
 ipcMain.handle('resume-zalo', async () => {
-  const resumed = resumeChannel('zalo');
-  const enabled = setZaloChannelEnabled(true);
-  const cleared = clearChannelPermanentPause('zalo');
-  if (enabled && cleared) markOnboardingComplete('resume-zalo');
-  return { success: resumed && enabled && cleared };
+  return withOpenClawConfigLock(async () => {
+    console.log('[config-lock] resume-zalo acquired');
+    const resumed = resumeChannel('zalo');
+    const enabled = setZaloChannelEnabled(true);
+    const cleared = clearChannelPermanentPause('zalo');
+    if (enabled && cleared) markOnboardingComplete('resume-zalo');
+    return { success: resumed && enabled && cleared };
+  });
 });
 ipcMain.handle('get-zalo-pause-status', async () => {
   return getChannelPauseStatus('zalo');
@@ -11445,7 +11534,7 @@ function loadCustomCrons() {
         const wasHealed = healCustomCronEntries(parsed);
         if (wasHealed) {
           try {
-            fs.writeFileSync(customCronsPath, JSON.stringify(parsed, null, 2), 'utf-8');
+            writeJsonAtomic(customCronsPath, parsed);
             console.log('[custom-crons] healed entries (alias/defaults) and rewrote file');
           } catch (e) { console.warn('[custom-crons] heal-writeback failed:', e.message); }
         }
@@ -11475,8 +11564,7 @@ function loadCustomCrons() {
         try {
           const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
           try {
-            fs.mkdirSync(path.dirname(customCronsPath), { recursive: true });
-            fs.writeFileSync(customCronsPath, JSON.stringify(data, null, 2), 'utf-8');
+            writeJsonAtomic(customCronsPath, data);
             console.log('[custom-crons] Migrated:', p, '→', customCronsPath);
           } catch {}
           return data;
@@ -11508,8 +11596,8 @@ function watchCustomCrons() {
     const dir = path.dirname(customCronsPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     // Initialize files if missing (safety net — seedWorkspace() normally handles this)
-    if (!fs.existsSync(customCronsPath)) fs.writeFileSync(customCronsPath, '[]', 'utf-8');
-    if (!fs.existsSync(schedulesPath)) fs.writeFileSync(schedulesPath, JSON.stringify(loadSchedules(), null, 2), 'utf-8');
+    if (!fs.existsSync(customCronsPath)) writeJsonAtomic(customCronsPath, []);
+    if (!fs.existsSync(schedulesPath)) writeJsonAtomic(schedulesPath, loadSchedules());
 
     // Snapshot current mtimes so we don't trigger a spurious reload on first poll.
     try { _lastCustomCronsMtime = fs.statSync(customCronsPath).mtimeMs; } catch {}
@@ -11654,7 +11742,7 @@ function readFollowUpQueue() {
 }
 
 function writeFollowUpQueue(queue) {
-  fs.writeFileSync(getFollowUpQueuePath(), JSON.stringify(queue, null, 2), 'utf-8');
+  writeJsonAtomic(getFollowUpQueuePath(), queue);
 }
 
 async function processFollowUpQueue() {
@@ -13282,11 +13370,11 @@ ipcMain.handle('wizard-complete', async () => {
   try {
     const zaloPausePath = path.join(getWorkspace(), 'zalo-paused.json');
     if (!fs.existsSync(zaloPausePath)) {
-      fs.writeFileSync(zaloPausePath, JSON.stringify({
+      writeJsonAtomic(zaloPausePath, {
         permanent: true,
         reason: 'default-disabled',
         pausedAt: new Date().toISOString(),
-      }, null, 2), 'utf-8');
+      });
       console.log('[wizard-complete] zalo-paused.json created (default-disabled)');
     }
   } catch {}
