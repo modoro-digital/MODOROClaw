@@ -21,7 +21,7 @@ Bot tu tao ho so khach trong `memory/zalo-users/<senderId>.md` va `memory/zalo-g
 2. **Nhom Zalo?** -> Nap file trong `memory/zalo-groups/`
 3. **Khach Zalo hoi sp/dich vu/gio/chinh sach?** -> CHI doc `knowledge/cong-ty/index.md` + `knowledge/san-pham/index.md` + `knowledge/nhan-vien/index.md`. KHONG dung COMPANY.md / PRODUCTS.md (2 file do tom luoc tu wizard, khong chinh xac).
 4. **Khong chac ve ngu canh?** -> Dung `memory_search`
-5. **Bat dau phien:** Nap `IDENTITY.md` + `active-persona.md`. COMPANY.md/PRODUCTS.md CHI doc khi CEO tren Telegram can context noi bo.
+5. **Bat dau phien:** Nap `IDENTITY.md` + `active-persona.md` + `knowledge/cong-ty/index.md` + `knowledge/san-pham/index.md` + `knowledge/nhan-vien/index.md`. COMPANY.md/PRODUCTS.md CHI doc khi CEO tren Telegram can context noi bo.
 6. **Gioi han cung:** Toi da 5 lan di sau khi bat dau phien
 
 ## File tham khao

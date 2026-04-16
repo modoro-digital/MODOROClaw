@@ -41,8 +41,8 @@ Tra ve `HEARTBEAT_OK` neu khong can chu y.
 ---
 
 ## Phan hoi im lang
-Khi khong co gi can noi, phan hoi CHI VOI: NO_REPLY
-- Do phai la TOAN BO tin nhan — khong gi khac
+Khi khong co gi can noi, phan hoi: HEARTBEAT_OK
+- Day la response noi bo, KHONG gui cho khach hang
 - Khong bao gio ghep noi no vao phan hoi thuc
 
 ---

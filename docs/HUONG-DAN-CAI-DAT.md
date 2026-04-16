@@ -320,90 +320,35 @@ Nhấn **Khởi động trợ lý** → app chuyển sang Dashboard chính.
 
 ---
 
-## Bước 6: Cá Nhân Hóa — Điền COMPANY.md và PRODUCTS.md
+## Bước 6: Upload Tài Liệu Qua Knowledge Tab
 
-**Thời gian: 10-15 phút**
+**Thời gian: 5-10 phút**
 
-Sau khi wizard hoàn tất và Dashboard hiện lên, cần điền thông tin chi tiết cho khách. Đây là bước quan trọng nhất để bot trả lời chính xác.
+Sau khi wizard hoàn tất và Dashboard hiện lên, cần upload tài liệu cho bot. Đây là bước quan trọng nhất để bot trả lời chính xác.
 
-### 6.1. Mở file COMPANY.md
+### 6.1. Mở Dashboard → Knowledge
 
-1. Mở folder `claw` trên Desktop.
-2. Tìm file **COMPANY.md** — mở bằng Notepad hoặc bất kỳ text editor nào.
-3. Điền đầy đủ thông tin từ phiếu khách đã chuẩn bị:
+1. Trong app MODOROClaw, click vào tab **Knowledge** trên sidebar.
+2. Có 3 danh mục: **Công ty**, **Sản phẩm**, **Nhân viên**.
 
-```
-## Thong tin chung
-- **Ten cong ty:** [Dien ten cong ty cua khach]
-- **Dia chi:** [Dien dia chi tru so chinh]
-- **So dien thoai:** [Dien SDT lien he]
-- **Email:** [Dien email lien he]
-- **Website:** [Dien URL website]
+### 6.2. Upload tài liệu công ty
 
-## Gio lam viec
-- **Thu 2 - Thu 6:** [Vi du: 8:00 - 17:30]
-- **Thu 7:** [Vi du: 8:00 - 12:00 hoac "Nghi"]
-- **Chu nhat:** [Vi du: Nghi]
-- **Ngay le:** [Vi du: Nghi theo lich chinh phu]
+1. Click vào mục **Công ty**.
+2. Nhấn nút **Upload** → chọn file PDF chứa thông tin công ty (địa chỉ, giờ mở cửa, chính sách, ngân hàng...).
+3. Bot tự đọc PDF và trích xuất nội dung. Không cần điền tay.
 
-## Slogan / Gioi thieu ngan
-> [Dien slogan cong ty]
+### 6.3. Upload tài liệu sản phẩm
 
-## Linh vuc kinh doanh
-- [Linh vuc 1]
-- [Linh vuc 2]
+1. Click vào mục **Sản phẩm**.
+2. Upload file PDF bảng giá, catalog, hoặc danh sách SP/dịch vụ.
+3. Bot tự đọc và trả lời khách dựa trên tài liệu đã upload.
 
-## Cac chi nhanh (neu co)
-| Chi nhanh | Dia chi | SDT |
-|---|---|---|
-| [Ten chi nhanh] | [Dia chi] | [SDT] |
+### 6.4. Upload tài liệu nhân viên (tùy chọn)
 
-## Chinh sach bao hanh / Doi tra
-- **Thoi gian bao hanh:** [Vi du: 12 thang]
-- **Dieu kien bao hanh:** [Dien]
-- **Chinh sach doi tra:** [Vi du: Doi tra trong 7 ngay neu loi tu nha san xuat]
-- **Lien he bao hanh:** [SDT hoac email]
+1. Click vào mục **Nhân viên** nếu khách muốn bot biết thông tin nhân sự.
+2. Upload file PDF danh sách nhân viên, phân công, ca trực...
 
-## Thong tin ngan hang (cho thanh toan)
-- **Ten ngan hang:** [Dien]
-- **So tai khoan:** [Dien]
-- **Chu tai khoan:** [Dien]
-- **Chi nhanh:** [Dien]
-```
-
-4. Lưu file (Ctrl+S).
-
-### 6.2. Mở file PRODUCTS.md
-
-1. Tìm file **PRODUCTS.md** trong folder `claw`.
-2. Mở bằng Notepad.
-3. Điền danh sách sản phẩm/dịch vụ của khách:
-
-```
-## Bang san pham / dich vu
-
-| Ten | Gia | Mo ta ngan | Ghi chu |
-|---|---|---|---|
-| [San pham 1] | [500.000d] | [Mo ta] | [Con hang] |
-| [San pham 2] | [1.200.000d] | [Mo ta] | [Con hang] |
-
-## Chuong trinh khuyen mai hien tai
-- **[Ten chuong trinh]:** [Mo ta, ap dung den ngay nao]
-
-## Cau hoi thuong gap (FAQ)
-**Q: San pham co bao hanh khong?**
-A: [Tra loi]
-
-**Q: Co giao hang tan noi khong?**
-A: [Tra loi]
-
-**Q: Thanh toan bang hinh thuc nao?**
-A: [Tra loi]
-```
-
-4. Lưu file (Ctrl+S).
-
-> **QUAN TRỌNG:** Hai file này là "bộ não" của bot. Bot đọc COMPANY.md và PRODUCTS.md để trả lời khách hàng trên Zalo. Điền càng chi tiết, bot trả lời càng chính xác.
+> **QUAN TRỌNG:** CEO upload PDF vào Dashboard → Knowledge → bot tự đọc và trả lời khách dựa trên tài liệu đã upload. Upload càng chi tiết, bot trả lời càng chính xác.
 
 ---
 
@@ -463,7 +408,7 @@ Giải thích cho khách:
 
 - **Máy tính phải bật:** Bot chỉ hoạt động khi máy tính bật và app MODOROClaw đang chạy.
 - **Internet:** Cần có kết nối internet để bot hoạt động.
-- **Cập nhật thông tin:** Khi có sản phẩm mới hoặc thay đổi giá, mở file PRODUCTS.md để cập nhật. Khi thay đổi thông tin công ty, mở COMPANY.md để sửa.
+- **Cập nhật thông tin:** Khi có sản phẩm mới hoặc thay đổi giá, upload PDF mới vào Dashboard → Knowledge. Bot tự cập nhật.
 - **Liên hệ hỗ trợ:** Nếu có vấn đề, liên hệ MODORO qua [điền kênh hỗ trợ của MODORO].
 
 ### 8.3. Để lại cho khách
@@ -491,7 +436,7 @@ Giải thích cho khách:
 | **Zalo QR không hiện** | openzca chưa cài hoặc lỗi | Chờ thêm 10 giây. Nếu vẫn không hiện, nhấn "Làm mới mã QR". Nếu vẫn lỗi, restart app |
 | **Zalo QR hết hạn** | Quá 2 phút chưa quét | Nhấn **Làm mới mã QR** và quét lại |
 | **Bot không trả lời (sau khi setup xong)** | Gateway chưa sẵn sàng | Đợi 30-60 giây. Nếu quá 2 phút, kiểm tra Dashboard. Nếu "Đã dừng" → khởi động lại |
-| **Bot trả lời sai thông tin** | COMPANY.md hoặc PRODUCTS.md chưa điền | Mở 2 file đó và điền đầy đủ thông tin |
+| **Bot trả lời sai thông tin** | Chưa upload tài liệu vào Knowledge | Mở Dashboard → Knowledge → upload PDF công ty và sản phẩm |
 | **App bị lỗi nặng, muốn làm lại** | Lỗi config | Chạy **SOFT-RESET.bat** (chỉ xóa config, giữ plugin). Rồi chạy RUN.bat để setup lại từ wizard |
 | **Muốn xóa sạch và cài lại từ đầu** | Reset hoàn toàn | Chạy **RESET.bat** (xóa tất cả: openclaw, 9router, Zalo session, config, logs). Rồi chạy RUN.bat |
 
@@ -545,7 +490,7 @@ USB copy folder claw vao Desktop
          |
     Man hinh "Xong roi!" → Nhan "Khoi dong tro ly"
          |
-    Dashboard chinh → Dien COMPANY.md + PRODUCTS.md
+    Dashboard chinh → Upload PDF vao Knowledge tab
          |
     Test Telegram + Zalo → Ban giao cho khach
 ```
