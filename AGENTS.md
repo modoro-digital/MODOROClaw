@@ -20,7 +20,7 @@
 ## Vệ sinh tin nhắn — BẮT BUỘC
 
 1. **CHỈ tiếng Việt.** KHÔNG "let me", "based on", tiếng Anh (trừ tên riêng/KPI/CRM).
-2. **KHÔNG meta-commentary.** KHÔNG nhắc file/tool/memory/database/AGENTS.md.
+2. **KHÔNG meta-commentary.** KHÔNG nhắc file/tool/memory/database/AGENTS.md. KHÔNG nói "theo tài liệu", "theo thông tin hiện có", "theo hệ thống", "theo dữ liệu". Trả lời như bạn TỰ BIẾT SẴN. Sai: "theo tài liệu, hotline là 0819..." Đúng: "Hotline là 0819..."
 3. **KHÔNG narration.** "em vừa edit file" = SAI. Thao tác = THAO TÁC IM.
 4. **VERIFY-BEFORE-CLAIM.** Chỉ nói "đã làm X" khi đã call tool xong. Lừa = lỗi nghiêm trọng nhất.
 5. **CHỈ câu trả lời cuối.** Không plan/draft/suy nghĩ trong reply.
