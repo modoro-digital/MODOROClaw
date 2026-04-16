@@ -4,7 +4,7 @@
 
 Desktop app bundle sẵn mọi thứ. Tải file cài, chạy wizard, có ngay trợ lý AI 24/7. Không cần biết code, không cần cài Node.js hay bất kỳ thứ gì.
 
-**v2.2.41** · Windows 10+ · macOS 11+ (Apple Silicon + Intel)
+**v2.3.43** · Windows 10+ · macOS 11+ (Apple Silicon + Intel)
 
 ---
 
@@ -38,9 +38,9 @@ Cả hai platform bundle sẵn Node.js, OpenClaw, 9Router, OpenZCA, OpenZalo. Kh
 | **Tình trạng** | "Hôm nay shop như thế nào" — context real-time inject vào bot |
 | **Lịch hẹn** | CRUD lịch hẹn local, kết nối Google Calendar |
 | **Telegram** | Kiểm tra kết nối, gửi tin test, tạm dừng/tiếp tục |
-| **Zalo** | Quản lý bạn bè, blocklist, chế độ hoạt động, tạm dừng/tiếp tục |
+| **Zalo** | Quản lý bạn bè, blocklist, nhóm (3 chế độ + xem tóm tắt), tạm dừng/tiếp tục |
 | **Lịch tự động** | 8 built-in crons + custom crons, test fire thủ công |
-| **Knowledge** | Upload PDF/Word/Excel, bot tự tóm tắt và tham chiếu khi trả lời |
+| **Knowledge** | Upload PDF/Word/Excel, bot tự tóm tắt và tham chiếu khi trả lời (không trích nguồn) |
 | **9Router** | Quản lý AI providers, API keys, model routing |
 | **OpenClaw** | Debug gateway, xem log real-time |
 
@@ -55,6 +55,8 @@ Cả hai platform bundle sẵn Node.js, OpenClaw, 9Router, OpenZCA, OpenZalo. Kh
 - **Persona mix** — tuỳ chỉnh giọng theo vùng miền, phong cách, nhóm khách
 - **79 expert skills** — marketing, advisory, strategy, content, sales, growth, finance, HR
 - **Round-robin + fallback** — nhiều AI provider, tự chuyển khi 1 cái fail
+- **Vision** — đọc hình ảnh khách gửi, trả lời trực tiếp
+- **DuckDuckGo search** — tìm kiếm web miễn phí, không cần API key
 - **Cá nhân hóa theo ngành** — F&B, BĐS, dịch vụ, giáo dục, công nghệ, sản xuất, thương mại
 
 ### Zalo
@@ -63,14 +65,18 @@ Cả hai platform bundle sẵn Node.js, OpenClaw, 9Router, OpenZCA, OpenZalo. Kh
 - Nhớ hồ sơ từng khách (CRM-lite)
 - Đoán giới tính từ tên Việt
 - Nhận diện CEO qua Zalo cá nhân
-- 3 chế độ: auto / read-only / daily summary
+- 3 chế độ nhóm: @mention / mọi tin / tắt — xem tóm tắt nhóm
+- 3 chế độ người lạ: trả lời / chào 1 lần / không trả lời
 - Blocklist tích hợp
+- Đọc hình ảnh khách gửi (vision)
 
 ### Tự động hóa
 
 - 8 built-in crons: báo cáo sáng/tối, tuần, tháng, follow-up khách, heartbeat, meditation, dọn memory
 - Custom crons: CEO yêu cầu bằng lời, bot tự tạo và lưu
 - Self-healing: gateway crash, schema break, chatId mất, cookie Zalo hết hạn
+- Fast watchdog (20s): tự phục hồi gateway, không restart vì Zalo
+- Auto-update 1 click ngay trong app
 
 ### Bảo mật
 
@@ -100,8 +106,8 @@ Electron Desktop App
     └── Zalo WebSocket listener
 ```
 
-**Bundle size:** ~360 MB (Windows EXE) / ~300 MB (macOS DMG).  
-Bao gồm Node.js v22, 4 npm packages (~1.6 GB unpacked), Electron runtime.
+**Bundle size:** ~405 MB (Windows EXE) / ~580 MB (macOS DMG).  
+Bao gồm Node.js v22, OpenClaw 2026.4.14, 9Router, OpenZCA, OpenZalo (~1.8 GB unpacked), Electron runtime.
 
 ---
 
