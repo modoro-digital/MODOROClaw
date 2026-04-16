@@ -303,12 +303,29 @@ async function ensureVendorExtracted({ onProgress } = {}) {
     if (fs.existsSync(versionStamp)) {
       const current = fs.readFileSync(versionStamp, 'utf8').trim();
       if (current === meta.bundle_version && fs.existsSync(path.join(targetDir, 'node', 'node.exe'))) {
-        console.log('[vendor-extract] already extracted at', targetDir, '→', meta.bundle_version);
-        return { skipped: true, reason: 'already_extracted' };
+        // SAFETY: even if version stamp matches, verify openclaw binary is
+        // actually present. A partial extract or corrupted vendor dir would
+        // have the stamp but no working binary → gateway crash.
+        const oclawMjs = path.join(targetDir, 'node_modules', 'openclaw', 'openclaw.mjs');
+        if (fs.existsSync(oclawMjs)) {
+          console.log('[vendor-extract] already extracted at', targetDir, '→', meta.bundle_version);
+          return { skipped: true, reason: 'already_extracted' };
+        }
+        console.log('[vendor-extract] version stamp matches but openclaw.mjs missing — re-extracting');
+      } else {
+        console.log('[vendor-extract] version mismatch — re-extracting. have:', current, 'want:', meta.bundle_version);
       }
-      console.log('[vendor-extract] version mismatch — re-extracting. have:', current, 'want:', meta.bundle_version);
     }
   } catch {}
+  // FORCE: delete old vendor dir before extract to avoid mixing old + new files
+  try {
+    if (fs.existsSync(targetDir)) {
+      console.log('[vendor-extract] removing old vendor dir before fresh extract...');
+      fs.rmSync(targetDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    console.warn('[vendor-extract] could not remove old vendor dir:', e.message, '— extracting on top');
+  }
 
   console.log('[vendor-extract] extracting vendor bundle...');
   console.log('  source:', tarPath);
@@ -492,6 +509,14 @@ async function ensureVendorExtracted({ onProgress } = {}) {
         console.warn('[vendor-extract] could not write version stamp:', e.message);
       }
       const durationMs = Date.now() - startedAt;
+      // Post-extract: log openclaw version for diagnostics
+      try {
+        const oclawPkg = path.join(targetDir, 'node_modules', 'openclaw', 'package.json');
+        if (fs.existsSync(oclawPkg)) {
+          const ver = JSON.parse(fs.readFileSync(oclawPkg, 'utf8')).version;
+          console.log(`[vendor-extract] openclaw version: ${ver}`);
+        }
+      } catch {}
       console.log(`[vendor-extract] done in ${(durationMs / 1000).toFixed(1)}s, ${extractedCount} files`);
       if (onProgress) onProgress({ percent: 100, message: 'Hoàn tất!' });
       resolve({ skipped: false, extracted: true, durationMs, fileCount: extractedCount });
