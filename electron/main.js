@@ -6368,6 +6368,13 @@ async function _startOpenClawImpl() {
 //      port is actually free before we resolve.
 async function stopOpenClaw() {
   botRunning = false;
+  // Clear marker cache so dots don't stay green from stale markers
+  if (global._readyNotifyState) {
+    for (const ch of ['telegram', 'zalo']) {
+      const st = global._readyNotifyState[ch];
+      if (st) { st.markerSeenAt = 0; st.confirmedAt = 0; st.markerSeen = false; }
+    }
+  }
   const proc = openclawProcess;
   openclawProcess = null;
   const startedAt = Date.now();
@@ -11549,12 +11556,20 @@ function finalizeTelegramReadyProbe(base, hasCeoChatId) {
       error: 'Telegram connected but no CEO chat ID configured.',
     };
   }
-  // getMe passed + chatId present = bot CAN receive and reply. No gate needed.
+  // getMe passes = token valid. But gateway must ALSO be alive on :18789
+  // for bot to actually receive + reply. Without this check, dot turns
+  // green immediately on boot before gateway finishes initializing.
+  if (!botRunning) {
+    return { ...base, ready: false, error: 'Gateway chua khoi dong' };
+  }
   return { ...base, ready: true };
 }
 
 function finalizeZaloReadyProbe(base) {
-  // Listener process alive = Zalo CAN receive messages. No gate needed.
+  // Listener alive = Zalo CAN receive. But gateway must also be running.
+  if (!botRunning) {
+    return { ...base, ready: false, error: 'Gateway chua khoi dong' };
+  }
   return { ...base, ready: true };
 }
 
