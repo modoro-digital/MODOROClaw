@@ -11694,25 +11694,39 @@ function finalizeTelegramReadyProbe(base, hasCeoChatId) {
   if (!botRunning) {
     return { ...base, ready: false, error: 'Gateway chưa khởi động' };
   }
-  // READY GATE: getMe pass + gateway alive = Telegram is working.
-  // Previously we required the gateway stdout marker "[telegram] starting
-  // provider" before showing green dot. But on slow machines, the marker
-  // emits 2-3 minutes AFTER the gateway binds port 18789 and getMe passes.
-  // During that gap, Telegram is functional (getMe proves token + API) but
-  // the dot stayed grey — CEO thinks bot is broken.
-  // Now: getMe pass + botRunning = green. Marker is still used for the
-  // "Telegram đã sẵn sàng" notification message but doesn't gate the dot.
-  return { ...base, ready: true };
+  // READY GATE: dot green ONLY when gateway has emitted channel marker
+  // AND notification sent. This is the contract: green = bot CAN reply.
+  // getMe passing only proves token is valid, NOT that the channel pipeline
+  // is initialized. On slow machines (Kaspersky, HDD), channel init takes
+  // 1-3 min after WS ready. Showing green before that misleads CEO into
+  // sending messages that get no reply.
+  const gate = getReadyGateState('telegram');
+  if (gate.confirmed) {
+    return { ...base, ready: true };
+  }
+  if (gate.markerSeen) {
+    return { ...base, ready: false, awaitingConfirmation: true,
+      error: 'Telegram sap san sang, dang gui tin xac nhan...' };
+  }
+  // WS ready + getMe pass but channel not yet initialized
+  return { ...base, ready: false, awaitingConfirmation: true,
+    error: 'Dang khoi tao kenh Telegram... (1-2 phut)' };
 }
 
 function finalizeZaloReadyProbe(base) {
   if (!botRunning) {
     return { ...base, ready: false, error: 'Gateway chưa khởi động' };
   }
-  // READY GATE: listener process alive + botRunning = Zalo is working.
-  // Same reasoning as Telegram: marker gates the notification message,
-  // not the dot color. Listener alive = messages are being received.
-  return { ...base, ready: true };
+  const gate = getReadyGateState('zalo');
+  if (gate.confirmed) {
+    return { ...base, ready: true };
+  }
+  if (gate.markerSeen) {
+    return { ...base, ready: false, awaitingConfirmation: true,
+      error: 'Zalo sap san sang, dang xac nhan...' };
+  }
+  return { ...base, ready: false, awaitingConfirmation: true,
+    error: 'Dang khoi tao kenh Zalo... (1-2 phut)' };
 }
 
 async function probeTelegramReady() {
