@@ -12051,6 +12051,16 @@ async function broadcastChannelStatusOnce() {
   } catch {} // isVisible/isMinimized can throw if window is mid-destruction
   _channelStatusBroadcastInFlight = true;
   try {
+    // Gate: if bot is stopped, both channels are not-ready by definition.
+    // Don't probe Telegram getMe (token is valid even when gateway is off).
+    if (!botRunning) {
+      mainWindow.webContents.send('channel-status', {
+        telegram: { ready: false, error: 'Bot dang dung' },
+        zalo: { ready: false, error: 'Bot dang dung' },
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
     // OPTIM: skip expensive network probe if gateway recently emitted a
     // "provider ready" marker (within 5min). Marker is ground-truth readiness
     // — no need to hit Telegram getMe / scan process list again. Saves probe
