@@ -11588,28 +11588,47 @@ function getReadyGateState(channel) {
 
 function finalizeTelegramReadyProbe(base, hasCeoChatId) {
   if (!hasCeoChatId) {
-    return {
-      ...base,
-      ready: false,
-      reason: 'no-ceo-chat-id',
-      error: 'Telegram connected but no CEO chat ID configured.',
-    };
+    return { ...base, ready: false, reason: 'no-ceo-chat-id',
+      error: 'Chưa có CEO chat ID để gửi tin xác nhận.' };
   }
-  // getMe passes = token valid. But gateway must ALSO be alive on :18789
-  // for bot to actually receive + reply. Without this check, dot turns
-  // green immediately on boot before gateway finishes initializing.
   if (!botRunning) {
-    return { ...base, ready: false, error: 'Gateway chua khoi dong' };
+    return { ...base, ready: false, error: 'Gateway chưa khởi động' };
   }
-  return { ...base, ready: true };
+  // READY GATE: getMe pass is necessary but NOT sufficient.
+  // Dot green ONLY when gateway has emitted the "[telegram] starting provider"
+  // stdout marker AND the readiness notification was sent successfully (or
+  // throttled because it was already confirmed <30min ago).
+  // This matches the user's observation: bot truly works AFTER CEO receives
+  // "Telegram đã sẵn sàng" message.
+  const gate = getReadyGateState('telegram');
+  if (gate.confirmed) {
+    return { ...base, ready: true };
+  }
+  if (gate.markerSeen) {
+    return { ...base, ready: false, awaitingConfirmation: true,
+      error: gate.lastError || 'Đã kết nối Telegram, đang gửi tin xác nhận sẵn sàng.' };
+  }
+  return { ...base, ready: false, awaitingConfirmation: true,
+    error: 'Đã kết nối Telegram, đang chờ gateway đăng ký channel.' };
 }
 
 function finalizeZaloReadyProbe(base) {
-  // Listener alive = Zalo CAN receive. But gateway must also be running.
   if (!botRunning) {
-    return { ...base, ready: false, error: 'Gateway chua khoi dong' };
+    return { ...base, ready: false, error: 'Gateway chưa khởi động' };
   }
-  return { ...base, ready: true };
+  // READY GATE: listener alive is necessary but NOT sufficient.
+  // Dot green ONLY when gateway emitted "[openzalo] openzca connected" marker
+  // AND notification sent (or throttled).
+  const gate = getReadyGateState('zalo');
+  if (gate.confirmed) {
+    return { ...base, ready: true };
+  }
+  if (gate.markerSeen) {
+    return { ...base, ready: false, awaitingConfirmation: true,
+      error: gate.lastError || 'Zalo listener đã lên, đang chờ xác nhận sẵn sàng.' };
+  }
+  return { ...base, ready: false, awaitingConfirmation: true,
+    error: 'Zalo listener đã lên, đang chờ gateway xác nhận sẵn sàng.' };
 }
 
 async function probeTelegramReady() {
