@@ -359,6 +359,14 @@
     /* Dropdown inside card — compact, right-aligned */
     .zc-select { padding:4px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; cursor:pointer; width:auto; min-width:0; }
     .zc-select:focus { outline:none; border-color:var(--accent); }
+    .zc-summary-btn { background:none; border:1px solid var(--border); border-radius:6px; padding:4px 6px; cursor:pointer; color:var(--muted); display:inline-flex; align-items:center; }
+    .zc-summary-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .group-memory-modal { position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; }
+    .group-memory-content { background:var(--surface); border-radius:12px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; padding:24px; position:relative; box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+    .group-memory-content h3 { margin:0 0 16px 0; font-size:16px; }
+    .group-memory-content pre { white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.6; color:var(--text); background:var(--bg); padding:16px; border-radius:8px; margin:0; }
+    .group-memory-close { position:absolute; top:12px; right:12px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; padding:4px 8px; }
+    .group-memory-close:hover { color:var(--text); }
     .zalo-mgr-row img { width:32px; height:32px; border-radius:50%; flex-shrink:0; background:var(--bg); object-fit:cover; }
     .avatar-fallback { width:32px; height:32px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-muted); }
     .avatar-wrap { position:relative; width:32px; height:32px; flex-shrink:0; }
@@ -4388,10 +4396,11 @@
             <div class="zc-meta">${esc(metaParts.join(' · '))}</div>
           </div>
           <div class="zc-actions">
+            ${summary?.hasContent ? `<button class="zc-summary-btn" onclick="viewGroupMemory('${escAttr(g.groupId)}', '${escAttr(g.name)}')" title="Xem t\u00F3m t\u1EAFt nh\u00F3m">${icon('file-text', 14)}</button>` : ''}
             <select class="zc-select" onchange="setGroupMode('${escAttr(g.groupId)}', this.value)">
               <option value="mention" ${mode === 'mention' ? 'selected' : ''}>@mention</option>
               <option value="all" ${mode === 'all' ? 'selected' : ''}>Mọi tin</option>
-              <option value="off" ${mode === 'off' ? 'selected' : ''}>Tắt</option>
+              <option value="off" ${mode === 'off' ? 'selected' : ''}>T\u1EAFt</option>
             </select>
           </div>
         </div>`;
@@ -4517,6 +4526,32 @@
           }
         } catch (e) { console.warn('[autoSaveZaloManager]', e); }
       }, 800);
+    }
+
+    async function viewGroupMemory(groupId, groupName) {
+      try {
+        const result = await window.claw.getZaloGroupMemory(groupId);
+        if (!result.exists || !result.content.trim()) {
+          showToast('Ch\u01B0a c\u00F3 t\u00F3m t\u1EAFt cho nh\u00F3m n\u00E0y', 'info');
+          return;
+        }
+        // Remove existing modal
+        const old = document.getElementById('group-memory-modal');
+        if (old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'group-memory-modal';
+        modal.className = 'group-memory-modal';
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        modal.innerHTML = `<div class="group-memory-content">
+          <button class="group-memory-close" onclick="document.getElementById('group-memory-modal').remove()">\u00D7</button>
+          <h3>${esc(groupName)}</h3>
+          <pre>${esc(result.content)}</pre>
+        </div>`;
+        document.body.appendChild(modal);
+      } catch (e) {
+        showToast('L\u1ED7i: ' + (e.message || e), 'error');
+      }
     }
 
     function setGroupMode(groupId, mode) {
@@ -5124,17 +5159,17 @@
           if (text) text.textContent = '\u0110ang c\u00E0i... \u0110\u1EE3i kh\u1EDFi \u0111\u1ED9ng l\u1EA1i';
           showToast('Installer \u0111ang ch\u1EA1y \u2014 app s\u1EBD t\u1EF1 t\u1EAFt', 'success', 10000);
         } else if (r && r.method === 'dmg-install') {
-          if (text) text.innerHTML = 'Khoi dong lai...';
-          showToast('Cap nhat thanh cong — dang khoi dong lai', 'success', 10000);
+          if (text) text.innerHTML = 'Kh\u1EDFi \u0111\u1ED9ng l\u1EA1i...';
+          showToast('C\u1EADp nh\u1EADt th\u00E0nh c\u00F4ng \u2014 \u0111ang kh\u1EDFi \u0111\u1ED9ng l\u1EA1i', 'success', 10000);
         } else if (r && !r.success) {
           const errMsg = r.error || '';
-          const fallbackNote = r.fallback === 'browser' ? ' (da mo trang tai ve)' : '';
-          if (text) text.textContent = 'Loi: ' + errMsg + fallbackNote;
+          const fallbackNote = r.fallback === 'browser' ? ' (\u0111\u00E3 m\u1EDF trang t\u1EA3i v\u1EC1)' : '';
+          if (text) text.textContent = 'L\u1ED7i: ' + errMsg + fallbackNote;
           showToast('C\u1EADp nh\u1EADt th\u1EA5t b\u1EA1i: ' + errMsg + (r.fallback === 'browser' ? ' \u2014 \u0111\u00E3 m\u1EDF trang t\u1EA3i v\u1EC1' : ''), 'error', 6000);
           setTimeout(() => { if (banner) banner.style.display = 'none'; }, 6000);
         }
       } catch (e) {
-        if (text) text.textContent = 'Loi: ' + e.message;
+        if (text) text.textContent = 'L\u1ED7i: ' + e.message;
         showToast('L\u1ED7i: ' + e.message, 'error', 5000);
         setTimeout(() => { if (banner) banner.style.display = 'none'; }, 5000);
       }

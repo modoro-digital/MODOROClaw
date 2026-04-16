@@ -617,9 +617,10 @@ function packVendorForWindows() {
   const tarSha256 = sha256File(tarPath);
   log(`  sha256: ${tarSha256}`);
 
-  // Bundle version: commit hash would be ideal but not always available during
-  // local dev builds. Use timestamp + pinned package versions as fingerprint.
-  const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_${Date.now()}`;
+  // Bundle version: deterministic fingerprint based on Node + openclaw version
+  // + platform. NO Date.now() — otherwise every build forces a 2-minute
+  // re-extract on customer machines even when vendor contents are identical.
+  const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_${process.platform}-${process.arch}`;
 
   const meta = {
     version: 1,

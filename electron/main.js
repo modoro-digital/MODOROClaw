@@ -317,15 +317,10 @@ async function ensureVendorExtracted({ onProgress } = {}) {
       }
     }
   } catch {}
-  // FORCE: delete old vendor dir before extract to avoid mixing old + new files
-  try {
-    if (fs.existsSync(targetDir)) {
-      console.log('[vendor-extract] removing old vendor dir before fresh extract...');
-      fs.rmSync(targetDir, { recursive: true, force: true });
-    }
-  } catch (e) {
-    console.warn('[vendor-extract] could not remove old vendor dir:', e.message, '— extracting on top');
-  }
+  // NOTE: do NOT delete old vendor dir before extract. tar -xf naturally
+  // overwrites existing files. Deleting first fails when files are locked
+  // by running processes (9Router, gateway) → tar extract fails → app crash.
+  // Old files that no longer exist in new tar remain as orphans but are harmless.
 
   console.log('[vendor-extract] extracting vendor bundle...');
   console.log('  source:', tarPath);
@@ -3692,7 +3687,7 @@ function ensureZaloSenderDedupFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     if (content.includes('9BizClaw SENDER-DEDUP PATCH')) return; // already patched
 
     const anchor = '  // === END 9BizClaw SYSTEM-MSG PATCH ===';
@@ -3726,7 +3721,7 @@ function ensureZaloSenderDedupFix() {
   // === END 9BizClaw SENDER-DEDUP PATCH ===
 `;
     content = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, content, 'utf-8');
+    _writeInboundTs(pluginFile, content);
     console.log('[zalo-sender-dedup] Injected per-sender dedup guard into inbound.ts');
   } catch (e) {
     console.error('[zalo-sender-dedup] error:', e?.message || e);
@@ -3740,7 +3735,7 @@ function ensureZaloGroupSettingsFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     // Marker v5: mode="all" now bypasses plugin's default requireMention=true
     // by injecting botUserId into message.mentionIds (plugin sees bot mentioned
     // → gate passes → every group message reaches AI as user intended).
@@ -3845,7 +3840,7 @@ function ensureZaloGroupSettingsFix() {
   // === END 9BizClaw GROUP-SETTINGS PATCH ===
 `;
     content = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, content, 'utf-8');
+    _writeInboundTs(pluginFile, content);
     console.log('[zalo-group-settings-fix] Injected v5 group settings check (off + tight-mention + mode=all bypass)');
   } catch (e) {
     console.error('[zalo-group-settings-fix] error:', e?.message || e);
@@ -3900,7 +3895,7 @@ function ensureZaloSystemMsgFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     if (content.includes('9BizClaw SYSTEM-MSG PATCH')) return; // already patched
 
     const anchor = '  // === END 9BizClaw BLOCKLIST PATCH ===';
@@ -3935,7 +3930,7 @@ function ensureZaloSystemMsgFix() {
   // === END 9BizClaw SYSTEM-MSG PATCH ===
 `;
     content = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, content, 'utf-8');
+    _writeInboundTs(pluginFile, content);
     console.log('[zalo-system-msg-fix] Injected system message filter into inbound.ts');
   } catch (e) {
     console.error('[zalo-system-msg-fix] error:', e?.message || e);
@@ -3953,11 +3948,25 @@ function ensureZaloSystemMsgFix() {
 //     exact same build runs on macOS, so per-user "không xử lý" switches fail.
 //   - Treat parse errors as fail-closed. Better to drop a message than leak a
 //     reply to a user who was explicitly disabled in the manager UI.
+// --- Patch I/O helpers: use in-memory cache when available (batch mode) ---
+function _readInboundTs(filePath) {
+  if (global.__patchInboundCache !== undefined) return global.__patchInboundCache;
+  return fs.readFileSync(filePath, 'utf-8');
+}
+function _writeInboundTs(filePath, content) {
+  if (global.__patchInboundCache !== undefined) {
+    global.__patchInboundCache = content;
+    global.__patchInboundDirty = true;
+    return;
+  }
+  fs.writeFileSync(filePath, content, 'utf-8');
+}
+
 function ensureZaloBlocklistFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     const CURRENT_MARKER = '9BizClaw BLOCKLIST PATCH v3';
     if (content.includes('9BizClaw BLOCKLIST PATCH')) {
       if (content.includes(CURRENT_MARKER)) return;
@@ -4040,7 +4049,7 @@ function ensureZaloBlocklistFix() {
   // === END 9BizClaw BLOCKLIST PATCH ===
 `;
     const patched = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    _writeInboundTs(pluginFile, patched);
     console.log('[zalo-blocklist-fix] Injected blocklist check into inbound.ts');
   } catch (e) {
     console.error('[zalo-blocklist-fix] error:', e.message);
@@ -4058,7 +4067,7 @@ function ensureZaloPauseFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     const CURRENT_MARKER = '9BizClaw PAUSE PATCH v6';
     // v6: drop bot commands (/pause /resume /bot) from non-owners silently
     // v5: runtime path resolution + owner-only /pause + honor permanent pause +
@@ -4212,7 +4221,7 @@ function ensureZaloPauseFix() {
   // === END 9BizClaw PAUSE PATCH ===
 `;
     const patched = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    _writeInboundTs(pluginFile, patched);
     console.log('[zalo-pause-fix] Injected pause check into inbound.ts');
   } catch (e) {
     console.error('[zalo-pause-fix] error:', e.message);
@@ -4239,7 +4248,7 @@ function ensureZaloFriendCheckFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     // Version pin: V5 = respect zalo-stranger-policy.json (ignore/greet-only/reply)
     const FRIEND_CHECK_VERSION = 'FRIEND-CHECK-V5';
     if (content.includes(FRIEND_CHECK_VERSION)) return; // already patched with latest version
@@ -4366,13 +4375,13 @@ function ensureZaloFriendCheckFix() {
             const __fcVendorCli = __fcPath.join(__fcAppBase, __fcAppDir, "vendor", "node_modules", "openzca", "dist", "cli.js");
             const __fcNodeBin = __fcPath.join(__fcAppBase, __fcAppDir, "vendor", "node", process.platform === "win32" ? "node.exe" : "bin/node");
             if (__fcFs.existsSync(__fcVendorCli) && __fcFs.existsSync(__fcNodeBin)) {
-              __fcExec(__fcNodeBin, [__fcVendorCli, "friend", "request", __fcSender, "--message", "Xin chao, minh la tro ly AI. Ket ban de minh ho tro ban nhe!"], { timeout: 10000, windowsHide: true, stdio: "ignore" });
+              __fcExec(__fcNodeBin, [__fcVendorCli, "friend", "request", __fcSender, "--message", "Xin ch\u00E0o, m\u00ECnh l\u00E0 tr\u1EE3 l\u00FD AI. K\u1EBFt b\u1EA1n \u0111\u1EC3 m\u00ECnh h\u1ED7 tr\u1EE3 b\u1EA1n nh\u00E9!"], { timeout: 10000, windowsHide: true, stdio: "ignore" });
               runtime.log?.(\`openzalo: friend request sent via CLI to \${__fcSender}\`);
               __fcFriendReqSent = true;
             } else {
               try {
                 const __fcCmd = process.platform === "win32" ? "openzca.cmd" : "openzca";
-                __fcExec(__fcCmd, ["friend", "request", __fcSender, "--message", "Xin chao, minh la tro ly AI. Ket ban de minh ho tro ban nhe!"], { timeout: 10000, windowsHide: true, stdio: "ignore", shell: process.platform === "win32" });
+                __fcExec(__fcCmd, ["friend", "request", __fcSender, "--message", "Xin ch\u00E0o, m\u00ECnh l\u00E0 tr\u1EE3 l\u00FD AI. K\u1EBFt b\u1EA1n \u0111\u1EC3 m\u00ECnh h\u1ED7 tr\u1EE3 b\u1EA1n nh\u00E9!"], { timeout: 10000, windowsHide: true, stdio: "ignore", shell: process.platform === "win32" });
                 runtime.log?.(\`openzalo: friend request sent via PATH to \${__fcSender}\`);
                 __fcFriendReqSent = true;
               } catch (__fcPathErr) {
@@ -4454,7 +4463,7 @@ function ensureZaloFriendCheckFix() {
   // === END 9BizClaw FRIEND-CHECK PATCH ===`;
 
     const patched = content.replace(anchor, anchor + injection);
-    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    _writeInboundTs(pluginFile, patched);
     console.log('[zalo-friend-check-fix] Injected friend-status check into inbound.ts');
   } catch (e) {
     console.error('[zalo-friend-check-fix] error:', e.message);
@@ -4475,7 +4484,7 @@ function ensureZaloOwnerFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
     if (!fs.existsSync(pluginFile)) return;
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
 
     // ZALO-OWNER-PATCH-V4: mutates rawBody DIRECTLY (not message.text).
     // V2/V3 mutated `message.text` but openzalo captures `const rawBody = message.text.trim()`
@@ -4593,7 +4602,7 @@ function ensureZaloOwnerFix() {
       console.warn('[zalo-owner-fix] anchor replace failed — no write');
       return;
     }
-    fs.writeFileSync(pluginFile, patched, 'utf-8');
+    _writeInboundTs(pluginFile, patched);
     console.log('[zalo-owner-fix] Injected V4 owner-marker patch into inbound.ts (mutates rawBody directly)');
   } catch (e) {
     console.error('[zalo-owner-fix] error:', e?.message);
@@ -4718,7 +4727,7 @@ function ensureOpenzcaFriendEventFix() {
                     else pronoun = "anh/chi " + friendName;
                   }
                   // Read IDENTITY.md for bot intro (workspace path via env)
-                  let botIntro = "tro ly AI cua doanh nghiep";
+                  let botIntro = "tr\u1EE3 l\u00FD AI c\u1EE7a doanh nghi\u1EC7p";
                   try {
                     const __welFs2 = require("fs");
                     const __welPath2 = require("path");
@@ -4728,18 +4737,18 @@ function ensureOpenzcaFriendEventFix() {
                       if (__welFs2.existsSync(companyPath)) {
                         const companyContent = __welFs2.readFileSync(companyPath, "utf-8");
                         const nameMatch = companyContent.match(/Ten cong ty[^:]*:\\s*(.+)/i) || companyContent.match(/^#\\s+(.+)/m);
-                        if (nameMatch) botIntro = "tro ly AI cua " + nameMatch[1].trim();
+                        if (nameMatch) botIntro = "tr\u1EE3 l\u00FD AI c\u1EE7a " + nameMatch[1].trim();
                       }
                     }
                   } catch {}
                   // Build welcome message with numbered options
-                  const welcomeMsg = "Chao " + pronoun + "! Cam on " + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0] : "ban") + " da ket ban.\\n\\n"
-                    + "Minh la " + botIntro + ". Minh co the ho tro " + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0] : "ban") + ":\\n\\n"
-                    + "1. Xem san pham / dich vu\\n"
-                    + "2. Tim hieu gia ca\\n"
-                    + "3. Dat lich hen / tu van\\n"
-                    + "4. Hoi cau hoi khac\\n\\n"
-                    + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0].charAt(0).toUpperCase() + pronoun.split(" ")[0].slice(1) : "Ban") + " chi can tra loi so (1-4) de minh ho tro ngay!";
+                  const welcomeMsg = "Ch\u00E0o " + pronoun + "! C\u1EA3m \u01A1n " + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0] : "b\u1EA1n") + " \u0111\u00E3 k\u1EBFt b\u1EA1n.\\n\\n"
+                    + "M\u00ECnh l\u00E0 " + botIntro + ". M\u00ECnh c\u00F3 th\u1EC3 h\u1ED7 tr\u1EE3 " + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0] : "b\u1EA1n") + ":\\n\\n"
+                    + "1. Xem s\u1EA3n ph\u1EA9m / d\u1ECBch v\u1EE5\\n"
+                    + "2. T\u00ECm hi\u1EC3u gi\u00E1 c\u1EA3\\n"
+                    + "3. \u0110\u1EB7t l\u1ECBch h\u1EB9n / t\u01B0 v\u1EA5n\\n"
+                    + "4. H\u1ECFi c\u00E2u h\u1ECFi kh\u00E1c\\n\\n"
+                    + (pronoun.startsWith("anh") || pronoun.startsWith("chi") ? pronoun.split(" ")[0].charAt(0).toUpperCase() + pronoun.split(" ")[0].slice(1) : "B\u1EA1n") + " ch\u1EC9 c\u1EA7n tr\u1EA3 l\u1EDDi s\u1ED1 (1-4) \u0111\u1EC3 m\u00ECnh h\u1ED7 tr\u1EE3 ngay!";
                   // Send via zca-js api.sendMessage — threadType=0 for DM
                   await api.sendMessage({ body: welcomeMsg }, newFriendUid, 0);
                   console.log("[friend_event] welcome message sent to new friend " + newFriendUid + " (" + friendName + ")");
@@ -4814,6 +4823,8 @@ function ensureOpenzcaFriendEventFix() {
 // (start) and `END 9BizClaw OUTPUT-FILTER PATCH` (end).
 function ensureZaloOutputFilterFix() {
   try {
+    // NOTE: patches send.ts (NOT inbound.ts) — must use direct file I/O,
+    // not the inbound.ts batch cache.
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'send.ts');
     if (!fs.existsSync(pluginFile)) return;
     let content = fs.readFileSync(pluginFile, 'utf-8');
@@ -5199,7 +5210,7 @@ function ensureOpenzaloForceOneMessageFix() {
       console.warn('[zalo-force-one-msg] plugin file not present yet');
       return;
     }
-    let content = fs.readFileSync(pluginFile, 'utf-8');
+    let content = _readInboundTs(pluginFile);
     if (!content.includes('9BizClaw FORCE-ONE-MESSAGE PATCH')) {
       // Match the exact source form we expect. Plugin minor versions may vary whitespace
       // so we use a flexible regex.
@@ -5212,7 +5223,7 @@ function ensureOpenzaloForceOneMessageFix() {
           '      // Hardcoding true ensures Zalo ALWAYS sends one complete message per turn.\n' +
           '      disableBlockStreaming: true,';
         content = content.replace(re, replacement);
-        fs.writeFileSync(pluginFile, content, 'utf-8');
+        _writeInboundTs(pluginFile, content);
         console.log('[zalo-force-one-msg] Part 2 disableBlockStreaming patch applied');
       } else {
         console.warn('[zalo-force-one-msg] Part 2 anchor not found — plugin source changed');
@@ -5329,7 +5340,7 @@ function ensureOpenzaloForceOneMessageFix() {
           // Callback not found — revert Part 1 injection if we did it so next startup retries cleanly.
           if (!hasV2Buffer) {
             content = content.replace(coalesceInjection, coalesceAnchor);
-            fs.writeFileSync(pluginFile, content, 'utf-8');
+            _writeInboundTs(pluginFile, content);
           }
           console.warn('[zalo-force-one-msg] Part 3 deliver callback not found — will retry on next startup');
           return; // skip marker write
@@ -5361,7 +5372,7 @@ function ensureOpenzaloForceOneMessageFix() {
             '  // 9BizClaw DELIVER-COALESCE PATCH v4 — marker\n  // 9BizClaw DELIVER-COALESCE PATCH v4:'
           );
         }
-        fs.writeFileSync(pluginFile, content, 'utf-8');
+        _writeInboundTs(pluginFile, content);
         console.log('[zalo-force-one-msg] Part 3 deliver-coalesce patch v4 applied');
       }
     }
@@ -5449,7 +5460,7 @@ function ensureOpenzaloShellFix() {
       console.error('[openzalo-fix] CRITICAL: template at ' + foundAt + ' is missing 9BizClaw PATCH marker — refusing to apply (corrupt?)');
       return;
     }
-    fs.writeFileSync(pluginFile, templateContent, 'utf-8');
+    fs.writeFileSync(pluginFile, templateContent, 'utf-8'); // openzca.ts, NOT inbound.ts — direct I/O
     console.log('[openzalo-fix] Patched openzca.ts from template at ' + foundAt + ' (' + templateContent.length + ' bytes)');
     // Verify write succeeded
     const verify = fs.readFileSync(pluginFile, 'utf-8');
@@ -5841,35 +5852,36 @@ async function _startOpenClawImpl() {
   ensureOpenzaloNodeModulesLink();
   // Re-apply OpenZalo shell fix in case plugin was reinstalled
   ensureOpenzaloShellFix();
-  // Re-apply blocklist injection (idempotent)
+  // --- BATCH PATCH: read inbound.ts ONCE, apply all patches, write ONCE ---
+  // Previously each ensure* function read + wrote inbound.ts independently
+  // (8 sequential readFileSync + writeFileSync on same file). On slow disks
+  // with antivirus scanning, this added 500ms-1.5s to boot. Now: 1 read + 1 write.
+  const _inboundTsPath = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
+  if (fs.existsSync(_inboundTsPath)) {
+    global.__patchInboundCache = fs.readFileSync(_inboundTsPath, 'utf-8');
+    global.__patchInboundDirty = false;
+  }
   ensureZaloBlocklistFix();
-  // Pause: /pause command + auto-detect staff reply (depends on blocklist anchor)
   ensureZaloPauseFix();
-  // Friend check: inject stranger-handling logic (depends on blocklist anchor)
   ensureZaloFriendCheckFix();
-  // Owner marker: tag DMs from CEO's personal Zalo so bot switches to CEO mode
-  // (depends on friend-check anchor — must run AFTER it)
   ensureZaloOwnerFix();
-  // Patch openzca daemon to listen for friend_event + auto-accept friend requests
-  // + refresh cache instantly. This is what makes the friend-check feel "instant"
-  // — without it, friends.json only updates on login or manual cache-refresh, so
-  // a brand-new friend would have to wait 5-10 minutes before bot recognized them.
-  ensureOpenzcaFriendEventFix();
-  // Output filter: scan outbound Zalo text for sensitive patterns (Security Layer 2)
-  ensureZaloOutputFilterFix();
-  // System-msg filter: drop Zalo group event notifications (join/leave/rename/avatar)
-  // before they reach the AI. Called LAST-1 so it inserts after blocklist end anchor.
   ensureZaloSystemMsgFix();
-  // Sender dedup guard: drop exact-text duplicates from same sender within 3s.
-  // Must run AFTER ensureZaloSystemMsgFix (depends on SYSTEM-MSG END anchor).
   ensureZaloSenderDedupFix();
-  // Group settings: read zalo-group-settings.json realtime so Dashboard toggle works instantly.
   ensureZaloGroupSettingsFix();
-  // Vision: patch openclaw to enable image input for ninerouter provider
-  ensureVisionFix();
-  // Force-one-message: hardcode disableBlockStreaming=true in openzalo inbound.ts
-  // so "Dạ" word never gets split between messages regardless of config drift.
+  // Force-one-message PART 2+3: patches inbound.ts (include in batch)
+  // PART 1 (channel.ts) uses direct fs I/O internally — safe.
   ensureOpenzaloForceOneMessageFix();
+  // Flush: write inbound.ts once if any patch modified it
+  if (global.__patchInboundCache && global.__patchInboundDirty) {
+    fs.writeFileSync(_inboundTsPath, global.__patchInboundCache, 'utf-8');
+    console.log('[patch-batch] inbound.ts written (1 pass instead of 10)');
+  }
+  delete global.__patchInboundCache;
+  delete global.__patchInboundDirty;
+  // Non-inbound patches (separate files, direct I/O):
+  ensureOpenzcaFriendEventFix(); // patches openzca cli.js
+  ensureZaloOutputFilterFix();   // patches send.ts
+  ensureVisionFix();             // patches openclaw dist session-utils
 
   // Rebuild memory DB — use absolute node path so it works even if Electron's
   // PATH doesn't include the user's Node install (nvm/volta/scoop/etc.).
@@ -5954,8 +5966,17 @@ async function _startOpenClawImpl() {
   // → CEO sees "2-3 phút before bot replies".
   let nineRouterReady = false;
   let nineRouterModelCount = 0;
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 1000));
+  // Exponential backoff: 200ms × 5, 500ms × 5, 1000ms × 50 = ~55s total budget.
+  // On fast machines, 9Router ready in <2s (caught in first 5 probes at 200ms).
+  // On slow machines (Defender scan), ready in 15-20s (caught at 1s cadence).
+  // Previously: flat 1000ms × 60 = always waited ≥1s even on fast machines.
+  const _9rDelays = [
+    ...Array(5).fill(200),   // T+0.2, 0.4, 0.6, 0.8, 1.0
+    ...Array(5).fill(500),   // T+1.5, 2.0, 2.5, 3.0, 3.5
+    ...Array(50).fill(1000), // T+4.5 ... T+54.5
+  ];
+  for (let i = 0; i < _9rDelays.length; i++) {
+    await new Promise(r => setTimeout(r, _9rDelays[i]));
     try {
       const body = await new Promise((resolve, reject) => {
         const req = require('http').get('http://127.0.0.1:20128/v1/models', { timeout: 2000 }, (res) => {
@@ -5973,7 +5994,7 @@ async function _startOpenClawImpl() {
         nineRouterModelCount = Array.isArray(parsed?.data) ? parsed.data.length : 0;
       } catch { nineRouterModelCount = 0; }
       nineRouterReady = true;
-      console.log(`[boot] T+${Date.now() - t0}ms 9Router /v1/models ready (after ${i + 1}s), ${nineRouterModelCount} models`);
+      console.log(`[boot] T+${Date.now() - t0}ms 9Router /v1/models ready (after ${Math.round((Date.now() - t0) / 1000)}s), ${nineRouterModelCount} models`);
       break;
     } catch {}
   }
@@ -6291,6 +6312,9 @@ async function _startOpenClawImpl() {
   notifyState.telegramReady = false;
   notifyState.zaloReady = false;
   notifyState.bootSessionId = Date.now();
+  // Clear disk throttle so notification sends on every restart.
+  // CEO wants "Telegram đã sẵn sàng" as proof bot works after each boot.
+  try { const _bpf = path.join(getWorkspace(), '.boot-ping-ts.json'); if (fs.existsSync(_bpf)) fs.unlinkSync(_bpf); } catch {}
   notifyState.telegram = notifyState.telegram || {};
   notifyState.zalo = notifyState.zalo || {};
   for (const ch of ['telegram', 'zalo']) {
@@ -6301,6 +6325,7 @@ async function _startOpenClawImpl() {
     channelState.awaitingConfirmation = false;
     channelState.confirmedBy = '';
     channelState.lastError = '';
+    channelState.lastNotifyOkAt = 0;
     if (!Number.isFinite(channelState.lastNotifyOkAt)) channelState.lastNotifyOkAt = 0;
   }
   // H1 throttle: if a readiness notification was already sent within the
@@ -8696,6 +8721,19 @@ ipcMain.handle('get-zalo-group-summaries', async () => {
   } catch (e) {
     console.error('[zalo-group-memory] error:', e?.message);
     return {};
+  }
+});
+
+// Read full group memory file for display in Dashboard modal.
+ipcMain.handle('get-zalo-group-memory', async (_evt, groupId) => {
+  try {
+    const dir = getZaloGroupsDir();
+    if (!dir) return { content: '', exists: false };
+    const fp = path.join(dir, groupId + '.md');
+    if (!fs.existsSync(fp)) return { content: '', exists: false };
+    return { content: fs.readFileSync(fp, 'utf-8'), exists: true };
+  } catch (e) {
+    return { content: '', exists: false, error: e?.message };
   }
 });
 
@@ -11706,11 +11744,11 @@ function finalizeTelegramReadyProbe(base, hasCeoChatId) {
   }
   if (gate.markerSeen) {
     return { ...base, ready: false, awaitingConfirmation: true,
-      error: 'Telegram sap san sang, dang gui tin xac nhan...' };
+      error: 'Telegram s\u1EAFp s\u1EB5n s\u00E0ng, \u0111ang g\u1EEDi tin x\u00E1c nh\u1EADn...' };
   }
   // WS ready + getMe pass but channel not yet initialized
   return { ...base, ready: false, awaitingConfirmation: true,
-    error: 'Dang khoi tao kenh Telegram... (1-2 phut)' };
+    error: '\u0110ang kh\u1EDFi t\u1EA1o k\u00EAnh Telegram... (1-2 ph\u00FAt)' };
 }
 
 function finalizeZaloReadyProbe(base) {
@@ -11723,10 +11761,10 @@ function finalizeZaloReadyProbe(base) {
   }
   if (gate.markerSeen) {
     return { ...base, ready: false, awaitingConfirmation: true,
-      error: 'Zalo sap san sang, dang xac nhan...' };
+      error: 'Zalo s\u1EAFp s\u1EB5n s\u00E0ng, \u0111ang x\u00E1c nh\u1EADn...' };
   }
   return { ...base, ready: false, awaitingConfirmation: true,
-    error: 'Dang khoi tao kenh Zalo... (1-2 phut)' };
+    error: '\u0110ang kh\u1EDFi t\u1EA1o k\u00EAnh Zalo... (1-2 ph\u00FAt)' };
 }
 
 async function probeTelegramReady() {
@@ -12248,8 +12286,8 @@ async function broadcastChannelStatusOnce() {
     // Don't probe Telegram getMe (token is valid even when gateway is off).
     if (!botRunning) {
       mainWindow.webContents.send('channel-status', {
-        telegram: { ready: false, error: 'Bot dang dung' },
-        zalo: { ready: false, error: 'Bot dang dung' },
+        telegram: { ready: false, error: 'Bot \u0111ang d\u1EEBng' },
+        zalo: { ready: false, error: 'Bot \u0111ang d\u1EEBng' },
         checkedAt: new Date().toISOString(),
       });
       return;
@@ -12346,7 +12384,12 @@ function startChannelStatusBroadcast() {
   };
 
   // Boot phase: fast polls so listener spawn is caught quickly (first 30s)
-  const bootDelays = [500, 2000, 4000, 6000, 8000, 10000, 12000, 15000, 20000, 25000, 30000];
+  // Boot phase: defer probes until gateway has had time to start channels.
+  // Previously started at T+500ms — all probes before T+30s are wasted
+  // (gateway still loading, Telegram getMe times out, Zalo scan finds nothing).
+  // Now: first probe at T+15s, then every 5s until T+60s. Saves ~10 wasted
+  // probe cycles (each = 6s HTTPS timeout + process scan).
+  const bootDelays = [15000, 20000, 25000, 30000, 35000, 40000, 50000, 60000];
   for (const delay of bootDelays) {
     _channelStatusBootTimers.push(setTimeout(broadcast, delay));
   }
@@ -12491,33 +12534,27 @@ async function fastWatchdogTick() {
       }
     } else {
       _fwGatewayFailCount = 0;
-      // --- Zalo listener sub-check (only when gateway alive AND Zalo enabled) ---
-      // Skip entirely if openzalo is not enabled — customer may only use Telegram.
-      // Without this guard, watchdog kills a healthy gateway just because there's
-      // no Zalo listener process, causing a restart loop on Telegram-only installs.
-      const _fwZaloEnabled = (() => { try {
-        const _cfg = JSON.parse(fs.readFileSync(path.join(HOME, '.openclaw', 'openclaw.json'), 'utf-8'));
-        return _cfg?.plugins?.entries?.openzalo?.enabled === true || _cfg?.channels?.openzalo?.enabled === true;
-      } catch { return false; } })();
+      // --- Zalo listener sub-check: LOG ONLY, never restart gateway ---
+      // Zalo listener is a subprocess managed by the gateway's openzalo plugin.
+      // If it crashes or session expires, the plugin handles reconnect internally.
+      // NEVER restart the entire gateway for a Zalo issue — that kills Telegram
+      // and creates the "restart cascade" loop that made connection feel broken.
       try {
-        const zlPid = _fwZaloEnabled ? findOpenzcaListenerPid() : 'skip';
-        if (zlPid === 'skip') {
-          _fwZaloMissCount = 0; // Zalo not enabled, don't accumulate misses
-        } else if (!zlPid) {
-          _fwZaloMissCount++;
-          if (_fwZaloMissCount >= 2 && _fwCanRestart()) {
-            console.log('[fast-watchdog] Zalo listener missing (' + _fwZaloMissCount + ' misses) — restarting gateway');
-            _fwZaloMissCount = 0;
-            _fwRestartTimestamps.push(Date.now());
-            _gatewayRestartInFlight = true;
-            try {
-              await stopOpenClaw();
-              await startOpenClaw();
-            } catch (e) {
-              console.error('[fast-watchdog] Zalo restart error:', e.message);
-            } finally {
-              _gatewayRestartInFlight = false;
+        const _fwZaloEnabled = (() => { try {
+          const _cfg = JSON.parse(fs.readFileSync(path.join(HOME, '.openclaw', 'openclaw.json'), 'utf-8'));
+          return _cfg?.plugins?.entries?.openzalo?.enabled === true || _cfg?.channels?.openzalo?.enabled === true;
+        } catch { return false; } })();
+        if (_fwZaloEnabled) {
+          const zlPid = findOpenzcaListenerPid();
+          if (!zlPid) {
+            _fwZaloMissCount++;
+            if (_fwZaloMissCount === 3) {
+              console.warn('[fast-watchdog] Zalo listener not running (3 checks) — NOT restarting gateway. Zalo may need QR re-login.');
+              // Alert CEO once, don't spam
+              sendCeoAlert('Zalo listener kh\u00F4ng ch\u1EA1y. N\u1EBFu Zalo kh\u00F4ng nh\u1EADn tin, v\u00E0o tab Zalo b\u1EA5m "\u0110\u1ED5i t\u00E0i kho\u1EA3n" \u0111\u1EC3 qu\u00E9t QR l\u1EA1i.').catch(() => {});
             }
+          } else {
+            _fwZaloMissCount = 0;
           }
         } else {
           _fwZaloMissCount = 0;
@@ -15538,15 +15575,15 @@ ipcMain.handle('install-openclaw', async (event) => {
       const libDir = path.join(npmPrefix, 'lib', 'node_modules');
       try { fs.accessSync(libDir, fs.constants.W_OK); }
       catch {
-        send(`Canh bao: npm global prefix khong ghi duoc: ${npmPrefix}`);
+        send(`C\u1EA3nh b\u00E1o: npm global prefix kh\u00F4ng ghi \u0111\u01B0\u1EE3c: ${npmPrefix}`);
         send('');
-        send('Khac phuc: thiet lap user-prefix cho npm:');
+        send('Kh\u1EAFc ph\u1EE5c: thi\u1EBFt l\u1EADp user-prefix cho npm:');
         send('  mkdir -p ~/.npm-global');
         send('  npm config set prefix ~/.npm-global');
         send('  echo \'export PATH=~/.npm-global/bin:$PATH\' >> ~/.zshrc');
         send('  source ~/.zshrc');
         send('');
-        send('Sau do thu lai. (Tranh dung sudo cho npm install -g.)');
+        send('Sau \u0111\u00F3 th\u1EED l\u1EA1i. (Tr\u00E1nh d\u00F9ng sudo cho npm install -g.)');
         // We don't hard-fail here — npm install may still succeed if user
         // has /usr/local writable. Just warn loudly.
       }
@@ -15636,7 +15673,7 @@ ipcMain.handle('install-openclaw', async (event) => {
     const timeout = setTimeout(() => {
       proc.kill();
       send('');
-      send('Qua thoi gian (10 phut).');
+      send('Qu\u00E1 th\u1EDDi gian (10 ph\u00FAt).');
       safeResolve({ success: false, error: 'Quá thời gian. Thử lại hoặc cài thủ công.' });
     }, 10 * 60 * 1000);
 
@@ -15657,12 +15694,12 @@ ipcMain.handle('install-openclaw', async (event) => {
           safeResolve({ success: true });
         } else if (code === 0) {
           send('');
-          send('Canh bao: Installer chay xong nhung khong tim thay openclaw.');
+          send('C\u1EA3nh b\u00E1o: Installer ch\u1EA1y xong nh\u01B0ng kh\u00F4ng t\u00ECm th\u1EA5y openclaw.');
           send('Thử khởi động lại app.');
           safeResolve({ success: false, error: 'Cài xong nhưng không tìm thấy openclaw. Khởi động lại app.' });
         } else {
           send('');
-          send('Cai dat that bai.');
+          send('C\u00E0i \u0111\u1EB7t th\u1EA5t b\u1EA1i.');
           safeResolve({ success: false, error: `Mã lỗi: ${code}\n\n${output.slice(-1000)}` });
         }
       }, 2000);

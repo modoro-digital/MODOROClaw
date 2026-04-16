@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('claw', {
   getZaloManagerConfig: () => ipcRenderer.invoke('get-zalo-manager-config'),
   saveZaloManagerConfig: (config) => ipcRenderer.invoke('save-zalo-manager-config', config),
   getZaloGroupSummaries: () => ipcRenderer.invoke('get-zalo-group-summaries'),
+  getZaloGroupMemory: (groupId) => ipcRenderer.invoke('get-zalo-group-memory', groupId),
 
   // Personalization
   savePersonalization: (opts) => ipcRenderer.invoke('save-personalization', opts),
