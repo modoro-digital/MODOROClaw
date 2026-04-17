@@ -5576,6 +5576,70 @@ function ensureOpenclawPricingFix() {
   }
 }
 
+// === ensureOpenclawPrewarmFix ===
+// Bug: LINH-BABY gateway log shows 4:20 silent gap between "hooks loaded"
+// and "openzalo starting provider". openrouter.ai fetches already fast-fail
+// (pricing fix). So the blocker is in prewarmConfiguredPrimaryModel or
+// startChannels — the only two awaits between hooks and plugin start.
+//
+// Fix: patch prewarmConfiguredPrimaryModel to early-return. It resolves
+// model catalog + model metadata for the primary AI model (ninerouter/main
+// in our deploy). 9Router handles model routing itself — prewarm is
+// essentially unused. If prewarm IS the blocker, this eliminates the
+// 4:20 wait. If startChannels is the blocker, this has no effect and we
+// need to investigate further.
+//
+// Marker: 9BIZCLAW_PREWARM_DISABLED. Idempotent, re-applied each boot.
+function ensureOpenclawPrewarmFix() {
+  try {
+    const vendorDir = getBundledVendorDir();
+    if (!vendorDir) return;
+    const distDir = path.join(vendorDir, 'node_modules', 'openclaw', 'dist');
+    if (!fs.existsSync(distDir)) return;
+
+    const files = fs.readdirSync(distDir).filter(f => /^server\.impl-[A-Za-z0-9_-]+\.js$/.test(f));
+    if (files.length === 0) {
+      console.warn('[openclaw-prewarm-fix] no server.impl-*.js found');
+      return;
+    }
+
+    const markerStr = '9BIZCLAW_PREWARM_DISABLED';
+    const funcSignature = 'async function prewarmConfiguredPrimaryModel(params) {';
+
+    let patchedCount = 0;
+    for (const fname of files) {
+      const filePath = path.join(distDir, fname);
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf-8'); }
+      catch { continue; }
+
+      if (content.includes(markerStr)) continue;
+      if (!content.includes(funcSignature)) continue;
+
+      const patched = content.replace(
+        funcSignature,
+        funcSignature + '\n\treturn; // ' + markerStr + ' — avoid 4+min openrouter.ai model catalog fetch'
+      );
+
+      if (patched === content) continue;
+
+      try {
+        fs.writeFileSync(filePath, patched, 'utf-8');
+        patchedCount++;
+        console.log(`[openclaw-prewarm-fix] patched ${fname} — prewarm disabled`);
+      } catch (e) {
+        console.warn(`[openclaw-prewarm-fix] write failed ${fname}: ${e.message}`);
+      }
+    }
+
+    if (patchedCount > 0) {
+      console.log(`[openclaw-prewarm-fix] ${patchedCount} file(s) patched — prewarmConfiguredPrimaryModel disabled`);
+    }
+  } catch (e) {
+    console.warn('[openclaw-prewarm-fix] error:', e?.message);
+  }
+}
+
 function ensureOpenzaloShellFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'openzca.ts');
@@ -6047,6 +6111,10 @@ async function _startOpenClawImpl() {
   // Patch openclaw vendor to fail-fast on OpenRouter pricing fetch (3:34 stuck
   // → <100ms on customer machines with slow DNS/TCP to openrouter.ai).
   ensureOpenclawPricingFix();
+  // Disable prewarmConfiguredPrimaryModel (blocks 4:20 on LINH-BABY per log
+  // evidence from v2.3.47 test). prewarm fetches model catalog from
+  // openrouter.ai / provider registry — irrelevant for our 9Router deploy.
+  ensureOpenclawPrewarmFix();
   // --- BATCH PATCH: read inbound.ts ONCE, apply all patches, write ONCE ---
   // Previously each ensure* function read + wrote inbound.ts independently
   // (8 sequential readFileSync + writeFileSync on same file). On slow disks
