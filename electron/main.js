@@ -3930,6 +3930,7 @@ function ensureZaloRagFix() {
             }
           }
         } else {
+          clearTimeout(__ragTimer);
           __ragG.__ragFailCount++;
         }
       } catch (__ragErr) {
