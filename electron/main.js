@@ -14648,13 +14648,13 @@ function rewriteKnowledgeIndex(category) {
     }
   }
   try {
-    // Per-file cap (chars) — ~2k tokens worth; keeps 1 giant PDF from eating
-    // the whole index.md context budget.
-    const PER_FILE_CAP = 8000;
-    // Per-category cap (chars) total across all "Nội dung đầy đủ" sections.
-    // Files are already ordered by created_at DESC (newest first) so we fill
-    // top-down; when budget exhausted, remaining files get summary only.
-    const PER_CATEGORY_BUDGET = 50000;
+    // Per-file cap (chars). Keep SMALL — bootstrap context should be
+    // summary-only. Actual document retrieval happens via RAG preprocessing
+    // in inbound.ts (knowledge-search HTTP endpoint). Bot sees a lightweight
+    // file manifest here, not dump of every doc.
+    const PER_FILE_CAP = 2000;
+    // Per-category cap (chars) total. Same reason — keep small.
+    const PER_CATEGORY_BUDGET = 20000;
 
     let md = `# Knowledge — ${KNOWLEDGE_LABELS[category]}\n\n`;
     if (rows.length === 0) {
@@ -15071,6 +15071,49 @@ ipcMain.handle('knowledge-search', async (_event, payload) => {
     return { success: false, error: e.message || String(e) };
   }
 });
+
+// === KNOWLEDGE SEARCH HTTP SERVER (for gateway → inbound.ts RAG) ===
+// Gateway openzalo plugin (different process) needs to query our SQLite FTS5
+// to RAG-enrich messages before dispatch to AI. Expose a tiny localhost HTTP
+// endpoint so inbound.ts patch can fetch() it. Bound to 127.0.0.1 only.
+// Port 20129 (next to 9Router 20128).
+const KNOWLEDGE_HTTP_PORT = 20129;
+let _knowledgeHttpServer = null;
+function startKnowledgeSearchServer() {
+  if (_knowledgeHttpServer) return;
+  const http = require('http');
+  const { URL } = require('url');
+  _knowledgeHttpServer = http.createServer((req, res) => {
+    try {
+      const url = new URL(req.url, `http://127.0.0.1:${KNOWLEDGE_HTTP_PORT}`);
+      if (url.pathname !== '/search') {
+        res.writeHead(404, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'not found' }));
+        return;
+      }
+      const query = url.searchParams.get('q') || '';
+      const category = url.searchParams.get('cat') || null;
+      const limit = parseInt(url.searchParams.get('k') || '3', 10);
+      if (!query || query.length < 2) {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ results: [] }));
+        return;
+      }
+      const results = searchKnowledge({ query, category, limit: Math.min(Math.max(limit, 1), 8) });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ results }));
+    } catch (e) {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: String(e?.message || e) }));
+    }
+  });
+  _knowledgeHttpServer.listen(KNOWLEDGE_HTTP_PORT, '127.0.0.1', () => {
+    console.log(`[knowledge-http] listening on http://127.0.0.1:${KNOWLEDGE_HTTP_PORT}/search`);
+  });
+  _knowledgeHttpServer.on('error', (err) => {
+    console.warn('[knowledge-http] server error:', err?.message);
+  });
+}
 
 // Create custom knowledge folder
 ipcMain.handle('create-knowledge-folder', async (_event, { name }) => {
@@ -17070,6 +17113,10 @@ app.whenReady().then(async () => {
   try { auditLog('app_boot', { platform: process.platform, node: process.versions.node, electron: process.versions.electron }); } catch {}
   // Start the real-readiness probe broadcast so sidebar dots stay accurate
   startChannelStatusBroadcast();
+  // Knowledge search HTTP endpoint — gateway process (openclaw) calls this
+  // from inbound.ts patch to RAG-enrich messages before dispatch to agent.
+  // Localhost-only bind for security.
+  try { startKnowledgeSearchServer(); } catch (e) { console.warn('[knowledge-http] boot failed:', e?.message); }
   // Auto-update check 15s after boot — non-blocking, silent if no update
   setTimeout(() => {
     checkForUpdates().catch(e => console.warn('[update] boot check failed:', e?.message));
