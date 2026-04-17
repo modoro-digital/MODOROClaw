@@ -5768,6 +5768,19 @@ async function startOpenClaw() {
     console.log('[startOpenClaw] already in progress — skipping duplicate call');
     return;
   }
+  // [restart-guard A1 fix] Check bonjour + network cooldowns at the single
+  // choke point. Previously _bonjourCooldownUntil was set but only checked
+  // in fast-watchdog — all other call sites bypassed it silently.
+  const now = Date.now();
+  const bonjourUntil = global._bonjourCooldownUntil || 0;
+  const networkUntil = global._networkCooldownUntil || 0;
+  const cooldownUntil = Math.max(bonjourUntil, networkUntil);
+  if (cooldownUntil > now) {
+    const remaining = Math.ceil((cooldownUntil - now) / 1000);
+    const reason = bonjourUntil >= networkUntil ? 'bonjour' : 'network';
+    console.log(`[startOpenClaw] ${reason} cooldown active — skipping (${remaining}s remaining)`);
+    return;
+  }
   _startOpenClawInFlight = true;
   try {
     const r = await _startOpenClawImpl();
