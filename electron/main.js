@@ -15307,7 +15307,12 @@ function searchKnowledgeFTS5(opts) {
 // OAuth = 'ninerouter/main' (ChatGPT Plus included, cheap), else 'ninerouter/fast'.
 async function detectChatgptPlusOAuth() {
   try {
-    const dbPath = path.join(HOME, '.9router', 'db.json');
+    // 9router db.json path: use appDataDir() to match how 9router actually
+    // stores it on each platform (Win: %APPDATA%/9router/, Mac: Application
+    // Support/9router/, Linux: ~/.config/9router/). Previous `HOME/.9router/`
+    // was wrong — existsSync always false → every install defaults to 'fast'
+    // even for ChatGPT Plus OAuth users (bug flagged by code quality review).
+    const dbPath = path.join(appDataDir(), '9router', 'db.json');
     if (!fs.existsSync(dbPath)) return false;
     const cfg = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
     const providers = cfg?.providers || [];
@@ -15452,9 +15457,14 @@ ipcMain.handle('get-rag-config', async () => getRagConfig());
 ipcMain.handle('set-rag-config', async (_event, cfg) => {
   try {
     const p = path.join(getWorkspace(), 'rag-config.json');
+    // Whitelist rewriteModel to known 9Router slots. Prevents devtools/buggy-UI
+    // from persisting invalid model IDs that would silently fail tier2 calls.
+    const ALLOWED_MODELS = ['ninerouter/main', 'ninerouter/fast'];
+    const requested = String((cfg && cfg.rewriteModel) || 'ninerouter/fast');
+    const rewriteModel = ALLOWED_MODELS.includes(requested) ? requested : 'ninerouter/fast';
     writeJsonAtomic(p, {
       tier2Enabled: !!(cfg && cfg.tier2Enabled),
-      rewriteModel: String((cfg && cfg.rewriteModel) || 'ninerouter/fast'),
+      rewriteModel,
       updatedAt: new Date().toISOString(),
     });
     return { success: true };
