@@ -5226,8 +5226,18 @@
       try {
         const r = await window.claw.checkForUpdates();
         if (r && r.available) {
-          showUpdateBanner(r);
-          if (label) label.textContent = 'Có bản mới!';
+          // User explicitly clicked check → they want the update.
+          // Skip the intermediate banner "Nhấn để cập nhật" — kick off install directly.
+          // Banner still displays progress (Đang tải X%, Đang cài..., etc) via startUpdate().
+          if (label) label.textContent = 'v' + r.version + ' — đang tải';
+          _pendingUpdate = r;  // set so startUpdate() doesn't bail
+          const banner = document.getElementById('update-banner');
+          const text = document.getElementById('update-banner-text');
+          if (banner && text) {
+            text.textContent = 'v' + r.version + ' — đang tải...';
+            banner.style.display = 'block';
+          }
+          await startUpdate();
         } else {
           if (label) label.textContent = 'Đã mới nhất';
           setTimeout(() => { if (label) label.textContent = 'Kiểm tra cập nhật'; }, 3000);
