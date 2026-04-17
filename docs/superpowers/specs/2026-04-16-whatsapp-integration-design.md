@@ -59,6 +59,8 @@ Ship WhatsApp channel (optional) trong v2.4.0 với Zalo-parity UX. Code-level g
 
 - **Patch anchor drift**: `ensureWhatsAppRuntimeFix()` uses regex on stable function names (`sendMessageWhatsApp`, `monitorWebInbox`) in `runtime-api.js`. If openclaw upgrade restructures this file or renames exports, patch fails to apply → fallback to unpatched plugin (code-level gates inactive). Mitigation: smoke test verifies anchor strings match BEFORE build; CI fails if mismatch. Patch applies idempotent marker `// === MODOROClaw WHATSAPP RUNTIME PATCH v1 ===`.
 - **Pause queue**: pause via file-based check inside patched `monitorWebInbox` wrapper (NOT `dmPolicy` flip). Baileys WS keeps running, but wrapper drops all inbound until `whatsapp-paused.json` expires. Zero queue-on-resume risk.
+- **Dedupe-key leak on early-return**: wrapper early-returns (pause/blocked/system-msg/dup) bypass plugin's `finalizeInboundDedupe()` inside `attachWebInboxToSocket`. On socket reconnect, baileys may re-deliver same message — wrapper drops again (idempotent via our `__mcDedup` Map with TTL), but plugin-side dedupe keys stay unclaimed. Accepted: memory bounded by our 500-entry/60s TTL prune. Alternative (rejected as over-engineering): pass sentinel through `origOnMessage` to let finalization run.
+- **Baileys stub ID drift**: `GROUP_STUB_TYPES` hardcodes IDs 20-32 (stable across baileys 6.x-7.x). Mitigation: widen range check to `t >= 20 && t <= 40` as safety margin; smoke test asserts baileys version still matches pinned one.
 
 ## 3. Foundation — verified from tarball
 
@@ -498,7 +500,8 @@ function __mcIsReadMode() {
 }
 function __mcIsSystemEvent(msg) {
   const t = msg?.messageStubType;
-  return typeof t === 'number' && GROUP_STUB_TYPES.has(t);
+  // Widened to 20-40 as safety margin against baileys stub ID drift
+  return typeof t === 'number' && (GROUP_STUB_TYPES.has(t) || (t >= 20 && t <= 40));
 }
 function __mcIsDuplicate(senderJid, body) {
   const key = senderJid + ':' + String(body || '').slice(0, 200);
