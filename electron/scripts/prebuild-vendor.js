@@ -627,6 +627,24 @@ function packVendorForWindows() {
   // re-extract on customer machines even when vendor contents are identical.
   const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_${process.platform}-${process.arch}`;
 
+  // H7: per-model-file SHA so runtime can verify extracted .onnx wasn't
+  // swapped (user-writable %APPDATA% on Windows). Read hashes from
+  // prebuild-models.js pinned list (same source of truth).
+  const modelSha = {};
+  try {
+    const modelDir = path.join(VENDOR, 'models', 'Xenova', 'multilingual-e5-small');
+    const modelOnnx = path.join(modelDir, 'onnx', 'model_quantized.onnx');
+    if (fs.existsSync(modelOnnx)) {
+      modelSha['model_quantized.onnx'] = sha256File(modelOnnx);
+    }
+    const tokenizerJson = path.join(modelDir, 'tokenizer.json');
+    if (fs.existsSync(tokenizerJson)) {
+      modelSha['tokenizer.json'] = sha256File(tokenizerJson);
+    }
+  } catch (e) {
+    warn('model SHA collection failed:', e.message);
+  }
+
   const meta = {
     version: 1,
     filename: 'vendor-bundle.tar',
@@ -636,6 +654,7 @@ function packVendorForWindows() {
     archive_bytes: tarSize,
     bundle_version: bundleVersion,
     sha256: tarSha256,
+    modelSha,
     created_at: new Date().toISOString(),
     node_version: NODE_VERSION,
     target_platform: 'win32',

@@ -68,19 +68,26 @@ async function main() {
   console.log(`[smoke-rag] embedding ${fx.queries.length} queries + scoring...`);
   let t1 = 0, t3 = 0, total = 0;
   const fails = [];
+  // Per-category tally (e.g. typo/no-diacritic/negation) so regressions show
+  // which slice of the retrieval space broke, not just overall %.
+  const perCat = {};
   for (const q of fx.queries) {
     if (!Array.isArray(q.expected) || q.expected.length === 0) continue; // skip OOD
     total++;
+    const cat = q.note || 'uncat';
+    perCat[cat] ??= { t1: 0, t3: 0, total: 0, fails: [] };
+    perCat[cat].total++;
     const qv = await embedText(q.q, true);
     const ranked = fx.chunks
       .map(c => ({ id: c.id, s: cosineSim(qv, c.vec) }))
       .sort((a, b) => b.s - a.s);
     const top3ids = ranked.slice(0, 3).map(x => x.id);
-    if (q.expected.includes(top3ids[0])) t1++;
+    if (q.expected.includes(top3ids[0])) { t1++; perCat[cat].t1++; }
     if (q.expected.some(id => top3ids.includes(id))) {
-      t3++;
+      t3++; perCat[cat].t3++;
     } else {
-      fails.push(`[${q.note}] "${q.q}" top3=[${top3ids.join(',')}] expected=[${q.expected.join(',')}]`);
+      fails.push(`[${cat}] "${q.q}" top3=[${top3ids.join(',')}] expected=[${q.expected.join(',')}]`);
+      perCat[cat].fails.push(q.q);
     }
   }
 
@@ -89,8 +96,14 @@ async function main() {
   console.log('');
   console.log(`[smoke-rag] Top-1: ${t1}/${total} = ${t1pct}%`);
   console.log(`[smoke-rag] Top-3: ${t3}/${total} = ${t3pct}%`);
+  console.log(`[smoke-rag] per-category Top-3:`);
+  for (const [cat, s] of Object.entries(perCat).sort()) {
+    const pct = (s.t3 / s.total * 100).toFixed(0);
+    const marker = s.t3 === s.total ? ' OK' : (s.t3 / s.total >= 0.7 ? '  ' : ' !!');
+    console.log(`  ${marker} ${cat.padEnd(14)} Top-3 ${s.t3}/${s.total} = ${pct}%`);
+  }
   if (fails.length > 0) {
-    console.log(`[smoke-rag] ${fails.length} Top-3 miss(es):`);
+    console.log(`\n[smoke-rag] ${fails.length} Top-3 miss(es):`);
     for (const f of fails) console.log(`  ${f}`);
   }
 

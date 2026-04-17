@@ -22,13 +22,13 @@ let _embedderInFlight = 0;  // E3 fix: reference count — never unload while >0
 let _modelsRoot = null;
 function setModelsRoot(dir) { _modelsRoot = dir; }
 
-async function getEmbedder() {
-  _embedderLastUsedAt = Date.now();
+function armUnloadTimer() {
   if (_embedderUnloadTimer) clearTimeout(_embedderUnloadTimer);
-  _embedderUnloadTimer = setTimeout(() => {
-    // E3: never drop embedder while a call is mid-flight. Re-arm timer instead.
+  _embedderUnloadTimer = setTimeout(function tick() {
+    // H1 fix: re-arm with the actual tick logic (was an empty closure before,
+    // which silently disabled the unload mechanism after one in-flight call).
     if (_embedderInFlight > 0) {
-      _embedderUnloadTimer = setTimeout(() => {}, EMBEDDER_UNLOAD_MS);
+      _embedderUnloadTimer = setTimeout(tick, EMBEDDER_UNLOAD_MS);
       return;
     }
     if (Date.now() - _embedderLastUsedAt >= EMBEDDER_UNLOAD_MS) {
@@ -36,6 +36,11 @@ async function getEmbedder() {
       _embedder = null;
     }
   }, EMBEDDER_UNLOAD_MS);
+}
+
+async function getEmbedder() {
+  _embedderLastUsedAt = Date.now();
+  armUnloadTimer();
 
   if (_embedder) return _embedder;
   if (_embedderLoadPromise) return _embedderLoadPromise;
