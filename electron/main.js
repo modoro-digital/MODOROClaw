@@ -3863,6 +3863,99 @@ function ensureZaloGroupSettingsFix() {
   }
 }
 
+// inbound.ts RAG enrichment: calls Electron main HTTP knowledge-search + prepends chunks.
+// Idempotent via "9BizClaw RAG PATCH v2" marker.
+// Anchor: AFTER group-settings end marker (runs only for messages that passed all filters).
+// Fail-open: if HTTP fails or returns nothing, message dispatches as-is.
+// Circuit breaker: 3 consecutive fails within 60s → POST /audit-rag-degraded + stop calling for 5min.
+function ensureZaloRagFix() {
+  try {
+    const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'inbound.ts');
+    if (!fs.existsSync(pluginFile)) return;
+    let content = _readInboundTs(pluginFile);
+
+    // Strip v1 block if present (upgrade from v1 → v2). v1 never shipped but keep
+    // for forward-compat if a dev-branch install has it.
+    if (content.includes('9BizClaw RAG PATCH v1')) {
+      const v1Start = content.indexOf('  // === 9BizClaw RAG PATCH v1 ===');
+      const v1End = content.indexOf('  // === END 9BizClaw RAG PATCH v1 ===');
+      if (v1Start !== -1 && v1End !== -1) {
+        const endMarkerLen = '  // === END 9BizClaw RAG PATCH v1 ===\n'.length;
+        content = content.slice(0, v1Start) + content.slice(v1End + endMarkerLen);
+      }
+    }
+
+    if (content.includes('9BizClaw RAG PATCH v2')) return;
+
+    const anchor = '  // === END 9BizClaw GROUP-SETTINGS PATCH ===';
+    if (!content.includes(anchor)) {
+      console.warn('[zalo-rag] group-settings anchor missing — ensureZaloGroupSettingsFix must run first');
+      return;
+    }
+
+    const injection = `
+  // === 9BizClaw RAG PATCH v2 ===
+  // Enrich message with relevant knowledge chunks via HTTP to Electron main.
+  // Fail-open with circuit breaker (3 fails → 5min cooldown + audit POST).
+  try {
+    const __ragG = (global as any);
+    __ragG.__ragFailCount ??= 0;
+    __ragG.__ragCooldownUntil ??= 0;
+    const __ragNow = Date.now();
+    if (__ragNow > __ragG.__ragCooldownUntil && (rawBody || '').trim().length >= 3) {
+      const __ragQ = (rawBody || '').slice(0, 500).trim();
+      const __ragUrl = \`http://127.0.0.1:20129/search?q=\${encodeURIComponent(__ragQ)}&k=3\`;
+      const __ragCtrl = new AbortController();
+      const __ragTimer = setTimeout(() => __ragCtrl.abort(), 2000);
+      try {
+        const __ragResp: any = await fetch(__ragUrl, { signal: __ragCtrl.signal });
+        clearTimeout(__ragTimer);
+        if (__ragResp.ok) {
+          const __ragData: any = await __ragResp.json();
+          __ragG.__ragFailCount = 0;
+          if (Array.isArray(__ragData.results) && __ragData.results.length > 0) {
+            // Score floor 0.45 (not 0.55): corpus shows correct results sometimes
+            // at 0.50-0.70 band. Lower than retrieved-top means less confident but
+            // still useful context. Spec explicitly says avoid raw score gating for
+            // OOD — bot's prompt instruction "BỎ QUA if not relevant" handles that.
+            const __ragTop = __ragData.results
+              .filter((r: any) => (r.snippet || '') && (r.score || 0) > 0.45)
+              .slice(0, 3);
+            if (__ragTop.length > 0) {
+              const __ragCtx = __ragTop
+                .map((r: any) => \`[\${r.filename || 'tài liệu'}, đoạn \${r.chunk_index ?? '?'}]\\n\${r.snippet}\`)
+                .join('\\n\\n---\\n\\n');
+              rawBody = \`[Tài liệu liên quan từ knowledge base của shop]\\n\${__ragCtx}\\n\\n[Lưu ý: nếu đoạn trên không liên quan câu hỏi, BỎ QUA và trả lời theo kiến thức chung hoặc nói chưa có thông tin]\\n\\n[Câu hỏi khách]\\n\${rawBody}\`;
+              runtime.log?.(\`openzalo: RAG enriched with \${__ragTop.length} chunks\`);
+            }
+          }
+        } else {
+          __ragG.__ragFailCount++;
+        }
+      } catch (__ragErr) {
+        clearTimeout(__ragTimer);
+        __ragG.__ragFailCount++;
+        runtime.log?.(\`openzalo: RAG skipped: \${String(__ragErr)}\`);
+      }
+      if (__ragG.__ragFailCount >= 3) {
+        __ragG.__ragCooldownUntil = __ragNow + 5 * 60 * 1000;
+        runtime.log?.('openzalo: RAG circuit breaker tripped — cooling 5min');
+        try { await fetch('http://127.0.0.1:20129/audit-rag-degraded', { method: 'POST' }); } catch {}
+      }
+    }
+  } catch (__ragOuter) {
+    runtime.log?.('openzalo: RAG outer error: ' + String(__ragOuter));
+  }
+  // === END 9BizClaw RAG PATCH v2 ===
+`;
+    content = content.replace(anchor, anchor + injection);
+    _writeInboundTs(pluginFile, content);
+    console.log('[zalo-rag] Injected RAG enrichment into inbound.ts (v2)');
+  } catch (e) {
+    console.error('[zalo-rag] error:', e?.message || e);
+  }
+}
+
 // rename, avatar change, etc.) before they reach the AI. Without this filter the bot
 // occasionally replies to "X đã thêm Y vào nhóm" in customer groups — very embarrassing.
 // Code-level gate is more reliable than AGENTS.md LLM rule alone.
@@ -6132,6 +6225,7 @@ async function _startOpenClawImpl() {
   ensureZaloSystemMsgFix();
   ensureZaloSenderDedupFix();
   ensureZaloGroupSettingsFix();
+  ensureZaloRagFix();   // depends on group-settings anchor
   // Force-one-message PART 2+3: patches inbound.ts (include in batch)
   // PART 1 (channel.ts) uses direct fs I/O internally — safe.
   ensureOpenzaloForceOneMessageFix();
@@ -8271,6 +8365,7 @@ async function _ensureZaloPluginImpl() {
           try { ensureZaloSystemMsgFix(); } catch (e) { console.warn('[ensureZaloPlugin] SystemMsg patch error:', e?.message); }
           try { ensureZaloSenderDedupFix(); } catch (e) { console.warn('[ensureZaloPlugin] SenderDedup patch error:', e?.message); }
           try { ensureZaloGroupSettingsFix(); } catch (e) { console.warn('[ensureZaloPlugin] GroupSettings patch error:', e?.message); }
+          try { ensureZaloRagFix(); } catch (e) { console.warn('[ensureZaloPlugin] RAG patch error:', e?.message); }
           _zaloReady = true;
           return;
         } catch (e) {
