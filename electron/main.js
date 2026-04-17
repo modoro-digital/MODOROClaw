@@ -14747,14 +14747,11 @@ function rewriteKnowledgeIndex(category) {
     }
   }
   try {
-    // Per-file cap (chars). Keep SMALL — bootstrap context should be
-    // summary-only. Actual document retrieval happens via RAG preprocessing
-    // in inbound.ts (knowledge-search HTTP endpoint). Bot sees a lightweight
-    // file manifest here, not dump of every doc.
-    const PER_FILE_CAP = 2000;
-    // Per-category cap (chars) total. Same reason — keep small.
-    const PER_CATEGORY_BUDGET = 20000;
-
+    // Manifest-only. Bot bootstrap reads this file to know what docs exist,
+    // but actual content retrieval happens via RAG search (vector + FTS5)
+    // through the knowledge-search HTTP endpoint consumed by inbound.ts.
+    // No raw content here — keeps bootstrap context small + avoids stale
+    // copies when originals update.
     let md = `# Knowledge — ${KNOWLEDGE_LABELS[category]}\n\n`;
     if (rows.length === 0) {
       md += '*Chưa có tài liệu nào. CEO upload file qua Dashboard → Knowledge.*\n';
@@ -14762,36 +14759,11 @@ function rewriteKnowledgeIndex(category) {
       console.log(`[knowledge-index] ${category}: 0 files, ${Buffer.byteLength(md, 'utf-8')} chars in index.md`);
       return;
     }
-    md += `Tổng: ${rows.length} tài liệu.\n\n`;
-    let budgetLeft = PER_CATEGORY_BUDGET;
+    md += `Tổng: ${rows.length} tài liệu. Bot dùng search vector khi khách hỏi (không nạp toàn bộ nội dung).\n\n`;
     for (const r of rows) {
-      md += `## ${r.filename}\n`;
-      md += `*Uploaded: ${r.created_at} · ${((r.filesize || 0) / 1024).toFixed(1)} KB*\n\n`;
-      md += `**Tóm tắt:** ${r.summary || '(không có tóm tắt)'}\n\n`;
-      // Full content section
-      const rawContent = r.content && typeof r.content === 'string' ? r.content : '';
-      if (rawContent && budgetLeft > 500) {
-        const cleaned = sanitizeKnowledgeContentForIndex(rawContent);
-        // Cap at min(PER_FILE_CAP, remaining budget)
-        const cap = Math.min(PER_FILE_CAP, budgetLeft);
-        let slice;
-        let truncated = false;
-        if (cleaned.length > cap) {
-          slice = cleaned.substring(0, cap);
-          truncated = true;
-        } else {
-          slice = cleaned;
-        }
-        md += `**Nội dung đầy đủ:**\n${slice}`;
-        if (truncated) md += `\n\n*... (còn tiếp, xem full trong file)*`;
-        md += `\n\n`;
-        budgetLeft -= slice.length;
-      } else if (!rawContent) {
-        md += `**Nội dung đầy đủ:** *(DB chưa index file này — CEO upload lại qua Dashboard để hiện full content)*\n\n`;
-      } else {
-        md += `**Nội dung đầy đủ:** *(đã cắt — hết budget category 50KB, xem full trong file hoặc ưu tiên hỏi file mới hơn)*\n\n`;
-      }
-      md += `---\n\n`;
+      md += `- **${r.filename}** (${((r.filesize || 0) / 1024).toFixed(1)} KB, uploaded ${r.created_at})\n`;
+      if (r.summary) md += `  *${r.summary.slice(0, 200)}*\n`;
+      md += `\n`;
     }
     fs.writeFileSync(indexFile, md, 'utf-8');
     console.log(`[knowledge-index] ${category}: ${rows.length} files, ${Buffer.byteLength(md, 'utf-8')} chars in index.md`);
