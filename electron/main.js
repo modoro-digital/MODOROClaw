@@ -14239,13 +14239,22 @@ function cosineSim(a, b) {
   return s;
 }
 
-// Pack/unpack Float32Array ↔ BLOB for SQLite
+// Pack/unpack Float32Array ↔ BLOB for SQLite.
+// E5_DIM = 384 for Xenova/multilingual-e5-small. Assert to catch future
+// model swaps that silently corrupt search (wrong-sized vectors stored in DB).
+const E5_DIM = 384;
 function vecToBlob(vec) {
+  if (!vec || vec.length !== E5_DIM) {
+    throw new Error(`[vecToBlob] expected ${E5_DIM} dims, got ${vec ? vec.length : 'null'}`);
+  }
   const buf = Buffer.alloc(vec.length * 4);
   for (let i = 0; i < vec.length; i++) buf.writeFloatLE(vec[i], i * 4);
   return buf;
 }
 function blobToVec(blob) {
+  if (!blob || blob.length % 4 !== 0) {
+    throw new Error(`[blobToVec] BLOB length ${blob ? blob.length : 'null'} not divisible by 4 — corrupt row?`);
+  }
   const n = blob.length / 4;
   const vec = new Array(n);
   for (let i = 0; i < n; i++) vec[i] = blob.readFloatLE(i * 4);

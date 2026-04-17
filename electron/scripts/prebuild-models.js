@@ -33,24 +33,42 @@ if (!HF_REVISION || HF_REVISION.length !== 40 || HF_REVISION.startsWith('<')) {
   throw new Error('[prebuild-models] HF_REVISION not pinned — replace placeholder with 40-char git SHA from HF repo');
 }
 
-async function download(url, dest) {
+const DOWNLOAD_TIMEOUT_MS = 60_000;
+const MAX_REDIRECTS = 5;
+
+async function download(url, dest, redirectsRemaining = MAX_REDIRECTS) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, (res) => {
       // HuggingFace responds with 307 relative redirects to /api/resolve-cache/...
       // Must handle 301/302/303/307/308 and resolve relative Location against current URL.
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
+        if (redirectsRemaining <= 0) {
+          res.resume();
+          return reject(new Error(`[prebuild-models] too many redirects for ${url}`));
+        }
+        res.resume();  // drain so socket can be reused
         const next = new URL(res.headers.location, url).toString();
-        return download(next, dest).then(resolve).catch(reject);
+        return download(next, dest, redirectsRemaining - 1).then(resolve).catch(reject);
       }
       if (res.statusCode !== 200) {
+        res.resume();
         return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
       }
+      // Handle socket reset after headers received
+      res.on('error', (err) => reject(new Error(`[prebuild-models] response stream error for ${url}: ${err.message}`)));
       const file = fs.createWriteStream(dest);
       res.pipe(file);
       file.on('finish', () => file.close(resolve));
-      file.on('error', reject);
+      file.on('error', (err) => {
+        // Best-effort: remove partial file so next run won't see half-downloaded bytes
+        try { fs.unlinkSync(dest); } catch {}
+        reject(err);
+      });
     });
     req.on('error', reject);
+    req.setTimeout(DOWNLOAD_TIMEOUT_MS, () => {
+      req.destroy(new Error(`[prebuild-models] download timeout after ${DOWNLOAD_TIMEOUT_MS}ms for ${url}`));
+    });
   });
 }
 
