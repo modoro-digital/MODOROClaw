@@ -15487,6 +15487,60 @@ function searchKnowledgeFTS5(opts, sharedDb) {
   return results;
 }
 
+// === Hybrid RRF + price-filter helpers (v2.3.47.1) ===
+
+// Reciprocal Rank Fusion — industry standard for merging multiple ranked
+// lists without needing to normalize scores. score = Σ 1/(k + rank).
+// k=60 is canonical (Cormack et al 2009). Used to fuse semantic cosine
+// ranking with FTS5/BM25 ranking so we get best-of-both: FTS5 wins on
+// no-diacritic queries (direct keyword match after diacritic strip),
+// semantic wins on compound/comparison/negation queries.
+function rrfMerge(lists, k = 60, topK = 10) {
+  const scores = new Map();
+  for (const list of lists) {
+    list.forEach((id, rank) => {
+      scores.set(id, (scores.get(id) || 0) + 1 / (k + rank + 1));
+    });
+  }
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topK)
+    .map(([id]) => id);
+}
+
+// Parse "dưới 20 triệu" / "trên 5 triệu" / "duoi 2tr" into { min, max } in VND.
+// Returns null if no price pattern found — caller skips filtering.
+// Accepts no-diacritic + diacritic variants, short suffix (tr, k, nghin, ngan).
+function parsePriceFilter(query) {
+  const q = stripViDiacritics(String(query || '')).toLowerCase();
+  const toVnd = (num, unit) => {
+    const n = parseFloat(String(num).replace(',', '.'));
+    if (!Number.isFinite(n)) return null;
+    if (unit === 'trieu' || unit === 'tr') return n * 1_000_000;
+    if (unit === 'k' || unit === 'nghin' || unit === 'ngan') return n * 1000;
+    // bare number: assume millions if ≤ 100 (colloquial "dưới 5" = 5 triệu)
+    if (n > 0 && n <= 100) return n * 1_000_000;
+    return n;
+  };
+  const under = q.match(/(?:duoi|<|<=|toi da|it hon|khoang)\s*(\d+(?:[.,]\d+)?)\s*(trieu|tr|k|nghin|ngan)?/);
+  const over = q.match(/(?:tren|>|>=|toi thieu|nhieu hon|hon)\s*(\d+(?:[.,]\d+)?)\s*(trieu|tr|k|nghin|ngan)?/);
+  const result = {};
+  if (under) { const v = toVnd(under[1], under[2]); if (v) result.max = v; }
+  if (over) { const v = toVnd(over[1], over[2]); if (v) result.min = v; }
+  return (result.min || result.max) ? result : null;
+}
+
+// Extract first VND price from chunk text. Crude but matches our chunk format
+// ("iPhone 15 Pro Max 256GB giá 29.990.000 VND" → 29990000).
+function extractChunkPrice(text) {
+  if (!text) return null;
+  const m = String(text).match(/([\d.,]+)\s*(?:VND|VNĐ|đồng|đ)\b/i);
+  if (!m) return null;
+  const raw = m[1].replace(/[.,]/g, '');
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 // === RAG config + Tier 2 helpers ===
 
 // C6 FIX: local-date key (Vietnam = UTC+7). Previous code used UTC ISO date →
@@ -15622,6 +15676,11 @@ async function searchKnowledge({ query, category, limit } = {}) {
   try {
     let rows = [];
     let scored = [];
+    // v2.3.47.1 HYBRID RRF: parse price filter upfront so we can narrow the
+    // candidate pool before retrieval. "dưới 20 triệu" → only rows whose
+    // chunk price ≤ 20M. Biggest category gain: number-range (+17pp), also
+    // avoids spending Tier 1 cosine on obviously-wrong-price chunks.
+    const priceFilter = parsePriceFilter(query);
     try {
       const qvec = await embedText(String(query || '').slice(0, 500), true);
       rows = category
@@ -15636,14 +15695,32 @@ async function searchKnowledge({ query, category, limit } = {}) {
              WHERE c.embedding IS NOT NULL`
           ).all();
 
+      // Price filter: drop rows whose chunk text doesn't fit range. Be
+      // conservative — if extractChunkPrice can't parse (non-product chunk
+      // like "giờ mở cửa"), keep the row so keyword/semantic can still help.
+      // Only drop when we DO know a price AND it falls outside range.
+      if (priceFilter) {
+        const before = rows.length;
+        rows = rows.filter(r => {
+          const snippet = (r.content || '').substring(r.char_start, r.char_end);
+          const p = extractChunkPrice(snippet);
+          if (p === null) return true;  // keep policy/info chunks untouched
+          if (priceFilter.max && p > priceFilter.max) return false;
+          if (priceFilter.min && p < priceFilter.min) return false;
+          return true;
+        });
+        console.log(`[knowledge-search] price filter ${JSON.stringify(priceFilter)} → ${before} → ${rows.length} rows`);
+      }
+
       if (rows.length === 0) {
         console.log('[knowledge-search] no embeddings — falling back to FTS5');
         _ragTier = 'fts5-no-embed';
         return searchKnowledgeFTS5({ query, category, limit }, db);
       }
-      _ragTier = 'vector';
+      _ragTier = 'hybrid-rrf';
 
-      scored = rows.map(r => {
+      // Step 1 — semantic ranking (cosine).
+      const semRanked = rows.map(r => {
         const vec = blobToVec(r.embedding);
         return {
           id: r.id,
@@ -15654,6 +15731,43 @@ async function searchKnowledge({ query, category, limit } = {}) {
           score: cosineSim(qvec, vec),
         };
       }).sort((a, b) => b.score - a.score);
+
+      // Step 2 — FTS5 ranking over same DB. Result chunk IDs will be the
+      // rowids in documents_chunks (chunk_id column when returned).
+      let ftsIds = [];
+      try {
+        const ftsResults = searchKnowledgeFTS5({ query, category, limit: 10 }, db);
+        const eligible = new Set(semRanked.map(s => s.id));
+        // Only keep FTS5 hits that have embeddings (in rows set). Prevents
+        // RRF from picking chunks we can't score + present with full data.
+        ftsIds = ftsResults
+          .map(r => r.chunk_id || r.id)
+          .filter(id => id && eligible.has(id));
+      } catch (e) {
+        // FTS5 may throw on unusual queries; don't fail the hybrid path.
+        console.warn('[knowledge-search] FTS5 partner errored (using sem only):', e.message);
+      }
+
+      // Step 3 — RRF merge. If FTS5 returned nothing, fall back to semantic
+      // ordering. Rank list uses IDs only; we re-map to full scored objects.
+      if (ftsIds.length > 0) {
+        const semIds = semRanked.slice(0, 10).map(s => s.id);
+        const rrfIds = rrfMerge([semIds, ftsIds], 60, 10);
+        const byId = new Map(semRanked.map(s => [s.id, s]));
+        const merged = [];
+        for (const id of rrfIds) {
+          const s = byId.get(id);
+          if (s) merged.push(s);
+        }
+        // Append any semantic chunks not in RRF top-10 (preserve long tail).
+        for (const s of semRanked) {
+          if (!rrfIds.includes(s.id) && merged.length < 10) merged.push(s);
+        }
+        scored = merged;
+      } else {
+        scored = semRanked;
+        _ragTier = 'vector';  // fts5 contributed nothing
+      }
     } catch (e) {
       console.warn('[knowledge-search] vector search error, falling back to FTS5:', e.message);
       _ragTier = 'fts5-error';

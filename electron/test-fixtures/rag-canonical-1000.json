@@ -1,0 +1,8786 @@
+{
+  "chunks": [
+    {
+      "id": 1,
+      "text": "iPhone 15 Pro Max 256GB titan tự nhiên giá 29.990.000 VND, bảo hành 12 tháng Apple.",
+      "industry": "phone"
+    },
+    {
+      "id": 2,
+      "text": "iPhone 15 Pro 128GB giá 24.990.000 VND, chip A17 Pro, camera 48MP.",
+      "industry": "phone"
+    },
+    {
+      "id": 3,
+      "text": "Samsung Galaxy S24 Ultra 512GB giá 28.990.000 VND, bút S Pen, IP68.",
+      "industry": "phone"
+    },
+    {
+      "id": 4,
+      "text": "Xiaomi 14 Ultra 16/512GB giá 27.990.000 VND, camera Leica, zoom 5x.",
+      "industry": "phone"
+    },
+    {
+      "id": 5,
+      "text": "iPhone 14 Pro Max 256GB cũ giá 18.990.000 VND, máy đẹp 99%, bảo hành shop 6 tháng.",
+      "industry": "phone"
+    },
+    {
+      "id": 6,
+      "text": "Oppo Find X7 Ultra 16/512GB giá 23.990.000 VND, màn LTPO 120Hz.",
+      "industry": "phone"
+    },
+    {
+      "id": 7,
+      "text": "iPhone 13 cũ 128GB giá 12.990.000 VND, pin 92%, đã active 1 năm.",
+      "industry": "phone"
+    },
+    {
+      "id": 8,
+      "text": "Vivo X100 Pro 12/256GB giá 19.990.000 VND, chip Dimensity 9300.",
+      "industry": "phone"
+    },
+    {
+      "id": 9,
+      "text": "Realme GT 6 12/256GB giá 14.990.000 VND, sạc nhanh 120W.",
+      "industry": "phone"
+    },
+    {
+      "id": 10,
+      "text": "Huawei Pura 70 Pro 12/256GB giá 22.990.000 VND, camera XMAGE.",
+      "industry": "phone"
+    },
+    {
+      "id": 11,
+      "text": "Google Pixel 8 Pro 256GB giá 19.990.000 VND, chip Tensor G3.",
+      "industry": "phone"
+    },
+    {
+      "id": 12,
+      "text": "OnePlus 12 16/512GB giá 18.990.000 VND, sạc 100W, màn 2K.",
+      "industry": "phone"
+    },
+    {
+      "id": 13,
+      "text": "Nothing Phone 2 12/256GB giá 13.990.000 VND, đèn Glyph.",
+      "industry": "phone"
+    },
+    {
+      "id": 14,
+      "text": "iPhone SE 2022 64GB giá 8.990.000 VND, chip A15, Touch ID.",
+      "industry": "phone"
+    },
+    {
+      "id": 15,
+      "text": "Samsung Galaxy A55 8/128GB giá 9.990.000 VND, chống nước IP67.",
+      "industry": "phone"
+    },
+    {
+      "id": 16,
+      "text": "Xiaomi Redmi Note 13 Pro 8/256GB giá 7.490.000 VND, camera 200MP.",
+      "industry": "phone"
+    },
+    {
+      "id": 17,
+      "text": "Oppo Reno 11F 8/256GB giá 8.990.000 VND, sạc SUPERVOOC 67W.",
+      "industry": "phone"
+    },
+    {
+      "id": 18,
+      "text": "Infinix Zero 30 12/256GB giá 6.990.000 VND, camera 4K 60fps.",
+      "industry": "phone"
+    },
+    {
+      "id": 19,
+      "text": "ASUS ROG Phone 8 16/512GB giá 25.990.000 VND, gaming flagship.",
+      "industry": "phone"
+    },
+    {
+      "id": 20,
+      "text": "Sony Xperia 1 VI 12/256GB giá 28.990.000 VND, màn 4K HDR.",
+      "industry": "phone"
+    },
+    {
+      "id": 21,
+      "text": "Áo thun nam cotton 100% size S-XXL giá 250.000 VND, đủ màu đen trắng xanh.",
+      "industry": "fashion"
+    },
+    {
+      "id": 22,
+      "text": "Quần jean nam slim fit size 29-34 giá 450.000 VND, chất liệu denim Nhật.",
+      "industry": "fashion"
+    },
+    {
+      "id": 23,
+      "text": "Áo sơ mi nữ dài tay giá 350.000 VND, cotton lụa, form dáng thanh lịch.",
+      "industry": "fashion"
+    },
+    {
+      "id": 24,
+      "text": "Váy đầm dự tiệc đen giá 890.000 VND, size S M L, thiết kế bodycon.",
+      "industry": "fashion"
+    },
+    {
+      "id": 25,
+      "text": "Chân váy công sở midi giá 420.000 VND, vải tuyết mưa cao cấp.",
+      "industry": "fashion"
+    },
+    {
+      "id": 26,
+      "text": "Áo khoác dạ nữ giá 1.290.000 VND, đủ màu camel đen navy, size S-L.",
+      "industry": "fashion"
+    },
+    {
+      "id": 27,
+      "text": "Giày thể thao Nike Air Force 1 trắng giá 2.790.000 VND, size 38-44.",
+      "industry": "fashion"
+    },
+    {
+      "id": 28,
+      "text": "Giày cao gót nữ 7cm giá 650.000 VND, da bò thật, gót nhọn.",
+      "industry": "fashion"
+    },
+    {
+      "id": 29,
+      "text": "Túi xách nữ công sở giá 890.000 VND, da PU cao cấp đen nâu.",
+      "industry": "fashion"
+    },
+    {
+      "id": 30,
+      "text": "Balo du lịch 30L giá 590.000 VND, chống nước, ngăn laptop 15 inch.",
+      "industry": "fashion"
+    },
+    {
+      "id": 31,
+      "text": "Áo polo nam giá 320.000 VND, cotton cá sấu, form ôm body.",
+      "industry": "fashion"
+    },
+    {
+      "id": 32,
+      "text": "Quần shorts nữ giá 280.000 VND, vải linen mềm mát, size S-L.",
+      "industry": "fashion"
+    },
+    {
+      "id": 33,
+      "text": "Áo len nữ cổ tròn giá 490.000 VND, len lông cừu, giữ ấm mùa đông.",
+      "industry": "fashion"
+    },
+    {
+      "id": 34,
+      "text": "Đồ ngủ pijama nữ giá 350.000 VND, satin lụa, set áo quần.",
+      "industry": "fashion"
+    },
+    {
+      "id": 35,
+      "text": "Áo blazer nữ công sở giá 990.000 VND, dáng tây phom cứng.",
+      "industry": "fashion"
+    },
+    {
+      "id": 36,
+      "text": "Quần tây nam giá 550.000 VND, vải kate Thái Lan, form ôm.",
+      "industry": "fashion"
+    },
+    {
+      "id": 37,
+      "text": "Áo hoodie unisex giá 420.000 VND, nỉ bông, in hình graphic.",
+      "industry": "fashion"
+    },
+    {
+      "id": 38,
+      "text": "Đầm maxi đi biển giá 690.000 VND, vải voan mềm bay, hoa văn nhiệt đới.",
+      "industry": "fashion"
+    },
+    {
+      "id": 39,
+      "text": "Giày sandal nam quai ngang giá 380.000 VND, đế cao su chống trượt.",
+      "industry": "fashion"
+    },
+    {
+      "id": 40,
+      "text": "Bộ vest nam 3 mảnh giá 3.990.000 VND, wool pha polyester, size 48-54.",
+      "industry": "fashion"
+    },
+    {
+      "id": 41,
+      "text": "Cà phê đen đá ly M giá 25.000 VND, hạt Arabica rang xay tại quán.",
+      "industry": "fnb"
+    },
+    {
+      "id": 42,
+      "text": "Cà phê sữa nóng ly L giá 35.000 VND, sữa đặc Ông Thọ, đậm đà.",
+      "industry": "fnb"
+    },
+    {
+      "id": 43,
+      "text": "Bạc xỉu đá giá 30.000 VND, pha sữa tươi tỉ lệ cà phê 2/8.",
+      "industry": "fnb"
+    },
+    {
+      "id": 44,
+      "text": "Trà đào cam sả giá 45.000 VND, topping đào miếng, đá bào.",
+      "industry": "fnb"
+    },
+    {
+      "id": 45,
+      "text": "Trà sữa trân châu đường đen size L giá 49.000 VND, 100% không phẩm màu.",
+      "industry": "fnb"
+    },
+    {
+      "id": 46,
+      "text": "Nước ép cam tươi giá 40.000 VND, cam sành Vĩnh Long nguyên chất.",
+      "industry": "fnb"
+    },
+    {
+      "id": 47,
+      "text": "Smoothie việt quất giá 55.000 VND, sữa chua Hy Lạp ít đường.",
+      "industry": "fnb"
+    },
+    {
+      "id": 48,
+      "text": "Latte matcha giá 52.000 VND, bột matcha Uji Nhật Bản.",
+      "industry": "fnb"
+    },
+    {
+      "id": 49,
+      "text": "Cappuccino hạt dẻ giá 50.000 VND, syrup Monin chính hãng.",
+      "industry": "fnb"
+    },
+    {
+      "id": 50,
+      "text": "Americano giá 38.000 VND, nóng/đá tuỳ chọn, espresso 2 shot.",
+      "industry": "fnb"
+    },
+    {
+      "id": 51,
+      "text": "Bánh mì thịt nguội giá 25.000 VND, pate gan gà tự làm.",
+      "industry": "fnb"
+    },
+    {
+      "id": 52,
+      "text": "Bánh croissant bơ giá 32.000 VND, nướng giòn bơ Pháp.",
+      "industry": "fnb"
+    },
+    {
+      "id": 53,
+      "text": "Mì ý sốt bò bằm giá 85.000 VND, pasta Ý nhập khẩu.",
+      "industry": "fnb"
+    },
+    {
+      "id": 54,
+      "text": "Pizza margherita size M giá 129.000 VND, đế mỏng, phô mai mozzarella.",
+      "industry": "fnb"
+    },
+    {
+      "id": 55,
+      "text": "Salad ức gà giá 65.000 VND, xà lách romaine, sốt caesar.",
+      "industry": "fnb"
+    },
+    {
+      "id": 56,
+      "text": "Combo breakfast giá 89.000 VND: 1 cà phê + 1 bánh croissant + trứng.",
+      "industry": "fnb"
+    },
+    {
+      "id": 57,
+      "text": "Happy hour 15h-17h giảm 30% toàn menu trà sữa và smoothie.",
+      "industry": "fnb"
+    },
+    {
+      "id": 58,
+      "text": "Buổi sáng 7h-9h combo 49.000 VND: bánh mì + cà phê đá.",
+      "industry": "fnb"
+    },
+    {
+      "id": 59,
+      "text": "Miễn phí WiFi tốc độ 100Mbps, ổ cắm điện mỗi bàn.",
+      "industry": "fnb"
+    },
+    {
+      "id": 60,
+      "text": "Giao hàng qua GrabFood ShopeeFood, phí ship theo ứng dụng.",
+      "industry": "fnb"
+    },
+    {
+      "id": 61,
+      "text": "Kem chống nắng Anessa Perfect UV Sunscreen 60ml giá 690.000 VND, SPF 50+ PA++++.",
+      "industry": "beauty"
+    },
+    {
+      "id": 62,
+      "text": "Sữa rửa mặt CeraVe Foaming Cleanser 236ml giá 320.000 VND, da dầu mụn.",
+      "industry": "beauty"
+    },
+    {
+      "id": 63,
+      "text": "Serum vitamin C Paula Choice 30ml giá 1.490.000 VND, làm sáng da.",
+      "industry": "beauty"
+    },
+    {
+      "id": 64,
+      "text": "Kem dưỡng ẩm La Roche Posay Toleriane 40ml giá 450.000 VND, da nhạy cảm.",
+      "industry": "beauty"
+    },
+    {
+      "id": 65,
+      "text": "Son thỏi MAC Chili 3g giá 590.000 VND, màu đỏ gạch nude.",
+      "industry": "beauty"
+    },
+    {
+      "id": 66,
+      "text": "Mascara Maybelline Sky High giá 290.000 VND, chống nước dày mi.",
+      "industry": "beauty"
+    },
+    {
+      "id": 67,
+      "text": "Phấn má hồng 3CE Mood Recipe giá 420.000 VND, hiệu ứng gradient.",
+      "industry": "beauty"
+    },
+    {
+      "id": 68,
+      "text": "Tẩy trang Bioderma Sensibio 500ml giá 690.000 VND, nước micellar Pháp.",
+      "industry": "beauty"
+    },
+    {
+      "id": 69,
+      "text": "Nước hoa hồng Klairs Supple Preparation 180ml giá 390.000 VND, cấp ẩm.",
+      "industry": "beauty"
+    },
+    {
+      "id": 70,
+      "text": "Mặt nạ giấy Mediheal N.M.F giá 35.000 VND 1 miếng, cấp nước.",
+      "industry": "beauty"
+    },
+    {
+      "id": 71,
+      "text": "Kem nền Estee Lauder Double Wear 30ml giá 1.490.000 VND, lâu trôi.",
+      "industry": "beauty"
+    },
+    {
+      "id": 72,
+      "text": "Bút kẻ mắt Bobbi Brown Long Wear giá 690.000 VND, đen đậm không lem.",
+      "industry": "beauty"
+    },
+    {
+      "id": 73,
+      "text": "Tẩy tế bào chết Paula Choice BHA 118ml giá 790.000 VND, salicylic acid 2%.",
+      "industry": "beauty"
+    },
+    {
+      "id": 74,
+      "text": "Kem mắt Kiehl's Avocado 14g giá 790.000 VND, bọng mắt quầng thâm.",
+      "industry": "beauty"
+    },
+    {
+      "id": 75,
+      "text": "Sữa tắm Dove Deeply Nourishing 500ml giá 180.000 VND, dưỡng ẩm sâu.",
+      "industry": "beauty"
+    },
+    {
+      "id": 76,
+      "text": "Dầu gội TRESemmé Keratin 650ml giá 260.000 VND, phục hồi tóc.",
+      "industry": "beauty"
+    },
+    {
+      "id": 77,
+      "text": "Kem cạo râu Gillette 195g giá 120.000 VND, dành cho nam.",
+      "industry": "beauty"
+    },
+    {
+      "id": 78,
+      "text": "Nước hoa nữ Chanel Coco Mademoiselle 50ml giá 3.690.000 VND, hương cam chanh.",
+      "industry": "beauty"
+    },
+    {
+      "id": 79,
+      "text": "Nước hoa nam Dior Sauvage 100ml giá 3.290.000 VND, hương gỗ mạnh mẽ.",
+      "industry": "beauty"
+    },
+    {
+      "id": 80,
+      "text": "Combo skincare CeraVe 3 món giá 890.000 VND: rửa mặt + toner + kem.",
+      "industry": "beauty"
+    },
+    {
+      "id": 81,
+      "text": "Căn hộ 2PN Vinhomes Ocean Park 75m2 giá 3.9 tỷ, ban công hướng Đông Nam.",
+      "industry": "realestate"
+    },
+    {
+      "id": 82,
+      "text": "Nhà phố Gamuda Gardens 80m2 x 3 tầng giá 8.5 tỷ, sổ đỏ chính chủ.",
+      "industry": "realestate"
+    },
+    {
+      "id": 83,
+      "text": "Biệt thự Ecopark 200m2 x 3 tầng giá 15 tỷ, sân vườn rộng 50m2.",
+      "industry": "realestate"
+    },
+    {
+      "id": 84,
+      "text": "Chung cư mini Cầu Giấy 35m2 1PN giá 1.2 tỷ, cách Keangnam 1km.",
+      "industry": "realestate"
+    },
+    {
+      "id": 85,
+      "text": "Đất nền Hoà Lạc 100m2 giá 2.5 tỷ, mặt đường 10m, xây ngay.",
+      "industry": "realestate"
+    },
+    {
+      "id": 86,
+      "text": "Căn hộ Masteri Thảo Điền 3PN 100m2 giá 9.5 tỷ, view sông Sài Gòn.",
+      "industry": "realestate"
+    },
+    {
+      "id": 87,
+      "text": "Villa Flora Phú Quốc 400m2 giá 25 tỷ, hồ bơi riêng, biển 500m.",
+      "industry": "realestate"
+    },
+    {
+      "id": 88,
+      "text": "Shop house Vinhomes Central Park giá 18 tỷ, mặt tiền 8m, 4 tầng.",
+      "industry": "realestate"
+    },
+    {
+      "id": 89,
+      "text": "Cho thuê căn hộ Vinhomes 2PN giá 18 triệu/tháng, full nội thất.",
+      "industry": "realestate"
+    },
+    {
+      "id": 90,
+      "text": "Cho thuê văn phòng Tôn Đức Thắng 50m2 giá 25 triệu/tháng.",
+      "industry": "realestate"
+    },
+    {
+      "id": 91,
+      "text": "Đất thổ cư Long Biên 60m2 giá 4.2 tỷ, đường ô tô vào tận cửa.",
+      "industry": "realestate"
+    },
+    {
+      "id": 92,
+      "text": "Căn hộ officetel quận 1 30m2 giá 2.8 tỷ, cho thuê 12tr/tháng.",
+      "industry": "realestate"
+    },
+    {
+      "id": 93,
+      "text": "Nhà mặt phố Trần Duy Hưng 50m2 x 5 tầng giá 28 tỷ, kinh doanh tốt.",
+      "industry": "realestate"
+    },
+    {
+      "id": 94,
+      "text": "Đất nền Đồng Nai 150m2 giá 1.8 tỷ, cách cao tốc 5km.",
+      "industry": "realestate"
+    },
+    {
+      "id": 95,
+      "text": "Căn hộ dịch vụ Q7 35m2 giá 15 triệu/tháng, sát Crescent Mall.",
+      "industry": "realestate"
+    },
+    {
+      "id": 96,
+      "text": "Biệt thự song lập Vinhomes Riverside 280m2 giá 32 tỷ, sân vườn hồ bơi.",
+      "industry": "realestate"
+    },
+    {
+      "id": 97,
+      "text": "Penthouse Keangnam 240m2 giá 28 tỷ, 4PN view panoramic Mỹ Đình.",
+      "industry": "realestate"
+    },
+    {
+      "id": 98,
+      "text": "Đất nền Bình Dương 120m2 giá 2.1 tỷ, pháp lý sổ đỏ từng nền.",
+      "industry": "realestate"
+    },
+    {
+      "id": 99,
+      "text": "Căn hộ studio Landmark 81 40m2 giá 5.5 tỷ, view sông Sài Gòn.",
+      "industry": "realestate"
+    },
+    {
+      "id": 100,
+      "text": "Shophouse Ocean Park 120m2 x 4 tầng giá 22 tỷ, kinh doanh ngay.",
+      "industry": "realestate"
+    },
+    {
+      "id": 101,
+      "text": "Cắt tóc nam giá 120.000 VND, thợ 3 năm kinh nghiệm, gội đầu kèm.",
+      "industry": "service"
+    },
+    {
+      "id": 102,
+      "text": "Cắt tóc nữ + gội giá 250.000 VND, tặng massage đầu 15 phút.",
+      "industry": "service"
+    },
+    {
+      "id": 103,
+      "text": "Nhuộm tóc nữ thương hiệu Loreal giá 890.000 VND, bao dưỡng 1 tháng.",
+      "industry": "service"
+    },
+    {
+      "id": 104,
+      "text": "Uốn tóc xoăn lọn giá 1.290.000 VND, thuốc uốn Nhật Bản.",
+      "industry": "service"
+    },
+    {
+      "id": 105,
+      "text": "Duỗi tóc thẳng giá 990.000 VND, giữ form 6 tháng trở lên.",
+      "industry": "service"
+    },
+    {
+      "id": 106,
+      "text": "Gym membership tháng giá 500.000 VND, 24/7 phòng tập có máy mới.",
+      "industry": "service"
+    },
+    {
+      "id": 107,
+      "text": "Gym quý (3 tháng) giá 1.290.000 VND, tặng 1 buổi PT khởi động.",
+      "industry": "service"
+    },
+    {
+      "id": 108,
+      "text": "Yoga class nhóm 8 buổi giá 890.000 VND, 2 buổi/tuần.",
+      "industry": "service"
+    },
+    {
+      "id": 109,
+      "text": "Personal trainer 10 buổi giá 3.500.000 VND, 1-1 với HLV có chứng chỉ.",
+      "industry": "service"
+    },
+    {
+      "id": 110,
+      "text": "Zumba fitness 12 buổi giá 790.000 VND, 3 buổi/tuần tối.",
+      "industry": "service"
+    },
+    {
+      "id": 111,
+      "text": "Giặt ủi theo kg giá 35.000 VND/kg, trả trong 24h.",
+      "industry": "service"
+    },
+    {
+      "id": 112,
+      "text": "Giặt ủi express 3 giờ giá 60.000 VND/kg, ưu tiên xử lý.",
+      "industry": "service"
+    },
+    {
+      "id": 113,
+      "text": "Giặt khô comple/vest giá 150.000 VND/bộ, bảo hành form.",
+      "industry": "service"
+    },
+    {
+      "id": 114,
+      "text": "Giặt chăn ga gối nệm king size giá 220.000 VND/bộ.",
+      "industry": "service"
+    },
+    {
+      "id": 115,
+      "text": "Giặt giày thể thao giá 80.000 VND/đôi, tẩy vết bẩn.",
+      "industry": "service"
+    },
+    {
+      "id": 116,
+      "text": "Massage body 60 phút giá 450.000 VND, tinh dầu tràm trà.",
+      "industry": "service"
+    },
+    {
+      "id": 117,
+      "text": "Massage foot 60 phút giá 280.000 VND, giảm stress đau chân.",
+      "industry": "service"
+    },
+    {
+      "id": 118,
+      "text": "Làm móng tay gel giá 350.000 VND, 30 màu chọn, giữ 3 tuần.",
+      "industry": "service"
+    },
+    {
+      "id": 119,
+      "text": "Làm móng chân giá 250.000 VND, kèm massage chân 15 phút.",
+      "industry": "service"
+    },
+    {
+      "id": 120,
+      "text": "Phun xăm chân mày combo giá 3.990.000 VND, bảo hành 1 năm.",
+      "industry": "service"
+    },
+    {
+      "id": 121,
+      "text": "Sách Atomic Habits bản tiếng Việt giá 189.000 VND, bản bìa cứng.",
+      "industry": "education"
+    },
+    {
+      "id": 122,
+      "text": "Sách Sapiens Lược sử loài người giá 289.000 VND, bản bìa mềm dày 500 trang.",
+      "industry": "education"
+    },
+    {
+      "id": 123,
+      "text": "Khóa học IELTS online 40 buổi giá 4.990.000 VND, cam kết 6.5+.",
+      "industry": "education"
+    },
+    {
+      "id": 124,
+      "text": "Khóa TOEIC 20 buổi offline giá 2.990.000 VND, cam kết 600+.",
+      "industry": "education"
+    },
+    {
+      "id": 125,
+      "text": "Sách Đắc nhân tâm giá 99.000 VND, bìa mềm tái bản 2024.",
+      "industry": "education"
+    },
+    {
+      "id": 126,
+      "text": "Bộ sách giáo khoa lớp 1 giá 450.000 VND, đủ 12 môn.",
+      "industry": "education"
+    },
+    {
+      "id": 127,
+      "text": "Từ điển Oxford Anh-Anh-Việt giá 690.000 VND, bìa cứng 1500 trang.",
+      "industry": "education"
+    },
+    {
+      "id": 128,
+      "text": "Khóa tiếng Trung HSK 3 giá 3.290.000 VND, 30 buổi giảng viên Trung.",
+      "industry": "education"
+    },
+    {
+      "id": 129,
+      "text": "Sách luyện thi đại học toán 12 giá 180.000 VND, kèm đề thi 5 năm.",
+      "industry": "education"
+    },
+    {
+      "id": 130,
+      "text": "Khóa lập trình Python 20 buổi giá 2.490.000 VND, cho người mới.",
+      "industry": "education"
+    },
+    {
+      "id": 131,
+      "text": "Khóa data science 30 buổi giá 5.990.000 VND, cam kết dự án thực tế.",
+      "industry": "education"
+    },
+    {
+      "id": 132,
+      "text": "Sách Think Fast and Slow giá 259.000 VND, Daniel Kahneman.",
+      "industry": "education"
+    },
+    {
+      "id": 133,
+      "text": "Khóa tiếng Nhật N4 40 buổi giá 3.990.000 VND, giảng viên bản xứ.",
+      "industry": "education"
+    },
+    {
+      "id": 134,
+      "text": "Sách Dám nghĩ lớn giá 139.000 VND, David Schwartz.",
+      "industry": "education"
+    },
+    {
+      "id": 135,
+      "text": "Khóa thiết kế Figma 15 buổi giá 1.990.000 VND, từ cơ bản đến nâng cao.",
+      "industry": "education"
+    },
+    {
+      "id": 136,
+      "text": "Bộ từ vựng IELTS 3500 từ giá 220.000 VND, kèm audio online.",
+      "industry": "education"
+    },
+    {
+      "id": 137,
+      "text": "Sách mindset tỷ phú giá 159.000 VND, tiểu sử 10 doanh nhân thế giới.",
+      "industry": "education"
+    },
+    {
+      "id": 138,
+      "text": "Khóa Excel VBA 20 buổi giá 2.290.000 VND, cho kế toán office.",
+      "industry": "education"
+    },
+    {
+      "id": 139,
+      "text": "Sách giải toán lớp 9 giá 120.000 VND, bám sát chương trình mới.",
+      "industry": "education"
+    },
+    {
+      "id": 140,
+      "text": "Khóa marketing Facebook Ads giá 3.490.000 VND, 25 buổi kèm case study.",
+      "industry": "education"
+    },
+    {
+      "id": 141,
+      "text": "Gạo ST25 túi 5kg giá 185.000 VND, hạt dài thơm tự nhiên.",
+      "industry": "grocery"
+    },
+    {
+      "id": 142,
+      "text": "Dầu ăn Simply đậu nành 2 lít giá 98.000 VND, nhập khẩu.",
+      "industry": "grocery"
+    },
+    {
+      "id": 143,
+      "text": "Đường cát trắng Biên Hoà 1kg giá 28.000 VND, đóng gói chuẩn.",
+      "industry": "grocery"
+    },
+    {
+      "id": 144,
+      "text": "Mì gói Hảo Hảo thùng 30 gói giá 145.000 VND, tôm chua cay.",
+      "industry": "grocery"
+    },
+    {
+      "id": 145,
+      "text": "Sữa tươi TH True Milk 1 lít giá 42.000 VND, ít đường.",
+      "industry": "grocery"
+    },
+    {
+      "id": 146,
+      "text": "Trứng gà ta hộp 10 quả giá 55.000 VND, gà nuôi thả vườn.",
+      "industry": "grocery"
+    },
+    {
+      "id": 147,
+      "text": "Thịt heo ba chỉ 500g giá 95.000 VND, nguồn trại CP.",
+      "industry": "grocery"
+    },
+    {
+      "id": 148,
+      "text": "Cá hồi Nauy fillet 500g giá 389.000 VND, đông lạnh nhập khẩu.",
+      "industry": "grocery"
+    },
+    {
+      "id": 149,
+      "text": "Rau cải ngọt hữu cơ 500g giá 35.000 VND, Đà Lạt sạch VietGAP.",
+      "industry": "grocery"
+    },
+    {
+      "id": 150,
+      "text": "Hoa quả combo 5kg giá 320.000 VND: cam, táo, nho, chuối, xoài.",
+      "industry": "grocery"
+    },
+    {
+      "id": 151,
+      "text": "Nước tương Chinsu chai 500ml giá 32.000 VND, đậm đà.",
+      "industry": "grocery"
+    },
+    {
+      "id": 152,
+      "text": "Nước mắm Phú Quốc Red Boat 500ml giá 125.000 VND, 40 độ đạm.",
+      "industry": "grocery"
+    },
+    {
+      "id": 153,
+      "text": "Bia Heineken thùng 24 lon giá 420.000 VND, nhập Hà Lan.",
+      "industry": "grocery"
+    },
+    {
+      "id": 154,
+      "text": "Coca Cola thùng 24 lon giá 220.000 VND, 330ml/lon.",
+      "industry": "grocery"
+    },
+    {
+      "id": 155,
+      "text": "Bánh Oreo hộp 300g giá 65.000 VND, vị vanilla cream.",
+      "industry": "grocery"
+    },
+    {
+      "id": 156,
+      "text": "Mỳ Ý spaghetti Barilla 500g giá 75.000 VND, Ý chính hãng.",
+      "industry": "grocery"
+    },
+    {
+      "id": 157,
+      "text": "Sô cô la Toblerone 360g giá 189.000 VND, Thuỵ Sĩ nhập khẩu.",
+      "industry": "grocery"
+    },
+    {
+      "id": 158,
+      "text": "Phô mai Cheddar Anchor 250g giá 145.000 VND, New Zealand.",
+      "industry": "grocery"
+    },
+    {
+      "id": 159,
+      "text": "Cà phê G7 3in1 hộp 20 gói giá 78.000 VND, Trung Nguyên.",
+      "industry": "grocery"
+    },
+    {
+      "id": 160,
+      "text": "Combo siêu thị gia đình 1 triệu VND gồm 20+ món thiết yếu.",
+      "industry": "grocery"
+    },
+    {
+      "id": 161,
+      "text": "Honda Wave Alpha 110cc giá 18.500.000 VND, phanh đĩa trước.",
+      "industry": "auto"
+    },
+    {
+      "id": 162,
+      "text": "Honda Future 125 giá 32.500.000 VND, tiết kiệm xăng 1.8L/100km.",
+      "industry": "auto"
+    },
+    {
+      "id": 163,
+      "text": "Yamaha Exciter 155 VVA giá 49.900.000 VND, thể thao ABS.",
+      "industry": "auto"
+    },
+    {
+      "id": 164,
+      "text": "Honda Vision 125 giá 32.500.000 VND, ABS, dành cho nữ.",
+      "industry": "auto"
+    },
+    {
+      "id": 165,
+      "text": "Honda SH Mode 125 giá 62.000.000 VND, phanh ABS khoá thông minh.",
+      "industry": "auto"
+    },
+    {
+      "id": 166,
+      "text": "Honda SH 160i bản cao cấp giá 108.000.000 VND, smartkey.",
+      "industry": "auto"
+    },
+    {
+      "id": 167,
+      "text": "Yamaha Grande Hybrid giá 49.500.000 VND, hybrid tiết kiệm xăng.",
+      "industry": "auto"
+    },
+    {
+      "id": 168,
+      "text": "Piaggio Liberty 150 giá 75.000.000 VND, Ý thiết kế cao cấp.",
+      "industry": "auto"
+    },
+    {
+      "id": 169,
+      "text": "VinFast Klara S giá 42.000.000 VND, xe máy điện 120km/lần sạc.",
+      "industry": "auto"
+    },
+    {
+      "id": 170,
+      "text": "Dầu nhớt Castrol Power 1 4T 1 lít giá 220.000 VND, tổng hợp.",
+      "industry": "auto"
+    },
+    {
+      "id": 171,
+      "text": "Ắc quy Yuasa MF 12V-4Ah giá 550.000 VND, cho xe tay ga.",
+      "industry": "auto"
+    },
+    {
+      "id": 172,
+      "text": "Lốp IRC xe SH 100/80-14 giá 680.000 VND, không săm.",
+      "industry": "auto"
+    },
+    {
+      "id": 173,
+      "text": "Dịch vụ bảo dưỡng xe máy định kỳ giá 350.000 VND, thay nhớt + vệ sinh.",
+      "industry": "auto"
+    },
+    {
+      "id": 174,
+      "text": "Thay dầu máy xe tay ga giá 220.000 VND, dầu Castrol chính hãng.",
+      "industry": "auto"
+    },
+    {
+      "id": 175,
+      "text": "Rửa xe máy giá 30.000 VND, kèm lau xích và bơm hơi miễn phí.",
+      "industry": "auto"
+    },
+    {
+      "id": 176,
+      "text": "Toyota Vios 1.5G CVT 2024 giá 555 triệu, 5 chỗ.",
+      "industry": "auto"
+    },
+    {
+      "id": 177,
+      "text": "Honda City RS 1.5 CVT 2024 giá 599 triệu, sedan.",
+      "industry": "auto"
+    },
+    {
+      "id": 178,
+      "text": "Mazda CX-5 2.0 Luxury 2024 giá 839 triệu, SUV 5 chỗ.",
+      "industry": "auto"
+    },
+    {
+      "id": 179,
+      "text": "Kia Seltos Premium 2024 giá 729 triệu, SUV đô thị.",
+      "industry": "auto"
+    },
+    {
+      "id": 180,
+      "text": "Dịch vụ lắp cảm biến áp suất lốp ô tô giá 2.500.000 VND, 4 van.",
+      "industry": "auto"
+    },
+    {
+      "id": 181,
+      "text": "Paracetamol 500mg hộp 100 viên giá 45.000 VND, giảm đau hạ sốt.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 182,
+      "text": "Vitamin C 1000mg hộp 60 viên giá 250.000 VND, tăng đề kháng.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 183,
+      "text": "Dầu gió Kwan Loong chai 57ml giá 75.000 VND, giảm đau nhức.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 184,
+      "text": "Khẩu trang y tế 4 lớp hộp 50 cái giá 55.000 VND, kháng khuẩn.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 185,
+      "text": "Gel rửa tay khô Lifebuoy 250ml giá 58.000 VND, diệt khuẩn 99.9%.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 186,
+      "text": "Nhiệt kế điện tử Omron MC-246 giá 220.000 VND, đo 10 giây.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 187,
+      "text": "Máy đo huyết áp Omron HEM-7121 giá 1.290.000 VND, bắp tay.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 188,
+      "text": "Que thử thai Quickstick 1 que giá 25.000 VND, kết quả 3 phút.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 189,
+      "text": "Vitamin tổng hợp Centrum 100 viên giá 890.000 VND, Mỹ nhập khẩu.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 190,
+      "text": "Siro ho Prospan 100ml giá 125.000 VND, chiết xuất lá thường xuân.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 191,
+      "text": "Men vi sinh Enterogermina 10 ống giá 110.000 VND, rối loạn tiêu hoá.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 192,
+      "text": "Bông y tế Bạch Tuyết 1 gói 100g giá 30.000 VND, tiệt trùng.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 193,
+      "text": "Băng keo cá nhân Urgo 1 hộp 100 miếng giá 65.000 VND.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 194,
+      "text": "Dầu xoa Con ó 24ml giá 45.000 VND, giảm ho giải cảm.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 195,
+      "text": "Thuốc nhỏ mắt V Rohto 13ml giá 45.000 VND, Nhật Bản.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 196,
+      "text": "Kem bôi ngoài da Hydrocortisone 1% 15g giá 85.000 VND, kháng viêm.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 197,
+      "text": "Sữa tắm Sebamed pH 5.5 200ml giá 195.000 VND, da nhạy cảm.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 198,
+      "text": "Miếng dán hạ sốt Cool Fever hộp 6 miếng giá 95.000 VND, hạ nhiệt.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 199,
+      "text": "Băng gạc y tế 10 cuộn giá 45.000 VND, khổ 10cm.",
+      "industry": "pharmacy"
+    },
+    {
+      "id": 200,
+      "text": "Combo sơ cứu gia đình giá 290.000 VND, 15+ món cơ bản.",
+      "industry": "pharmacy"
+    }
+  ],
+  "queries": [
+    {
+      "q": "15 pr gia bao nhiu",
+      "expected": [
+        1
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "15 pr gia bao nhiu",
+      "expected": [
+        2
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "galaxy s2 gia bao nhiu",
+      "expected": [
+        3
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "14 ultr gia bao nhiu",
+      "expected": [
+        4
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "14 pr gia bao nhiu",
+      "expected": [
+        5
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "find x gia bao nhiu",
+      "expected": [
+        6
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "13 c gia bao nhiu",
+      "expected": [
+        7
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "x100 pr gia bao nhiu",
+      "expected": [
+        8
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "gt  gia bao nhiu",
+      "expected": [
+        9
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "pura 7 gia bao nhiu",
+      "expected": [
+        10
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thun na gia bao nhiu",
+      "expected": [
+        21
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "jean na gia bao nhiu",
+      "expected": [
+        22
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "so m gia bao nhiu",
+      "expected": [
+        23
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "dam d gia bao nhiu",
+      "expected": [
+        24
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "vay con gia bao nhiu",
+      "expected": [
+        25
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "khoac d gia bao nhiu",
+      "expected": [
+        26
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "the tha gia bao nhiu",
+      "expected": [
+        27
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "cao go gia bao nhiu",
+      "expected": [
+        28
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "xach n gia bao nhiu",
+      "expected": [
+        29
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "du lic gia bao nhiu",
+      "expected": [
+        30
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "phe de gia bao nhiu",
+      "expected": [
+        41
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "phe su gia bao nhiu",
+      "expected": [
+        42
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "xiu d gia bao nhiu",
+      "expected": [
+        43
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "dao ca gia bao nhiu",
+      "expected": [
+        44
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "sua tra gia bao nhiu",
+      "expected": [
+        45
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ep ca gia bao nhiu",
+      "expected": [
+        46
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "viet qua gia bao nhiu",
+      "expected": [
+        47
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "matcha gi gia bao nhiu",
+      "expected": [
+        48
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "hat d gia bao nhiu",
+      "expected": [
+        49
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "gia 3 gia bao nhiu",
+      "expected": [
+        50
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "chong nan gia bao nhiu",
+      "expected": [
+        61
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "rua ma gia bao nhiu",
+      "expected": [
+        62
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "vitamin  gia bao nhiu",
+      "expected": [
+        63
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "duong a gia bao nhiu",
+      "expected": [
+        64
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thoi ma gia bao nhiu",
+      "expected": [
+        65
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "maybelline sk gia bao nhiu",
+      "expected": [
+        66
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ma hon gia bao nhiu",
+      "expected": [
+        67
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "trang bioderm gia bao nhiu",
+      "expected": [
+        68
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "hoa hon gia bao nhiu",
+      "expected": [
+        69
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "na gia gia bao nhiu",
+      "expected": [
+        70
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ho 2p gia bao nhiu",
+      "expected": [
+        81
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "pho gamud gia bao nhiu",
+      "expected": [
+        82
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thu ecopar gia bao nhiu",
+      "expected": [
+        83
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "cu min gia bao nhiu",
+      "expected": [
+        84
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "nen ho gia bao nhiu",
+      "expected": [
+        85
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ho master gia bao nhiu",
+      "expected": [
+        86
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "flora ph gia bao nhiu",
+      "expected": [
+        87
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "house vinhome gia bao nhiu",
+      "expected": [
+        88
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thue ca gia bao nhiu",
+      "expected": [
+        89
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thue va gia bao nhiu",
+      "expected": [
+        90
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toc na gia bao nhiu",
+      "expected": [
+        101
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toc n gia bao nhiu",
+      "expected": [
+        102
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toc n gia bao nhiu",
+      "expected": [
+        103
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toc xoa gia bao nhiu",
+      "expected": [
+        104
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toc than gia bao nhiu",
+      "expected": [
+        105
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "membership than gia bao nhiu",
+      "expected": [
+        106
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "quy ( gia bao nhiu",
+      "expected": [
+        107
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "class nho gia bao nhiu",
+      "expected": [
+        108
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "trainer 1 gia bao nhiu",
+      "expected": [
+        109
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "fitness 1 gia bao nhiu",
+      "expected": [
+        110
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "atomic habit gia bao nhiu",
+      "expected": [
+        121
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "sapiens luo gia bao nhiu",
+      "expected": [
+        122
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "hoc ielt gia bao nhiu",
+      "expected": [
+        123
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "toeic 2 gia bao nhiu",
+      "expected": [
+        124
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "dac nha gia bao nhiu",
+      "expected": [
+        125
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "sach gia gia bao nhiu",
+      "expected": [
+        126
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "dien oxfor gia bao nhiu",
+      "expected": [
+        127
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "tieng trun gia bao nhiu",
+      "expected": [
+        128
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "luyen th gia bao nhiu",
+      "expected": [
+        129
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "lap trin gia bao nhiu",
+      "expected": [
+        130
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "st25 tu gia bao nhiu",
+      "expected": [
+        141
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "an simpl gia bao nhiu",
+      "expected": [
+        142
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "cat tran gia bao nhiu",
+      "expected": [
+        143
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "goi ha gia bao nhiu",
+      "expected": [
+        144
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "tuoi t gia bao nhiu",
+      "expected": [
+        145
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ga t gia bao nhiu",
+      "expected": [
+        146
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "heo b gia bao nhiu",
+      "expected": [
+        147
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "hoi nau gia bao nhiu",
+      "expected": [
+        148
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "cai ngo gia bao nhiu",
+      "expected": [
+        149
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "qua comb gia bao nhiu",
+      "expected": [
+        150
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "wave alph gia bao nhiu",
+      "expected": [
+        161
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "future 12 gia bao nhiu",
+      "expected": [
+        162
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "exciter 15 gia bao nhiu",
+      "expected": [
+        163
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "vision 12 gia bao nhiu",
+      "expected": [
+        164
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "sh mod gia bao nhiu",
+      "expected": [
+        165
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "sh 160 gia bao nhiu",
+      "expected": [
+        166
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "grande hybri gia bao nhiu",
+      "expected": [
+        167
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "liberty 15 gia bao nhiu",
+      "expected": [
+        168
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "klara  gia bao nhiu",
+      "expected": [
+        169
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "nhot castro gia bao nhiu",
+      "expected": [
+        170
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "500mg ho gia bao nhiu",
+      "expected": [
+        181
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "c 1000m gia bao nhiu",
+      "expected": [
+        182
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "gio kwa gia bao nhiu",
+      "expected": [
+        183
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "trang  gia bao nhiu",
+      "expected": [
+        184
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "rua ta gia bao nhiu",
+      "expected": [
+        185
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ke die gia bao nhiu",
+      "expected": [
+        186
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "do huye gia bao nhiu",
+      "expected": [
+        187
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "thu tha gia bao nhiu",
+      "expected": [
+        188
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "tong ho gia bao nhiu",
+      "expected": [
+        189
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "ho prospa gia bao nhiu",
+      "expected": [
+        190
+      ],
+      "note": "typo"
+    },
+    {
+      "q": "15 pro gia bao nhieu",
+      "expected": [
+        1
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co 15 pro khong",
+      "expected": [
+        2
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "galaxy s24 con khong",
+      "expected": [
+        3
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "14 ultra o dau ban",
+      "expected": [
+        4
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co 14 pro khong shop oi",
+      "expected": [
+        5
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "find x7 gia bao nhieu",
+      "expected": [
+        6
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co 13 cu khong",
+      "expected": [
+        7
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "x100 pro con khong",
+      "expected": [
+        8
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "gt 6 o dau ban",
+      "expected": [
+        9
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co pura 70 khong shop oi",
+      "expected": [
+        10
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "thun nam gia bao nhieu",
+      "expected": [
+        21
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co jean nam khong",
+      "expected": [
+        22
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "so mi con khong",
+      "expected": [
+        23
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "dam du o dau ban",
+      "expected": [
+        24
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co vay cong khong shop oi",
+      "expected": [
+        25
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "khoac da gia bao nhieu",
+      "expected": [
+        26
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co the thao khong",
+      "expected": [
+        27
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "cao got con khong",
+      "expected": [
+        28
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "xach nu o dau ban",
+      "expected": [
+        29
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co du lich khong shop oi",
+      "expected": [
+        30
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "phe den gia bao nhieu",
+      "expected": [
+        41
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co phe sua khong",
+      "expected": [
+        42
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "xiu da con khong",
+      "expected": [
+        43
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "dao cam o dau ban",
+      "expected": [
+        44
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co sua tran khong shop oi",
+      "expected": [
+        45
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "ep cam gia bao nhieu",
+      "expected": [
+        46
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co viet quat khong",
+      "expected": [
+        47
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "matcha gia con khong",
+      "expected": [
+        48
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "hat de o dau ban",
+      "expected": [
+        49
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co gia 38 khong shop oi",
+      "expected": [
+        50
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "chong nang gia bao nhieu",
+      "expected": [
+        61
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co rua mat khong",
+      "expected": [
+        62
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "vitamin c con khong",
+      "expected": [
+        63
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "duong am o dau ban",
+      "expected": [
+        64
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co thoi mac khong shop oi",
+      "expected": [
+        65
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "maybelline sky gia bao nhieu",
+      "expected": [
+        66
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co ma hong khong",
+      "expected": [
+        67
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "trang bioderma con khong",
+      "expected": [
+        68
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "hoa hong o dau ban",
+      "expected": [
+        69
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co na giay khong shop oi",
+      "expected": [
+        70
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "ho 2pn gia bao nhieu",
+      "expected": [
+        81
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co pho gamuda khong",
+      "expected": [
+        82
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "thu ecopark con khong",
+      "expected": [
+        83
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "cu mini o dau ban",
+      "expected": [
+        84
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co nen hoa khong shop oi",
+      "expected": [
+        85
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "ho masteri gia bao nhieu",
+      "expected": [
+        86
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co flora phu khong",
+      "expected": [
+        87
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "house vinhomes con khong",
+      "expected": [
+        88
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "thue can o dau ban",
+      "expected": [
+        89
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co thue van khong shop oi",
+      "expected": [
+        90
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "toc nam gia bao nhieu",
+      "expected": [
+        101
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co toc nu khong",
+      "expected": [
+        102
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "toc nu con khong",
+      "expected": [
+        103
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "toc xoan o dau ban",
+      "expected": [
+        104
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co toc thang khong shop oi",
+      "expected": [
+        105
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "membership thang gia bao nhieu",
+      "expected": [
+        106
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co quy (3 khong",
+      "expected": [
+        107
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "class nhom con khong",
+      "expected": [
+        108
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "trainer 10 o dau ban",
+      "expected": [
+        109
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co fitness 12 khong shop oi",
+      "expected": [
+        110
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "atomic habits gia bao nhieu",
+      "expected": [
+        121
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co sapiens luoc khong",
+      "expected": [
+        122
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "hoc ielts con khong",
+      "expected": [
+        123
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "toeic 20 o dau ban",
+      "expected": [
+        124
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co dac nhan khong shop oi",
+      "expected": [
+        125
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "sach giao gia bao nhieu",
+      "expected": [
+        126
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co dien oxford khong",
+      "expected": [
+        127
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "tieng trung con khong",
+      "expected": [
+        128
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "luyen thi o dau ban",
+      "expected": [
+        129
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co lap trinh khong shop oi",
+      "expected": [
+        130
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "st25 tui gia bao nhieu",
+      "expected": [
+        141
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co an simply khong",
+      "expected": [
+        142
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "cat trang con khong",
+      "expected": [
+        143
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "goi hao o dau ban",
+      "expected": [
+        144
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co tuoi th khong shop oi",
+      "expected": [
+        145
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "ga ta gia bao nhieu",
+      "expected": [
+        146
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co heo ba khong",
+      "expected": [
+        147
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "hoi nauy con khong",
+      "expected": [
+        148
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "cai ngot o dau ban",
+      "expected": [
+        149
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co qua combo khong shop oi",
+      "expected": [
+        150
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "wave alpha gia bao nhieu",
+      "expected": [
+        161
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co future 125 khong",
+      "expected": [
+        162
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "exciter 155 con khong",
+      "expected": [
+        163
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "vision 125 o dau ban",
+      "expected": [
+        164
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co sh mode khong shop oi",
+      "expected": [
+        165
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "sh 160i gia bao nhieu",
+      "expected": [
+        166
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co grande hybrid khong",
+      "expected": [
+        167
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "liberty 150 con khong",
+      "expected": [
+        168
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "klara s o dau ban",
+      "expected": [
+        169
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co nhot castrol khong shop oi",
+      "expected": [
+        170
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "500mg hop gia bao nhieu",
+      "expected": [
+        181
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co c 1000mg khong",
+      "expected": [
+        182
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "gio kwan con khong",
+      "expected": [
+        183
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "trang y o dau ban",
+      "expected": [
+        184
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co rua tay khong shop oi",
+      "expected": [
+        185
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "ke dien gia bao nhieu",
+      "expected": [
+        186
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "co do huyet khong",
+      "expected": [
+        187
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "thu thai con khong",
+      "expected": [
+        188
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "tong hop o dau ban",
+      "expected": [
+        189
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "shop co ho prospan khong shop oi",
+      "expected": [
+        190
+      ],
+      "note": "no-diacritic"
+    },
+    {
+      "q": "có 15 nào khác không phải 15 Pro",
+      "expected": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có 15 nào khác không phải 15 Pro",
+      "expected": [
+        1,
+        3,
+        4,
+        5,
+        6
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có galaxy nào khác không phải Galaxy S24",
+      "expected": [
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có 14 nào khác không phải 14 Ultra",
+      "expected": [
+        1,
+        2,
+        3,
+        5,
+        6
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có 14 nào khác không phải 14 Pro",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có find nào khác không phải Find X7",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có 13 nào khác không phải 13 cũ",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có x100 nào khác không phải X100 Pro",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có gt nào khác không phải GT 6",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có pura nào khác không phải Pura 70",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thun nào khác không phải thun nam",
+      "expected": [
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có jean nào khác không phải jean nam",
+      "expected": [
+        21,
+        23,
+        24,
+        25,
+        26
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có so nào khác không phải sơ mi",
+      "expected": [
+        21,
+        22,
+        24,
+        25,
+        26
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có dam nào khác không phải đầm dự",
+      "expected": [
+        21,
+        22,
+        23,
+        25,
+        26
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có vay nào khác không phải váy công",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        26
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có khoac nào khác không phải khoác dạ",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có the nào khác không phải thể thao",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có cao nào khác không phải cao gót",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có xach nào khác không phải xách nữ",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có du nào khác không phải du lịch",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có phe nào khác không phải phê đen",
+      "expected": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có phe nào khác không phải phê sữa",
+      "expected": [
+        41,
+        43,
+        44,
+        45,
+        46
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có xiu nào khác không phải xỉu đá",
+      "expected": [
+        41,
+        42,
+        44,
+        45,
+        46
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có dao nào khác không phải đào cam",
+      "expected": [
+        41,
+        42,
+        43,
+        45,
+        46
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có sua nào khác không phải sữa trân",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        46
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ep nào khác không phải ép cam",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có viet nào khác không phải việt quất",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có matcha nào khác không phải matcha giá",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có hat nào khác không phải hạt dẻ",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có gia nào khác không phải giá 38",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có chong nào khác không phải chống nắng",
+      "expected": [
+        62,
+        63,
+        64,
+        65,
+        66
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có rua nào khác không phải rửa mặt",
+      "expected": [
+        61,
+        63,
+        64,
+        65,
+        66
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có vitamin nào khác không phải vitamin C",
+      "expected": [
+        61,
+        62,
+        64,
+        65,
+        66
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có duong nào khác không phải dưỡng ẩm",
+      "expected": [
+        61,
+        62,
+        63,
+        65,
+        66
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thoi nào khác không phải thỏi MAC",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        66
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có maybelline nào khác không phải Maybelline Sky",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ma nào khác không phải má hồng",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có trang nào khác không phải trang Bioderma",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có hoa nào khác không phải hoa hồng",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có na nào khác không phải nạ giấy",
+      "expected": [
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ho nào khác không phải hộ 2PN",
+      "expected": [
+        82,
+        83,
+        84,
+        85,
+        86
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có pho nào khác không phải phố Gamuda",
+      "expected": [
+        81,
+        83,
+        84,
+        85,
+        86
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thu nào khác không phải thự Ecopark",
+      "expected": [
+        81,
+        82,
+        84,
+        85,
+        86
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có cu nào khác không phải cư mini",
+      "expected": [
+        81,
+        82,
+        83,
+        85,
+        86
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có nen nào khác không phải nền Hoà",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        86
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ho nào khác không phải hộ Masteri",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có flora nào khác không phải Flora Phú",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có house nào khác không phải house Vinhomes",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thue nào khác không phải thuê căn",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thue nào khác không phải thuê văn",
+      "expected": [
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toc nào khác không phải tóc nam",
+      "expected": [
+        102,
+        103,
+        104,
+        105,
+        106
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toc nào khác không phải tóc nữ",
+      "expected": [
+        101,
+        103,
+        104,
+        105,
+        106
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toc nào khác không phải tóc nữ",
+      "expected": [
+        101,
+        102,
+        104,
+        105,
+        106
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toc nào khác không phải tóc xoăn",
+      "expected": [
+        101,
+        102,
+        103,
+        105,
+        106
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toc nào khác không phải tóc thẳng",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        106
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có membership nào khác không phải membership tháng",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        105
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có quy nào khác không phải quý (3",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        105
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có class nào khác không phải class nhóm",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        105
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có trainer nào khác không phải trainer 10",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        105
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có fitness nào khác không phải fitness 12",
+      "expected": [
+        101,
+        102,
+        103,
+        104,
+        105
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có atomic nào khác không phải Atomic Habits",
+      "expected": [
+        122,
+        123,
+        124,
+        125,
+        126
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có sapiens nào khác không phải Sapiens Lược",
+      "expected": [
+        121,
+        123,
+        124,
+        125,
+        126
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có hoc nào khác không phải học IELTS",
+      "expected": [
+        121,
+        122,
+        124,
+        125,
+        126
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có toeic nào khác không phải TOEIC 20",
+      "expected": [
+        121,
+        122,
+        123,
+        125,
+        126
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có dac nào khác không phải Đắc nhân",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        126
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có sach nào khác không phải sách giáo",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        125
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có dien nào khác không phải điển Oxford",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        125
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có tieng nào khác không phải tiếng Trung",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        125
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có luyen nào khác không phải luyện thi",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        125
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có lap nào khác không phải lập trình",
+      "expected": [
+        121,
+        122,
+        123,
+        124,
+        125
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có st25 nào khác không phải ST25 túi",
+      "expected": [
+        142,
+        143,
+        144,
+        145,
+        146
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có an nào khác không phải ăn Simply",
+      "expected": [
+        141,
+        143,
+        144,
+        145,
+        146
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có cat nào khác không phải cát trắng",
+      "expected": [
+        141,
+        142,
+        144,
+        145,
+        146
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có goi nào khác không phải gói Hảo",
+      "expected": [
+        141,
+        142,
+        143,
+        145,
+        146
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có tuoi nào khác không phải tươi TH",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        146
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ga nào khác không phải gà ta",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có heo nào khác không phải heo ba",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có hoi nào khác không phải hồi Nauy",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có cai nào khác không phải cải ngọt",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có qua nào khác không phải quả combo",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có wave nào khác không phải Wave Alpha",
+      "expected": [
+        162,
+        163,
+        164,
+        165,
+        166
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có future nào khác không phải Future 125",
+      "expected": [
+        161,
+        163,
+        164,
+        165,
+        166
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có exciter nào khác không phải Exciter 155",
+      "expected": [
+        161,
+        162,
+        164,
+        165,
+        166
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có vision nào khác không phải Vision 125",
+      "expected": [
+        161,
+        162,
+        163,
+        165,
+        166
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có sh nào khác không phải SH Mode",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        166
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có sh nào khác không phải SH 160i",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có grande nào khác không phải Grande Hybrid",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có liberty nào khác không phải Liberty 150",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có klara nào khác không phải Klara S",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có nhot nào khác không phải nhớt Castrol",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có 500mg nào khác không phải 500mg hộp",
+      "expected": [
+        182,
+        183,
+        184,
+        185,
+        186
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có c nào khác không phải C 1000mg",
+      "expected": [
+        181,
+        183,
+        184,
+        185,
+        186
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có gio nào khác không phải gió Kwan",
+      "expected": [
+        181,
+        182,
+        184,
+        185,
+        186
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có trang nào khác không phải trang y",
+      "expected": [
+        181,
+        182,
+        183,
+        185,
+        186
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có rua nào khác không phải rửa tay",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        186
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ke nào khác không phải kế điện",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        185
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có do nào khác không phải đo huyết",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        185
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có thu nào khác không phải thử thai",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        185
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có tong nào khác không phải tổng hợp",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        185
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "có ho nào khác không phải ho Prospan",
+      "expected": [
+        181,
+        182,
+        183,
+        184,
+        185
+      ],
+      "note": "negation"
+    },
+    {
+      "q": "dưới 14 triệu có gì",
+      "expected": [
+        7,
+        13,
+        14,
+        15,
+        16
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 20 triệu có gì",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 25 triệu có gì",
+      "expected": [
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 14 triệu có gì",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 20 triệu có gì",
+      "expected": [
+        5,
+        7,
+        8,
+        9,
+        11
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 25 triệu có gì",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        19
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 14 triệu có gì",
+      "expected": [
+        7,
+        13,
+        14,
+        15,
+        16
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 20 triệu có gì",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 25 triệu có gì",
+      "expected": [
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 14 triệu có gì",
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 420k có gì",
+      "expected": [
+        21,
+        23,
+        25,
+        31,
+        32
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 550k có gì",
+      "expected": [
+        24,
+        26,
+        27,
+        28,
+        29
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 890k có gì",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 420k có gì",
+      "expected": [
+        22,
+        24,
+        25,
+        26,
+        27
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 550k có gì",
+      "expected": [
+        21,
+        22,
+        23,
+        25,
+        31
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 890k có gì",
+      "expected": [
+        24,
+        26,
+        27,
+        29,
+        35
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 420k có gì",
+      "expected": [
+        21,
+        23,
+        25,
+        31,
+        32
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 550k có gì",
+      "expected": [
+        24,
+        26,
+        27,
+        28,
+        29
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 890k có gì",
+      "expected": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 420k có gì",
+      "expected": [
+        22,
+        24,
+        25,
+        26,
+        27
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 38k có gì",
+      "expected": [
+        41,
+        42,
+        43,
+        50,
+        51
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 49k có gì",
+      "expected": [
+        45,
+        47,
+        48,
+        49,
+        53
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 52k có gì",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 38k có gì",
+      "expected": [
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 49k có gì",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 52k có gì",
+      "expected": [
+        47,
+        48,
+        53,
+        54,
+        55
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 38k có gì",
+      "expected": [
+        41,
+        42,
+        43,
+        50,
+        51
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 49k có gì",
+      "expected": [
+        45,
+        47,
+        48,
+        49,
+        53
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 52k có gì",
+      "expected": [
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 38k có gì",
+      "expected": [
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 390k có gì",
+      "expected": [
+        62,
+        66,
+        69,
+        70,
+        75
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 690k có gì",
+      "expected": [
+        61,
+        63,
+        68,
+        71,
+        72
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 790k có gì",
+      "expected": [
+        61,
+        62,
+        64,
+        65,
+        66
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 390k có gì",
+      "expected": [
+        61,
+        63,
+        64,
+        65,
+        67
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 690k có gì",
+      "expected": [
+        61,
+        62,
+        64,
+        65,
+        66
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 790k có gì",
+      "expected": [
+        63,
+        71,
+        73,
+        74,
+        78
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 390k có gì",
+      "expected": [
+        62,
+        66,
+        69,
+        70,
+        75
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 690k có gì",
+      "expected": [
+        61,
+        63,
+        68,
+        71,
+        72
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 790k có gì",
+      "expected": [
+        61,
+        62,
+        64,
+        65,
+        66
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 390k có gì",
+      "expected": [
+        61,
+        63,
+        64,
+        65,
+        67
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "giá rẻ",
+      "expected": [
+        81,
+        82,
+        83
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 250k có gì",
+      "expected": [
+        101,
+        102,
+        111,
+        112,
+        113
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 450k có gì",
+      "expected": [
+        103,
+        104,
+        105,
+        106,
+        107
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 890k có gì",
+      "expected": [
+        101,
+        102,
+        103,
+        106,
+        108
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 250k có gì",
+      "expected": [
+        102,
+        103,
+        104,
+        105,
+        106
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 450k có gì",
+      "expected": [
+        101,
+        102,
+        111,
+        112,
+        113
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 890k có gì",
+      "expected": [
+        103,
+        104,
+        105,
+        107,
+        108
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 250k có gì",
+      "expected": [
+        101,
+        102,
+        111,
+        112,
+        113
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 450k có gì",
+      "expected": [
+        103,
+        104,
+        105,
+        106,
+        107
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 890k có gì",
+      "expected": [
+        101,
+        102,
+        103,
+        106,
+        108
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 250k có gì",
+      "expected": [
+        102,
+        103,
+        104,
+        105,
+        106
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 220k có gì",
+      "expected": [
+        121,
+        125,
+        129,
+        134,
+        136
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 690k có gì",
+      "expected": [
+        123,
+        124,
+        127,
+        128,
+        130
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 3 triệu có gì",
+      "expected": [
+        121,
+        122,
+        124,
+        125,
+        126
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 220k có gì",
+      "expected": [
+        122,
+        123,
+        124,
+        126,
+        127
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 690k có gì",
+      "expected": [
+        121,
+        122,
+        125,
+        126,
+        127
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 3 triệu có gì",
+      "expected": [
+        123,
+        124,
+        128,
+        131,
+        133
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 220k có gì",
+      "expected": [
+        121,
+        125,
+        129,
+        134,
+        136
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 690k có gì",
+      "expected": [
+        123,
+        124,
+        127,
+        128,
+        130
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 3 triệu có gì",
+      "expected": [
+        121,
+        122,
+        124,
+        125,
+        126
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 220k có gì",
+      "expected": [
+        122,
+        123,
+        124,
+        126,
+        127
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 65k có gì",
+      "expected": [
+        143,
+        145,
+        146,
+        149,
+        151
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 98k có gì",
+      "expected": [
+        141,
+        142,
+        144,
+        148,
+        150
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 185k có gì",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 65k có gì",
+      "expected": [
+        141,
+        142,
+        144,
+        147,
+        148
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 98k có gì",
+      "expected": [
+        142,
+        143,
+        145,
+        146,
+        147
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 185k có gì",
+      "expected": [
+        141,
+        148,
+        150,
+        153,
+        154
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 65k có gì",
+      "expected": [
+        143,
+        145,
+        146,
+        149,
+        151
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 98k có gì",
+      "expected": [
+        141,
+        142,
+        144,
+        148,
+        150
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 185k có gì",
+      "expected": [
+        141,
+        142,
+        143,
+        144,
+        145
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 65k có gì",
+      "expected": [
+        141,
+        142,
+        144,
+        147,
+        148
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 550k có gì",
+      "expected": [
+        170,
+        171,
+        173,
+        174,
+        175
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 33 triệu có gì",
+      "expected": [
+        162,
+        163,
+        164,
+        165,
+        166
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 50 triệu có gì",
+      "expected": [
+        161,
+        162,
+        164,
+        167,
+        169
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 550k có gì",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 33 triệu có gì",
+      "expected": [
+        161,
+        162,
+        164,
+        170,
+        171
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 50 triệu có gì",
+      "expected": [
+        163,
+        165,
+        166,
+        167,
+        168
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 550k có gì",
+      "expected": [
+        170,
+        171,
+        173,
+        174,
+        175
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 33 triệu có gì",
+      "expected": [
+        162,
+        163,
+        164,
+        165,
+        166
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 50 triệu có gì",
+      "expected": [
+        161,
+        162,
+        164,
+        167,
+        169
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 550k có gì",
+      "expected": [
+        161,
+        162,
+        163,
+        164,
+        165
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 55k có gì",
+      "expected": [
+        181,
+        184,
+        188,
+        192,
+        194
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 85k có gì",
+      "expected": [
+        182,
+        186,
+        187,
+        189,
+        190
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 195k có gì",
+      "expected": [
+        181,
+        183,
+        184,
+        185,
+        188
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 55k có gì",
+      "expected": [
+        182,
+        183,
+        184,
+        185,
+        186
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 85k có gì",
+      "expected": [
+        181,
+        183,
+        184,
+        185,
+        188
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 195k có gì",
+      "expected": [
+        182,
+        186,
+        187,
+        189,
+        197
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 55k có gì",
+      "expected": [
+        181,
+        184,
+        188,
+        192,
+        194
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 85k có gì",
+      "expected": [
+        182,
+        186,
+        187,
+        189,
+        190
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "dưới 195k có gì",
+      "expected": [
+        181,
+        183,
+        184,
+        185,
+        188
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "trên 55k có gì",
+      "expected": [
+        182,
+        183,
+        184,
+        185,
+        186
+      ],
+      "note": "number-range"
+    },
+    {
+      "q": "15 với 14 cái nào tốt hơn",
+      "expected": [
+        1,
+        4
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "15 với 14 cái nào tốt hơn",
+      "expected": [
+        2,
+        5
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Galaxy với Find cái nào tốt hơn",
+      "expected": [
+        3,
+        6
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "14 với 13 cái nào tốt hơn",
+      "expected": [
+        4,
+        7
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "14 với X100 cái nào tốt hơn",
+      "expected": [
+        5,
+        8
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Find với GT cái nào tốt hơn",
+      "expected": [
+        6,
+        9
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "13 với Pura cái nào tốt hơn",
+      "expected": [
+        7,
+        10
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "X100 với Pixel cái nào tốt hơn",
+      "expected": [
+        8,
+        11
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "GT với 12 cái nào tốt hơn",
+      "expected": [
+        9,
+        12
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Pura với Phone cái nào tốt hơn",
+      "expected": [
+        10,
+        13
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thun với đầm cái nào tốt hơn",
+      "expected": [
+        21,
+        24
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "jean với váy cái nào tốt hơn",
+      "expected": [
+        22,
+        25
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "sơ với khoác cái nào tốt hơn",
+      "expected": [
+        23,
+        26
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "đầm với thể cái nào tốt hơn",
+      "expected": [
+        24,
+        27
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "váy với cao cái nào tốt hơn",
+      "expected": [
+        25,
+        28
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "khoác với xách cái nào tốt hơn",
+      "expected": [
+        26,
+        29
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thể với du cái nào tốt hơn",
+      "expected": [
+        27,
+        30
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "cao với polo cái nào tốt hơn",
+      "expected": [
+        28,
+        31
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "xách với shorts cái nào tốt hơn",
+      "expected": [
+        29,
+        32
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "du với len cái nào tốt hơn",
+      "expected": [
+        30,
+        33
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "phê với đào cái nào tốt hơn",
+      "expected": [
+        41,
+        44
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "phê với sữa cái nào tốt hơn",
+      "expected": [
+        42,
+        45
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "xỉu với ép cái nào tốt hơn",
+      "expected": [
+        43,
+        46
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "đào với việt cái nào tốt hơn",
+      "expected": [
+        44,
+        47
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "sữa với matcha cái nào tốt hơn",
+      "expected": [
+        45,
+        48
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "ép với hạt cái nào tốt hơn",
+      "expected": [
+        46,
+        49
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "việt với giá cái nào tốt hơn",
+      "expected": [
+        47,
+        50
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "matcha với mì cái nào tốt hơn",
+      "expected": [
+        48,
+        51
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "hạt với croissant cái nào tốt hơn",
+      "expected": [
+        49,
+        52
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "giá với ý cái nào tốt hơn",
+      "expected": [
+        50,
+        53
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "chống với dưỡng cái nào tốt hơn",
+      "expected": [
+        61,
+        64
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "rửa với thỏi cái nào tốt hơn",
+      "expected": [
+        62,
+        65
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "vitamin với Maybelline cái nào tốt hơn",
+      "expected": [
+        63,
+        66
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "dưỡng với má cái nào tốt hơn",
+      "expected": [
+        64,
+        67
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thỏi với trang cái nào tốt hơn",
+      "expected": [
+        65,
+        68
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Maybelline với hoa cái nào tốt hơn",
+      "expected": [
+        66,
+        69
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "má với nạ cái nào tốt hơn",
+      "expected": [
+        67,
+        70
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "trang với nền cái nào tốt hơn",
+      "expected": [
+        68,
+        71
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "hoa với kẻ cái nào tốt hơn",
+      "expected": [
+        69,
+        72
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "nạ với tế cái nào tốt hơn",
+      "expected": [
+        70,
+        73
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "hộ với cư cái nào tốt hơn",
+      "expected": [
+        81,
+        84
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "phố với nền cái nào tốt hơn",
+      "expected": [
+        82,
+        85
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thự với hộ cái nào tốt hơn",
+      "expected": [
+        83,
+        86
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "cư với Flora cái nào tốt hơn",
+      "expected": [
+        84,
+        87
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "nền với house cái nào tốt hơn",
+      "expected": [
+        85,
+        88
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "hộ với thuê cái nào tốt hơn",
+      "expected": [
+        86,
+        89
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Flora với thuê cái nào tốt hơn",
+      "expected": [
+        87,
+        90
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "house với thổ cái nào tốt hơn",
+      "expected": [
+        88,
+        91
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thuê với hộ cái nào tốt hơn",
+      "expected": [
+        89,
+        92
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thuê với mặt cái nào tốt hơn",
+      "expected": [
+        90,
+        93
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tóc với tóc cái nào tốt hơn",
+      "expected": [
+        101,
+        104
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tóc với tóc cái nào tốt hơn",
+      "expected": [
+        102,
+        105
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tóc với membership cái nào tốt hơn",
+      "expected": [
+        103,
+        106
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tóc với quý cái nào tốt hơn",
+      "expected": [
+        104,
+        107
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tóc với class cái nào tốt hơn",
+      "expected": [
+        105,
+        108
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "membership với trainer cái nào tốt hơn",
+      "expected": [
+        106,
+        109
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "quý với fitness cái nào tốt hơn",
+      "expected": [
+        107,
+        110
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "class với ủi cái nào tốt hơn",
+      "expected": [
+        108,
+        111
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "trainer với ủi cái nào tốt hơn",
+      "expected": [
+        109,
+        112
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "fitness với khô cái nào tốt hơn",
+      "expected": [
+        110,
+        113
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Atomic với TOEIC cái nào tốt hơn",
+      "expected": [
+        121,
+        124
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Sapiens với Đắc cái nào tốt hơn",
+      "expected": [
+        122,
+        125
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "học với sách cái nào tốt hơn",
+      "expected": [
+        123,
+        126
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "TOEIC với điển cái nào tốt hơn",
+      "expected": [
+        124,
+        127
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Đắc với tiếng cái nào tốt hơn",
+      "expected": [
+        125,
+        128
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "sách với luyện cái nào tốt hơn",
+      "expected": [
+        126,
+        129
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "điển với lập cái nào tốt hơn",
+      "expected": [
+        127,
+        130
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tiếng với data cái nào tốt hơn",
+      "expected": [
+        128,
+        131
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "luyện với Think cái nào tốt hơn",
+      "expected": [
+        129,
+        132
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "lập với tiếng cái nào tốt hơn",
+      "expected": [
+        130,
+        133
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "ST25 với gói cái nào tốt hơn",
+      "expected": [
+        141,
+        144
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "ăn với tươi cái nào tốt hơn",
+      "expected": [
+        142,
+        145
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "cát với gà cái nào tốt hơn",
+      "expected": [
+        143,
+        146
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "gói với heo cái nào tốt hơn",
+      "expected": [
+        144,
+        147
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tươi với hồi cái nào tốt hơn",
+      "expected": [
+        145,
+        148
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "gà với cải cái nào tốt hơn",
+      "expected": [
+        146,
+        149
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "heo với quả cái nào tốt hơn",
+      "expected": [
+        147,
+        150
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "hồi với tương cái nào tốt hơn",
+      "expected": [
+        148,
+        151
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "cải với mắm cái nào tốt hơn",
+      "expected": [
+        149,
+        152
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "quả với Heineken cái nào tốt hơn",
+      "expected": [
+        150,
+        153
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Wave với Vision cái nào tốt hơn",
+      "expected": [
+        161,
+        164
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Future với SH cái nào tốt hơn",
+      "expected": [
+        162,
+        165
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Exciter với SH cái nào tốt hơn",
+      "expected": [
+        163,
+        166
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Vision với Grande cái nào tốt hơn",
+      "expected": [
+        164,
+        167
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "SH với Liberty cái nào tốt hơn",
+      "expected": [
+        165,
+        168
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "SH với Klara cái nào tốt hơn",
+      "expected": [
+        166,
+        169
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Grande với nhớt cái nào tốt hơn",
+      "expected": [
+        167,
+        170
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Liberty với quy cái nào tốt hơn",
+      "expected": [
+        168,
+        171
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "Klara với IRC cái nào tốt hơn",
+      "expected": [
+        169,
+        172
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "nhớt với vụ cái nào tốt hơn",
+      "expected": [
+        170,
+        173
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "500mg với trang cái nào tốt hơn",
+      "expected": [
+        181,
+        184
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "C với rửa cái nào tốt hơn",
+      "expected": [
+        182,
+        185
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "gió với kế cái nào tốt hơn",
+      "expected": [
+        183,
+        186
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "trang với đo cái nào tốt hơn",
+      "expected": [
+        184,
+        187
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "rửa với thử cái nào tốt hơn",
+      "expected": [
+        185,
+        188
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "kế với tổng cái nào tốt hơn",
+      "expected": [
+        186,
+        189
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "đo với ho cái nào tốt hơn",
+      "expected": [
+        187,
+        190
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "thử với vi cái nào tốt hơn",
+      "expected": [
+        188,
+        191
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "tổng với y cái nào tốt hơn",
+      "expected": [
+        189,
+        192
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "ho với keo cái nào tốt hơn",
+      "expected": [
+        190,
+        193
+      ],
+      "note": "comparison"
+    },
+    {
+      "q": "15",
+      "expected": [
+        1
+      ],
+      "note": "short"
+    },
+    {
+      "q": "15",
+      "expected": [
+        2
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Galaxy",
+      "expected": [
+        3
+      ],
+      "note": "short"
+    },
+    {
+      "q": "14",
+      "expected": [
+        4
+      ],
+      "note": "short"
+    },
+    {
+      "q": "14",
+      "expected": [
+        5
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Find",
+      "expected": [
+        6
+      ],
+      "note": "short"
+    },
+    {
+      "q": "13",
+      "expected": [
+        7
+      ],
+      "note": "short"
+    },
+    {
+      "q": "X100",
+      "expected": [
+        8
+      ],
+      "note": "short"
+    },
+    {
+      "q": "GT",
+      "expected": [
+        9
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Pura",
+      "expected": [
+        10
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thun",
+      "expected": [
+        21
+      ],
+      "note": "short"
+    },
+    {
+      "q": "jean",
+      "expected": [
+        22
+      ],
+      "note": "short"
+    },
+    {
+      "q": "sơ",
+      "expected": [
+        23
+      ],
+      "note": "short"
+    },
+    {
+      "q": "đầm",
+      "expected": [
+        24
+      ],
+      "note": "short"
+    },
+    {
+      "q": "váy",
+      "expected": [
+        25
+      ],
+      "note": "short"
+    },
+    {
+      "q": "khoác",
+      "expected": [
+        26
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thể",
+      "expected": [
+        27
+      ],
+      "note": "short"
+    },
+    {
+      "q": "cao",
+      "expected": [
+        28
+      ],
+      "note": "short"
+    },
+    {
+      "q": "xách",
+      "expected": [
+        29
+      ],
+      "note": "short"
+    },
+    {
+      "q": "du",
+      "expected": [
+        30
+      ],
+      "note": "short"
+    },
+    {
+      "q": "phê",
+      "expected": [
+        41
+      ],
+      "note": "short"
+    },
+    {
+      "q": "phê",
+      "expected": [
+        42
+      ],
+      "note": "short"
+    },
+    {
+      "q": "xỉu",
+      "expected": [
+        43
+      ],
+      "note": "short"
+    },
+    {
+      "q": "đào",
+      "expected": [
+        44
+      ],
+      "note": "short"
+    },
+    {
+      "q": "sữa",
+      "expected": [
+        45
+      ],
+      "note": "short"
+    },
+    {
+      "q": "ép",
+      "expected": [
+        46
+      ],
+      "note": "short"
+    },
+    {
+      "q": "việt",
+      "expected": [
+        47
+      ],
+      "note": "short"
+    },
+    {
+      "q": "matcha",
+      "expected": [
+        48
+      ],
+      "note": "short"
+    },
+    {
+      "q": "hạt",
+      "expected": [
+        49
+      ],
+      "note": "short"
+    },
+    {
+      "q": "giá",
+      "expected": [
+        50
+      ],
+      "note": "short"
+    },
+    {
+      "q": "chống",
+      "expected": [
+        61
+      ],
+      "note": "short"
+    },
+    {
+      "q": "rửa",
+      "expected": [
+        62
+      ],
+      "note": "short"
+    },
+    {
+      "q": "vitamin",
+      "expected": [
+        63
+      ],
+      "note": "short"
+    },
+    {
+      "q": "dưỡng",
+      "expected": [
+        64
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thỏi",
+      "expected": [
+        65
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Maybelline",
+      "expected": [
+        66
+      ],
+      "note": "short"
+    },
+    {
+      "q": "má",
+      "expected": [
+        67
+      ],
+      "note": "short"
+    },
+    {
+      "q": "trang",
+      "expected": [
+        68
+      ],
+      "note": "short"
+    },
+    {
+      "q": "hoa",
+      "expected": [
+        69
+      ],
+      "note": "short"
+    },
+    {
+      "q": "nạ",
+      "expected": [
+        70
+      ],
+      "note": "short"
+    },
+    {
+      "q": "hộ",
+      "expected": [
+        81
+      ],
+      "note": "short"
+    },
+    {
+      "q": "phố",
+      "expected": [
+        82
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thự",
+      "expected": [
+        83
+      ],
+      "note": "short"
+    },
+    {
+      "q": "cư",
+      "expected": [
+        84
+      ],
+      "note": "short"
+    },
+    {
+      "q": "nền",
+      "expected": [
+        85
+      ],
+      "note": "short"
+    },
+    {
+      "q": "hộ",
+      "expected": [
+        86
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Flora",
+      "expected": [
+        87
+      ],
+      "note": "short"
+    },
+    {
+      "q": "house",
+      "expected": [
+        88
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thuê",
+      "expected": [
+        89
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thuê",
+      "expected": [
+        90
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tóc",
+      "expected": [
+        101
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tóc",
+      "expected": [
+        102
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tóc",
+      "expected": [
+        103
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tóc",
+      "expected": [
+        104
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tóc",
+      "expected": [
+        105
+      ],
+      "note": "short"
+    },
+    {
+      "q": "membership",
+      "expected": [
+        106
+      ],
+      "note": "short"
+    },
+    {
+      "q": "quý",
+      "expected": [
+        107
+      ],
+      "note": "short"
+    },
+    {
+      "q": "class",
+      "expected": [
+        108
+      ],
+      "note": "short"
+    },
+    {
+      "q": "trainer",
+      "expected": [
+        109
+      ],
+      "note": "short"
+    },
+    {
+      "q": "fitness",
+      "expected": [
+        110
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Atomic",
+      "expected": [
+        121
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Sapiens",
+      "expected": [
+        122
+      ],
+      "note": "short"
+    },
+    {
+      "q": "học",
+      "expected": [
+        123
+      ],
+      "note": "short"
+    },
+    {
+      "q": "TOEIC",
+      "expected": [
+        124
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Đắc",
+      "expected": [
+        125
+      ],
+      "note": "short"
+    },
+    {
+      "q": "sách",
+      "expected": [
+        126
+      ],
+      "note": "short"
+    },
+    {
+      "q": "điển",
+      "expected": [
+        127
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tiếng",
+      "expected": [
+        128
+      ],
+      "note": "short"
+    },
+    {
+      "q": "luyện",
+      "expected": [
+        129
+      ],
+      "note": "short"
+    },
+    {
+      "q": "lập",
+      "expected": [
+        130
+      ],
+      "note": "short"
+    },
+    {
+      "q": "ST25",
+      "expected": [
+        141
+      ],
+      "note": "short"
+    },
+    {
+      "q": "ăn",
+      "expected": [
+        142
+      ],
+      "note": "short"
+    },
+    {
+      "q": "cát",
+      "expected": [
+        143
+      ],
+      "note": "short"
+    },
+    {
+      "q": "gói",
+      "expected": [
+        144
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tươi",
+      "expected": [
+        145
+      ],
+      "note": "short"
+    },
+    {
+      "q": "gà",
+      "expected": [
+        146
+      ],
+      "note": "short"
+    },
+    {
+      "q": "heo",
+      "expected": [
+        147
+      ],
+      "note": "short"
+    },
+    {
+      "q": "hồi",
+      "expected": [
+        148
+      ],
+      "note": "short"
+    },
+    {
+      "q": "cải",
+      "expected": [
+        149
+      ],
+      "note": "short"
+    },
+    {
+      "q": "quả",
+      "expected": [
+        150
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Wave",
+      "expected": [
+        161
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Future",
+      "expected": [
+        162
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Exciter",
+      "expected": [
+        163
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Vision",
+      "expected": [
+        164
+      ],
+      "note": "short"
+    },
+    {
+      "q": "SH",
+      "expected": [
+        165
+      ],
+      "note": "short"
+    },
+    {
+      "q": "SH",
+      "expected": [
+        166
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Grande",
+      "expected": [
+        167
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Liberty",
+      "expected": [
+        168
+      ],
+      "note": "short"
+    },
+    {
+      "q": "Klara",
+      "expected": [
+        169
+      ],
+      "note": "short"
+    },
+    {
+      "q": "nhớt",
+      "expected": [
+        170
+      ],
+      "note": "short"
+    },
+    {
+      "q": "500mg",
+      "expected": [
+        181
+      ],
+      "note": "short"
+    },
+    {
+      "q": "C",
+      "expected": [
+        182
+      ],
+      "note": "short"
+    },
+    {
+      "q": "gió",
+      "expected": [
+        183
+      ],
+      "note": "short"
+    },
+    {
+      "q": "trang",
+      "expected": [
+        184
+      ],
+      "note": "short"
+    },
+    {
+      "q": "rửa",
+      "expected": [
+        185
+      ],
+      "note": "short"
+    },
+    {
+      "q": "kế",
+      "expected": [
+        186
+      ],
+      "note": "short"
+    },
+    {
+      "q": "đo",
+      "expected": [
+        187
+      ],
+      "note": "short"
+    },
+    {
+      "q": "thử",
+      "expected": [
+        188
+      ],
+      "note": "short"
+    },
+    {
+      "q": "tổng",
+      "expected": [
+        189
+      ],
+      "note": "short"
+    },
+    {
+      "q": "ho",
+      "expected": [
+        190
+      ],
+      "note": "short"
+    },
+    {
+      "q": "shop có smartphone không",
+      "expected": [
+        1
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có camera không",
+      "expected": [
+        2
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có chip không",
+      "expected": [
+        3
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có waterproof không",
+      "expected": [
+        4
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có zoom không",
+      "expected": [
+        5
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có battery không",
+      "expected": [
+        6
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có flagship không",
+      "expected": [
+        7
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có gaming không",
+      "expected": [
+        8
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có charger không",
+      "expected": [
+        9
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có storage không",
+      "expected": [
+        10
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có size không",
+      "expected": [
+        21
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có slim fit không",
+      "expected": [
+        22
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có cotton không",
+      "expected": [
+        23
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có material không",
+      "expected": [
+        24
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có outfit không",
+      "expected": [
+        25
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có vintage không",
+      "expected": [
+        26
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có streetwear không",
+      "expected": [
+        27
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có collection không",
+      "expected": [
+        28
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có brand không",
+      "expected": [
+        29
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có design không",
+      "expected": [
+        30
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có latte không",
+      "expected": [
+        41
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có caffeine không",
+      "expected": [
+        42
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có combo không",
+      "expected": [
+        43
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có happy hour không",
+      "expected": [
+        44
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có vegan không",
+      "expected": [
+        45
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có dessert không",
+      "expected": [
+        46
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có espresso không",
+      "expected": [
+        47
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có brunch không",
+      "expected": [
+        48
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có delivery không",
+      "expected": [
+        49
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có special không",
+      "expected": [
+        50
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có skincare không",
+      "expected": [
+        61
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có serum không",
+      "expected": [
+        62
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có spf không",
+      "expected": [
+        63
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có anti-aging không",
+      "expected": [
+        64
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có makeup không",
+      "expected": [
+        65
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có fragrance không",
+      "expected": [
+        66
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có moisturizer không",
+      "expected": [
+        67
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có foundation không",
+      "expected": [
+        68
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có vitamin không",
+      "expected": [
+        69
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có cleanser không",
+      "expected": [
+        70
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có view không",
+      "expected": [
+        81
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có square meter không",
+      "expected": [
+        82
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có condo không",
+      "expected": [
+        83
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có penthouse không",
+      "expected": [
+        84
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có villa không",
+      "expected": [
+        85
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có location không",
+      "expected": [
+        86
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có floor không",
+      "expected": [
+        87
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có balcony không",
+      "expected": [
+        88
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có garden không",
+      "expected": [
+        89
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có investment không",
+      "expected": [
+        90
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có membership không",
+      "expected": [
+        101
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có session không",
+      "expected": [
+        102
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có trainer không",
+      "expected": [
+        103
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có express không",
+      "expected": [
+        104
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có package không",
+      "expected": [
+        105
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có service không",
+      "expected": [
+        106
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có spa không",
+      "expected": [
+        107
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có class không",
+      "expected": [
+        108
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có combo không",
+      "expected": [
+        109
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có premium không",
+      "expected": [
+        110
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có IELTS không",
+      "expected": [
+        121
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có TOEIC không",
+      "expected": [
+        122
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có online course không",
+      "expected": [
+        123
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có textbook không",
+      "expected": [
+        124
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có Python không",
+      "expected": [
+        125
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có beginner không",
+      "expected": [
+        126
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có certificate không",
+      "expected": [
+        127
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có study không",
+      "expected": [
+        128
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có tutor không",
+      "expected": [
+        129
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có learning không",
+      "expected": [
+        130
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có organic không",
+      "expected": [
+        141
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có imported không",
+      "expected": [
+        142
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có fresh không",
+      "expected": [
+        143
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có combo không",
+      "expected": [
+        144
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có premium không",
+      "expected": [
+        145
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có ingredients không",
+      "expected": [
+        146
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có healthy không",
+      "expected": [
+        147
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có brand không",
+      "expected": [
+        148
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có snack không",
+      "expected": [
+        149
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có drink không",
+      "expected": [
+        150
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có ABS không",
+      "expected": [
+        161
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có smartkey không",
+      "expected": [
+        162
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có fuel không",
+      "expected": [
+        163
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có hybrid không",
+      "expected": [
+        164
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có CVT không",
+      "expected": [
+        165
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có SUV không",
+      "expected": [
+        166
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có sedan không",
+      "expected": [
+        167
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có maintenance không",
+      "expected": [
+        168
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có electric không",
+      "expected": [
+        169
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có engine không",
+      "expected": [
+        170
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có vitamin không",
+      "expected": [
+        181
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có supplement không",
+      "expected": [
+        182
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có sanitizer không",
+      "expected": [
+        183
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có medicine không",
+      "expected": [
+        184
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có first aid không",
+      "expected": [
+        185
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có baby không",
+      "expected": [
+        186
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có skincare không",
+      "expected": [
+        187
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có tablet không",
+      "expected": [
+        188
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có syrup không",
+      "expected": [
+        189
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "shop có mask không",
+      "expected": [
+        190
+      ],
+      "note": "eng-mix"
+    },
+    {
+      "q": "iPhone 15",
+      "expected": [
+        1
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "iPhone 15",
+      "expected": [
+        2
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Samsung Galaxy",
+      "expected": [
+        3
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Xiaomi 14",
+      "expected": [
+        4
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "iPhone 14",
+      "expected": [
+        5
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Oppo Find",
+      "expected": [
+        6
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "iPhone 13",
+      "expected": [
+        7
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Vivo X100",
+      "expected": [
+        8
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Realme GT",
+      "expected": [
+        9
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Huawei Pura",
+      "expected": [
+        10
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Áo thun",
+      "expected": [
+        21
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Quần jean",
+      "expected": [
+        22
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Áo sơ",
+      "expected": [
+        23
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Váy đầm",
+      "expected": [
+        24
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Chân váy",
+      "expected": [
+        25
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Áo khoác",
+      "expected": [
+        26
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Giày thể",
+      "expected": [
+        27
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Giày cao",
+      "expected": [
+        28
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Túi xách",
+      "expected": [
+        29
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Balo du",
+      "expected": [
+        30
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cà phê",
+      "expected": [
+        41
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cà phê",
+      "expected": [
+        42
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Bạc xỉu",
+      "expected": [
+        43
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Trà đào",
+      "expected": [
+        44
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Trà sữa",
+      "expected": [
+        45
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Nước ép",
+      "expected": [
+        46
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Smoothie việt",
+      "expected": [
+        47
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Latte matcha",
+      "expected": [
+        48
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cappuccino hạt",
+      "expected": [
+        49
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Americano giá",
+      "expected": [
+        50
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Kem chống",
+      "expected": [
+        61
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sữa rửa",
+      "expected": [
+        62
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Serum vitamin",
+      "expected": [
+        63
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Kem dưỡng",
+      "expected": [
+        64
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Son thỏi",
+      "expected": [
+        65
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Mascara Maybelline",
+      "expected": [
+        66
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Phấn má",
+      "expected": [
+        67
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Tẩy trang",
+      "expected": [
+        68
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Nước hoa",
+      "expected": [
+        69
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Mặt nạ",
+      "expected": [
+        70
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Căn hộ",
+      "expected": [
+        81
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Nhà phố",
+      "expected": [
+        82
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Biệt thự",
+      "expected": [
+        83
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Chung cư",
+      "expected": [
+        84
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Đất nền",
+      "expected": [
+        85
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Căn hộ",
+      "expected": [
+        86
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Villa Flora",
+      "expected": [
+        87
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Shop house",
+      "expected": [
+        88
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cho thuê",
+      "expected": [
+        89
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cho thuê",
+      "expected": [
+        90
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cắt tóc",
+      "expected": [
+        101
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cắt tóc",
+      "expected": [
+        102
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Nhuộm tóc",
+      "expected": [
+        103
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Uốn tóc",
+      "expected": [
+        104
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Duỗi tóc",
+      "expected": [
+        105
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Gym membership",
+      "expected": [
+        106
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Gym quý",
+      "expected": [
+        107
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Yoga class",
+      "expected": [
+        108
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Personal trainer",
+      "expected": [
+        109
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Zumba fitness",
+      "expected": [
+        110
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sách Atomic",
+      "expected": [
+        121
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sách Sapiens",
+      "expected": [
+        122
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Khóa học",
+      "expected": [
+        123
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Khóa TOEIC",
+      "expected": [
+        124
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sách Đắc",
+      "expected": [
+        125
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Bộ sách",
+      "expected": [
+        126
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Từ điển",
+      "expected": [
+        127
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Khóa tiếng",
+      "expected": [
+        128
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sách luyện",
+      "expected": [
+        129
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Khóa lập",
+      "expected": [
+        130
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Gạo ST25",
+      "expected": [
+        141
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Dầu ăn",
+      "expected": [
+        142
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Đường cát",
+      "expected": [
+        143
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Mì gói",
+      "expected": [
+        144
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Sữa tươi",
+      "expected": [
+        145
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Trứng gà",
+      "expected": [
+        146
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Thịt heo",
+      "expected": [
+        147
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Cá hồi",
+      "expected": [
+        148
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Rau cải",
+      "expected": [
+        149
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Hoa quả",
+      "expected": [
+        150
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Honda Wave",
+      "expected": [
+        161
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Honda Future",
+      "expected": [
+        162
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Yamaha Exciter",
+      "expected": [
+        163
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Honda Vision",
+      "expected": [
+        164
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Honda SH",
+      "expected": [
+        165
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Honda SH",
+      "expected": [
+        166
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Yamaha Grande",
+      "expected": [
+        167
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Piaggio Liberty",
+      "expected": [
+        168
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "VinFast Klara",
+      "expected": [
+        169
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Dầu nhớt",
+      "expected": [
+        170
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Paracetamol 500mg",
+      "expected": [
+        181
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Vitamin C",
+      "expected": [
+        182
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Dầu gió",
+      "expected": [
+        183
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Khẩu trang",
+      "expected": [
+        184
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Gel rửa",
+      "expected": [
+        185
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Nhiệt kế",
+      "expected": [
+        186
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Máy đo",
+      "expected": [
+        187
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Que thử",
+      "expected": [
+        188
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Vitamin tổng",
+      "expected": [
+        189
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "Siro ho",
+      "expected": [
+        190
+      ],
+      "note": "brand-only"
+    },
+    {
+      "q": "bán máy cày ruộng không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thu cũ đổi mới iphone",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dạy tiếng Tây Ban Nha",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "giá vàng hôm nay",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "bán máy cày ruộng không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thu cũ đổi mới iphone",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thu cũ đổi mới iphone",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cách làm bánh flan",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dạy tiếng Tây Ban Nha",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "giá vàng hôm nay",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cách làm bánh flan",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dạy tiếng Tây Ban Nha",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "giá vàng hôm nay",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "bán máy cày ruộng không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thu cũ đổi mới iphone",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "công thức nấu phở",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cài win 11",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "dự báo chứng khoán",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "shop có bán hoa tươi không",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cho thuê xe tải",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lắp camera an ninh",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "làm visa du học mỹ",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "mua đất nền đà lạt",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "thời tiết hôm nay ra sao",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "lịch âm tháng này",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "cách làm bánh flan",
+      "expected": [],
+      "note": "OOD"
+    },
+    {
+      "q": "15 và Find có cùng giá không",
+      "expected": [
+        1,
+        6
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "15 và 13 có cùng giá không",
+      "expected": [
+        2,
+        7
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Galaxy và X100 có cùng giá không",
+      "expected": [
+        3,
+        8
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "14 và GT có cùng giá không",
+      "expected": [
+        4,
+        9
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "14 và Pura có cùng giá không",
+      "expected": [
+        5,
+        10
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Find và Pixel có cùng giá không",
+      "expected": [
+        6,
+        11
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "13 và 12 có cùng giá không",
+      "expected": [
+        7,
+        12
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "X100 và Phone có cùng giá không",
+      "expected": [
+        8,
+        13
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "GT và SE có cùng giá không",
+      "expected": [
+        9,
+        14
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Pura và Galaxy có cùng giá không",
+      "expected": [
+        10,
+        15
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thun và khoác có cùng giá không",
+      "expected": [
+        21,
+        26
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "jean và thể có cùng giá không",
+      "expected": [
+        22,
+        27
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "sơ và cao có cùng giá không",
+      "expected": [
+        23,
+        28
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "đầm và xách có cùng giá không",
+      "expected": [
+        24,
+        29
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "váy và du có cùng giá không",
+      "expected": [
+        25,
+        30
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "khoác và polo có cùng giá không",
+      "expected": [
+        26,
+        31
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thể và shorts có cùng giá không",
+      "expected": [
+        27,
+        32
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "cao và len có cùng giá không",
+      "expected": [
+        28,
+        33
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "xách và ngủ có cùng giá không",
+      "expected": [
+        29,
+        34
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "du và blazer có cùng giá không",
+      "expected": [
+        30,
+        35
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "phê và ép có cùng giá không",
+      "expected": [
+        41,
+        46
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "phê và việt có cùng giá không",
+      "expected": [
+        42,
+        47
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "xỉu và matcha có cùng giá không",
+      "expected": [
+        43,
+        48
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "đào và hạt có cùng giá không",
+      "expected": [
+        44,
+        49
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "sữa và giá có cùng giá không",
+      "expected": [
+        45,
+        50
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "ép và mì có cùng giá không",
+      "expected": [
+        46,
+        51
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "việt và croissant có cùng giá không",
+      "expected": [
+        47,
+        52
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "matcha và ý có cùng giá không",
+      "expected": [
+        48,
+        53
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "hạt và margherita có cùng giá không",
+      "expected": [
+        49,
+        54
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "giá và ức có cùng giá không",
+      "expected": [
+        50,
+        55
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "chống và Maybelline có cùng giá không",
+      "expected": [
+        61,
+        66
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "rửa và má có cùng giá không",
+      "expected": [
+        62,
+        67
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "vitamin và trang có cùng giá không",
+      "expected": [
+        63,
+        68
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "dưỡng và hoa có cùng giá không",
+      "expected": [
+        64,
+        69
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thỏi và nạ có cùng giá không",
+      "expected": [
+        65,
+        70
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Maybelline và nền có cùng giá không",
+      "expected": [
+        66,
+        71
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "má và kẻ có cùng giá không",
+      "expected": [
+        67,
+        72
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "trang và tế có cùng giá không",
+      "expected": [
+        68,
+        73
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "hoa và mắt có cùng giá không",
+      "expected": [
+        69,
+        74
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "nạ và tắm có cùng giá không",
+      "expected": [
+        70,
+        75
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "hộ và hộ có cùng giá không",
+      "expected": [
+        81,
+        86
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "phố và Flora có cùng giá không",
+      "expected": [
+        82,
+        87
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thự và house có cùng giá không",
+      "expected": [
+        83,
+        88
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "cư và thuê có cùng giá không",
+      "expected": [
+        84,
+        89
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "nền và thuê có cùng giá không",
+      "expected": [
+        85,
+        90
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "hộ và thổ có cùng giá không",
+      "expected": [
+        86,
+        91
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Flora và hộ có cùng giá không",
+      "expected": [
+        87,
+        92
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "house và mặt có cùng giá không",
+      "expected": [
+        88,
+        93
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thuê và nền có cùng giá không",
+      "expected": [
+        89,
+        94
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thuê và hộ có cùng giá không",
+      "expected": [
+        90,
+        95
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tóc và membership có cùng giá không",
+      "expected": [
+        101,
+        106
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tóc và quý có cùng giá không",
+      "expected": [
+        102,
+        107
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tóc và class có cùng giá không",
+      "expected": [
+        103,
+        108
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tóc và trainer có cùng giá không",
+      "expected": [
+        104,
+        109
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tóc và fitness có cùng giá không",
+      "expected": [
+        105,
+        110
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "membership và ủi có cùng giá không",
+      "expected": [
+        106,
+        111
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "quý và ủi có cùng giá không",
+      "expected": [
+        107,
+        112
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "class và khô có cùng giá không",
+      "expected": [
+        108,
+        113
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "trainer và chăn có cùng giá không",
+      "expected": [
+        109,
+        114
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "fitness và giày có cùng giá không",
+      "expected": [
+        110,
+        115
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Atomic và sách có cùng giá không",
+      "expected": [
+        121,
+        126
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Sapiens và điển có cùng giá không",
+      "expected": [
+        122,
+        127
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "học và tiếng có cùng giá không",
+      "expected": [
+        123,
+        128
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "TOEIC và luyện có cùng giá không",
+      "expected": [
+        124,
+        129
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Đắc và lập có cùng giá không",
+      "expected": [
+        125,
+        130
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "sách và data có cùng giá không",
+      "expected": [
+        126,
+        131
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "điển và Think có cùng giá không",
+      "expected": [
+        127,
+        132
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tiếng và tiếng có cùng giá không",
+      "expected": [
+        128,
+        133
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "luyện và Dám có cùng giá không",
+      "expected": [
+        129,
+        134
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "lập và thiết có cùng giá không",
+      "expected": [
+        130,
+        135
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "ST25 và gà có cùng giá không",
+      "expected": [
+        141,
+        146
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "ăn và heo có cùng giá không",
+      "expected": [
+        142,
+        147
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "cát và hồi có cùng giá không",
+      "expected": [
+        143,
+        148
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "gói và cải có cùng giá không",
+      "expected": [
+        144,
+        149
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tươi và quả có cùng giá không",
+      "expected": [
+        145,
+        150
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "gà và tương có cùng giá không",
+      "expected": [
+        146,
+        151
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "heo và mắm có cùng giá không",
+      "expected": [
+        147,
+        152
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "hồi và Heineken có cùng giá không",
+      "expected": [
+        148,
+        153
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "cải và Cola có cùng giá không",
+      "expected": [
+        149,
+        154
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "quả và Oreo có cùng giá không",
+      "expected": [
+        150,
+        155
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Wave và SH có cùng giá không",
+      "expected": [
+        161,
+        166
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Future và Grande có cùng giá không",
+      "expected": [
+        162,
+        167
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Exciter và Liberty có cùng giá không",
+      "expected": [
+        163,
+        168
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Vision và Klara có cùng giá không",
+      "expected": [
+        164,
+        169
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "SH và nhớt có cùng giá không",
+      "expected": [
+        165,
+        170
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "SH và quy có cùng giá không",
+      "expected": [
+        166,
+        171
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Grande và IRC có cùng giá không",
+      "expected": [
+        167,
+        172
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Liberty và vụ có cùng giá không",
+      "expected": [
+        168,
+        173
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "Klara và dầu có cùng giá không",
+      "expected": [
+        169,
+        174
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "nhớt và xe có cùng giá không",
+      "expected": [
+        170,
+        175
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "500mg và kế có cùng giá không",
+      "expected": [
+        181,
+        186
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "C và đo có cùng giá không",
+      "expected": [
+        182,
+        187
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "gió và thử có cùng giá không",
+      "expected": [
+        183,
+        188
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "trang và tổng có cùng giá không",
+      "expected": [
+        184,
+        189
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "rửa và ho có cùng giá không",
+      "expected": [
+        185,
+        190
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "kế và vi có cùng giá không",
+      "expected": [
+        186,
+        191
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "đo và y có cùng giá không",
+      "expected": [
+        187,
+        192
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "thử và keo có cùng giá không",
+      "expected": [
+        188,
+        193
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "tổng và xoa có cùng giá không",
+      "expected": [
+        189,
+        194
+      ],
+      "note": "compound"
+    },
+    {
+      "q": "ho và nhỏ có cùng giá không",
+      "expected": [
+        190,
+        195
+      ],
+      "note": "compound"
+    }
+  ]
+}
