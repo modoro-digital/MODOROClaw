@@ -5494,6 +5494,76 @@ function ensureOpenzaloForceOneMessageFix() {
 // → bug persists permanently. Fix: use __dirname/patches which resolves correctly in both modes
 // (dev: Desktop/claw/electron/patches, packaged: app.asar/patches — Electron's fs transparently
 // reads inside asar). Plus 2 fallback paths and a loud error if all fail.
+// === ensureOpenclawPricingFix ===
+// Bug: openclaw gateway fetches https://openrouter.ai/api/v1/models at boot
+// ("pricing bootstrap"). Code says 15s timeout via AbortSignal.timeout(15000),
+// but on Windows + flaky DNS/TCP (observed on LINH-BABY customer machine),
+// the stuck-SYN retry can take 3-4 minutes to fail. During that wait, gateway
+// channel startup is blocked (pending awaits in startChannels) → openzalo +
+// telegram "starting provider" logs delayed 3:34+ → heartbeat cron fires at
+// :00/:30 during the wait → probes fail → heartbeat kills gateway → restart
+// loop.
+//
+// Fix: rewrite OPENROUTER_MODELS_URL constant in vendor's usage-format-*.js to
+// an unreachable fast-fail local URL (http://127.0.0.1:1/disabled). Fetch fails
+// in <100ms instead of 3:34. Gateway proceeds normally.
+//
+// Trade-off: gateway has no OpenRouter pricing data. MODOROClaw routes AI via
+// 9Router (which is its own model router) — OpenRouter pricing is irrelevant
+// for our deployment.
+//
+// Idempotent via 9BIZCLAW_PRICING_DISABLED marker. Re-applied each boot to
+// survive vendor re-extraction from tar.
+function ensureOpenclawPricingFix() {
+  try {
+    const vendorDir = getBundledVendorDir();
+    if (!vendorDir) return;
+    const distDir = path.join(vendorDir, 'node_modules', 'openclaw', 'dist');
+    if (!fs.existsSync(distDir)) return;
+
+    const files = fs.readdirSync(distDir).filter(f => /^usage-format-[A-Za-z0-9_-]+\.js$/.test(f));
+    if (files.length === 0) {
+      console.warn('[openclaw-pricing-fix] no usage-format-*.js found in vendor — skipping');
+      return;
+    }
+
+    let patchedCount = 0;
+    for (const fname of files) {
+      const filePath = path.join(distDir, fname);
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf-8'); }
+      catch (e) { console.warn(`[openclaw-pricing-fix] read failed ${fname}: ${e.message}`); continue; }
+
+      if (content.includes('9BIZCLAW_PRICING_DISABLED')) continue;
+
+      const urlRegex = /const OPENROUTER_MODELS_URL = "https:\/\/openrouter\.ai\/api\/v1\/models";/;
+      if (!urlRegex.test(content)) {
+        console.warn(`[openclaw-pricing-fix] URL constant not found in ${fname} — openclaw refactored?`);
+        continue;
+      }
+
+      const patched = content.replace(
+        urlRegex,
+        'const OPENROUTER_MODELS_URL = "http://127.0.0.1:1/disabled"; // 9BIZCLAW_PRICING_DISABLED'
+      );
+
+      try {
+        fs.writeFileSync(filePath, patched, 'utf-8');
+        patchedCount++;
+        console.log(`[openclaw-pricing-fix] patched ${fname}`);
+      } catch (e) {
+        console.warn(`[openclaw-pricing-fix] write failed ${fname}: ${e.message}`);
+      }
+    }
+
+    if (patchedCount > 0) {
+      console.log(`[openclaw-pricing-fix] ${patchedCount} file(s) patched — pricing bootstrap will fail-fast`);
+    }
+  } catch (e) {
+    console.warn('[openclaw-pricing-fix] error:', e?.message);
+  }
+}
+
 function ensureOpenzaloShellFix() {
   try {
     const pluginFile = path.join(HOME, '.openclaw', 'extensions', 'openzalo', 'src', 'openzca.ts');
@@ -5962,6 +6032,9 @@ async function _startOpenClawImpl() {
   ensureOpenzaloNodeModulesLink();
   // Re-apply OpenZalo shell fix in case plugin was reinstalled
   ensureOpenzaloShellFix();
+  // Patch openclaw vendor to fail-fast on OpenRouter pricing fetch (3:34 stuck
+  // → <100ms on customer machines with slow DNS/TCP to openrouter.ai).
+  ensureOpenclawPricingFix();
   // --- BATCH PATCH: read inbound.ts ONCE, apply all patches, write ONCE ---
   // Previously each ensure* function read + wrote inbound.ts independently
   // (8 sequential readFileSync + writeFileSync on same file). On slow disks
@@ -12648,17 +12721,21 @@ async function fastWatchdogTick() {
     // Also skip if gateway started <180s ago (slow SSDs + Windows Defender
     // scan + cloud model cold start can push boot to 64-76s observed on
     // customer machine LINH-BABY — 90s grace was too tight).
-    if (global._gatewayStartedAt && (Date.now() - global._gatewayStartedAt) < 180000) {
+    // Boot grace 360s — LINH-BABY observed 5:21 from launch to fully usable
+    // (gateway "ready" at 70s is misleading; channels start 3:30+ later when
+    // openrouter.ai fetch stuck on slow DNS/TCP — see ensureOpenclawPricingFix).
+    // Even with pricing-fix, leaving 6min grace for worst-case slow boots.
+    if (global._gatewayStartedAt && (Date.now() - global._gatewayStartedAt) < 360000) {
       // Gateway still booting — skip watchdog this tick
       return;
     }
-    const gwAlive = await isGatewayAlive(15000);
+    const gwAlive = await isGatewayAlive(30000);
     if (!gwAlive) {
       _fwGatewayFailCount++;
       if (_fwGatewayFailCount === 1) {
         // First fail — recheck after 3s
         await new Promise(r => setTimeout(r, FW_RECHECK_MS));
-        const gwAlive2 = await isGatewayAlive(15000);
+        const gwAlive2 = await isGatewayAlive(30000);
         if (gwAlive2) {
           _fwGatewayFailCount = 0;
           return;
@@ -13490,7 +13567,17 @@ function startCronJobs() {
               console.log('[heartbeat] skipping — user-triggered restart in progress');
               return;
             }
-            const alive1 = await isGatewayAlive(15000);
+            // Post-boot grace: skip heartbeat entirely if gateway started <6min
+            // ago. Full boot on slow customer machines can take 5:21 (gateway
+            // "ready" at 70s + blocked channel startup waiting on openrouter.ai
+            // fetch). Heartbeat cron firing at :00/:30 during the blocked
+            // window was killing healthy-but-busy gateways → restart loop.
+            const sinceGatewayStart = Date.now() - (global._gatewayStartedAt || 0);
+            if (global._gatewayStartedAt && sinceGatewayStart < 360_000) {
+              console.log(`[heartbeat] skipping — gateway only ${Math.round(sinceGatewayStart/1000)}s old (<6min grace)`);
+              return;
+            }
+            const alive1 = await isGatewayAlive(30000);
             if (alive1) {
               // Gateway alive → also verify openzca listener is running.
               // Listener can die silently if openzca crashes; gateway stays
@@ -13568,7 +13655,7 @@ function startCronJobs() {
               return;
             }
             await new Promise(r => setTimeout(r, 5000));
-            const alive2 = await isGatewayAlive(15000);
+            const alive2 = await isGatewayAlive(30000);
             if (alive2) {
               console.log('[heartbeat] gateway slow but alive — skipping restart');
               return;
@@ -13576,7 +13663,7 @@ function startCronJobs() {
             // Third probe before restart — cloud model cold start can hold
             // gateway 30-60s, tripping 2 probes in a row without being dead.
             await new Promise(r => setTimeout(r, 5000));
-            const alive3 = await isGatewayAlive(15000);
+            const alive3 = await isGatewayAlive(30000);
             if (alive3) {
               console.log('[heartbeat] gateway slow but alive (3rd probe) — skipping restart');
               return;
