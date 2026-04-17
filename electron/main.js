@@ -14261,6 +14261,51 @@ function blobToVec(blob) {
   return vec;
 }
 
+// Boot-time lazy backfill for pre-existing chunks (upgrades from v2.3.46 etc
+// where documents_chunks rows exist but have NULL embedding). Runs 30s after
+// app.whenReady so gateway + 9router warmup take priority. Caps at 500/boot
+// to keep CPU impact bounded; next boot picks up more.
+//
+// NOTE: intentionally does NOT call db.close() in finally. getDocumentsDb()
+// returns a fresh handle; reviewer flagged closing here as a risk if other
+// shared callers outlive this function. Let GC reclaim when process exits
+// or the handle loses its last reference.
+async function backfillKnowledgeEmbeddings() {
+  const db = getDocumentsDb();
+  if (!db) return;
+  try {
+    const missing = db.prepare(
+      `SELECT c.id, c.document_id, c.char_start, c.char_end, d.content
+       FROM documents_chunks c
+       JOIN documents d ON d.id = c.document_id
+       WHERE c.embedding IS NULL
+       LIMIT 500`
+    ).all();
+    if (missing.length === 0) return;
+    console.log(`[knowledge-backfill] embedding ${missing.length} chunks...`);
+    const upsert = db.prepare(
+      'UPDATE documents_chunks SET embedding = ?, embedding_model = ? WHERE id = ?'
+    );
+    const MODEL_STAMP = 'multilingual-e5-small-q';
+    let done = 0;
+    for (const row of missing) {
+      const text = (row.content || '').substring(row.char_start, row.char_end);
+      if (!text || text.length < 5) continue;
+      try {
+        const vec = await embedText(text, false);
+        upsert.run(vecToBlob(vec), MODEL_STAMP, row.id);
+        done++;
+      } catch (e) {
+        console.warn('[knowledge-backfill] chunk failed:', row.id, e?.message);
+      }
+    }
+    console.log(`[knowledge-backfill] done ${done}/${missing.length}`);
+  } catch (e) {
+    console.warn('[knowledge-backfill] error:', e.message);
+  }
+  // NO db.close() — see note above.
+}
+
 // Idempotent schema migration for the chunk table + FTS5 mirror. Runs inside
 // getDocumentsDb() so every DB open catches fresh installs + upgrades. The
 // triggers keep documents_chunks_fts mirror in sync with documents_chunks
@@ -17200,6 +17245,12 @@ app.whenReady().then(async () => {
   setTimeout(() => {
     backfillDocumentChunks().catch(e => console.error('[knowledge] chunk backfill error:', e.message));
   }, 10000);
+  // RAG: lazy vector backfill — 30s after boot so chunk backfill + gateway
+  // warmup go first. Caps at 500 chunks/boot; re-runs next boot for larger
+  // libraries. Non-blocking; safe no-op if DB still broken or no missing rows.
+  setTimeout(() => {
+    backfillKnowledgeEmbeddings().catch(e => console.warn('[knowledge-backfill] boot:', e?.message));
+  }, 30000);
   // Security Layer 5: enforce log rotation + memory retention policies.
   // Non-blocking, runs once at boot.
   try { enforceRetentionPolicies(); } catch (e) { console.warn('[retention] boot call failed:', e?.message); }
