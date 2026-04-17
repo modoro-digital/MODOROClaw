@@ -457,6 +457,47 @@ if (fs.existsSync(modelsDir)) {
 }
 
 // =========================================================================
+// TEST 9: Vision patch signature — ensureVisionFix V2 anchor must be present
+// =========================================================================
+// V1 ensureVisionFix regex broke silently on openclaw upgrade → Telegram
+// images not seen by ChatGPT for weeks. V2 uses `async function
+// resolveGatewayModelSupportsImages(params) {` as the anchor. If openclaw
+// renames/restructures this function we must know at BUILD time, not at
+// first customer report. Skipped if vendor not yet prebuilt (CI/fresh checkout).
+section('openclaw vision patch anchor');
+function findOpenclawSessionUtils() {
+  const candidates = [
+    path.join(__dirname, '..', 'vendor', 'node_modules', 'openclaw', 'dist'),
+    path.join(__dirname, '..', 'node_modules', 'openclaw', 'dist'),
+  ];
+  for (const dir of candidates) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      const files = fs.readdirSync(dir).filter(f => f.startsWith('session-utils-') && f.endsWith('.js'));
+      if (files.length > 0) return files.map(f => path.join(dir, f));
+    } catch {}
+  }
+  return null;
+}
+const sessionUtilsFiles = findOpenclawSessionUtils();
+if (!sessionUtilsFiles) {
+  warn('vision-patch anchor', 'openclaw session-utils not found in vendor or node_modules — skip (run prebuild:vendor first)');
+} else {
+  const FUNC_SIG = 'async function resolveGatewayModelSupportsImages(params) {';
+  let anchorFound = false;
+  let anchorFile = null;
+  for (const fp of sessionUtilsFiles) {
+    const src = fs.readFileSync(fp, 'utf-8');
+    if (src.includes(FUNC_SIG)) { anchorFound = true; anchorFile = fp; break; }
+  }
+  if (!anchorFound) {
+    fail('vision-patch anchor', `openclaw session-utils present but FUNC_SIG "${FUNC_SIG}" missing — upstream refactor detected. ensureVisionFix will silently no-op. Update patch anchor before ship.`);
+  } else {
+    pass(`vision-patch anchor (${path.basename(anchorFile)})`);
+  }
+}
+
+// =========================================================================
 // SUMMARY
 // =========================================================================
 console.log('');

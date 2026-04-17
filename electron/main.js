@@ -3864,7 +3864,7 @@ function ensureZaloGroupSettingsFix() {
 }
 
 // inbound.ts RAG enrichment: calls Electron main HTTP knowledge-search + prepends chunks.
-// Idempotent via "9BizClaw RAG PATCH v2" marker.
+// Idempotent via "9BizClaw RAG PATCH v3" marker.
 // Anchor: AFTER group-settings end marker (runs only for messages that passed all filters).
 // Fail-open: if HTTP fails or returns nothing, message dispatches as-is.
 // Circuit breaker: 3 consecutive fails within 60s → POST /audit-rag-degraded + stop calling for 5min.
@@ -3874,18 +3874,20 @@ function ensureZaloRagFix() {
     if (!fs.existsSync(pluginFile)) return;
     let content = _readInboundTs(pluginFile);
 
-    // Strip v1 block if present (upgrade from v1 → v2). v1 never shipped but keep
-    // for forward-compat if a dev-branch install has it.
-    if (content.includes('9BizClaw RAG PATCH v1')) {
-      const v1Start = content.indexOf('  // === 9BizClaw RAG PATCH v1 ===');
-      const v1End = content.indexOf('  // === END 9BizClaw RAG PATCH v1 ===');
-      if (v1Start !== -1 && v1End !== -1) {
-        const endMarkerLen = '  // === END 9BizClaw RAG PATCH v1 ===\n'.length;
-        content = content.slice(0, v1Start) + content.slice(v1End + endMarkerLen);
+    // Strip old v1/v2 blocks on upgrade. v2 had a bug where __ragFailCount
+    // never reset after cooldown — fixed in v3.
+    for (const oldVer of ['v1', 'v2']) {
+      if (content.includes(`9BizClaw RAG PATCH ${oldVer}`)) {
+        const oldStart = content.indexOf(`  // === 9BizClaw RAG PATCH ${oldVer} ===`);
+        const oldEnd = content.indexOf(`  // === END 9BizClaw RAG PATCH ${oldVer} ===`);
+        if (oldStart !== -1 && oldEnd !== -1) {
+          const endMarkerLen = `  // === END 9BizClaw RAG PATCH ${oldVer} ===\n`.length;
+          content = content.slice(0, oldStart) + content.slice(oldEnd + endMarkerLen);
+        }
       }
     }
 
-    if (content.includes('9BizClaw RAG PATCH v2')) return;
+    if (content.includes('9BizClaw RAG PATCH v3')) return;
 
     const anchor = '  // === END 9BizClaw GROUP-SETTINGS PATCH ===';
     if (!content.includes(anchor)) {
@@ -3894,14 +3896,21 @@ function ensureZaloRagFix() {
     }
 
     const injection = `
-  // === 9BizClaw RAG PATCH v2 ===
+  // === 9BizClaw RAG PATCH v3 ===
   // Enrich message with relevant knowledge chunks via HTTP to Electron main.
   // Fail-open with circuit breaker (3 fails → 5min cooldown + audit POST).
+  // T3 FIX: reset __ragFailCount when cooldown expires (v2 left the counter
+  // at ≥3 forever → any single fail after cooldown re-tripped instantly).
   try {
     const __ragG = (global as any);
     __ragG.__ragFailCount ??= 0;
     __ragG.__ragCooldownUntil ??= 0;
     const __ragNow = Date.now();
+    // T3: clean cooldown transition — reset counter + window the moment we re-enter.
+    if (__ragG.__ragCooldownUntil > 0 && __ragNow > __ragG.__ragCooldownUntil) {
+      __ragG.__ragFailCount = 0;
+      __ragG.__ragCooldownUntil = 0;
+    }
     if (__ragNow > __ragG.__ragCooldownUntil && (rawBody || '').trim().length >= 3) {
       const __ragQ = (rawBody || '').slice(0, 500).trim();
       const __ragUrl = \`http://127.0.0.1:20129/search?q=\${encodeURIComponent(__ragQ)}&k=3\`;
@@ -3947,7 +3956,7 @@ function ensureZaloRagFix() {
   } catch (__ragOuter) {
     runtime.log?.('openzalo: RAG outer error: ' + String(__ragOuter));
   }
-  // === END 9BizClaw RAG PATCH v2 ===
+  // === END 9BizClaw RAG PATCH v3 ===
 `;
     content = content.replace(anchor, anchor + injection);
     _writeInboundTs(pluginFile, content);
@@ -3985,7 +3994,21 @@ function ensureVisionFix() {
       const fp = path.join(distDir, file);
       let src = fs.readFileSync(fp, 'utf-8');
       if (src.includes(MARKER_V2)) continue;
-      if (!src.includes(FUNC_SIG)) continue;
+      if (!src.includes(FUNC_SIG)) {
+        // V2 FIX: signature drift is the exact class of bug that caused V1 to
+        // silently no-op for weeks. Surface loudly so next openclaw upgrade
+        // doesn't re-break Telegram images in production.
+        console.warn(`[vision-fix] WARNING: ${file} exists but FUNC_SIG missing — openclaw upstream refactor detected, vision may be OFF. Update ensureVisionFix anchor.`);
+        try {
+          const auditDir = path.join(HOME, '.openclaw', 'logs');
+          fs.mkdirSync(auditDir, { recursive: true });
+          fs.appendFileSync(
+            path.join(auditDir, 'patch-failures.log'),
+            `${new Date().toISOString()} ensureVisionFix: FUNC_SIG missing in ${file}\n`
+          );
+        } catch {}
+        continue;
+      }
       // Strip stale V1 marker line if present (regex may have silently no-op'd on old installs)
       if (src.includes(MARKER_V1)) {
         src = src.split('\n').filter(l => !l.includes(MARKER_V1)).join('\n');
@@ -14142,10 +14165,17 @@ function ensureDocumentsDir() {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 }
 
-// Cached one-shot warning so we don't spam the console with the same ABI error
-// every time getDocumentsDb() is called from a list/upload handler.
-let _documentsDbErrorLogged = false;
+// R2 FIX: throttle error logging by time window instead of permanent latch.
+// Permanent latch hid transient recovery → we lost observability if DB came
+// back after a mount glitch. 5-min re-log window = quiet enough to not spam,
+// loud enough to notice a recurring failure.
+let _documentsDbLastErrorAt = 0;
+const DOCUMENTS_DB_ERROR_LOG_INTERVAL_MS = 5 * 60 * 1000;
 let _documentsDbAutoFixAttempted = false;
+// R5 FIX: schema migration runs once per process. Previously DDL + 2 ALTER
+// TABLE ran on every getDocumentsDb() call (50-100×/day on busy shops) —
+// harmless but noisy throw-path on ALTER-already-exists.
+let _documentsDbSchemaReady = false;
 
 // ============================================
 //  KNOWLEDGE SEARCH — Vietnamese FTS5 helpers
@@ -14281,87 +14311,12 @@ function chunkVietnameseText(text, opts) {
 }
 
 // === Knowledge RAG — embedder ===
-// Lazy-load transformers.js model. Auto-unload after 10min idle to save RAM.
-let _embedder = null;
-let _embedderLoadPromise = null;
-let _embedderLastUsedAt = 0;
-let _embedderUnloadTimer = null;
-const EMBEDDER_UNLOAD_MS = 10 * 60 * 1000;
-
-async function getEmbedder() {
-  _embedderLastUsedAt = Date.now();
-  // Reset unload timer
-  if (_embedderUnloadTimer) { clearTimeout(_embedderUnloadTimer); }
-  _embedderUnloadTimer = setTimeout(() => {
-    if (Date.now() - _embedderLastUsedAt >= EMBEDDER_UNLOAD_MS) {
-      console.log('[embedder] unloading — idle 10min');
-      _embedder = null;
-    }
-  }, EMBEDDER_UNLOAD_MS);
-
-  if (_embedder) return _embedder;
-  if (_embedderLoadPromise) return _embedderLoadPromise;
-
-  _embedderLoadPromise = (async () => {
-    const { pipeline, env } = await import('@xenova/transformers');
-    // Point to bundled model dir (NOT Hugging Face CDN at runtime).
-    env.allowLocalModels = true;
-    env.allowRemoteModels = false;
-    // Packaged: userData/vendor/models. Dev (npm start): electron/vendor/models.
-    // Unpackaged fallback prevents relative-cwd breakage when launched from unknown cwd.
-    const modelsBase = getBundledVendorDir() || path.join(__dirname, 'vendor');
-    env.localModelPath = path.join(modelsBase, 'models');
-    env.cacheDir = env.localModelPath;
-    const extractor = await pipeline(
-      'feature-extraction',
-      'Xenova/multilingual-e5-small',
-      { quantized: true, local_files_only: true }
-    );
-    console.log('[embedder] loaded — Xenova/multilingual-e5-small quantized');
-    _embedder = extractor;
-    return extractor;
-  })();
-
-  try { return await _embedderLoadPromise; }
-  finally { _embedderLoadPromise = null; }
-}
-
-async function embedText(text, isQuery = false) {
-  const extractor = await getEmbedder();
-  const prefix = isQuery ? 'query: ' : 'passage: ';
-  const out = await extractor(prefix + text, { pooling: 'mean', normalize: true });
-  return Array.from(out.data);  // Float32Array → regular array for BLOB storage
-}
-
-function cosineSim(a, b) {
-  // Vectors already normalized in embedText → dot product = cosine
-  let s = 0;
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) s += a[i] * b[i];
-  return s;
-}
-
-// Pack/unpack Float32Array ↔ BLOB for SQLite.
-// E5_DIM = 384 for Xenova/multilingual-e5-small. Assert to catch future
-// model swaps that silently corrupt search (wrong-sized vectors stored in DB).
-const E5_DIM = 384;
-function vecToBlob(vec) {
-  if (!vec || vec.length !== E5_DIM) {
-    throw new Error(`[vecToBlob] expected ${E5_DIM} dims, got ${vec ? vec.length : 'null'}`);
-  }
-  const buf = Buffer.alloc(vec.length * 4);
-  for (let i = 0; i < vec.length; i++) buf.writeFloatLE(vec[i], i * 4);
-  return buf;
-}
-function blobToVec(blob) {
-  if (!blob || blob.length % 4 !== 0) {
-    throw new Error(`[blobToVec] BLOB length ${blob ? blob.length : 'null'} not divisible by 4 — corrupt row?`);
-  }
-  const n = blob.length / 4;
-  const vec = new Array(n);
-  for (let i = 0; i < n; i++) vec[i] = blob.readFloatLE(i * 4);
-  return vec;
-}
+// Implementation lives in lib/embedder.js so smoke-rag-test.js can import the
+// SAME code path as production (E1 fix — previously smoke had its own inline
+// embed() function → bugs in main.js embedText() would pass smoke silently).
+const _embedderModule = require('./lib/embedder');
+_embedderModule.setModelsRoot(getBundledVendorDir() || path.join(__dirname, 'vendor'));
+const { getEmbedder, embedText, cosineSim, vecToBlob, blobToVec, E5_DIM } = _embedderModule;
 
 // Boot-time lazy backfill for pre-existing chunks (upgrades from v2.3.46 etc
 // where documents_chunks rows exist but have NULL embedding). Runs 30s after
@@ -14579,29 +14534,32 @@ function getDocumentsDb() {
     try { fs.mkdirSync(ws, { recursive: true }); } catch {}
     const dbPath = path.join(ws, 'memory.db');
     const db = new Database(dbPath);
-    // Create documents table if not exists (category added for Knowledge tab)
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        filepath TEXT NOT NULL,
-        content TEXT,
-        filetype TEXT,
-        filesize INTEGER,
-        word_count INTEGER,
-        category TEXT DEFAULT 'general',
-        summary TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
-        filename, content, tokenize='unicode61'
-      );
-    `);
-    // Migration: add columns if missing on older DB
-    try { db.exec(`ALTER TABLE documents ADD COLUMN category TEXT DEFAULT 'general'`); } catch {}
-    try { db.exec(`ALTER TABLE documents ADD COLUMN summary TEXT`); } catch {}
-    // K1: Vietnamese chunk search schema (idempotent — safe on fresh install + upgrade)
-    try { ensureKnowledgeChunksSchema(db); } catch {}
+    // R5: run schema migration only once per process. DDL statements are
+    // idempotent (IF NOT EXISTS + ALTER TABLE in try/catch) but they cost
+    // ~1-2ms per call and spam try/catch traces at --trace-warnings.
+    if (!_documentsDbSchemaReady) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          filename TEXT NOT NULL,
+          filepath TEXT NOT NULL,
+          content TEXT,
+          filetype TEXT,
+          filesize INTEGER,
+          word_count INTEGER,
+          category TEXT DEFAULT 'general',
+          summary TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
+          filename, content, tokenize='unicode61'
+        );
+      `);
+      try { db.exec(`ALTER TABLE documents ADD COLUMN category TEXT DEFAULT 'general'`); } catch {}
+      try { db.exec(`ALTER TABLE documents ADD COLUMN summary TEXT`); } catch {}
+      try { ensureKnowledgeChunksSchema(db); } catch {}
+      _documentsDbSchemaReady = true;
+    }
     return db;
   } catch (e) {
     // ABI mismatch → try to self-heal once. If the fix script succeeds, the
@@ -14640,13 +14598,14 @@ function getDocumentsDb() {
         }
       }
     }
-    if (!_documentsDbErrorLogged) {
+    const now = Date.now();
+    if (now - _documentsDbLastErrorAt >= DOCUMENTS_DB_ERROR_LOG_INTERVAL_MS) {
       console.error('[documents] DB error:', e.message);
       if (/NODE_MODULE_VERSION/.test(e.message)) {
         console.error('[documents] better-sqlite3 ABI mismatch persists — using disk-only fallback for Knowledge tab.');
         console.error('[documents] Manual fix: cd electron && rm -rf node_modules/better-sqlite3/build && npm install');
       }
-      _documentsDbErrorLogged = true;
+      _documentsDbLastErrorAt = now;
     }
     return null;
   }
@@ -15215,7 +15174,11 @@ function expandSynonyms(normalizedQuery) {
 // Graceful degradation: (a) DB unavailable → throw 'DB unavailable',
 // (b) FTS5 MATCH syntax error → retry word-chars-only, (c) empty FTS result →
 // LIKE on documents.content last-resort.
-function searchKnowledgeFTS5(opts) {
+// R1 FIX: accept optional shared `db` from caller. When searchKnowledge falls
+// back to FTS5 it passes its own handle so we don't open a second one (doubles
+// fd pressure on the hot Zalo inbound path). Standalone callers still pass
+// no db and we open/close our own.
+function searchKnowledgeFTS5(opts, sharedDb) {
   const { query, category, limit } = opts || {};
   const lim = Math.max(1, Math.min(50, Number(limit) || 5));
   if (!query || !String(query).trim()) return [];
@@ -15223,13 +15186,15 @@ function searchKnowledgeFTS5(opts) {
   const normalized = normalizeForSearch(query);
   const matchExpr = expandSynonyms(normalized);
 
-  const db = getDocumentsDb();
+  const db = sharedDb || getDocumentsDb();
   if (!db) {
     const err = new Error('DB unavailable');
     err.code = 'DB_UNAVAILABLE';
     throw err;
   }
-  try { ensureKnowledgeChunksSchema(db); } catch {}
+  if (!sharedDb) {
+    try { ensureKnowledgeChunksSchema(db); } catch {}
+  }
 
   const baseSelect = `
     SELECT dc.id AS chunk_id, dc.document_id, dc.category, dc.chunk_index,
@@ -15300,7 +15265,9 @@ function searchKnowledgeFTS5(opts) {
     }
   }
 
-  try { db.close(); } catch {}
+  if (!sharedDb) {
+    try { db.close(); } catch {}
+  }
   try {
     console.log(`[knowledge-search] query="${String(query).slice(0, 80)}" expanded="${String(usedExpr).slice(0, 120)}" results=${results.length}`);
   } catch {}
@@ -15393,7 +15360,7 @@ async function searchKnowledge({ query, category, limit } = {}) {
 
       if (rows.length === 0) {
         console.log('[knowledge-search] no embeddings — falling back to FTS5');
-        return searchKnowledgeFTS5({ query, category, limit });
+        return searchKnowledgeFTS5({ query, category, limit }, db);
       }
 
       scored = rows.map(r => {
@@ -15409,34 +15376,58 @@ async function searchKnowledge({ query, category, limit } = {}) {
       }).sort((a, b) => b.score - a.score);
     } catch (e) {
       console.warn('[knowledge-search] vector search error, falling back to FTS5:', e.message);
-      return searchKnowledgeFTS5({ query, category, limit });
+      return searchKnowledgeFTS5({ query, category, limit }, db);
     }
 
     // Tier 2 — 2-signal OR gate (opt-in via Settings).
     // Triggers: Vietnamese-looking no-diacritic query OR low top1/top2 margin (<0.03).
-    // Brand-name guard: real Vietnamese queries without diacritics are typically
-    // full sentences (3+ tokens, 15+ chars). Short Latin queries like "iPhone 15"
-    // or "XIAOMI" are brand names — don't trigger rewrite (avoids every-query cost).
+    // Brand-name guard (R4): require 3+ tokens AND 15+ chars AND at least one
+    // common Vietnamese function word so "iPhone 15 Pro Max 256GB Titan" (pure
+    // brand, 6 tokens, 30 chars, no VI) still skips.
     // Circuit breaker: 3 fails in 60s → 5min cooldown (prevents 3s latency tax
     // when 9Router is down).
+    // Daily cap (T1): hard stop at TIER2_DAILY_CAP calls/day across all queries.
+    // Audit (T2): every trigger event logged to audit.jsonl for cost forensics.
     const cfg = getRagConfig();
     if (cfg.tier2Enabled && scored.length >= 2) {
       const now = Date.now();
-      if (!(global.__tier2CooldownUntil && now < global.__tier2CooldownUntil)) {
+      // R3 FIX: pre-initialize breaker state on first use.
+      // T1 FIX: reset daily counter at midnight (local time).
+      const todayKey = new Date(now).toISOString().slice(0, 10);
+      if (global.__tier2DayKey !== todayKey) {
+        global.__tier2DayKey = todayKey;
+        global.__tier2CallsToday = 0;
+      }
+      const TIER2_DAILY_CAP = 500;  // hard ceiling: 500 rewrites/day ≈ $1/day at fast rates
+
+      if (!(global.__tier2CooldownUntil && now < global.__tier2CooldownUntil)
+          && (global.__tier2CallsToday || 0) < TIER2_DAILY_CAP) {
         const top1 = scored[0].score;
         const top2 = scored[1].score;
-        const tokenCount = String(query).trim().split(/\s+/).length;
-        const noDiacritic = /[a-z]{3,}/i.test(query)
-          && !/[\u00C0-\u1EF9]/.test(query)
+        const qStr = String(query);
+        const tokenCount = qStr.trim().split(/\s+/).length;
+        // R4: VI function-word heuristic — real no-diacritic VI queries almost
+        // always contain at least one of these high-frequency function words.
+        // Pure brand listings like "iPhone 15 Pro Max 256GB Titan" do not.
+        const VI_FUNCWORDS = /\b(co|khong|ko|bao|nhieu|nao|gi|sao|lam|duoc|hay|the|cho|voi|cua|va|de|toi|ban|minh|ai|dau|khi|phai|may|gia|ban|chua|thi)\b/i;
+        const noDiacritic = /[a-z]{3,}/i.test(qStr)
+          && !/[\u00C0-\u1EF9]/.test(qStr)
           && tokenCount >= 3
-          && String(query).length >= 15;
+          && qStr.length >= 15
+          && VI_FUNCWORDS.test(qStr);
         const lowMargin = (top1 - top2) < 0.03;
         if (noDiacritic || lowMargin) {
+          // T1: count the call regardless of outcome (prevents retry spam from eating budget)
+          global.__tier2CallsToday = (global.__tier2CallsToday || 0) + 1;
+          const reason = noDiacritic ? 'no-diacritic' : 'low-margin';
           try {
-            const rewritten = await rewriteQueryViaAI(String(query), cfg.rewriteModel);
-            global.__tier2FailCount = 0;  // success resets breaker
-            if (rewritten && rewritten !== query) {
-              console.log(`[knowledge-search] tier2 rewrite: "${query}" → "${rewritten}"`);
+            const rewritten = await rewriteQueryViaAI(qStr, cfg.rewriteModel);
+            // R3 FIX: only validate + reset breaker AFTER confirming rewrite is usable.
+            if (rewritten && typeof rewritten === 'string' && rewritten.trim() && rewritten !== qStr) {
+              global.__tier2FailCount = 0;  // validated success
+              console.log(`[knowledge-search] tier2 rewrite: "${qStr}" → "${rewritten}"`);
+              // T2: audit successful rewrite
+              try { auditLog('tier2_rewrite', { reason, queryLen: qStr.length, rewrittenLen: rewritten.length, day: todayKey, callsToday: global.__tier2CallsToday }); } catch {}
               const qvec2 = await embedText(rewritten.slice(0, 500), true);
               const rescored = rows.map(r => ({
                 id: r.id, document_id: r.document_id, chunk_index: r.chunk_index,
@@ -15446,8 +15437,10 @@ async function searchKnowledge({ query, category, limit } = {}) {
               })).sort((a, b) => b.score - a.score);
               if (rescored[0].score > scored[0].score) return rescored.slice(0, limit);
             }
+            // Non-throwing "empty/same" response — treat as soft fail (no breaker increment).
           } catch (e) {
             console.warn('[knowledge-search] tier2 rewrite skipped:', e.message);
+            try { auditLog('tier2_rewrite_fail', { reason, err: String(e && e.message || e).slice(0, 200), day: todayKey }); } catch {}
             const window = 60_000;
             if (!global.__tier2FailWindowStart || now - global.__tier2FailWindowStart > window) {
               global.__tier2FailWindowStart = now;
@@ -15458,8 +15451,16 @@ async function searchKnowledge({ query, category, limit } = {}) {
             if (global.__tier2FailCount >= 3) {
               global.__tier2CooldownUntil = now + 5 * 60_000;
               console.warn('[knowledge-search] tier2 circuit breaker tripped — 5min cooldown');
+              try { auditLog('tier2_breaker_trip', { until: global.__tier2CooldownUntil }); } catch {}
             }
           }
+        }
+      } else if ((global.__tier2CallsToday || 0) >= TIER2_DAILY_CAP) {
+        // Surfaced once per day-over-cap transition (dedup via flag)
+        if (!global.__tier2CapWarnedToday || global.__tier2CapWarnedToday !== todayKey) {
+          console.warn(`[knowledge-search] tier2 daily cap reached (${TIER2_DAILY_CAP}) — rewrites disabled until tomorrow`);
+          try { auditLog('tier2_daily_cap', { cap: TIER2_DAILY_CAP, day: todayKey }); } catch {}
+          global.__tier2CapWarnedToday = todayKey;
         }
       }
     }
