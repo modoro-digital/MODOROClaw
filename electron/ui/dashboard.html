@@ -2263,6 +2263,14 @@
               </select>
             </div>
             <div class="zs-section">
+              <label class="zs-label">Hành vi nhóm mới <span class="tip" data-tooltip="Khi bot được thêm vào nhóm mới, mode mặc định">?</span></label>
+              <select id="zalo-default-group-mode" class="zs-select" onchange="updateDefaultGroupMode(this.value)">
+                <option value="mention">@mention (chỉ reply khi tag)</option>
+                <option value="all">Mọi tin</option>
+                <option value="off">Tắt</option>
+              </select>
+            </div>
+            <div class="zs-section">
               <label class="zs-label">Chủ nhân Zalo <span class="tip" data-tooltip="Bot nhận diện tài khoản này là chủ doanh nghiệp">?</span></label>
               <div style="display:flex;gap:6px;align-items:center;position:relative">
                 <div style="flex:1;position:relative">
@@ -2294,14 +2302,6 @@
                   <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="setAllGroupsMode('mention')">Bật tất cả</button>
                   <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="setAllGroupsMode('off')">Tắt tất cả</button>
                 </div>
-              </div>
-              <div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:10px">
-                <span style="font-size:12px;font-weight:600;white-space:nowrap">Nhóm mới:</span>
-                <select id="zalo-default-group-mode" onchange="updateDefaultGroupMode(this.value)" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:var(--bg);color:var(--text)">
-                  <option value="mention">@mention</option>
-                  <option value="all">Mọi tin</option>
-                  <option value="off">Tắt</option>
-                </select>
               </div>
               <input type="text" class="zalo-mgr-search" id="zalo-mgr-group-search" placeholder="Tìm nhóm..." oninput="renderZaloGroups()" style="flex-shrink:0">
               <div class="zalo-list-container">

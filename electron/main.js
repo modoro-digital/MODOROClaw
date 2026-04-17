@@ -9525,18 +9525,30 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
     // is the single source of truth used by GROUP-SETTINGS PATCH v2. If user
     // sets 'mention' in Dashboard we must persist it so the patch enforces
     // @mention gating (not openzalo native which we bypassed above).
+    //
+    // CRITICAL FIX (user report 2026-04-17): Previously this REPLACED the
+    // whole file on every save, and DELETED it if incoming groupSettings was
+    // empty. That caused settings to be wiped whenever Dashboard sent partial
+    // or empty state (e.g., user saves with only stranger policy changed →
+    // groupSettings unchanged in UI but sent as-is → wiped other modes).
+    //
+    // New behavior: MERGE incoming into existing. Never delete file on empty
+    // input. User's only way to reset a mode is to change it explicitly via
+    // the dropdown.
     if (groupSettings && typeof groupSettings === 'object') {
       const gsPath = path.join(getWorkspace(), 'zalo-group-settings.json');
-      const filtered = {};
+      let existing = {};
+      try {
+        if (fs.existsSync(gsPath)) existing = JSON.parse(fs.readFileSync(gsPath, 'utf-8')) || {};
+        if (typeof existing !== 'object' || Array.isArray(existing)) existing = {};
+      } catch {}
       for (const [gid, gs] of Object.entries(groupSettings)) {
         if (!gs || !gs.mode) continue;
         if (!['off', 'mention', 'all'].includes(gs.mode)) continue;
-        filtered[gid] = gs;
+        existing[gid] = gs;
       }
-      if (Object.keys(filtered).length > 0) {
-        writeJsonAtomic(gsPath, filtered);
-      } else if (fs.existsSync(gsPath)) {
-        try { fs.unlinkSync(gsPath); } catch {}
+      if (Object.keys(existing).length > 0) {
+        writeJsonAtomic(gsPath, existing);
       }
     }
     // 4. Write stranger policy to workspace — mirror groupSettings pattern:
