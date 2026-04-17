@@ -15301,6 +15301,42 @@ function searchKnowledgeFTS5(opts) {
   return results;
 }
 
+// === RAG config + Tier 2 helpers ===
+// rag-config.json lives in workspace root. tier2Enabled off by default.
+function getRagConfig() {
+  try {
+    const p = path.join(getWorkspace(), 'rag-config.json');
+    if (!fs.existsSync(p)) return { tier2Enabled: false, rewriteModel: 'ninerouter/fast' };
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+  } catch { return { tier2Enabled: false, rewriteModel: 'ninerouter/fast' }; }
+}
+
+// Rewrite a query via 9Router chat completion. Vietnamese query normalization:
+// add diacritics, drop slang, clarify. Timeout 3s — never block retrieval.
+async function rewriteQueryViaAI(query, model) {
+  const routerUrl = `http://127.0.0.1:20128/v1/chat/completions`;
+  const body = {
+    model: model || 'ninerouter/fast',
+    messages: [
+      { role: 'system', content: 'Bạn chuẩn hoá câu hỏi tiếng Việt của khách hàng để tìm kiếm. Thêm dấu nếu thiếu, bỏ từ lóng, viết rõ. CHỈ trả về câu đã chuẩn hoá, không giải thích.' },
+      { role: 'user', content: query },
+    ],
+    temperature: 0.1,
+    max_tokens: 100,
+  };
+  const resp = await fetch(routerUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(3000),
+  });
+  if (!resp.ok) throw new Error(`9router HTTP ${resp.status}`);
+  const data = await resp.json();
+  const rewritten = data?.choices?.[0]?.message?.content?.trim();
+  if (!rewritten) throw new Error('empty rewrite');
+  return rewritten;
+}
+
 // Primary search entry point. Tier 1 (vector / cosine sim on BLOB embeddings)
 // when chunks have embeddings; falls back to FTS5 + BM25 when none do.
 // Async because embedText() is async.
@@ -15353,7 +15389,35 @@ async function searchKnowledge({ query, category, limit } = {}) {
     return searchKnowledgeFTS5({ query, category, limit });
   }
 
-  // Tier 2 rescore path (Chunk 4) inserts here, uses `rows` + `scored`.
+  // Tier 2 fallback — 2-signal OR gate (no raw threshold per spec).
+  // Fires only if user opts in via Settings. Triggers: no-diacritic query
+  // OR low margin between top-1/top-2 (<0.03). Rewrite via 9Router, re-embed,
+  // re-score. Only swap in rewritten ranking if its top-1 score exceeds
+  // original top-1 (avoid regression on good queries).
+  const cfg = getRagConfig();
+  if (cfg.tier2Enabled && scored.length >= 2) {
+    const top1 = scored[0].score;
+    const top2 = scored[1].score;
+    const noDiacritic = /[a-z]{3,}/i.test(query) && !/[\u00C0-\u1EF9]/.test(query);
+    const lowMargin = (top1 - top2) < 0.03;
+    if (noDiacritic || lowMargin) {
+      try {
+        const rewritten = await rewriteQueryViaAI(String(query), cfg.rewriteModel);
+        if (rewritten && rewritten !== query) {
+          console.log(`[knowledge-search] tier2 rewrite: "${query}" → "${rewritten}"`);
+          const qvec2 = await embedText(rewritten.slice(0, 500), true);
+          const rescored = rows.map(r => ({
+            id: r.id, document_id: r.document_id, chunk_index: r.chunk_index,
+            filename: r.filename,
+            snippet: (r.content || '').substring(r.char_start, r.char_end),
+            score: cosineSim(qvec2, blobToVec(r.embedding)),
+          })).sort((a, b) => b.score - a.score);
+          if (rescored[0].score > scored[0].score) return rescored.slice(0, limit);
+        }
+      } catch (e) { console.warn('[knowledge-search] tier2 rewrite skipped:', e.message); }
+    }
+  }
+
   return scored.slice(0, limit);
 }
 
