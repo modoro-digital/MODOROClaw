@@ -99,30 +99,32 @@ function rrfMerge(lists, k = 60, topK = 10) {
   return [...scores.entries()].map(([id, s]) => ({ id, s })).sort((a, b) => b.s - a.s).slice(0, topK);
 }
 
-// ---------- Price filter parse ----------
-// Extract price threshold from query like "dưới 20 triệu" / "trên 5 triệu" / "50k đến 100k"
+// ---------- Price filter parse (synced with production v2.3.47.1 round-2) ----------
 function parsePriceFilter(query) {
   const q = normalize(query);
-  const under = q.match(/(?:duoi|<|<=|toi da|it hon)\s*(\d+)\s*(trieu|tr|k|nghin|ngan)?/);
-  const over = q.match(/(?:tren|>|>=|toi thieu|nhieu hon|hon)\s*(\d+)\s*(trieu|tr|k|nghin|ngan)?/);
-  function toVnd(num, unit) {
-    const n = parseInt(num, 10);
+  const toVnd = (num, unit) => {
+    const n = parseFloat(String(num).replace(/,/g, '.'));
+    if (!Number.isFinite(n) || n < 0) return null;
+    if (unit === 'ty') return n * 1_000_000_000;
     if (unit === 'trieu' || unit === 'tr') return n * 1_000_000;
-    if (unit === 'k' || unit === 'nghin' || unit === 'ngan') return n * 1000;
-    // bare number — assume millions if ≥ 2 (dưới 2 = 2 triệu), otherwise literal VND
-    if (n <= 100) return n * 1_000_000;
-    return n;
-  }
+    if (unit === 'k' || unit === 'nghin' || unit === 'ngan') return n * 1_000;
+    return null;  // no unit — don't guess
+  };
+  const under = q.match(/(?:duoi|<|<=|toi da|it hon)\s*(\d+(?:[.,]\d+)?)\s*(ty|trieu|tr|k|nghin|ngan)?\b/);
+  const over = q.match(/(?:tren|>|>=|toi thieu|nhieu hon|hon)\s*(\d+(?:[.,]\d+)?)\s*(ty|trieu|tr|k|nghin|ngan)?\b/);
   const result = {};
-  if (under) result.max = toVnd(under[1], under[2]);
-  if (over) result.min = toVnd(over[1], over[2]);
-  return (result.min || result.max) ? result : null;
+  if (under) { const v = toVnd(under[1], under[2]); if (v != null) result.max = v; }
+  if (over) { const v = toVnd(over[1], over[2]); if (v != null) result.min = v; }
+  return (result.min != null || result.max != null) ? result : null;
 }
 
 function chunkPrice(text) {
-  const m = text.match(/([\d.]+)\s*(?:VND|đồng)/i);
+  const m = String(text || '').match(/([\d.]+)\s*(?:VND|VNĐ|đồng|đ)\b/i);
   if (!m) return null;
-  return parseInt(m[1].replace(/\./g, ''), 10);
+  const raw = m[1].replace(/\./g, '');
+  if (raw.length < 4) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
 }
 
 // ---------- Arch runners ----------

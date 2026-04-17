@@ -3889,7 +3889,7 @@ function ensureZaloGroupSettingsFix() {
 }
 
 // inbound.ts RAG enrichment: calls Electron main HTTP knowledge-search + prepends chunks.
-// Idempotent via "9BizClaw RAG PATCH v4" marker.
+// Idempotent via "9BizClaw RAG PATCH v5" marker.
 // Anchor: AFTER group-settings end marker (runs only for messages that passed all filters).
 // Fail-open: if HTTP fails or returns nothing, message dispatches as-is.
 // Circuit breaker: 3 consecutive fails within 60s → POST /audit-rag-degraded + stop calling for 5min.
@@ -3899,11 +3899,14 @@ function ensureZaloRagFix() {
     if (!fs.existsSync(pluginFile)) return;
     let content = _readInboundTs(pluginFile);
 
-    // Strip old v1/v2/v3 blocks on upgrade.
+    // Strip old v1/v2/v3/v4 blocks on upgrade.
     //   v2: __ragFailCount never reset after cooldown
     //   v3: no HTTP auth, no prompt-injection fence on snippets
     //   v4: Bearer token + XML-fenced "untrusted data" context
-    for (const oldVer of ['v1', 'v2', 'v3']) {
+    //   v5: drop score>0.45 hard filter (Hybrid RRF server-side ranking is
+    //       authoritative — keyword-dominant chunks have low cosine but
+    //       high RRF score and should not be discarded by the client).
+    for (const oldVer of ['v1', 'v2', 'v3', 'v4']) {
       if (content.includes(`9BizClaw RAG PATCH ${oldVer}`)) {
         const oldStart = content.indexOf(`  // === 9BizClaw RAG PATCH ${oldVer} ===`);
         const oldEnd = content.indexOf(`  // === END 9BizClaw RAG PATCH ${oldVer} ===`);
@@ -3923,11 +3926,13 @@ function ensureZaloRagFix() {
     }
 
     const injection = `
-  // === 9BizClaw RAG PATCH v4 ===
+  // === 9BizClaw RAG PATCH v5 ===
   // Enrich message with knowledge chunks via HTTP to Electron main.
-  // v4 adds: Bearer auth on HTTP (C4), XML-fenced snippets so LLM treats
-  // document content as UNTRUSTED DATA not INSTRUCTIONS (C3 prompt injection),
-  // \</kb-doc\> escaping inside snippets.
+  // v5: Hybrid RRF on server (v2.3.47.1) means keyword-dominant chunks have
+  //     low cosine but high RRF score. Drop client-side >0.45 hard filter —
+  //     server already ranked, we just take top-3.
+  // v4 (inherited): Bearer auth on HTTP, XML-fenced snippets treating doc
+  //     content as UNTRUSTED DATA, \</kb-doc\> escaping inside snippets.
   try {
     const __ragG = (global as any);
     __ragG.__ragFailCount ??= 0;
@@ -3965,8 +3970,9 @@ function ensureZaloRagFix() {
           const __ragData: any = await __ragResp.json();
           __ragG.__ragFailCount = 0;
           if (Array.isArray(__ragData.results) && __ragData.results.length > 0) {
+            // v5: trust server ranking. Only drop chunks with empty snippet.
             const __ragTop = __ragData.results
-              .filter((r: any) => (r.snippet || '') && (r.score || 0) > 0.45)
+              .filter((r: any) => (r.snippet || '').trim().length > 0)
               .slice(0, 3);
             if (__ragTop.length > 0) {
               // C3 prompt-injection fence: wrap each snippet in <kb-doc>
@@ -4014,7 +4020,7 @@ function ensureZaloRagFix() {
   } catch (__ragOuter) {
     runtime.log?.('openzalo: RAG outer error: ' + String(__ragOuter));
   }
-  // === END 9BizClaw RAG PATCH v4 ===
+  // === END 9BizClaw RAG PATCH v5 ===
 `;
     content = content.replace(anchor, anchor + injection);
     _writeInboundTs(pluginFile, content);
@@ -15496,10 +15502,14 @@ function searchKnowledgeFTS5(opts, sharedDb) {
 function rrfMerge(lists, k = 60, topK = 10) {
   const scores = new Map();
   for (const list of lists) {
-    list.forEach((id, rank) => {
-      if (id == null) return;  // Round-1 I4: guard against undefined IDs
+    // Round-2 R4: manual rank counter — `forEach` skip still advanced rank,
+    // which gave valid IDs after a null the wrong (lower) RRF score.
+    let rank = 0;
+    for (const id of list) {
+      if (id == null) continue;
       scores.set(id, (scores.get(id) || 0) + 1 / (k + rank + 1));
-    });
+      rank++;
+    }
   }
   return [...scores.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -15667,9 +15677,9 @@ async function rewriteQueryViaAI(query, model) {
 // inbound HTTP hits this 50-100×/day) → eventual EMFILE on macOS.
 async function searchKnowledge({ query, category, limit } = {}) {
   limit = Math.min(Math.max(parseInt(limit, 10) || 3, 1), 10);
-  // Round-1 I2: empty/whitespace query produces NaN cosine → nondeterministic
-  // sort + garbage results. Guard at the top — saves embed + DB open work too.
-  if (!String(query || '').trim()) return [];
+  // Round-1 I2 + Round-2 E1: reject non-string / empty / whitespace queries.
+  // String(obj) → "[object Object]" was bypassing round-1's guard.
+  if (typeof query !== 'string' || !query.trim()) return [];
   const db = getDocumentsDb();
   if (!db) return [];
   const _ragSearchStart = Date.now();
@@ -15718,33 +15728,36 @@ async function searchKnowledge({ query, category, limit } = {}) {
       // conservative — if extractChunkPrice can't parse (non-product chunk
       // like "giờ mở cửa"), keep the row so keyword/semantic can still help.
       // Only drop when we DO know a price AND it falls outside range.
-      if (priceFilter) {
+      if (priceFilter && rows.length > 0) {
+        // Round-2 R1: compute prices once (was 3× per row). Round-2 R2+R3:
+        // simpler drop-all detection — only flag if SOURCE had priced rows
+        // AND filter removed them ALL. Empty input doesn't set the flag.
+        const priceForRow = rows.map(r => extractChunkPrice((r.content || '').substring(r.char_start, r.char_end)));
+        const hadPricedRows = priceForRow.some(p => p !== null);
         const before = rows.length;
-        // Round-1 A-C3 tracking: if filter drops ALL product chunks (those with
-        // a price), we should NOT fall back to unfiltered FTS5 — that returns
-        // out-of-range items. Distinguish "empty DB" from "empty filter result".
-        const hadPricedRows = rows.some(r => extractChunkPrice((r.content || '').substring(r.char_start, r.char_end)) !== null);
-        rows = rows.filter(r => {
-          const snippet = (r.content || '').substring(r.char_start, r.char_end);
-          const p = extractChunkPrice(snippet);
+        rows = rows.filter((r, i) => {
+          const p = priceForRow[i];
           if (p === null) return true;  // keep policy/info chunks untouched
           if (priceFilter.max != null && p > priceFilter.max) return false;
           if (priceFilter.min != null && p < priceFilter.min) return false;
           return true;
         });
+        const stillHasPricedRows = rows.some((r, origIdx) => {
+          // Need to map filtered index back to priceForRow — just re-check.
+          const p = extractChunkPrice((r.content || '').substring(r.char_start, r.char_end));
+          return p !== null;
+        });
         console.log(`[knowledge-search] price filter ${JSON.stringify(priceFilter)} → ${before} → ${rows.length} rows`);
-        // If originally there WERE priced rows but filter dropped them all
-        // (only kept non-priced policy chunks), flag it — empty-in-range
-        // means "shop doesn't have anything in this price bracket".
-        if (hadPricedRows && !rows.some(r => extractChunkPrice((r.content || '').substring(r.char_start, r.char_end)) !== null)) {
-          _priceFilterDropAll = true;
-        }
+        // Only fire drop-all if the SOURCE had products AND we filtered them all out.
+        if (hadPricedRows && !stillHasPricedRows) _priceFilterDropAll = true;
       }
 
       if (rows.length === 0) {
-        // Round-1 A-C3: honor price filter — don't fall back to unfiltered FTS5
-        if (_priceFilterDropAll || priceFilter) {
-          console.log('[knowledge-search] price filter empty result — returning [] (not FTS5 fallback)');
+        // Round-2 R3: only return [] on GENUINE price-filter empty (source had
+        // priced rows, filter dropped them all). Empty-category or no-embedding
+        // states still fall to FTS5 so fresh installs keep working.
+        if (_priceFilterDropAll) {
+          console.log('[knowledge-search] price filter emptied priced rows — returning [] (shop has no inventory in range)');
           _ragTier = 'price-filter-empty';
           return [];
         }
