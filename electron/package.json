@@ -14,10 +14,10 @@
     "smoke": "node scripts/smoke-test.js",
     "prebuild:models": "node scripts/prebuild-models.js",
     "prebuild:vendor": "node scripts/prebuild-models.js && node scripts/prebuild-vendor.js",
-    "build:win": "node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --win",
+    "build:win": "npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --win",
     "build:mac": "node scripts/build-mac-safe.js",
-    "build:mac:arm": "TARGET_ARCH=arm64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --arm64",
-    "build:mac:intel": "TARGET_ARCH=x64 node scripts/prebuild-vendor.js && node scripts/smoke-test.js && electron-builder --mac --x64",
+    "build:mac:arm": "TARGET_ARCH=arm64 npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --mac --arm64",
+    "build:mac:intel": "TARGET_ARCH=x64 npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --mac --x64",
     "build:mac:universal": "node scripts/build-mac-universal.js && node scripts/smoke-test.js && electron-builder --mac --universal"
   },
   "build": {
