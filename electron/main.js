@@ -15302,6 +15302,22 @@ function searchKnowledgeFTS5(opts) {
 }
 
 // === RAG config + Tier 2 helpers ===
+// Detect whether 9Router is configured with a ChatGPT Plus OAuth provider.
+// Used by wizard-complete to pre-fill the rewrite-model dropdown:
+// OAuth = 'ninerouter/main' (ChatGPT Plus included, cheap), else 'ninerouter/fast'.
+async function detectChatgptPlusOAuth() {
+  try {
+    const dbPath = path.join(HOME, '.9router', 'db.json');
+    if (!fs.existsSync(dbPath)) return false;
+    const cfg = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+    const providers = cfg?.providers || [];
+    return providers.some(p =>
+      String(p.type || p.kind || '').toLowerCase().includes('oauth') ||
+      String(p.label || '').toLowerCase().includes('chatgpt plus')
+    );
+  } catch { return false; }
+}
+
 // rag-config.json lives in workspace root. tier2Enabled off by default.
 function getRagConfig() {
   try {
@@ -16280,6 +16296,20 @@ ipcMain.handle('wizard-complete', async () => {
   } catch {}
   try { cleanupOrphanZaloListener(); } catch {}
   try { markOnboardingComplete('wizard-complete'); } catch {}
+  // Pre-fill RAG rewrite-model based on primary AI provider.
+  // Does NOT enable Tier 2 — tier2Enabled stays false. CEO opts in via Settings.
+  try {
+    const ragPath = path.join(getWorkspace(), 'rag-config.json');
+    if (!fs.existsSync(ragPath)) {
+      const isChatgptPlus = await detectChatgptPlusOAuth();
+      writeJsonAtomic(ragPath, {
+        tier2Enabled: false,
+        rewriteModel: isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast',
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`[wizard-complete] rag-config.json seeded (tier2=off, model=${isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast'})`);
+    }
+  } catch (e) { console.warn('[wizard-complete] RAG config prefill failed:', e?.message); }
   clearTimeout(navGuard);
   try { mainWindow.loadFile(path.join(__dirname, 'ui', 'dashboard.html')); } catch (e) { console.error('[wizard-complete loadFile] error:', e && e.message); }
   try { mainWindow.maximize(); } catch {}
