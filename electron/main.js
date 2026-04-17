@@ -15491,14 +15491,13 @@ function searchKnowledgeFTS5(opts, sharedDb) {
 
 // Reciprocal Rank Fusion — industry standard for merging multiple ranked
 // lists without needing to normalize scores. score = Σ 1/(k + rank).
-// k=60 is canonical (Cormack et al 2009). Used to fuse semantic cosine
-// ranking with FTS5/BM25 ranking so we get best-of-both: FTS5 wins on
-// no-diacritic queries (direct keyword match after diacritic strip),
-// semantic wins on compound/comparison/negation queries.
+// k=60 is canonical (Cormack et al 2009). Input: array of ID-lists (not
+// objects — different from the benchmark reference which passed objects).
 function rrfMerge(lists, k = 60, topK = 10) {
   const scores = new Map();
   for (const list of lists) {
     list.forEach((id, rank) => {
+      if (id == null) return;  // Round-1 I4: guard against undefined IDs
       scores.set(id, (scores.get(id) || 0) + 1 / (k + rank + 1));
     });
   }
@@ -15508,35 +15507,47 @@ function rrfMerge(lists, k = 60, topK = 10) {
     .map(([id]) => id);
 }
 
-// Parse "dưới 20 triệu" / "trên 5 triệu" / "duoi 2tr" into { min, max } in VND.
-// Returns null if no price pattern found — caller skips filtering.
-// Accepts no-diacritic + diacritic variants, short suffix (tr, k, nghin, ngan).
+// Parse "dưới 20 triệu" / "trên 5 triệu" / "duoi 2tr" / "trên 2 tỷ" into
+// { min, max } in VND. Returns null if no price pattern found.
+// Round-1 fixes:
+//  - REMOVED "khoang" from under-patterns (point estimate, not a bound)
+//  - REMOVED the ≤100 bare-number heuristic (wrong for "dưới 200" triệu-less)
+//    → if no unit, return null (don't filter — user intent unclear)
+//  - Added "ty" (tỷ/billion) for real estate
+//  - Reject negative + non-finite numbers
+//  - `max = 0` no longer treated as falsy via `||`
 function parsePriceFilter(query) {
-  const q = stripViDiacritics(String(query || '')).toLowerCase();
+  const q = stripViDiacritics(String(query || '')).toLowerCase().replace(/\s+/g, ' ').trim();
   const toVnd = (num, unit) => {
-    const n = parseFloat(String(num).replace(',', '.'));
-    if (!Number.isFinite(n)) return null;
+    const n = parseFloat(String(num).replace(/,/g, '.'));
+    if (!Number.isFinite(n) || n < 0) return null;
+    if (unit === 'ty') return n * 1_000_000_000;
     if (unit === 'trieu' || unit === 'tr') return n * 1_000_000;
-    if (unit === 'k' || unit === 'nghin' || unit === 'ngan') return n * 1000;
-    // bare number: assume millions if ≤ 100 (colloquial "dưới 5" = 5 triệu)
-    if (n > 0 && n <= 100) return n * 1_000_000;
-    return n;
+    if (unit === 'k' || unit === 'nghin' || unit === 'ngan') return n * 1_000;
+    // No unit — user intent ambiguous (could be VND, triệu, k). Skip filter.
+    return null;
   };
-  const under = q.match(/(?:duoi|<|<=|toi da|it hon|khoang)\s*(\d+(?:[.,]\d+)?)\s*(trieu|tr|k|nghin|ngan)?/);
-  const over = q.match(/(?:tren|>|>=|toi thieu|nhieu hon|hon)\s*(\d+(?:[.,]\d+)?)\s*(trieu|tr|k|nghin|ngan)?/);
+  const under = q.match(/(?:duoi|<|<=|toi da|it hon)\s*(\d+(?:[.,]\d+)?)\s*(ty|trieu|tr|k|nghin|ngan)?\b/);
+  const over = q.match(/(?:tren|>|>=|toi thieu|nhieu hon|hon)\s*(\d+(?:[.,]\d+)?)\s*(ty|trieu|tr|k|nghin|ngan)?\b/);
   const result = {};
-  if (under) { const v = toVnd(under[1], under[2]); if (v) result.max = v; }
-  if (over) { const v = toVnd(over[1], over[2]); if (v) result.min = v; }
-  return (result.min || result.max) ? result : null;
+  if (under) { const v = toVnd(under[1], under[2]); if (v != null) result.max = v; }
+  if (over) { const v = toVnd(over[1], over[2]); if (v != null) result.min = v; }
+  return (result.min != null || result.max != null) ? result : null;
 }
 
-// Extract first VND price from chunk text. Crude but matches our chunk format
+// Extract first VND price from chunk text. Matches our format
 // ("iPhone 15 Pro Max 256GB giá 29.990.000 VND" → 29990000).
+// Round-1 fix: strip only dots (VN thousands separator convention). Commas
+// in chunk text are unusual and keeping them prevents "29,990,000" style
+// from being silently mangled to 25 (benchmark parity).
 function extractChunkPrice(text) {
   if (!text) return null;
-  const m = String(text).match(/([\d.,]+)\s*(?:VND|VNĐ|đồng|đ)\b/i);
+  const m = String(text).match(/([\d.]+)\s*(?:VND|VNĐ|đồng|đ)\b/i);
   if (!m) return null;
-  const raw = m[1].replace(/[.,]/g, '');
+  const raw = m[1].replace(/\./g, '');
+  // Require at least 4 digits — filters "99.99 VND" (9999, not a real VND price)
+  // that would otherwise false-match a range like "dưới 1 triệu".
+  if (raw.length < 4) return null;
   const n = parseInt(raw, 10);
   return Number.isFinite(n) ? n : null;
 }
@@ -15656,6 +15667,9 @@ async function rewriteQueryViaAI(query, model) {
 // inbound HTTP hits this 50-100×/day) → eventual EMFILE on macOS.
 async function searchKnowledge({ query, category, limit } = {}) {
   limit = Math.min(Math.max(parseInt(limit, 10) || 3, 1), 10);
+  // Round-1 I2: empty/whitespace query produces NaN cosine → nondeterministic
+  // sort + garbage results. Guard at the top — saves embed + DB open work too.
+  if (!String(query || '').trim()) return [];
   const db = getDocumentsDb();
   if (!db) return [];
   const _ragSearchStart = Date.now();
@@ -15664,6 +15678,11 @@ async function searchKnowledge({ query, category, limit } = {}) {
   const _queryHash = require('crypto').createHash('sha1').update(String(query || '')).digest('hex').slice(0, 10);
   let _ragTier = 'unknown';
   let _top1 = 0, _top2 = 0, _tier2Fired = false, _tier2Reason = null;
+  // Round-1 I4: preserve pre-RRF semantic top1/top2 for Tier 2 low-margin
+  // detection. Post-RRF order reflects fused ranking; cosine margin between
+  // whoever RRF placed at #1/#2 is not the same signal the heuristic wants.
+  let _semTop1 = 0, _semTop2 = 0;
+  let _priceFilterDropAll = false;  // Round-1 A-C3/B-I1 flag
 
   // C2 FIX: while backfill is writing embeddings, force FTS5 fallback — the
   // vector query would only see the chunks embedded so far (filter IS NOT NULL)
@@ -15701,18 +15720,34 @@ async function searchKnowledge({ query, category, limit } = {}) {
       // Only drop when we DO know a price AND it falls outside range.
       if (priceFilter) {
         const before = rows.length;
+        // Round-1 A-C3 tracking: if filter drops ALL product chunks (those with
+        // a price), we should NOT fall back to unfiltered FTS5 — that returns
+        // out-of-range items. Distinguish "empty DB" from "empty filter result".
+        const hadPricedRows = rows.some(r => extractChunkPrice((r.content || '').substring(r.char_start, r.char_end)) !== null);
         rows = rows.filter(r => {
           const snippet = (r.content || '').substring(r.char_start, r.char_end);
           const p = extractChunkPrice(snippet);
           if (p === null) return true;  // keep policy/info chunks untouched
-          if (priceFilter.max && p > priceFilter.max) return false;
-          if (priceFilter.min && p < priceFilter.min) return false;
+          if (priceFilter.max != null && p > priceFilter.max) return false;
+          if (priceFilter.min != null && p < priceFilter.min) return false;
           return true;
         });
         console.log(`[knowledge-search] price filter ${JSON.stringify(priceFilter)} → ${before} → ${rows.length} rows`);
+        // If originally there WERE priced rows but filter dropped them all
+        // (only kept non-priced policy chunks), flag it — empty-in-range
+        // means "shop doesn't have anything in this price bracket".
+        if (hadPricedRows && !rows.some(r => extractChunkPrice((r.content || '').substring(r.char_start, r.char_end)) !== null)) {
+          _priceFilterDropAll = true;
+        }
       }
 
       if (rows.length === 0) {
+        // Round-1 A-C3: honor price filter — don't fall back to unfiltered FTS5
+        if (_priceFilterDropAll || priceFilter) {
+          console.log('[knowledge-search] price filter empty result — returning [] (not FTS5 fallback)');
+          _ragTier = 'price-filter-empty';
+          return [];
+        }
         console.log('[knowledge-search] no embeddings — falling back to FTS5');
         _ragTier = 'fts5-no-embed';
         return searchKnowledgeFTS5({ query, category, limit }, db);
@@ -15720,17 +15755,30 @@ async function searchKnowledge({ query, category, limit } = {}) {
       _ragTier = 'hybrid-rrf';
 
       // Step 1 — semantic ranking (cosine).
+      // Round-1 I7: per-row try/catch. One corrupt BLOB used to throw the
+      // whole .map() → caller fell to FTS5 fallback. Now we skip the bad row
+      // and keep scoring the rest.
       const semRanked = rows.map(r => {
-        const vec = blobToVec(r.embedding);
-        return {
-          id: r.id,
-          document_id: r.document_id,
-          chunk_index: r.chunk_index,
-          filename: r.filename,
-          snippet: (r.content || '').substring(r.char_start, r.char_end),
-          score: cosineSim(qvec, vec),
-        };
-      }).sort((a, b) => b.score - a.score);
+        try {
+          const vec = blobToVec(r.embedding);
+          return {
+            id: r.id,
+            document_id: r.document_id,
+            chunk_index: r.chunk_index,
+            filename: r.filename,
+            snippet: (r.content || '').substring(r.char_start, r.char_end),
+            score: cosineSim(qvec, vec),
+          };
+        } catch (e) {
+          console.warn(`[knowledge-search] skip corrupt BLOB id=${r.id}: ${e.message}`);
+          return null;
+        }
+      }).filter(Boolean).sort((a, b) => b.score - a.score);
+      // Round-1 I4: capture pre-RRF semantic margin for Tier 2 signal. This
+      // is what the low-margin heuristic is designed for (close cosine top1
+      // vs top2 = ambiguous query that might benefit from rewrite).
+      _semTop1 = semRanked[0]?.score || 0;
+      _semTop2 = semRanked[1]?.score || 0;
 
       // Step 2 — FTS5 ranking over same DB. Result chunk IDs will be the
       // rowids in documents_chunks (chunk_id column when returned).
@@ -15753,6 +15801,7 @@ async function searchKnowledge({ query, category, limit } = {}) {
       if (ftsIds.length > 0) {
         const semIds = semRanked.slice(0, 10).map(s => s.id);
         const rrfIds = rrfMerge([semIds, ftsIds], 60, 10);
+        const rrfSet = new Set(rrfIds);  // Round-1 I6: O(1) membership test
         const byId = new Map(semRanked.map(s => [s.id, s]));
         const merged = [];
         for (const id of rrfIds) {
@@ -15761,12 +15810,12 @@ async function searchKnowledge({ query, category, limit } = {}) {
         }
         // Append any semantic chunks not in RRF top-10 (preserve long tail).
         for (const s of semRanked) {
-          if (!rrfIds.includes(s.id) && merged.length < 10) merged.push(s);
+          if (!rrfSet.has(s.id) && merged.length < 10) merged.push(s);
         }
         scored = merged;
       } else {
         scored = semRanked;
-        _ragTier = 'vector';  // fts5 contributed nothing
+        _ragTier = 'hybrid-rrf-sem-only';  // Round-1 I8: distinguish from fts5-no-embed
       }
     } catch (e) {
       console.warn('[knowledge-search] vector search error, falling back to FTS5:', e.message);
@@ -15809,8 +15858,11 @@ async function searchKnowledge({ query, category, limit } = {}) {
 
       if (!(global.__tier2CooldownUntil && now < global.__tier2CooldownUntil)
           && (global.__tier2CallsToday || 0) < TIER2_DAILY_CAP) {
-        const top1 = scored[0].score;
-        const top2 = scored[1].score;
+        // Round-1 I4: lowMargin uses pre-RRF semantic top1/top2. Post-RRF
+        // "scored" order reflects fused ranking; cosine margin between
+        // RRF-placed #1/#2 is not the ambiguity signal the heuristic needs.
+        const top1 = _semTop1;
+        const top2 = _semTop2;
         const qStr = String(query);
         const tokenCount = qStr.trim().split(/\s+/).length;
         // R4: VI function-word heuristic — real no-diacritic VI queries almost
