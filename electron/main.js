@@ -14820,6 +14820,32 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
             console.log(`[knowledge] indexed ${res.chunks} chunks for ${finalName}`);
           }
         } catch (e) { console.error('[knowledge] chunk index error:', e.message); }
+
+        // RAG: embed every chunk for vector search (Tier 1). ~13ms/chunk sync —
+        // for a 200-chunk doc (~100-page PDF) adds ~3s to upload. Non-fatal:
+        // upload still succeeds on failure; boot-time backfill catches missed
+        // rows. Skip rows with too-short text (noise, boilerplate).
+        try {
+          const chunkRows = db.prepare(
+            'SELECT id, chunk_index, char_start, char_end FROM documents_chunks WHERE document_id = ? ORDER BY chunk_index'
+          ).all(insertedDocId);
+          const upsert = db.prepare(
+            'UPDATE documents_chunks SET embedding = ?, embedding_model = ? WHERE id = ?'
+          );
+          const MODEL_STAMP = 'multilingual-e5-small-q';
+          let embedded = 0;
+          for (const row of chunkRows) {
+            const chunkText = content.substring(row.char_start, row.char_end);
+            if (!chunkText || chunkText.length < 5) continue;
+            const vec = await embedText(chunkText, false);
+            upsert.run(vecToBlob(vec), MODEL_STAMP, row.id);
+            embedded++;
+          }
+          console.log(`[knowledge] embedded ${embedded}/${chunkRows.length} chunks for ${finalName}`);
+        } catch (e) {
+          console.error('[knowledge] embed error:', e.message);
+          // Non-fatal — upload still succeeds. Backfill on boot catches missed rows.
+        }
       }
       try { db.close(); } catch {}
     } else {
