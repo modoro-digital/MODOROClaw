@@ -44,10 +44,11 @@ function getEmbedderState() {
 function armUnloadTimer() {
   if (_embedderUnloadTimer) clearTimeout(_embedderUnloadTimer);
   _embedderUnloadTimer = setTimeout(function tick() {
-    // H1 fix: re-arm with the actual tick logic (was an empty closure before,
-    // which silently disabled the unload mechanism after one in-flight call).
     if (_embedderInFlight > 0) {
       _embedderUnloadTimer = setTimeout(tick, EMBEDDER_UNLOAD_MS);
+      if (_embedderUnloadTimer && typeof _embedderUnloadTimer.unref === 'function') {
+        _embedderUnloadTimer.unref();
+      }
       return;
     }
     if (Date.now() - _embedderLastUsedAt >= EMBEDDER_UNLOAD_MS) {
@@ -55,6 +56,14 @@ function armUnloadTimer() {
       _embedder = null;
     }
   }, EMBEDDER_UNLOAD_MS);
+  // CRITICAL: unref() so the unload timer doesn't keep the Node process alive
+  // after smoke tests finish or the main app is ready to exit. Without this,
+  // smoke-rag-test.js hangs for the full 10 minutes before Node realizes
+  // there's no other work to do. Electron main process keeps itself alive
+  // via BrowserWindow/app anyway, so unref is safe there too.
+  if (_embedderUnloadTimer && typeof _embedderUnloadTimer.unref === 'function') {
+    _embedderUnloadTimer.unref();
+  }
 }
 
 async function getEmbedder() {

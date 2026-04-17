@@ -3917,7 +3917,7 @@ function ensureZaloRagFix() {
       }
     }
 
-    if (content.includes('9BizClaw RAG PATCH v4')) return;
+    if (content.includes('9BizClaw RAG PATCH v5')) return;
 
     const anchor = '  // === END 9BizClaw GROUP-SETTINGS PATCH ===';
     if (!content.includes(anchor)) {
@@ -4024,7 +4024,7 @@ function ensureZaloRagFix() {
 `;
     content = content.replace(anchor, anchor + injection);
     _writeInboundTs(pluginFile, content);
-    console.log('[zalo-rag] Injected RAG enrichment into inbound.ts (v2)');
+    console.log('[zalo-rag] Injected RAG enrichment into inbound.ts (v5)');
   } catch (e) {
     console.error('[zalo-rag] error:', e?.message || e);
   }
@@ -13106,6 +13106,24 @@ async function fastWatchdogTick() {
         }
       } catch {} // findOpenzcaListenerPid can throw on execSync timeout
     }
+
+    // Debug-Agent-B R1/R2: Knowledge HTTP server watchdog. Inbound.ts patch
+    // depends on port 20129 being up; if it dies mid-session (EADDRINUSE
+    // from a 2nd instance, uncaught error), RAG degrades silently and the
+    // gateway's inbound breaker keeps tripping. Re-arm the server on 2
+    // consecutive fails. Skip when listen-side flag marks it unset (boot).
+    try {
+      if (_knowledgeHttpServer === null) {
+        _fwKnowledgeHttpDead = (_fwKnowledgeHttpDead || 0) + 1;
+        if (_fwKnowledgeHttpDead >= 2) {
+          console.warn('[fast-watchdog] knowledge HTTP :20129 down — re-arming');
+          try { startKnowledgeSearchServer(); } catch (e) { console.warn('[fast-watchdog] re-arm failed:', e.message); }
+          _fwKnowledgeHttpDead = 0;
+        }
+      } else {
+        _fwKnowledgeHttpDead = 0;
+      }
+    } catch {}
   } catch (e) {
     console.warn('[fast-watchdog] tick error:', e.message);
   } finally {
@@ -15903,13 +15921,20 @@ async function searchKnowledge({ query, category, limit } = {}) {
               console.log(`[knowledge-search] tier2 rewrite: "${qStr}" → "${rewritten}"`);
               try { auditLog('tier2_rewrite', { reason, queryLen: qStr.length, rewrittenLen: rewritten.length, day: todayKey, callsToday: global.__tier2CallsToday }); } catch {}
               const qvec2 = await embedText(rewritten.slice(0, 500), true);
-              const rescored = rows.map(r => ({
-                id: r.id, document_id: r.document_id, chunk_index: r.chunk_index,
-                filename: r.filename,
-                snippet: (r.content || '').substring(r.char_start, r.char_end),
-                score: cosineSim(qvec2, blobToVec(r.embedding)),
-              })).sort((a, b) => b.score - a.score);
-              if (rescored[0].score > scored[0].score) return rescored.slice(0, limit);
+              // Debug-Agent-A fix: per-row try/catch matching main semantic
+              // path (lib 15774). One corrupt BLOB used to throw here and
+              // register as a spurious Tier 2 failure → breaker trip.
+              const rescored = rows.map(r => {
+                try {
+                  return {
+                    id: r.id, document_id: r.document_id, chunk_index: r.chunk_index,
+                    filename: r.filename,
+                    snippet: (r.content || '').substring(r.char_start, r.char_end),
+                    score: cosineSim(qvec2, blobToVec(r.embedding)),
+                  };
+                } catch { return null; }
+              }).filter(Boolean).sort((a, b) => b.score - a.score);
+              if (rescored.length > 0 && rescored[0].score > scored[0].score) return rescored.slice(0, limit);
             }
           } catch (e) {
             console.warn('[knowledge-search] tier2 rewrite skipped:', e.message);
@@ -16150,8 +16175,18 @@ function startKnowledgeSearchServer() {
     console.log(`[knowledge-http] listening on http://127.0.0.1:${KNOWLEDGE_HTTP_PORT}/search (auth required)`);
   });
   _knowledgeHttpServer.on('error', (err) => {
+    const isAddrInUse = err && err.code === 'EADDRINUSE';
     console.warn('[knowledge-http] server error:', err?.message);
     _knowledgeHttpServer = null;
+    if (isAddrInUse) {
+      // Debug-Agent-B R2: surface port conflict once — likely a 2nd 9BizClaw
+      // instance. Watchdog (fastWatchdogTick) will keep retrying; if the
+      // port stays occupied, CEO sees the alert and knows why RAG is off.
+      if (!global._knowledgeHttpPortAlerted) {
+        try { sendCeoAlert('[RAG] Cổng 20129 đã bị chiếm bởi process khác (có thể đang mở 2 lần 9BizClaw). Tắt bớt instance để RAG hoạt động.'); } catch {}
+        global._knowledgeHttpPortAlerted = true;
+      }
+    }
   });
 }
 
