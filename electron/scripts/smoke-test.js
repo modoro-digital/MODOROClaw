@@ -197,7 +197,7 @@ if (!openclawCli) {
       allow: ['openzalo'],
     },
     models: { providers: { ninerouter: { baseUrl: 'http://127.0.0.1:20128/v1', apiKey: 'sk-fake', api: 'openai-completions', models: [{ id: 'main', name: 'fake' }] } } },
-    agents: { defaults: { model: 'ninerouter/main', workspace: tmpDir, blockStreamingDefault: 'off' } },
+    agents: { defaults: { model: 'ninerouter/main', workspace: tmpDir, blockStreamingDefault: 'off', contextInjection: 'continuation-skip' } },
     tools: { message: { crossContext: { allowAcrossProviders: true } }, web: { search: { provider: 'duckduckgo' } } },
     messages: { inbound: { debounceMs: 3000 } },
   };

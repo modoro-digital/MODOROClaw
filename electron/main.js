@@ -3574,6 +3574,26 @@ async function ensureDefaultConfig() {
       config.agents.defaults.blockStreamingDefault = 'off';
       changed = true;
     }
+    // TOKEN-BLOAT FIX: openclaw default `contextInjection: "always"` re-injects
+    // 8 bootstrap files (AGENTS.md + SOUL.md + TOOLS.md + IDENTITY.md + USER.md
+    // + HEARTBEAT.md + BOOTSTRAP.md + MEMORY.md = ~32KB = ~8k tokens) into the
+    // system prompt on EVERY run, for EVERY customer message. Plus ~10-20k tool
+    // descriptions per run. Tool-loop 3-8 turns → 60-70k tokens total, even for
+    // "xin chào". User observation (v2.3.46 + v2.3.47 both affected).
+    //
+    // Setting to "continuation-skip": bootstrap fires on FIRST message of each
+    // customer session, then openclaw writes a marker to the session file
+    // (FULL_BOOTSTRAP_COMPLETED_CUSTOM_TYPE). Subsequent messages from same
+    // peer see the marker → `hasCompletedBootstrapTurn` returns true → openclaw
+    // returns `bootstrapFiles: []` → system prompt drops by ~8k tokens per run.
+    // Compaction invalidates the marker → bootstrap re-fires after compaction,
+    // so safety rules are not permanently stale.
+    // Schema verified in openclaw 2026.4.x: z.union([z.literal("always"),
+    // z.literal("continuation-skip")]).optional() — both valid values.
+    if (config.agents.defaults.contextInjection !== 'continuation-skip') {
+      config.agents.defaults.contextInjection = 'continuation-skip';
+      changed = true;
+    }
     // CLEANUP: execSecurity is NOT valid under agents.defaults (it's a runtime
     // agent config key). A prior buggy version wrote it here → gateway rejects
     // entire config with "Unrecognized key: execSecurity" → bot never starts.
