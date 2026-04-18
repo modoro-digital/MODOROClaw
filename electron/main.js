@@ -2151,63 +2151,128 @@ async function writeDailyMemoryJournal({ date = new Date() } = {}) {
 
 // Group messages by Zalo customer, summarize each, append to their profile.
 // Only processes openzalo messages (Telegram is CEO-only, no customer profiles).
+// Extract the last N dated sections from a profile file for LLM prior-context.
+// Returns a compact string or '' if no dated history exists.
+function _recentProfileHistory(profileContent, maxSections = 3, maxChars = 1200) {
+  try {
+    const dated = profileContent.match(/\n\n## \d{4}-\d{2}-\d{2}\n[\s\S]*?(?=\n\n## \d{4}-\d{2}-\d{2}|$)/g) || [];
+    if (dated.length === 0) return '';
+    const tail = dated.slice(-maxSections).join('').trim();
+    return tail.length > maxChars ? tail.slice(-maxChars) : tail;
+  } catch { return ''; }
+}
+
 async function appendPerCustomerSummaries(ws, dateStr, sinceMs) {
-  const collected = extractConversationHistoryRaw({ sinceMs, maxMessages: 500, channels: ['openzalo'], maxPerSender: 0 });
+  // Pull BOTH user and assistant messages so summary can reflect what actually
+  // happened (was: role='user' only → prompt asked "Bot trả lời gì" but LLM
+  // had no bot data → hallucinated or left blank → useless summaries).
+  const collected = extractConversationHistoryRaw({ sinceMs, maxMessages: 1000, channels: ['openzalo'], maxPerSender: 0 });
   if (!collected || collected.length === 0) return;
 
   const bySender = new Map();
   for (const m of collected) {
-    if (m.role !== 'user') continue;
-    const idMatch = m.sender.match(/id:(\d+)/);
+    // Keep all roles; group by the customer's senderId. For user messages
+    // sender format is "Name id:123...", for assistant it may be bot id
+    // or the session's peer — use message.peerId if available, else fall
+    // back to parsing ".sender".
+    const idMatch = (m.sender || '').match(/id:(\d+)/) || (m.peerId ? [null, String(m.peerId)] : null);
     if (!idMatch) continue;
     const senderId = idMatch[1];
-    if (!bySender.has(senderId)) bySender.set(senderId, { name: m.sender.split(' id:')[0], msgs: [] });
-    bySender.get(senderId).msgs.push(m);
+    if (!bySender.has(senderId)) {
+      bySender.set(senderId, {
+        name: (m.role === 'user' && m.sender) ? m.sender.split(' id:')[0] : null,
+        msgs: [],
+      });
+    }
+    const slot = bySender.get(senderId);
+    if (!slot.name && m.role === 'user' && m.sender) slot.name = m.sender.split(' id:')[0];
+    slot.msgs.push(m);
   }
 
   const usersDir = path.join(ws, 'memory', 'zalo-users');
 
+  // Build list of work items first (fast, fs-only) so we can cap concurrency
+  // on the actual 9Router calls. Was: serial await in loop → 500 customers ×
+  // 10s = 83 min cron. Now: batched Promise.allSettled → linear in batchSize.
+  const MIN_MSGS = 3;                // skip greeting-only threads (saves LLM cost for "xin chào"/"ok"/"cảm ơn")
+  const MAX_MSGS_PER_CUSTOMER = 60;  // cap prompt size — rare high-volume customer won't blow context
+  const BATCH_SIZE = 5;              // parallel 9Router calls (was: serial)
+  const workItems = [];
   for (const [senderId, { name, msgs }] of bySender) {
-    if (msgs.length === 0) continue;
+    if (msgs.length < MIN_MSGS) continue;
 
     const profilePath = path.join(usersDir, `${senderId}.md`);
     if (!fs.existsSync(profilePath)) continue;
 
+    let existing = '';
     try {
-      const existing = fs.readFileSync(profilePath, 'utf-8');
+      existing = fs.readFileSync(profilePath, 'utf-8');
       if (existing.includes(`## ${dateStr}`)) continue;
     } catch { continue; }
 
-    const customerHistory = msgs.map(m => {
-      const dt = new Date(m.ts);
-      const time = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-      return `[${time}] ${name}: ${m.text}`;
-    }).join('\n');
-    let summary = null;
-    try {
-      summary = await call9Router(
-        `Dưới đây là cuộc trò chuyện Zalo với khách "${name}" trong ngày ${dateStr}. ` +
-        `Tóm tắt trong 2-4 bullet points ngắn gọn bằng tiếng Việt:\n` +
-        `- Khách hỏi/yêu cầu gì\n` +
-        `- Bot trả lời gì / kết quả\n` +
-        `- Trạng thái: đã xong / chờ phản hồi / cần follow-up\n` +
-        `Chỉ trả về bullet points.\n\n---\n${customerHistory}`,
-        { maxTokens: 300, temperature: 0.2, timeoutMs: 10000 }
-      );
-    } catch {}
+    // Trim to most recent MAX_MSGS_PER_CUSTOMER to cap prompt.
+    const clipped = msgs.length > MAX_MSGS_PER_CUSTOMER
+      ? msgs.slice(-MAX_MSGS_PER_CUSTOMER)
+      : msgs;
+    const resolvedName = name || ('kh' + senderId.slice(-4));
+    workItems.push({ senderId, name: resolvedName, msgs: clipped, profilePath, existing });
+  }
 
-    const appendContent = summary
-      ? `\n\n## ${dateStr}\n${summary}\n`
-      : `\n\n## ${dateStr}\n${customerHistory}\n`;
+  // Batched parallel execution with Promise.allSettled so one slow/errored
+  // customer doesn't block the rest. Each batch of BATCH_SIZE runs in parallel.
+  for (let i = 0; i < workItems.length; i += BATCH_SIZE) {
+    const batch = workItems.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(batch.map(async (item) => {
+      const { senderId, name, msgs, profilePath, existing } = item;
 
-    try {
-      fs.appendFileSync(profilePath, appendContent, 'utf-8');
-      console.log(`[journal] appended ${dateStr} summary to zalo-users/${senderId}.md`);
-      // Size cap: keep file ≤ 50KB by dropping oldest dated sections
-      trimZaloMemoryFile(profilePath, 50 * 1024);
-    } catch (e) {
-      console.warn(`[journal] append to ${senderId}.md failed:`, e?.message);
-    }
+      // Format BOTH sides so the LLM sees the actual conversation shape.
+      // Label bot clearly so model won't confuse speakers.
+      const customerHistory = msgs.map(m => {
+        const dt = new Date(m.ts);
+        const time = dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const speaker = m.role === 'assistant' ? 'Bot' : (name || 'Khách');
+        const text = (m.text || '').slice(0, 500);  // per-msg cap
+        return `[${time}] ${speaker}: ${text}`;
+      }).join('\n');
+
+      // Prior-context: last 3 dated sections from this customer's profile
+      // so the LLM has continuity (was: every day started fresh → summaries
+      // read like amnesia). Caps at 1200 chars so prompt stays small.
+      const priorContext = _recentProfileHistory(existing, 3, 1200);
+      const priorBlock = priorContext
+        ? `\n\n[LỊCH SỬ TRƯỚC ĐÓ — tham khảo continuity, KHÔNG lặp lại]\n${priorContext}`
+        : '';
+
+      let summary = null;
+      try {
+        summary = await call9Router(
+          `Bạn là trợ lý tóm tắt Zalo. Đọc cuộc trò chuyện ngày ${dateStr} giữa khách "${name}" và bot của shop.\n` +
+          `Viết tóm tắt **3-5 bullet point** ngắn gọn bằng tiếng Việt CÓ DẤU. Cần thể hiện rõ:\n` +
+          `1. KHÁCH hỏi/yêu cầu cụ thể gì (sản phẩm, giá, dịch vụ, nhu cầu cá nhân)\n` +
+          `2. BOT trả lời gì — trích NGẮN câu trả lời quan trọng của bot\n` +
+          `3. Outcome: đơn xong / chưa chốt / cần báo giá / cần CEO duyệt / khách quan tâm tiếp\n` +
+          `4. Nếu khách hứa "mai mua" hoặc có deadline → ghi rõ ngày\n` +
+          `5. Nếu khách bực/phàn nàn → flag "!CẨN THẬN" ở đầu bullet đó\n\n` +
+          `KHÔNG emoji. KHÔNG lặp lại nguyên văn — TÓM TẮT. KHÔNG bịa nếu không rõ.\n` +
+          `Chỉ trả về bullet points, không intro, không kết luận.${priorBlock}\n\n` +
+          `[CUỘC TRÒ CHUYỆN HÔM NAY]\n${customerHistory}`,
+          { maxTokens: 350, temperature: 0.2, timeoutMs: 12000 }
+        );
+      } catch {}
+
+      const appendContent = summary
+        ? `\n\n## ${dateStr}\n${summary}\n`
+        : `\n\n## ${dateStr}\n_(LLM summary không khả dụng — raw transcript)_\n${customerHistory}\n`;
+
+      try {
+        fs.appendFileSync(profilePath, appendContent, 'utf-8');
+        console.log(`[journal] appended ${dateStr} summary to zalo-users/${senderId}.md (${msgs.length} msgs, ${summary ? 'LLM' : 'raw'})`);
+        // Size cap: keep file ≤ 50KB by dropping oldest dated sections
+        trimZaloMemoryFile(profilePath, 50 * 1024);
+      } catch (e) {
+        console.warn(`[journal] append to ${senderId}.md failed:`, e?.message);
+      }
+    }));
   }
 }
 
@@ -10939,18 +11004,138 @@ function buildMonthlyReportPrompt() {
   );
 }
 
-function buildZaloFollowUpPrompt() {
+// SCALE FIX: scan memory/zalo-users/*.md in Node BEFORE invoking agent.
+// Old prompt said "Đọc tất cả file" → CEO with 2000 Zalo friends had 2000
+// profile files, total 50-200MB. No model context window fits that → agent
+// glob-read failed partial → follow-up list was incomplete/garbage.
+// Now: Node pre-filters to <=25 urgent candidates (O(N) fs scan, fast on
+// SSD for 5000+ files) and passes them as a compact list to the agent.
+// Agent just formats + sends Telegram. No tool scanning required.
+function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
+  const usersDir = path.join(ws, 'memory', 'zalo-users');
+  if (!fs.existsSync(usersDir)) return [];
+
+  const H24_MS = 24 * 60 * 60 * 1000;
+  const H48_MS = 48 * 60 * 60 * 1000;
+  const DATED_RE = /^##\s+(\d{4}-\d{2}-\d{2})\s*$/gm;
+  const PENDING_HINTS = /(chờ phản hồi|chờ trả lời|chưa chốt|cần follow-?up|sẽ liên hệ|hẹn mai|mai liên lạc|ngày mai sẽ|hứa.*(mua|đặt|ghé|qua))/i;
+
+  const candidates = [];
+  let files;
+  try { files = fs.readdirSync(usersDir).filter(f => f.endsWith('.md')); }
+  catch { return []; }
+
+  for (const file of files) {
+    const fp = path.join(usersDir, file);
+    let stat;
+    try { stat = fs.statSync(fp); } catch { continue; }
+    if (stat.size < 10) continue;
+
+    let content;
+    try {
+      // Read full file — safe because trimZaloMemoryFile caps each at 50KB
+      // and we already bounded file count by filesystem iteration. 2000
+      // files × 50KB worst case = 100MB, one fs pass, ~1-2s on SSD.
+      content = fs.readFileSync(fp, 'utf-8');
+    } catch { continue; }
+
+    // Parse frontmatter (first --- ... --- block).
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    const fm = {};
+    if (fmMatch) {
+      for (const line of fmMatch[1].split('\n')) {
+        const m = line.match(/^(\w+):\s*(.*)$/);
+        if (m) fm[m[1]] = m[2].trim();
+      }
+    }
+    const name = fm.name || file.replace(/\.md$/, '');
+
+    // Find all dated sections.
+    const dates = [];
+    let dm;
+    DATED_RE.lastIndex = 0;
+    while ((dm = DATED_RE.exec(content)) !== null) dates.push(dm[1]);
+
+    // Added-time: frontmatter lastSeen OR file ctime OR mtime (fallback).
+    const addedMs = fm.lastSeen ? Date.parse(fm.lastSeen) : stat.ctimeMs || stat.mtimeMs;
+    const ageMs = nowMs - (Number.isFinite(addedMs) ? addedMs : stat.mtimeMs);
+
+    // Case 1: NEW FRIEND — profile exists > 24h, zero dated sections.
+    if (dates.length === 0 && ageMs > H24_MS) {
+      const ageDays = Math.floor(ageMs / H24_MS);
+      candidates.push({
+        kind: 'new-no-interaction',
+        senderId: file.replace(/\.md$/, ''),
+        name,
+        ageDays,
+        priority: 10 + Math.min(ageDays, 30),  // older = more urgent, cap at 40
+        line: `- ${name} — kết bạn ${ageDays} ngày, chưa có cuộc trò chuyện nào`,
+      });
+      continue;
+    }
+
+    // Case 2: STALE PENDING — last dated section older than 48h AND body
+    // shows a pending-interaction hint (heuristic match on VN phrases).
+    if (dates.length > 0) {
+      const lastDate = dates.sort().at(-1);
+      const lastMs = Date.parse(lastDate + 'T00:00:00Z');
+      if (!Number.isFinite(lastMs)) continue;
+      const staleMs = nowMs - lastMs;
+      if (staleMs < H48_MS) continue;
+
+      // Pull text of the last section (between `## lastDate` and next `## ` or EOF).
+      const sectionStart = content.lastIndexOf(`## ${lastDate}`);
+      const sectionEnd = content.indexOf('\n## ', sectionStart + 3);
+      const sectionText = sectionEnd > 0
+        ? content.slice(sectionStart, sectionEnd)
+        : content.slice(sectionStart);
+
+      if (!PENDING_HINTS.test(sectionText)) continue;
+
+      const staleDays = Math.floor(staleMs / H24_MS);
+      // Extract first bullet or first line as "what was asked".
+      const preview = (sectionText.match(/^[-*]\s+(.*?)$/m)?.[1] || sectionText.split('\n')[1] || '').slice(0, 80);
+      candidates.push({
+        kind: 'pending-stale',
+        senderId: file.replace(/\.md$/, ''),
+        name,
+        staleDays,
+        lastDate,
+        priority: 30 + Math.min(staleDays, 30),  // stale = higher priority than new
+        line: `- ${name} — ${preview || 'chờ phản hồi'} (ngày ${lastDate}, ${staleDays} ngày chưa trả lời tiếp)`,
+      });
+    }
+  }
+
+  candidates.sort((a, b) => b.priority - a.priority);
+  return candidates.slice(0, max);
+}
+
+function buildZaloFollowUpPrompt(candidates) {
+  // If no candidates supplied, fall back to the original "Đọc tất cả" prompt
+  // (backward compat — test handlers may call without pre-scan).
+  if (!Array.isArray(candidates)) {
+    return (
+      `Kiểm tra khách hàng Zalo cần follow-up. Đọc tất cả file trong memory/zalo-users/*.md.\n\n` +
+      `KHÔNG dùng emoji. KHÔNG hỏi lại CEO.`
+    );
+  }
+
+  if (candidates.length === 0) {
+    return (
+      `Gửi tin nhắn Telegram cho CEO với NỘI DUNG CHÍNH XÁC NHƯ SAU (không thêm chữ, không hỏi lại, không bịa):\n\n` +
+      `**FOLLOW-UP KHÁCH ZALO**\n` +
+      `Không có khách nào cần follow-up hôm nay.\n\n` +
+      `Dùng tool sessions_send để gửi.`
+    );
+  }
+
+  const lines = candidates.map(c => c.line).join('\n');
   return (
-    `Kiểm tra khách hàng Zalo mới cần follow-up. Đọc tất cả file trong memory/zalo-users/*.md.\n\n` +
-    `Với mỗi khách:\n` +
-    `- Nếu kết bạn > 24h mà CHƯA có cuộc trò chuyện nào (file chỉ có header, không có note) → liệt kê\n` +
-    `- Nếu khách hỏi giá/đặt lịch > 48h mà không reply tiếp → liệt kê\n\n` +
-    `Gửi danh sách cho CEO qua Telegram với format:\n` +
-    `**FOLLOW-UP KHÁCH ZALO**\n` +
-    `- [Tên khách] — kết bạn [ngày], chưa tương tác\n` +
-    `- [Tên khách] — hỏi [nội dung] ngày [ngày], chưa phản hồi\n\n` +
-    `Nếu không có khách nào cần follow-up → nói "Không có khách cần follow-up hôm nay" (1 câu). ` +
-    `KHÔNG dùng emoji. KHÔNG hỏi lại CEO.`
+    `Gửi tin nhắn Telegram cho CEO với format sau. Đây là danh sách khách cần follow-up ĐÃ PRE-FILTER (KHÔNG đọc thêm file, KHÔNG đoán thêm khách):\n\n` +
+    `**FOLLOW-UP KHÁCH ZALO** (${candidates.length})\n` +
+    `${lines}\n\n` +
+    `Gửi NGUYÊN VĂN text trên qua Telegram dùng tool sessions_send. KHÔNG emoji, KHÔNG thêm lời mở đầu/kết, KHÔNG hỏi lại CEO.`
   );
 }
 
@@ -11018,7 +11203,9 @@ ipcMain.handle('test-cron', async (_event, { type, id }) => {
         const ok = await runCronAgentPrompt(prompt, { label: 'TEST — monthly-report' });
         return { success: ok, sent: ok };
       } else if (id === 'zalo-followup') {
-        const prompt = buildZaloFollowUpPrompt();
+        const ws = getWorkspace();
+        const candidates = ws ? scanZaloFollowUpCandidates(ws) : [];
+        const prompt = buildZaloFollowUpPrompt(candidates);
         const ok = await runCronAgentPrompt(prompt, { label: 'TEST — zalo-followup' });
         return { success: ok, sent: ok };
       } else if (id === 'memory-cleanup') {
@@ -14156,9 +14343,11 @@ function startCronJobs() {
           if (global._cronInFlight?.get('zalo-followup')) return;
           global._cronInFlight?.set('zalo-followup', true);
           try {
-            const prompt = buildZaloFollowUpPrompt();
+            const ws = getWorkspace();
+            const candidates = ws ? scanZaloFollowUpCandidates(ws) : [];
+            const prompt = buildZaloFollowUpPrompt(candidates);
             await runCronAgentPrompt(prompt, { label: 'zalo-followup' });
-            try { auditLog('cron_fired', { id: 'zalo-followup', label: 'Follow-up khách Zalo' }); } catch {}
+            try { auditLog('cron_fired', { id: 'zalo-followup', label: 'Follow-up khách Zalo', candidateCount: candidates.length }); } catch {}
           } catch (e) {
             console.error('[cron] Zalo follow-up threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'zalo-followup', label: 'Follow-up khách Zalo', error: String(e?.message || e).slice(0, 200) }); } catch {}
