@@ -1157,8 +1157,13 @@
                 <div class="wz-instruction-title">Tạo bot trên Telegram</div>
               </div>
               <div class="wz-instruction-body">
-                <p>Mở app Telegram, tìm <span class="wz-kbd">@BotFather</span> rồi gửi <span class="wz-kbd">/newbot</span>.</p>
+                <p>Nhấn nút bên dưới — Telegram tự mở thẳng chat với BotFather. Gửi <span class="wz-kbd">/newbot</span>.</p>
                 <p>Đặt tên cho bot (ví dụ: "Trợ Lý ABC"), BotFather sẽ trả về một dòng token dài (dạng 123456:ABC...). Copy toàn bộ.</p>
+              </div>
+              <div style="margin-top:14px;padding-left:40px">
+                <button class="wz-btn wz-btn-secondary" onclick="openBotFather()" type="button">
+                  <span data-icon="send" data-icon-size="14"></span> Mở @BotFather trên Telegram
+                </button>
               </div>
             </div>
 
@@ -1173,8 +1178,13 @@
                 <div class="wz-instruction-title">Lấy User ID Telegram của anh/chị</div>
               </div>
               <div class="wz-instruction-body">
-                <p>Trong Telegram, tìm <span class="wz-kbd">@userinfobot</span>, gửi <span class="wz-kbd">/start</span>.</p>
+                <p>Nhấn nút bên dưới — Telegram tự mở @userinfobot. Gửi <span class="wz-kbd">/start</span>.</p>
                 <p>Bot trả về một dãy số (ví dụ: 123456789). Copy dãy số đó.</p>
+              </div>
+              <div style="margin-top:14px;padding-left:40px">
+                <button class="wz-btn wz-btn-secondary" onclick="openUserInfoBot()" type="button">
+                  <span data-icon="user" data-icon-size="14"></span> Mở @userinfobot trên Telegram
+                </button>
               </div>
             </div>
 
@@ -1687,6 +1697,12 @@
     // ===== Step 2: AI setup =====
     function openOllama() { window.claw.openExternal('https://ollama.com/signin'); }
     function openOllamaKeys() { window.claw.openExternal('https://ollama.com/settings/keys'); }
+    // tg://resolve?domain=X opens Telegram native app directly on Win/Mac if
+    // installed; the protocol is registered system-wide by the Telegram
+    // installer. If somehow not installed, the user couldn't create a bot
+    // anyway — this wizard step requires Telegram. Fallback not needed.
+    function openBotFather() { window.claw.openExternal('tg://resolve?domain=BotFather'); }
+    function openUserInfoBot() { window.claw.openExternal('tg://resolve?domain=userinfobot'); }
     async function autoSetup9Router() {
       const ollamaKey = document.getElementById('ollama-api-key').value.trim();
       if (!ollamaKey) return showError('Vui lòng dán Ollama API key trước.');
