@@ -161,6 +161,16 @@ async function run() {
   }
   ok('main.js ensureDefaultConfig enables tools.loopDetection.enabled');
 
+  // Layer 5 vision: ensureDefaultConfig must declare input:["image"] on
+  // ninerouter models or pi-ai will strip image_url parts at final
+  // outbound serialization (commit ef6076f). Assert the mutation code
+  // survives refactors.
+  if (!/m\.input\s*=\s*Array\.isArray\(m\.input\)[\s\S]{0,100}?['"]image['"]/.test(stripped) &&
+      !/m\.input\s*=\s*\[[^\]]*['"]image['"]/.test(stripped)) {
+    fail('main.js no longer assigns input:["image"] on ninerouter models — pi-ai will strip every image_url → bot hallucinates images.');
+  }
+  ok('main.js ensureDefaultConfig sets model.input includes "image"');
+
   // --- Test 8: cross-binding — continuation-skip REQUIRES tools.deny:exec ---
   // Reviewer observation C2: with contextInjection="continuation-skip",
   // AGENTS.md rule "KHÔNG chạy openclaw CLI qua exec" is NOT in system prompt
@@ -174,7 +184,7 @@ async function run() {
   }
   ok('continuation-skip + tools.deny[exec] co-bound (C2 cross-invariant)');
 
-  console.log('[context-injection smoke] PASS — all 8 assertions held');
+  console.log('[context-injection smoke] PASS — all 9 assertions held');
 }
 
 run().catch(e => { console.error('[context-injection smoke] threw:', e); process.exit(1); });
