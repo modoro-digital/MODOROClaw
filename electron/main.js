@@ -4021,7 +4021,7 @@ function ensureZaloGroupSettingsFix() {
 }
 
 // inbound.ts RAG enrichment: calls Electron main HTTP knowledge-search + prepends chunks.
-// Idempotent via "9BizClaw RAG PATCH v6" marker.
+// Idempotent via "9BizClaw RAG PATCH v7" marker.
 // Anchor: AFTER group-settings end marker (runs only for messages that passed all filters).
 // Fail-open: if HTTP fails or returns nothing, message dispatches as-is.
 // Circuit breaker: 3 consecutive fails within 60s → POST /audit-rag-degraded + stop calling for 5min.
@@ -4043,7 +4043,7 @@ function ensureZaloRagFix() {
     //   v5: drop score>0.45 hard filter (Hybrid RRF server-side ranking is
     //       authoritative — keyword-dominant chunks have low cosine but
     //       high RRF score and should not be discarded by the client).
-    for (const oldVer of ['v1', 'v2', 'v3', 'v4', 'v5']) {
+    for (const oldVer of ['v1', 'v2', 'v3', 'v4', 'v5', 'v6']) {
       if (content.includes(`9BizClaw RAG PATCH ${oldVer}`)) {
         const oldStart = content.indexOf(`  // === 9BizClaw RAG PATCH ${oldVer} ===`);
         const oldEnd = content.indexOf(`  // === END 9BizClaw RAG PATCH ${oldVer} ===`);
@@ -4054,7 +4054,7 @@ function ensureZaloRagFix() {
       }
     }
 
-    if (content.includes('9BizClaw RAG PATCH v6')) return;
+    if (content.includes('9BizClaw RAG PATCH v7')) return;
 
     const anchor = '  // === END 9BizClaw GROUP-SETTINGS PATCH ===';
     if (!content.includes(anchor)) {
@@ -4063,7 +4063,7 @@ function ensureZaloRagFix() {
     }
 
     const injection = `
-  // === 9BizClaw RAG PATCH v6 ===
+  // === 9BizClaw RAG PATCH v7 ===
   // Enrich message with knowledge chunks via HTTP to Electron main.
   // v5: Hybrid RRF on server (v2.3.47.1) means keyword-dominant chunks have
   //     low cosine but high RRF score. Drop client-side >0.45 hard filter —
@@ -4088,7 +4088,12 @@ function ensureZaloRagFix() {
           const fs = require('fs');
           const path = require('path');
           const home = process.env.HOME || process.env.USERPROFILE || '';
-          const ws = process.env.MODORO_WORKSPACE || path.join(home, '.openclaw', 'workspace');
+          // Workspace resolution: main.js spawns gateway with 9BIZ_WORKSPACE
+          // env var (not MODORO_WORKSPACE). Fixing mismatch — when RAG read
+          // the wrong env name, rag-secret.txt was looked up at a path that
+          // does not exist, falling through to the early-return below and
+          // silently dropping every Zalo message before dispatchReply.
+          const ws = process.env['9BIZ_WORKSPACE'] || process.env.MODORO_WORKSPACE || path.join(home, '.openclaw', 'workspace');
           __ragG.__ragSecret = fs.readFileSync(path.join(ws, 'rag-secret.txt'), 'utf-8').trim();
         } catch {}
       }
@@ -4164,7 +4169,7 @@ function ensureZaloRagFix() {
   } catch (__ragOuter) {
     runtime.log?.('openzalo: RAG outer error: ' + String(__ragOuter));
   }
-  // === END 9BizClaw RAG PATCH v6 ===
+  // === END 9BizClaw RAG PATCH v7 ===
 `;
     content = content.replace(anchor, anchor + injection);
     _writeInboundTs(pluginFile, content);
