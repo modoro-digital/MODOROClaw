@@ -3912,7 +3912,7 @@ function ensureZaloGroupSettingsFix() {
     // Marker v5: mode="all" now bypasses plugin's default requireMention=true
     // by injecting botUserId into message.mentionIds (plugin sees bot mentioned
     // → gate passes → every group message reaches AI as user intended).
-    if (content.includes('9BizClaw GROUP-SETTINGS PATCH v6')) return;
+    if (content.includes('9BizClaw GROUP-SETTINGS PATCH v7')) return;
 
     // Strip ANY old v1-v5 block before re-injecting v6 so __default fallback applies.
     if (content.includes('9BizClaw GROUP-SETTINGS PATCH')) {
@@ -3939,7 +3939,7 @@ function ensureZaloGroupSettingsFix() {
     // Missing entry → openzalo default mention-gated behavior (safer — bot
     //   just added to unknown group shouldn't auto-reply to everything).
     const injection = `
-  // === 9BizClaw GROUP-SETTINGS PATCH v6 ===
+  // === 9BizClaw GROUP-SETTINGS PATCH v7 ===
   if (message.isGroup) {
     try {
       const __gsFs = require("node:fs");
@@ -3977,7 +3977,7 @@ function ensureZaloGroupSettingsFix() {
             const __gsBotName = (process.env.OPENZALO_BOT_NAME || "").toLowerCase();
             const __gsBotId = String(botUserId || "").trim();
             const __gsMentionRe = __gsBotName
-              ? new RegExp("@" + __gsBotName.replace(/[.*+?^\${}()|[\\]\\\\]/g, "\\\\\$&") + "(?![\\\\w-])", "i")
+              ? new RegExp("@" + __gsBotName.replace(/[.*+?^\${}()|[\\]\\\\]/g, "\\\\$$&") + "(?![\\\\w-])", "i")
               : null;
             const __gsMentioned = (message as any).isMentioned === true
               || (__gsMentionRe && __gsMentionRe.test(__gsBody))
