@@ -133,14 +133,24 @@ async function run() {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
 
-  // --- Test 5: our ensureDefaultConfig actually writes the key ---
+  // --- Test 5: our ensureDefaultConfig actually writes all 3 token-bloat keys ---
   const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf-8');
   if (!/contextInjection.*continuation-skip/.test(mainJs)) {
     fail('main.js no longer sets contextInjection="continuation-skip" — fix reverted?');
   }
   ok('main.js ensureDefaultConfig writes contextInjection="continuation-skip"');
 
-  console.log('[context-injection smoke] PASS — all 5 assertions held');
+  if (!/image_generate.*music_generate.*video_generate|music_generate.*video_generate.*image_generate/.test(mainJs)) {
+    fail('main.js no longer denies media-generation tools — tools.deny fix reverted?');
+  }
+  ok('main.js ensureDefaultConfig denies media-gen + exec tools');
+
+  if (!/loopDetection[\s\S]{0,200}?enabled\s*=\s*true/.test(mainJs)) {
+    fail('main.js no longer enables tools.loopDetection — safety net reverted?');
+  }
+  ok('main.js ensureDefaultConfig enables tools.loopDetection.enabled');
+
+  console.log('[context-injection smoke] PASS — all 7 assertions held');
 }
 
 run().catch(e => { console.error('[context-injection smoke] threw:', e); process.exit(1); });

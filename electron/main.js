@@ -3594,6 +3594,40 @@ async function ensureDefaultConfig() {
       config.agents.defaults.contextInjection = 'continuation-skip';
       changed = true;
     }
+    // TOOL-BLOAT FIX: openclaw default `tools.profile = "coding"` ships ~24 tools
+    // descriptions in every system prompt (~10-20KB). Media-generation tools
+    // (image_generate, music_generate, video_generate) are NEVER triggered in
+    // a Zalo customer-support flow and we explicitly deny them at the gateway
+    // output filter anyway — they only bloat the system prompt and nudge the
+    // model toward unnecessary tool calls. Deny them at config level so they're
+    // not even advertised to the LLM. `exec` + `process` we also deny because
+    // bot is forbidden from shell exec by AGENTS.md rule "KHÔNG chạy openclaw
+    // CLI qua exec tool". Keeps coding profile intact for read/write/edit/memory
+    // (needed by CEO Telegram admin flow + cron agent journaling).
+    //
+    // Safe: `tools.deny` is deny-list — everything else remains. Config key
+    // verified in openclaw 2026.4.x runtime-schema at "tools.deny".
+    if (!config.tools) config.tools = {};
+    const DENY_TOOLS = [
+      'image_generate', 'music_generate', 'video_generate',  // media gen unused in support
+      'exec', 'process',                                     // shell forbidden per AGENTS.md
+    ];
+    const existingDeny = Array.isArray(config.tools.deny) ? config.tools.deny : [];
+    const mergedDeny = Array.from(new Set([...existingDeny, ...DENY_TOOLS])).sort();
+    if (JSON.stringify(existingDeny.slice().sort()) !== JSON.stringify(mergedDeny)) {
+      config.tools.deny = mergedDeny;
+      changed = true;
+    }
+    // LOOP SAFETY: enable tools.loopDetection — openclaw ships it disabled.
+    // Without this, a truly stuck model can grind through unlimited tool calls.
+    // Thresholds chosen wide enough to NEVER fire on normal 3-5 turn Zalo reply
+    // (user said don't cap natural behavior), but stops pathological runaway.
+    // Default values used for most fields — we just flip `enabled: true`.
+    if (!config.tools.loopDetection) config.tools.loopDetection = {};
+    if (config.tools.loopDetection.enabled !== true) {
+      config.tools.loopDetection.enabled = true;
+      changed = true;
+    }
     // CLEANUP: execSecurity is NOT valid under agents.defaults (it's a runtime
     // agent config key). A prior buggy version wrote it here → gateway rejects
     // entire config with "Unrecognized key: execSecurity" → bot never starts.
