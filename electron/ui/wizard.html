@@ -1208,10 +1208,10 @@
             <div id="tg-test-result" class="wz-hidden"></div>
           </section>
 
-          <!-- ============ STEP 4: Zalo ============ -->
+          <!-- ============ STEP 4: Zalo (Optional) ============ -->
           <section class="wz-step" id="step-4">
-            <h2>Kết nối Zalo</h2>
-            <p class="wz-step-desc">Trợ lý sẽ đọc và trả lời tin nhắn Zalo của khách hàng giúp anh/chị. Đăng nhập bằng QR — không cần mật khẩu.</p>
+            <h2>Kết nối Zalo <span style="font-size:14px;font-weight:500;color:var(--text-tertiary);margin-left:8px;padding:3px 10px;border:1px solid var(--border);border-radius:999px;vertical-align:middle">Tùy chọn</span></h2>
+            <p class="wz-step-desc">Bước này <strong>không bắt buộc</strong>. Nếu anh/chị chỉ dùng Telegram, có thể nhấn <strong>Tiếp tục</strong> để bỏ qua, hoàn tất cài đặt, và thiết lập Zalo sau ở Dashboard → Zalo. Nếu muốn bot tự đọc/trả lời tin nhắn Zalo của khách hàng, đăng nhập QR bên dưới — không cần mật khẩu.</p>
 
             <div class="wz-instruction" id="zalo-connect-card">
               <div class="wz-instruction-head" id="zalo-step-guide">
@@ -1428,7 +1428,7 @@
       '1b': { eyebrow: 'Bước 2 / 6', headline: 'Cá nhân hóa theo ngành', subhead: 'Trợ lý được tối ưu kỹ năng khác nhau cho mỗi ngành — F&B, bất động sản, công nghệ, giáo dục… Chọn đúng ngành để trợ lý hiểu khách hàng của anh/chị tốt hơn.' },
       2:    { eyebrow: 'Bước 3 / 6', headline: 'Kết nối trí tuệ nhân tạo', subhead: 'Trợ lý cần một AI model để hoạt động. Ollama cho miễn phí, chỉ mất 2 phút lấy API key.' },
       3:    { eyebrow: 'Bước 4 / 6', headline: 'Kết nối Telegram', subhead: 'Telegram là kênh anh/chị nhận thông báo, ra lệnh, và đọc báo cáo. Hướng dẫn tạo bot từ BotFather ở bên dưới.' },
-      4:    { eyebrow: 'Bước 5 / 6', headline: 'Kết nối Zalo', subhead: 'Trợ lý sẽ đọc tin nhắn Zalo và tự động trả lời khách hàng của anh/chị. Đăng nhập bằng QR — không cần mật khẩu, không cần API.' },
+      4:    { eyebrow: 'Bước 5 / 6 · Tùy chọn', headline: 'Kết nối Zalo', subhead: 'Bước này không bắt buộc. Anh/chị có thể bỏ qua và thiết lập Zalo sau trong Dashboard. Nếu dùng Zalo: đăng nhập QR — không cần mật khẩu, không cần API.' },
       5:    { eyebrow: 'Hoàn tất', headline: 'Trợ lý đã sẵn sàng', subhead: 'Tất cả đã được thiết lập. Anh/chị có thể mở Dashboard và bắt đầu sử dụng 9BizClaw ngay bây giờ.' },
     };
 
@@ -2012,7 +2012,7 @@
         <div class="wz-summary-row">
           <div class="wz-summary-icon">${icon('send',16)}</div>
           <div class="wz-summary-label">Telegram</div>
-          <div class="wz-summary-value">Da ket noi</div>
+          <div class="wz-summary-value">Đã kết nối</div>
         </div>
         <div class="wz-summary-row">
           <div class="wz-summary-icon">${icon('message-circle',16)}</div>
