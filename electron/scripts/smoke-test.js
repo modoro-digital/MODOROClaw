@@ -542,6 +542,45 @@ if (!modelCatalogFiles) {
 }
 
 // =========================================================================
+// electron-builder files allowlist coverage
+// Every local `require('./xxx/...')` in main.js must have its prefix
+// covered by `build.files` in package.json, otherwise the shipped .exe
+// will throw `Cannot find module ./xxx/...` on first launch. This exact
+// regression shipped v2.3.47 (lib/embedder.js was committed but not in
+// files list) and cost 1 rebuild + user-visible crash.
+// =========================================================================
+section('electron-builder files allowlist covers local requires');
+const mainJsSrc = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf-8');
+const pkgJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+const filesList = pkgJson.build?.files || [];
+const localRequireRe = /require\(['"]\.\/([a-zA-Z0-9_/-]+)['"]\)/g;
+const prefixes = new Set();
+let m;
+while ((m = localRequireRe.exec(mainJsSrc)) !== null) {
+  const rel = m[1];
+  // Skip package.json — that's auto-included.
+  if (rel === 'package' || rel === 'package.json') continue;
+  // Take the top-level prefix (e.g. `./lib/embedder` → `lib`).
+  const top = rel.split('/')[0];
+  prefixes.add(top);
+}
+const missingPrefixes = [];
+for (const prefix of prefixes) {
+  // Match either exact filename "lib" or glob "lib/**/*" etc.
+  const matched = filesList.some((entry) => {
+    if (typeof entry !== 'string') return false;
+    if (entry.startsWith('!')) return false;  // negation
+    return entry === prefix || entry.startsWith(prefix + '/') || entry.startsWith(prefix + '.');
+  });
+  if (!matched) missingPrefixes.push(prefix);
+}
+if (missingPrefixes.length > 0) {
+  fail('files allowlist coverage', `main.js require('./${missingPrefixes.join("/...'), require('./")}/...') but package.json build.files does NOT include [${missingPrefixes.join(', ')}] — shipped .exe will crash at launch with "Cannot find module ./${missingPrefixes[0]}/...". Add "${missingPrefixes[0]}/**/*" to build.files.`);
+} else {
+  pass(`files allowlist covers all local require prefixes [${[...prefixes].join(', ')}]`);
+}
+
+// =========================================================================
 // SUMMARY
 // =========================================================================
 console.log('');
