@@ -201,8 +201,9 @@ if (!openclawCli) {
     tools: {
       deny: ['image_generate', 'music_generate', 'video_generate', 'exec', 'process'],
       loopDetection: { enabled: true },
+      message: { crossContext: { allowAcrossProviders: true } },
+      web: { search: { provider: 'duckduckgo' } },
     },
-    tools: { message: { crossContext: { allowAcrossProviders: true } }, web: { search: { provider: 'duckduckgo' } } },
     messages: { inbound: { debounceMs: 3000 } },
   };
   fs.writeFileSync(path.join(tmpDir, '.openclaw', 'openclaw.json'), JSON.stringify(minimalConfig, null, 2));

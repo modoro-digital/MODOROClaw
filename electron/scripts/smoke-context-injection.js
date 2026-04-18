@@ -134,23 +134,47 @@ async function run() {
   }
 
   // --- Test 5: our ensureDefaultConfig actually writes all 3 token-bloat keys ---
+  // Regexes MUST match the ASSIGNMENT literal, not comments — reviewer caught
+  // prior version matching block comments, which meant deleting the code and
+  // keeping the comment would silently pass the smoke.
   const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf-8');
-  if (!/contextInjection.*continuation-skip/.test(mainJs)) {
-    fail('main.js no longer sets contextInjection="continuation-skip" — fix reverted?');
+
+  // Strip block comments + line comments before matching so we assert against
+  // executable code only. Quick/dirty but good enough for fingerprint checks.
+  const stripped = mainJs
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\/])\/\/[^\n]*/g, '$1');
+
+  if (!/config\.agents\.defaults\.contextInjection\s*=\s*['"]continuation-skip['"]/.test(stripped)) {
+    fail('main.js no longer ASSIGNS contextInjection="continuation-skip" in code — fix reverted?');
   }
   ok('main.js ensureDefaultConfig writes contextInjection="continuation-skip"');
 
-  if (!/image_generate.*music_generate.*video_generate|music_generate.*video_generate.*image_generate/.test(mainJs)) {
-    fail('main.js no longer denies media-generation tools — tools.deny fix reverted?');
+  // Must be the actual array literal, not the comment describing it.
+  if (!/DENY_TOOLS\s*=\s*\[[\s\S]*?['"]image_generate['"][\s\S]*?['"]exec['"][\s\S]*?\]/.test(stripped)) {
+    fail('main.js no longer defines DENY_TOOLS array with image_generate + exec — tools.deny reverted?');
   }
   ok('main.js ensureDefaultConfig denies media-gen + exec tools');
 
-  if (!/loopDetection[\s\S]{0,200}?enabled\s*=\s*true/.test(mainJs)) {
-    fail('main.js no longer enables tools.loopDetection — safety net reverted?');
+  if (!/config\.tools\.loopDetection\.enabled\s*=\s*true\s*;/.test(stripped)) {
+    fail('main.js no longer ASSIGNS tools.loopDetection.enabled = true — safety net reverted?');
   }
   ok('main.js ensureDefaultConfig enables tools.loopDetection.enabled');
 
-  console.log('[context-injection smoke] PASS — all 7 assertions held');
+  // --- Test 8: cross-binding — continuation-skip REQUIRES tools.deny:exec ---
+  // Reviewer observation C2: with contextInjection="continuation-skip",
+  // AGENTS.md rule "KHÔNG chạy openclaw CLI qua exec" is NOT in system prompt
+  // on tin 2+. tools.deny:["exec","process"] closes that hole at the config
+  // level. If one of these two fixes silently reverts, safety degrades on
+  // repeat customer messages. Enforce they ship together.
+  const hasContInjSkip = /config\.agents\.defaults\.contextInjection\s*=\s*['"]continuation-skip['"]/.test(stripped);
+  const denyHasExec = /DENY_TOOLS\s*=\s*\[[\s\S]*?['"]exec['"]/.test(stripped);
+  if (hasContInjSkip && !denyHasExec) {
+    fail('contextInjection="continuation-skip" is set but tools.deny[exec] is not — safety gap on tin 2+');
+  }
+  ok('continuation-skip + tools.deny[exec] co-bound (C2 cross-invariant)');
+
+  console.log('[context-injection smoke] PASS — all 8 assertions held');
 }
 
 run().catch(e => { console.error('[context-injection smoke] threw:', e); process.exit(1); });

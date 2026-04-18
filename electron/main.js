@@ -3953,14 +3953,19 @@ function ensureZaloRagFix() {
     if (!fs.existsSync(pluginFile)) return;
     let content = _readInboundTs(pluginFile);
 
-    // Strip old v1/v2/v3/v4 blocks on upgrade.
+    // Strip old v1/v2/v3/v4/v5 blocks on upgrade.
     //   v2: __ragFailCount never reset after cooldown
     //   v3: no HTTP auth, no prompt-injection fence on snippets
     //   v4: Bearer token + XML-fenced "untrusted data" context
+    //   v5: Hybrid RRF trust + 0.45 hard filter drop (ef4ab56)
+    // BUG FIX (reviewer): previously this loop ended at 'v4'. Users shipped
+    // with v5 marker (ef4ab56) would have v5 block survive the strip AND v6
+    // get appended → two RAG blocks firing per message = doubled latency +
+    // potential context conflict.
     //   v5: drop score>0.45 hard filter (Hybrid RRF server-side ranking is
     //       authoritative — keyword-dominant chunks have low cosine but
     //       high RRF score and should not be discarded by the client).
-    for (const oldVer of ['v1', 'v2', 'v3', 'v4']) {
+    for (const oldVer of ['v1', 'v2', 'v3', 'v4', 'v5']) {
       if (content.includes(`9BizClaw RAG PATCH ${oldVer}`)) {
         const oldStart = content.indexOf(`  // === 9BizClaw RAG PATCH ${oldVer} ===`);
         const oldEnd = content.indexOf(`  // === END 9BizClaw RAG PATCH ${oldVer} ===`);
