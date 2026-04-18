@@ -766,21 +766,16 @@ function seedWorkspace() {
     }
   } catch {}
 
-  // Cleanup: legacy zalo-group-settings.json from old buggy version that
-  // wrote ALL groups as "off" on save → bot silenced in all groups after
-  // a single save. If file exists with ALL entries as "off", delete it so
-  // the runtime patch falls back to default (all groups enabled).
-  try {
-    const gsPath = path.join(ws, 'zalo-group-settings.json');
-    if (fs.existsSync(gsPath)) {
-      const gs = JSON.parse(fs.readFileSync(gsPath, 'utf-8'));
-      const entries = Object.values(gs);
-      if (entries.length > 0 && entries.every(e => e?.mode === 'off')) {
-        fs.unlinkSync(gsPath);
-        console.log('[seedWorkspace] removed legacy all-off zalo-group-settings.json');
-      }
-    }
-  } catch {}
+  // REMOVED (user report 2026-04-18): legacy cleanup was deleting the
+  // zalo-group-settings.json file whenever every entry was mode="off".
+  // That pattern is ALSO what a CEO who legitimately turns off bot in all
+  // groups via Dashboard "Tắt tất cả" produces. Result: their explicit
+  // all-off setting got wiped on next boot → Dashboard fell back to the
+  // UI default ("mention") → user saw all groups reset to @mention with
+  // no memory of their choice. The original legacy case (v2.3.42-era
+  // buggy save that unilaterally wrote all-off) hasn't been writable for
+  // many releases; any legitimate all-off file now is intentional and
+  // must be preserved.
 
   // Seed default active-persona mix if missing (wizard overwrites later).
   // Format: active-persona.json (structured config) + active-persona.md
