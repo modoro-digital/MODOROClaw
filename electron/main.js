@@ -11004,19 +11004,31 @@ function buildMonthlyReportPrompt() {
   );
 }
 
-// SCALE FIX: scan memory/zalo-users/*.md in Node BEFORE invoking agent.
+// SCALE FIX + SEMANTIC FIX: scan memory/zalo-users/*.md in Node BEFORE agent.
+//
 // Old prompt said "Đọc tất cả file" → CEO with 2000 Zalo friends had 2000
-// profile files, total 50-200MB. No model context window fits that → agent
-// glob-read failed partial → follow-up list was incomplete/garbage.
-// Now: Node pre-filters to <=25 urgent candidates (O(N) fs scan, fast on
-// SSD for 5000+ files) and passes them as a compact list to the agent.
-// Agent just formats + sends Telegram. No tool scanning required.
-function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
+// profile files, total 50-200MB. Context window overflowed → agent gave up
+// mid-scan → follow-up report was garbage.
+//
+// First pre-filter (43cbfea) fixed scale but kept a broken semantic: it
+// flagged EVERY friend whose profile existed > 24h with no interaction as
+// "new-no-interaction". User correctly objected: "nó có nhiều người ko có
+// tương tác nó cũng report, để làm gì?" Right — a friend who never DM'd
+// the bot isn't a follow-up, it's a cold contact. Seed job creates 1 file
+// per friend list entry; that's 2000 files → 2000 noise candidates daily.
+//
+// New semantic: a follow-up candidate is a customer the BOT OWES something
+// to. Specifically: their latest dated section was > 48h ago AND the
+// section text contains a pending hint ("chờ phản hồi", "hẹn mai",
+// "hứa ghé/mua/đặt", etc). "Kết bạn chưa nói gì" is explicitly NOT a
+// follow-up — that's sales prospecting, a separate concern.
+function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 20 } = {}) {
   const usersDir = path.join(ws, 'memory', 'zalo-users');
   if (!fs.existsSync(usersDir)) return [];
 
   const H24_MS = 24 * 60 * 60 * 1000;
   const H48_MS = 48 * 60 * 60 * 1000;
+  const H30D_MS = 30 * H24_MS;
   const DATED_RE = /^##\s+(\d{4}-\d{2}-\d{2})\s*$/gm;
   const PENDING_HINTS = /(chờ phản hồi|chờ trả lời|chưa chốt|cần follow-?up|sẽ liên hệ|hẹn mai|mai liên lạc|ngày mai sẽ|hứa.*(mua|đặt|ghé|qua))/i;
 
@@ -11025,17 +11037,20 @@ function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
   try { files = fs.readdirSync(usersDir).filter(f => f.endsWith('.md')); }
   catch { return []; }
 
+  // Pre-filter by file mtime: if a profile hasn't been touched in 30 days,
+  // any "pending" state from > 30 days ago is already cold. Skip reading
+  // the file entirely. For a 2000-friend install where 80% are silent
+  // contacts, this avoids the bulk of the I/O.
   for (const file of files) {
     const fp = path.join(usersDir, file);
     let stat;
     try { stat = fs.statSync(fp); } catch { continue; }
     if (stat.size < 10) continue;
+    if (nowMs - stat.mtimeMs > H30D_MS) continue;  // cold contact — skip
 
     let content;
     try {
-      // Read full file — safe because trimZaloMemoryFile caps each at 50KB
-      // and we already bounded file count by filesystem iteration. 2000
-      // files × 50KB worst case = 100MB, one fs pass, ~1-2s on SSD.
+      // Read full file — safe because trimZaloMemoryFile caps each at 50KB.
       content = fs.readFileSync(fp, 'utf-8');
     } catch { continue; }
 
@@ -11056,27 +11071,15 @@ function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
     DATED_RE.lastIndex = 0;
     while ((dm = DATED_RE.exec(content)) !== null) dates.push(dm[1]);
 
-    // Added-time: frontmatter lastSeen OR file ctime OR mtime (fallback).
-    const addedMs = fm.lastSeen ? Date.parse(fm.lastSeen) : stat.ctimeMs || stat.mtimeMs;
-    const ageMs = nowMs - (Number.isFinite(addedMs) ? addedMs : stat.mtimeMs);
+    // SEMANTIC REQUIREMENT: must have AT LEAST ONE interaction. A profile
+    // with zero dated sections means the bot and this customer have
+    // NEVER exchanged a message. That's not a follow-up; it's inventory.
+    // Silently skip.
+    if (dates.length === 0) continue;
 
-    // Case 1: NEW FRIEND — profile exists > 24h, zero dated sections.
-    if (dates.length === 0 && ageMs > H24_MS) {
-      const ageDays = Math.floor(ageMs / H24_MS);
-      candidates.push({
-        kind: 'new-no-interaction',
-        senderId: file.replace(/\.md$/, ''),
-        name,
-        ageDays,
-        priority: 10 + Math.min(ageDays, 30),  // older = more urgent, cap at 40
-        line: `- ${name} — kết bạn ${ageDays} ngày, chưa có cuộc trò chuyện nào`,
-      });
-      continue;
-    }
-
-    // Case 2: STALE PENDING — last dated section older than 48h AND body
-    // shows a pending-interaction hint (heuristic match on VN phrases).
-    if (dates.length > 0) {
+    // STALE PENDING — last dated section > 48h ago AND body contains a
+    // pending-interaction hint. Both conditions required.
+    {
       const lastDate = dates.sort().at(-1);
       const lastMs = Date.parse(lastDate + 'T00:00:00Z');
       if (!Number.isFinite(lastMs)) continue;

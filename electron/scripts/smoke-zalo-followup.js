@@ -14,11 +14,12 @@ function ok(msg) { console.log('  OK  ', msg); }
 // Inline copy of scanZaloFollowUpCandidates so the smoke doesn't need to
 // require() all of main.js (which pulls in electron/sqlite native deps).
 // Must stay in-sync with main.js — guarded by assertion below.
-function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
+function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 20 } = {}) {
   const usersDir = path.join(ws, 'memory', 'zalo-users');
   if (!fs.existsSync(usersDir)) return [];
   const H24_MS = 24 * 60 * 60 * 1000;
   const H48_MS = 48 * 60 * 60 * 1000;
+  const H30D_MS = 30 * H24_MS;
   const DATED_RE = /^##\s+(\d{4}-\d{2}-\d{2})\s*$/gm;
   const PENDING_HINTS = /(chờ phản hồi|chờ trả lời|chưa chốt|cần follow-?up|sẽ liên hệ|hẹn mai|mai liên lạc|ngày mai sẽ|hứa.*(mua|đặt|ghé|qua))/i;
   const candidates = [];
@@ -27,6 +28,7 @@ function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
     const fp = path.join(usersDir, file);
     const stat = fs.statSync(fp);
     if (stat.size < 10) continue;
+    if (nowMs - stat.mtimeMs > H30D_MS) continue;
     const content = fs.readFileSync(fp, 'utf-8');
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     const fm = {};
@@ -38,26 +40,18 @@ function scanZaloFollowUpCandidates(ws, { nowMs = Date.now(), max = 25 } = {}) {
     const dates = [];
     let dm; DATED_RE.lastIndex = 0;
     while ((dm = DATED_RE.exec(content)) !== null) dates.push(dm[1]);
-    const addedMs = fm.lastSeen ? Date.parse(fm.lastSeen) : stat.ctimeMs || stat.mtimeMs;
-    const ageMs = nowMs - (Number.isFinite(addedMs) ? addedMs : stat.mtimeMs);
-    if (dates.length === 0 && ageMs > H24_MS) {
-      const ageDays = Math.floor(ageMs / H24_MS);
-      candidates.push({ kind: 'new-no-interaction', senderId: file.replace(/\.md$/, ''), name, ageDays, priority: 10 + Math.min(ageDays, 30) });
-      continue;
-    }
-    if (dates.length > 0) {
-      const lastDate = dates.sort().at(-1);
-      const lastMs = Date.parse(lastDate + 'T00:00:00Z');
-      if (!Number.isFinite(lastMs)) continue;
-      const staleMs = nowMs - lastMs;
-      if (staleMs < H48_MS) continue;
-      const sectionStart = content.lastIndexOf(`## ${lastDate}`);
-      const sectionEnd = content.indexOf('\n## ', sectionStart + 3);
-      const sectionText = sectionEnd > 0 ? content.slice(sectionStart, sectionEnd) : content.slice(sectionStart);
-      if (!PENDING_HINTS.test(sectionText)) continue;
-      const staleDays = Math.floor(staleMs / H24_MS);
-      candidates.push({ kind: 'pending-stale', senderId: file.replace(/\.md$/, ''), name, staleDays, lastDate, priority: 30 + Math.min(staleDays, 30) });
-    }
+    if (dates.length === 0) continue;  // cold contact — never DM'd the bot → not a follow-up
+    const lastDate = dates.sort().at(-1);
+    const lastMs = Date.parse(lastDate + 'T00:00:00Z');
+    if (!Number.isFinite(lastMs)) continue;
+    const staleMs = nowMs - lastMs;
+    if (staleMs < H48_MS) continue;
+    const sectionStart = content.lastIndexOf(`## ${lastDate}`);
+    const sectionEnd = content.indexOf('\n## ', sectionStart + 3);
+    const sectionText = sectionEnd > 0 ? content.slice(sectionStart, sectionEnd) : content.slice(sectionStart);
+    if (!PENDING_HINTS.test(sectionText)) continue;
+    const staleDays = Math.floor(staleMs / H24_MS);
+    candidates.push({ kind: 'pending-stale', senderId: file.replace(/\.md$/, ''), name, staleDays, lastDate, priority: 30 + Math.min(staleDays, 30) });
   }
   candidates.sort((a, b) => b.priority - a.priority);
   return candidates.slice(0, max);
@@ -90,13 +84,15 @@ ${body}
   };
 
   try {
-    // Scenario 1: new friend, 3 days old, no interactions → CANDIDATE (new)
+    // Scenario 1: new friend, 3 days old, no interactions → SKIP
+    // (Semantic: never DM'd bot = cold contact, not a follow-up. User pushed
+    // back: "nó có nhiều người ko có tương tác nó cũng report, để làm gì?")
     writeProfile('1001', {
       name: 'Khách Mới A',
       lastSeen: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
       body: '',
     });
-    // Scenario 2: new friend, 2 hours old → SKIP (too fresh)
+    // Scenario 2: new friend, 2 hours old, no interactions → SKIP
     writeProfile('1002', {
       name: 'Khách Mới Quá Sớm',
       lastSeen: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
@@ -123,16 +119,12 @@ ${body}
       body: '## 2026-04-14\n- Khách hứa cuối tuần sẽ ghé qua cửa hàng xem\n',
     });
 
-    const results = scanZaloFollowUpCandidates(tmpDir, { nowMs: now, max: 25 });
+    const results = scanZaloFollowUpCandidates(tmpDir, { nowMs: now, max: 20 });
 
-    // Assertions
+    // Assertions — only customers who DM'd bot + have pending state should appear.
     const byId = new Map(results.map(r => [r.senderId, r]));
-    if (byId.size !== 3) fail(`expected 3 candidates, got ${byId.size}: ${[...byId.keys()].join(',')}`);
-    ok(`3 candidates found (new-friend 1001 + stale-pending 1003 + promise 1006)`);
-
-    if (!byId.has('1001') || byId.get('1001').kind !== 'new-no-interaction') fail('1001 missing or wrong kind');
-    if (byId.get('1001').ageDays !== 3) fail(`1001 ageDays expected 3, got ${byId.get('1001').ageDays}`);
-    ok('1001 new-friend 3 days, correctly classified');
+    if (byId.size !== 2) fail(`expected 2 candidates (1003 + 1006), got ${byId.size}: ${[...byId.keys()].join(',')}`);
+    ok('2 candidates found — ONLY customers bot owes a reply to');
 
     if (!byId.has('1003') || byId.get('1003').kind !== 'pending-stale') fail('1003 missing or wrong kind');
     if (byId.get('1003').lastDate !== '2026-04-13') fail(`1003 lastDate ${byId.get('1003').lastDate}`);
@@ -141,24 +133,26 @@ ${body}
     if (!byId.has('1006')) fail('1006 (hứa ghé) missing');
     ok('1006 "hứa ghé cửa hàng" matched promise regex');
 
-    if (byId.has('1002')) fail('1002 (2-hour-old) should be skipped as too fresh');
+    // Critical semantic fix: cold contacts (no interaction ever) must NOT appear.
+    if (byId.has('1001')) fail('1001 (cold contact, no DM ever) MUST NOT appear — semantic fix');
+    if (byId.has('1002')) fail('1002 (fresh cold contact) MUST NOT appear — semantic fix');
+    ok('cold contacts (1001 + 1002) correctly EXCLUDED — no noise for CEO');
+
     if (byId.has('1004')) fail('1004 (đã xong) should be skipped — no pending hint');
     if (byId.has('1005')) fail('1005 (< 48h) should be skipped as too fresh');
-    ok('fresh-friend (1002), resolved (1004), < 48h (1005) correctly skipped');
+    ok('resolved (1004), < 48h (1005) correctly skipped');
 
-    // Priority sort: stale (30+) should rank above new (10+)
-    const topKind = results[0].kind;
-    if (topKind !== 'pending-stale') fail(`top priority expected pending-stale, got ${topKind}`);
-    ok('priority order: stale > new-friend');
-
-    // Scale test: 2000 synthetic profiles (mix), measure scan time
-    console.log('  ... generating 2000 synthetic profiles for scale test ...');
+    // Scale + noise-suppression test: 2000 synthetic profiles where the
+    // MAJORITY are cold contacts (typical 2000-friend CEO situation).
+    // Old semantic would've reported ~1000 noise entries. New semantic
+    // must report ZERO extra from this noise floor.
+    console.log('  ... generating 2000 synthetic profiles (mostly cold) for scale test ...');
     for (let i = 2000; i < 4000; i++) {
       const addedDaysAgo = Math.floor(Math.random() * 30) + 1;
-      const hasInteraction = Math.random() < 0.5;
+      const hasInteraction = Math.random() < 0.2;  // only 20% have actually DM'd bot
       const body = hasInteraction
         ? `## 2026-04-${10 + (i % 8)}\n- Khách hỏi, bot trả lời. Trạng thái: đã xong.\n`
-        : '';
+        : '';  // majority: no dated sections = cold contact
       writeProfile(String(i), {
         name: `Khách ${i}`,
         lastSeen: new Date(now - addedDaysAgo * 24 * 60 * 60 * 1000).toISOString(),
@@ -166,10 +160,14 @@ ${body}
       });
     }
     const t0 = Date.now();
-    const big = scanZaloFollowUpCandidates(tmpDir, { nowMs: now, max: 25 });
+    const big = scanZaloFollowUpCandidates(tmpDir, { nowMs: now, max: 20 });
     const dt = Date.now() - t0;
     if (dt > 5000) fail(`scan too slow: ${dt}ms for 2006 profiles (budget 5000ms)`);
-    ok(`2006-profile scan in ${dt}ms, returned ${big.length} candidates (capped at 25)`);
+    // Noise floor check: from 1600 cold contacts + 400 resolved interactions,
+    // we expect 0 new candidates from the synthetic set (all resolved, no
+    // pending hints). Only the 2 from initial scenarios should remain.
+    if (big.length !== 2) fail(`expected 2 candidates after adding 2000 noise profiles, got ${big.length} — semantic broken?`);
+    ok(`2006-profile scan in ${dt}ms, 2 candidates (1600 cold contacts correctly ignored)`);
 
     console.log('[zalo-followup smoke] PASS — scale + filter assertions held');
   } finally {
