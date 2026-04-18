@@ -11,7 +11,7 @@
   "scripts": {
     "start": "electron .",
     "postinstall": "node scripts/fix-better-sqlite3.js",
-    "smoke": "node scripts/smoke-test.js",
+    "smoke": "node scripts/smoke-test.js && node scripts/smoke-context-injection.js",
     "prebuild:models": "node scripts/prebuild-models.js",
     "prebuild:vendor": "node scripts/prebuild-models.js && node scripts/prebuild-vendor.js",
     "build:win": "npm run prebuild:vendor && node scripts/smoke-test.js && electron-builder --win",
