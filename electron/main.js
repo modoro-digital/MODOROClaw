@@ -2419,26 +2419,45 @@ function parseSafeOpenzcaMsgSend(shellCmd) {
   }
   if ((tokens[i] || '').toLowerCase() !== 'msg') return null;
   if ((tokens[i + 1] || '').toLowerCase() !== 'send') return null;
-  const targetId = tokens[i + 2];
+  const targetIdRaw = tokens[i + 2];
   const text = tokens[i + 3];
-  if (!targetId || text == null) return null;
+  if (!targetIdRaw || text == null) return null;
   const trailing = tokens.slice(i + 4);
   const isGroup = trailing.includes('--group');
   const unsupported = trailing.filter(t => t !== '--group');
   if (unsupported.length > 0) return null;
-  return { profile: profile || getZcaProfile(), targetId, text, isGroup };
+  const targetIds = targetIdRaw.split(',').map(s => s.trim()).filter(Boolean);
+  if (!targetIds.length) return null;
+  return { profile: profile || getZcaProfile(), targetIds, text, isGroup };
 }
 
 async function runSafeExecCommand(shellCmd, { label } = {}) {
   const parsed = parseSafeOpenzcaMsgSend(shellCmd);
   if (!parsed) return null;
-  console.log(`[cron-exec] "${label || 'cron'}" rerouted to safe Zalo sender`);
-  const ok = await sendZaloTo(
-    { id: parsed.targetId, isGroup: parsed.isGroup },
-    parsed.text,
-    { profile: parsed.profile }
-  );
-  return ok ? true : false;
+  const { targetIds, text, isGroup, profile } = parsed;
+  if (targetIds.length === 1) {
+    console.log(`[cron-exec] "${label || 'cron'}" rerouted to safe Zalo sender`);
+    const ok = await sendZaloTo({ id: targetIds[0], isGroup }, text, { profile });
+    return ok ? true : false;
+  }
+  console.log(`[cron-exec] "${label || 'cron'}" broadcast to ${targetIds.length} targets`);
+  let sent = 0;
+  for (let t = 0; t < targetIds.length; t++) {
+    try {
+      const ok = await sendZaloTo({ id: targetIds[t], isGroup }, text, { profile });
+      if (ok) sent++;
+      else console.warn(`[cron-exec] broadcast target ${targetIds[t]} failed`);
+    } catch (e) {
+      console.error(`[cron-exec] broadcast target ${targetIds[t]} error:`, e?.message || e);
+    }
+    if (t < targetIds.length - 1) await new Promise(r => setTimeout(r, 1500));
+  }
+  console.log(`[cron-exec] broadcast done: ${sent}/${targetIds.length} sent`);
+  if (sent === 0) return false;
+  if (sent < targetIds.length) {
+    sendCeoAlert(`Cron "${label || 'cron'}" broadcast: ${sent}/${targetIds.length} nhóm thành công. ${targetIds.length - sent} nhóm thất bại.`).catch(() => {});
+  }
+  return true;
 }
 
 // Cron serialization queue — cron jobs can fire near-simultaneously (morning
@@ -2479,50 +2498,13 @@ async function _runCronAgentPromptImpl(prompt, { label, timeoutMs = 600000 } = {
       }
       return safeResult;
     }
-    if (/\bopenzca(?:\.cmd|\.ps1)?\b/i.test(shellCmd) || /openzca[\\\/].*cli\.js/i.test(shellCmd)) {
-      journalCronRun({ phase: 'fail', label: niceLabel, mode: 'safe-openzca', err: 'unsafe openzca exec rejected' });
-      sendCeoAlert(`*Cron "${niceLabel}" bị chặn vì dùng lệnh Zalo không an toàn*\n\nChỉ cho phép mẫu gửi Zalo chuẩn để đi qua lớp kiểm soát policy, pause và allowlist.`).catch(() => {});
-      return false;
-    }
-    console.log(`[cron-exec] "${niceLabel}" running direct: ${shellCmd.slice(0, 120)}`);
-    const enrichedEnv = { ...process.env };
-    try {
-      const vd = getBundledVendorDir();
-      if (vd) {
-        const isWin = process.platform === 'win32';
-        const nodeDir = isWin ? path.join(vd, 'node') : path.join(vd, 'node', 'bin');
-        const binDir = path.join(vd, 'node_modules', '.bin');
-        const sep = isWin ? ';' : ':';
-        const extra = [nodeDir, binDir].filter(p => { try { return fs.existsSync(p); } catch { return false; } });
-        if (extra.length) enrichedEnv.PATH = extra.join(sep) + sep + (enrichedEnv.PATH || '');
-      }
-    } catch {}
-    return new Promise((resolve) => {
-      const child = require('child_process').spawn(
-        shellCmd, [],
-        { shell: true, cwd: getWorkspace(), env: enrichedEnv, timeout: Math.min(timeoutMs, 60000), stdio: ['ignore', 'pipe', 'pipe'] }
-      );
-      let stdout = '', stderr = '';
-      child.stdout?.on('data', d => { stdout += d; });
-      child.stderr?.on('data', d => { stderr += d; });
-      child.on('close', (code) => {
-        if (code === 0) {
-          console.log(`[cron-exec] "${niceLabel}" ok:`, stdout.slice(0, 200));
-          journalCronRun({ phase: 'ok', label: niceLabel });
-          resolve(true);
-        } else {
-          console.error(`[cron-exec] "${niceLabel}" exit ${code}: ${stderr.slice(0, 300)}`);
-          journalCronRun({ phase: 'fail', label: niceLabel, code, err: stderr.slice(0, 300) });
-          sendCeoAlert(`*Cron "${niceLabel}" thất bại*\nExit ${code}\n\`\`\`\n${stderr.slice(0, 300)}\n\`\`\``).catch(() => {});
-          resolve(false);
-        }
-      });
-      child.on('error', (e) => {
-        console.error(`[cron-exec] "${niceLabel}" spawn error:`, e.message);
-        journalCronRun({ phase: 'fail', label: niceLabel, err: e.message });
-        resolve(false);
-      });
-    });
+    // Block ALL unrecognized exec: commands. Only safe openzca msg send
+    // (handled above) is allowed. Everything else — including raw shell
+    // commands — is rejected to prevent command injection.
+    console.warn(`[cron-exec] "${niceLabel}" BLOCKED — unrecognized exec command: ${shellCmd.slice(0, 120)}`);
+    journalCronRun({ phase: 'fail', label: niceLabel, mode: 'exec-blocked', err: 'only exec: openzca msg send is allowed' });
+    sendCeoAlert(`*Cron "${niceLabel}" bị chặn*\n\nChỉ cho phép \`exec: openzca msg send <id> "<text>" --group\`. Lệnh khác không được phép chạy trực tiếp.`).catch(() => {});
+    return false;
   }
 
   // Defense-in-depth heal #1: synchronously remove deprecated openclaw config

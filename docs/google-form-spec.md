@@ -1,101 +1,101 @@
-# Google Form — "MODOROClaw — Dang ky cai dat tro ly AI"
+# Google Form — "MODOROClaw — Đăng ký cài đặt trợ lý AI"
 
-Tao form nay tren Google Forms. Team MODORO dung de thu thap thong tin khach hang da mua, len lich remote cai dat qua TeamViewer (1-2 tieng).
+Tạo form này trên Google Forms. Team MODORO dùng để thu thập thông tin khách hàng đã mua, lên lịch remote cài đặt qua TeamViewer (1-2 tiếng).
 
 ---
 
 ## Fields
 
-### 1. Ho ten
-- Loai: Short text
-- Bat buoc: Yes
+### 1. Họ tên
+- Loại: Short text
+- Bắt buộc: Yes
 
-### 2. Ten cong ty
-- Loai: Short text
-- Bat buoc: Yes
+### 2. Tên công ty
+- Loại: Short text
+- Bắt buộc: Yes
 
-### 3. So dien thoai / Zalo
-- Loai: Short text
-- Bat buoc: Yes
-- Validation: so dien thoai
+### 3. Số điện thoại / Zalo
+- Loại: Short text
+- Bắt buộc: Yes
+- Validation: số điện thoại
 
-### 4. Telegram (username hoac so dien thoai)
-- Loai: Short text
-- Bat buoc: Yes
-- Ghi chu: "De gui bot link truoc ngay cai. Vi du: @username hoac 0901234567"
+### 4. Telegram (username hoặc số điện thoại)
+- Loại: Short text
+- Bắt buộc: Yes
+- Ghi chú: "Để gửi bot link trước ngày cài. Ví dụ: @username hoặc 0901234567"
 
-### 5. Email cong ty
-- Loai: Email
-- Bat buoc: Yes
+### 5. Email công ty
+- Loại: Email
+- Bắt buộc: Yes
 
-### 6. Website cong ty (neu co)
-- Loai: URL
-- Bat buoc: No
+### 6. Website công ty (nếu có)
+- Loại: URL
+- Bắt buộc: No
 
-### 7. Linh vuc
-- Loai: Dropdown
-- Bat buoc: Yes
+### 7. Lĩnh vực
+- Loại: Dropdown
+- Bắt buộc: Yes
 - Options:
-  - Bat dong san
-  - F&B / Nha hang / Quan ca phe
-  - Thuong mai / Ban le
-  - Dich vu (spa, salon, phong kham...)
-  - Giao duc / Dao tao
-  - Cong nghe / IT
-  - San xuat
-  - Khac (ghi ro)
-- Logic: Khi chon "Khac (ghi ro)" → hien them field text "Ghi ro linh vuc"
+  - Bất động sản
+  - F&B / Nhà hàng / Quán cà phê
+  - Thương mại / Bán lẻ
+  - Dịch vụ (spa, salon, phòng khám...)
+  - Giáo dục / Đào tạo
+  - Công nghệ / IT
+  - Sản xuất
+  - Khác (ghi rõ)
+- Logic: Khi chọn "Khác (ghi rõ)" → hiện thêm field text "Ghi rõ lĩnh vực"
 
-### 8. Ban muon tro ly lam gi?
-- Loai: Checkbox (chon nhieu)
-- Bat buoc: Yes (chon it nhat 1)
+### 8. Bạn muốn trợ lý làm gì?
+- Loại: Checkbox (chọn nhiều)
+- Bắt buộc: Yes (chọn ít nhất 1)
 - Options:
-  - Tra loi tin nhan Zalo khach hang
-  - Cham soc nhom Zalo
-  - Quan ly Google Calendar (sap co)
-  - Doc & tom tat email Gmail (sap co)
-  - Bao cao sang hang ngay qua Telegram
-  - Dang bai Facebook Fanpage (sap co)
-  - Soan noi dung marketing
-  - Cap nhat tin tuc nganh hang ngay
-  - Khac (ghi ro)
+  - Trả lời tin nhắn Zalo khách hàng
+  - Chăm sóc nhóm Zalo
+  - Quản lý Google Calendar (sắp có)
+  - Đọc & tóm tắt email Gmail (sắp có)
+  - Báo cáo sáng hàng ngày qua Telegram
+  - Đăng bài Facebook Fanpage (sắp có)
+  - Soạn nội dung marketing
+  - Cập nhật tin tức ngành hàng ngày
+  - Khác (ghi rõ)
 
-### 9. Ban da co may tinh chua?
-- Loai: Radio
-- Bat buoc: Yes
+### 9. Bạn đã có máy tính chưa?
+- Loại: Radio
+- Bắt buộc: Yes
 - Options:
-  - Da co
-  - Chua co, can MODORO ho tro mua
+  - Đã có
+  - Chưa có, cần MODORO hỗ trợ mua
 
-### 10. Chon ngay cai dat
-- Loai: Date picker
-- Bat buoc: Yes
-- Min date: 10/04/2026 (cap nhat moi dot ban moi)
+### 10. Chọn ngày cài đặt
+- Loại: Date picker
+- Bắt buộc: Yes
+- Min date: 10/04/2026 (cập nhật mỗi đợt bán mới)
 
-### 11. Khung gio mong muon
-- Loai: Dropdown
-- Bat buoc: Yes
+### 11. Khung giờ mong muốn
+- Loại: Dropdown
+- Bắt buộc: Yes
 - Options:
-  - Sang (9h - 12h)
-  - Chieu (13h - 17h)
-  - Toi (19h - 21h)
+  - Sáng (9h - 12h)
+  - Chiều (13h - 17h)
+  - Tối (19h - 21h)
 
-### 12. Ghi chu them
-- Loai: Long text
-- Bat buoc: No
+### 12. Ghi chú thêm
+- Loại: Long text
+- Bắt buộc: No
 
-### 13. Dong y xu ly du lieu
-- Loai: Checkbox (1 option)
-- Bat buoc: Yes
-- Text: "Toi dong y cho MODORO xu ly thong tin ca nhan de cai dat va ho tro tro ly AI (theo ND 13/2023/ND-CP)"
+### 13. Đồng ý xử lý dữ liệu
+- Loại: Checkbox (1 option)
+- Bắt buộc: Yes
+- Text: "Tôi đồng ý cho MODORO xử lý thông tin cá nhân để cài đặt và hỗ trợ trợ lý AI (theo NĐ 13/2023/NĐ-CP)"
 
 ---
 
-## Luu y khi tao form
+## Lưu ý khi tạo form
 
-- Title: "MODOROClaw — Dang ky cai dat tro ly AI"
-- Description: "Vui long dien thong tin ben duoi de team MODORO len lich cai dat tro ly AI cho ban. Thoi gian cai dat khoang 1-2 tieng qua remote (TeamViewer)."
-- Confirmation message: "Cam on ban da dang ky! Team MODORO se lien he qua Telegram/Zalo de xac nhan lich cai dat."
-- Mac dinh tat ca khach chua cai. MODORO team remote cai qua TeamViewer.
-- Form data chi cho MODORO staff su dung, khong feed vao wizard tu dong.
-- Field 10 min date can update moi dot ban moi.
+- Title: "MODOROClaw — Đăng ký cài đặt trợ lý AI"
+- Description: "Vui lòng điền thông tin bên dưới để team MODORO lên lịch cài đặt trợ lý AI cho bạn. Thời gian cài đặt khoảng 1-2 tiếng qua remote (TeamViewer)."
+- Confirmation message: "Cảm ơn bạn đã đăng ký! Team MODORO sẽ liên hệ qua Telegram/Zalo để xác nhận lịch cài đặt."
+- Mặc định tất cả khách chưa cài. MODORO team remote cài qua TeamViewer.
+- Form data chỉ cho MODORO staff sử dụng, không feed vào wizard tự động.
+- Field 10 min date cần update mỗi đợt bán mới.

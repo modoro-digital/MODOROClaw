@@ -383,7 +383,7 @@ Sau khi wizard hoàn tất và Dashboard hiện lên, cần upload tài liệu c
 
 ### 7.3. Kiểm tra báo cáo tự động (tùy chọn)
 
-- Nếu đã đặt lịch báo cáo lúc 07:00 và 17:00, có thể đợi đến giờ đó hoặc kiểm tra bằng cách gửi "bao cao" trên Telegram.
+- Nếu đã đặt lịch báo cáo lúc 07:00 và 17:00, có thể đợi đến giờ đó hoặc kiểm tra bằng cách gửi "báo cáo" trên Telegram.
 
 ---
 
@@ -462,37 +462,37 @@ Mở các file log bằng Notepad để xem lỗi chi tiết. Chụp màn hình 
 ## Tổng Kết Luồng Cài Đặt
 
 ```
-USB copy folder claw vao Desktop
+USB copy folder claw vào Desktop
          |
-    Chay RUN.bat
+    Chạy RUN.bat
          |
-  [Chua co Node.js?] → Tu dong cai Node.js
+  [Chưa có Node.js?] → Tự động cài Node.js
          |
-    npm install (lan dau)
+    npm install (lần đầu)
          |
-    Man hinh "Cai dat lan dau"
+    Màn hình "Cài đặt lần đầu"
          |
-    Nhap ma: MODORO-2026
+    Nhập mã: MODORO-2026
          |
-    Nhan "Cai dat tu dong" → cai openclaw, 9router, openzca (2-5 phut)
+    Nhấn "Cài đặt tự động" → cài openclaw, 9router, openzca (2-5 phút)
          |
-    "Cai dat thanh cong!" → Nhan "Tiep tuc" → App khoi dong lai
+    "Cài đặt thành công!" → Nhấn "Tiếp tục" → App khởi động lại
          |
-    Wizard Buoc 1: Ten, cong ty, gio bao cao
+    Wizard Bước 1: Tên, công ty, giờ báo cáo
          |
-    Wizard Buoc 1B: Linh vuc, phong cach, xung ho
+    Wizard Bước 1B: Lĩnh vực, phong cách, xưng hô
          |
-    Wizard Buoc 2: Tao tai khoan Ollama → Lay API Key → Thiet lap AI
+    Wizard Bước 2: Tạo tài khoản Ollama → Lấy API Key → Thiết lập AI
          |
-    Wizard Buoc 3: Tao bot Telegram → Lay User ID → Test
+    Wizard Bước 3: Tạo bot Telegram → Lấy User ID → Test
          |
-    Wizard Buoc 4: Quet QR Zalo → Chon che do → Hoan tat
+    Wizard Bước 4: Quét QR Zalo → Chọn chế độ → Hoàn tất
          |
-    Man hinh "Xong roi!" → Nhan "Khoi dong tro ly"
+    Màn hình "Xong rồi!" → Nhấn "Khởi động trợ lý"
          |
-    Dashboard chinh → Upload PDF vao Knowledge tab
+    Dashboard chính → Upload PDF vào Knowledge tab
          |
-    Test Telegram + Zalo → Ban giao cho khach
+    Test Telegram + Zalo → Bàn giao cho khách
 ```
 
 ---

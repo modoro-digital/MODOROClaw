@@ -1,33 +1,38 @@
-# Lich tu dong — Tham khao chi tiet
+# Lịch tự động — Tham khảo chi tiết
 
-## File cau hinh
+## File cấu hình
 
 - `schedules.json` — built-in cron jobs
 - `custom-crons.json` — CEO-created cron jobs
 
 ## Built-in schedules
 
-| Job | Thoi gian | Mo ta |
+| Job | Thời gian | Mô tả |
 |-----|-----------|-------|
-| morning | 07:30 | Bao cao sang |
-| evening | 21:00 | Bao cao toi |
-| weekly | T2 08:00 | Tong ket tuan |
-| monthly | ngay-1 08:30 | Tong ket thang |
+| morning | 07:30 | Báo cáo sáng |
+| evening | 21:00 | Báo cáo tối |
+| weekly | T2 08:00 | Tổng kết tuần |
+| monthly | ngày-1 08:30 | Tổng kết tháng |
 | zalo-followup | 09:30 | Follow up Zalo |
-| heartbeat | 30 phut | Kiem tra he thong |
-| meditation | 01:00 | Don dep |
-| memory-cleanup | CN 02:00 | Don dep memory (OFF) |
+| heartbeat | 30 phút | Kiểm tra hệ thống |
+| meditation | 01:00 | Dọn dẹp |
+| memory-cleanup | CN 02:00 | Dọn dẹp memory (OFF) |
 
-## Tao custom cron
+## Tạo custom cron
 
-1. Doc `custom-crons.json`
+1. Đọc `custom-crons.json`
 2. Ghi `[..., {"id":"custom_<ts>","label":"...","cronExpr":"0 */2 8-18 * * *","prompt":"...","enabled":true,"createdAt":"<ISO>"}]`
-3. Verify doc lai. Chua verify = KHONG noi "da tao".
+3. Verify đọc lại. Chưa verify = KHÔNG nói "đã tạo".
 
-## cronExpr vi du
+## cronExpr ví dụ
 
-- `0 */2 8-18 * * *` = nhac 2h ban ngay
+- `0 */2 8-18 * * *` = nhắc 2h ban ngày
 - `0 9 * * 1` = T2 9am
-- `0 15 * * 1-5` = 15h thu 2-6
+- `0 15 * * 1-5` = 15h thứ 2-6
 
-Nhan Zalo group → doc groups.json lay groupId truoc, prompt = `exec: node tools/send-zalo-safe.js [id] "[text]" --group`.
+Nhắn Zalo group → đọc groups.json lấy groupId trước.
+
+**1 nhóm:** `prompt = "exec: openzca msg send [groupId] \"[nội dung]\" --group"`
+
+**Nhiều nhóm (broadcast):** `prompt = "exec: openzca msg send [id1],[id2],[id3] \"[nội dung]\" --group"`
+GroupId cách nhau dấu phẩy, không có khoảng trắng. Delay 1.5s giữa mỗi nhóm. Nếu có nhóm fail, CEO nhận alert tổng hợp.
