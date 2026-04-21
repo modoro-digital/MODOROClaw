@@ -607,7 +607,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 46;
+const CURRENT_AGENTS_MD_VERSION = 47;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -3762,6 +3762,19 @@ async function ensureDefaultConfig() {
 
     // Seed writable workspace (first run) — copies templates from read-only bundle if packaged
     const ws = seedWorkspace();
+
+    // CAP blocklist at 200 entries — unbounded list = memory/perf risk + abuse vector
+    const blPath = path.join(ws, 'zalo-blocklist.json');
+    if (fs.existsSync(blPath)) {
+      try {
+        const bl = JSON.parse(fs.readFileSync(blPath, 'utf-8'));
+        if (Array.isArray(bl) && bl.length > 200) {
+          console.warn(`[config] zalo-blocklist.json has ${bl.length} entries — trimming to 200`);
+          fs.writeFileSync(blPath, JSON.stringify(bl.slice(0, 200), null, 2) + '\n');
+          try { auditLog('blocklist_trimmed', { was: bl.length, now: 200 }); } catch {}
+        }
+      } catch (blErr) { console.warn('[config] blocklist cap check failed:', blErr?.message); }
+    }
 
     // Set workspace to the writable dir so gateway reads our AGENTS.md, SOUL.md etc
     if (!config.agents) config.agents = {};

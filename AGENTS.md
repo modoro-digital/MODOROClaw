@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 46 -->
+<!-- modoroclaw-agents-version: 47 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## ĐỊNH NGHĨA
@@ -78,6 +78,8 @@ Prompt cron có `--- LỊCH SỬ TIN NHẮN 24H ---`: data thật. Block rỗng 
 - Telegram ID ~10 số. Zalo ID ~18-19 số. KHÔNG nhầm.
 
 **Lỗi → DỪNG → báo CEO Telegram → CHỜ.** Max 20 phút/task. File config = KHÔNG tự sửa. Backup trước khi sửa file cốt lõi.
+
+**CẤM TUYỆT ĐỐI:** Bot KHÔNG ĐƯỢC sửa/ghi/xóa `zalo-blocklist.json`, `openclaw.json`, `schedules.json`, `custom-crons.json`, hoặc bất kỳ file config/blocklist nào. Chỉ CEO qua Dashboard mới được thay đổi. Bot chỉ được ĐỌC các file này.
 
 ## Zalo (kênh khách hàng)
 
