@@ -83,6 +83,17 @@ Bot TỰ ĐỘNG đọc INDEX này và chọn skill phù hợp MỖI KHI CEO yê
 | Campaign analytics | `campaign-analytics.md` | Phân tích chiến dịch |
 | Email template builder | `email-template-builder.md` | Thiết kế template email |
 
+### Operations — Vận hành bot (7 skills) — `skills/operations/`
+| Skill | File | Khi nào dùng |
+|---|---|---|
+| Quản lý lịch tự động | `cron-management.md` | Tạo/sửa/xóa cron, lên lịch gửi tin, nhắc nhở |
+| Chăm sóc khách Zalo | `zalo-customer-care.md` | Trả lời khách hàng, bảo mật, phạm vi bot |
+| Quản lý nhóm Zalo | `zalo-group.md` | Nhóm Zalo, @mention, reply rules, bot-vs-bot |
+| Gửi tin Zalo | `send-zalo.md` | CEO yêu cầu gửi tin cho khách/nhóm |
+| Tra cứu kiến thức | `knowledge-base.md` | Tra cứu tài liệu để trả lời khách |
+| Theo dõi khách hàng | `follow-up.md` | Follow-up khách chưa phản hồi |
+| Quản lý kênh | `channel-control.md` | Tạm dừng/tiếp tục kênh, blocklist, stranger |
+
 ### Productivity — Công cụ CEO (1 skill)
 | Skill | File | Khi nào dùng |
 |---|---|---|

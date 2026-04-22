@@ -607,7 +607,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 50;
+const CURRENT_AGENTS_MD_VERSION = 51;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -14018,14 +14018,22 @@ function healCustomCronEntries(arr) {
       delete c.schedule;
       healed = true;
     }
+    // Auto-heal: LLM wrote ISO date/timestamp as cronExpr → convert to oneTimeAt
+    if (c.cronExpr && (/^\d{4}-\d{2}-\d{2}/.test(c.cronExpr) || /T\d{2}:\d{2}/.test(c.cronExpr))) {
+      const isoVal = c.cronExpr;
+      c.oneTimeAt = isoVal.replace(/\.000Z$/, '').replace(/Z$/, '');
+      delete c.cronExpr;
+      healed = true;
+      console.log(`[custom-crons] auto-healed ISO cronExpr "${isoVal}" → oneTimeAt "${c.oneTimeAt}" for ${c.id || c.label || '(unknown)'}`);
+    }
     // Default enabled=true when bot forgot it — CEO asked for a cron, he wants
     // it to run, don't require explicit enabled:true
-    if (c.cronExpr && c.prompt && c.enabled === undefined) {
+    if ((c.cronExpr || c.oneTimeAt) && c.prompt && c.enabled === undefined) {
       c.enabled = true;
       healed = true;
     }
     // Auto-id so dedupe + journal works
-    if (!c.id && c.cronExpr) {
+    if (!c.id && (c.cronExpr || c.oneTimeAt)) {
       c.id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       healed = true;
     }
@@ -14033,6 +14041,13 @@ function healCustomCronEntries(arr) {
     if (!c.label && c.prompt) {
       c.label = String(c.prompt).trim().split('\n')[0].slice(0, 60);
       healed = true;
+    }
+    // Auto-heal: if prompt is a plain openzca msg send without exec: prefix,
+    // add the prefix so runCronAgentPrompt takes the fast-path (no approval needed)
+    if (c.prompt && /^openzca\s+.*msg\s+send\s/i.test(c.prompt.trim())) {
+      c.prompt = 'exec: ' + c.prompt.trim();
+      healed = true;
+      console.log(`[custom-crons] auto-healed missing exec: prefix for ${c.id || c.label || '(unknown)'}`);
     }
     if (!c.createdAt) {
       c.createdAt = new Date().toISOString();
@@ -14199,18 +14214,22 @@ function watchCustomCrons() {
           const currIds = new Set(current.map(c => c && c.id).filter(Boolean));
           const added = [];
           for (const c of current) {
-            if (c && c.id && c.enabled !== false && c.cronExpr && c.prompt && !prevIds.has(c.id)) {
+            if (c && c.id && c.enabled !== false && (c.cronExpr || c.oneTimeAt) && c.prompt && !prevIds.has(c.id)) {
               added.push(c);
             }
           }
           global._knownCronIds = currIds;
           for (const c of added) {
-            const validExpr = typeof cron.validate === 'function' ? cron.validate(c.cronExpr) : true;
-            if (!validExpr) continue; // surfaceCronConfigError already alerted
+            const schedule = c.cronExpr || c.oneTimeAt || '(unknown)';
+            if (c.cronExpr) {
+              const validExpr = typeof cron.validate === 'function' ? cron.validate(c.cronExpr) : true;
+              if (!validExpr) continue;
+            }
             const label = c.label || c.id;
+            const schedType = c.oneTimeAt ? 'Một lần' : 'Lịch';
             const msg = `*Cron mới đã được lên lịch*\n\n` +
                         `Nhãn: \`${label}\`\n` +
-                        `Lịch: \`${c.cronExpr}\` (giờ VN)\n` +
+                        `${schedType}: \`${schedule}\` (giờ VN)\n` +
                         `Prompt: ${String(c.prompt).slice(0, 200)}${c.prompt.length > 200 ? '...' : ''}\n\n` +
                         `Đây là xác nhận từ hệ thống — nếu bạn không yêu cầu cron này, vào Dashboard → Cron để xóa.`;
             sendCeoAlert(msg).catch(() => {});
