@@ -25,14 +25,15 @@ Bot dùng `web_fetch` gọi `http://127.0.0.1:20200/api/cron/*`. KHÔNG ghi file
 **Bảo mật:**
 - API chỉ bind localhost (127.0.0.1)
 - Mọi lệnh mutation (create/delete/toggle) yêu cầu `token`
-- Token nằm trong response của `/api/cron/list` (field `token`)
+- Token trả về trong response của `/api/cron/list` — dùng token này cho mọi lệnh mutation
 - Token thay đổi mỗi lần app khởi động (rotating secret)
 - Inbound.ts command-block chặn mọi mention của API URL từ Zalo
-- Zalo customers KHÔNG có cách gọi API này
+- Max 20 cron, max 500 ký tự content, tối thiểu 5 phút/lần
+- Mỗi cron tạo qua API sẽ gửi alert cho CEO
 
 ### Xác thực — BẮT BUỘC cho create/delete/toggle
 
-Gọi `web_fetch http://127.0.0.1:20200/api/cron/list` trước — response chứa `token` (48 hex chars). Dùng token này cho mọi lệnh mutation.
+Gọi `/api/cron/list` → response chứa `token`. Dùng token đó cho mọi lệnh mutation.
 
 ### Quy tắc URL quan trọng
 

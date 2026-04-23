@@ -514,6 +514,7 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
     // chars (đã, đọc, ạ, ơ, ...), use (?<![a-zA-Z0-9_]) lookbehind at
     // start and (?![a-zA-Z0-9_]) lookahead at end. \b is fine for
     // English-only or "em-prefix" branches.
+    const __ofSanitized = body.replace(/[​-‏‪-‮﻿­⁠⁡-⁤⁪-⁯]/g, '');
     const __ofBlockPatterns: { name: string; re: RegExp }[] = [
       // --- Layer A: file paths + secrets ---
       { name: "file-path-memory", re: /\bmemory\/[\w\-./]*\.md\b/i },
@@ -557,13 +558,45 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
       // Threshold raised 40→200: product listings like "iPhone 15 Pro 256GB: 25,900,000 VND"
       // are all-Latin but legitimate CS replies. CoT leaks are long walls of English (>200c).
       { name: "no-vietnamese-diacritic", re: /^(?!.*https?:\/\/)(?=[\s\S]{200,})(?!.*[àáảãạâấầẩẫậăắằẳẵặèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđÀÁẢÃẠÂẤẦẨẪẬĂẮẰẲẴẶÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ]).+/s },
+      // --- Layer A1.7: PII masking (Nghi dinh 13/2023) ---
+      { name: "pii-cccd-cmnd", re: /(?:cccd|căn\s*cước|cmnd|chứng\s*minh\s*(?:nhân\s*dân|thư))[\s:=]*\d{9}(?:\d{3})?\b/i },
+      { name: "pii-bank-account", re: /(?:stk|số\s*tài\s*khoản|account\s*(?:number|no\.?)|acct\s*#?)[\s:=]*\d{6,20}/i },
+      { name: "pii-credit-card", re: /\b\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{1,4}\b/ },
+      // --- Layer A1.4: API/LLM error leakage ---
+      { name: "api-error-bracket", re: /\[Error\]/i },
+      { name: "api-overloaded", re: /servers? (?:are |is )?(?:currently )?overloaded/i },
+      { name: "api-rate-limit", re: /rate.?limit(?:ed|ing)?\b/i },
+      { name: "api-try-again", re: /(?:please |pls )?try again later/i },
+      { name: "api-internal-error", re: /(?:internal server error|502 bad gateway|503 service|429 too many)/i },
+      { name: "api-quota-exceeded", re: /quota.?exceeded|usage.?limit/i },
+      // --- Layer E: brand + internal name leakage ---
+      { name: "brand-9bizclaw", re: /9bizclaw[\/\\.\-](?:dist|cli|json|ts|js|log|md)|(?:error|crashed|spawn|exception|stack(?:\s*trace)?)\s+9bizclaw/i },
+      { name: "brand-openclaw", re: /openclaw[\/\\.\-](?:dist|cli|mjs|json|ts|js|log|md)|(?:error|crashed|spawn|exception|stack(?:\s*trace)?)\s+openclaw/i },
+      { name: "brand-9router", re: /9router[\/\\.\-](?:dist|cli|json|ts|js|log|md)|(?:error|crashed|spawn|exception|stack(?:\s*trace)?)\s+9router/i },
+      { name: "brand-openzca", re: /openzca[\/\\.\-](?:dist|cli|listen|json|ts|js|log|md)|(?:error|crashed|spawn|exception|stack(?:\s*trace)?)\s+openzca/i },
+      // --- Layer F: prompt injection acknowledgment ---
+      { name: "jailbreak-acknowledge", re: /\b(developer mode|jailbreak|ignore previous|forget instructions|role\s*play as|you are now|pretend to be)\b/i },
+      { name: "system-prompt-leak", re: /\b(my (?:instructions|prompt|system prompt|rules)|here (?:are|is) my (?:rules|instructions))/i },
+      // --- Layer G: cross-customer PII leakage ---
+      { name: "list-all-customers", re: /(?:tất cả khách hàng|all customers|list customers|other customers?|khách khác cũng|khách hàng khác)/i },
+      // --- Layer H: fake commerce commitments ---
+      { name: "fake-order-confirm", re: /(?:đã\s+(?:xác\s*nhận|tạo|lưu|ghi\s*nhận)\s*đơn|đơn\s*(?:của\s+(?:anh|chị|mình|bạn))?\s*(?:đã|được)\s+(?:tạo|xác\s*nhận|lưu|ghi))/i },
+      { name: "fake-shipping-fee", re: /(?:phí\s*ship|ship\s*phí|phí\s*vận\s*chuyển|tiền\s*ship)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
+      { name: "fake-total-amount", re: /tổng\s*(?:tiền|cộng|đơn\s*hàng|thanh\s*toán|cần\s*thanh\s*toán)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
+      { name: "fake-discount-percent", re: /(?:giảm\s*(?:giá)?|discount|khuyến\s*mãi|sale)\s*\d{1,2}\s*%/i },
+      { name: "fake-booking-confirmed", re: /(?:đã\s*(?:đặt|book|giữ|xác\s*nhận))\s*(?:lịch|bàn|phòng|chỗ|slot|lịch\s*hẹn|cuộc\s*hẹn)/i },
+      { name: "fake-payment-received", re: /(?:đã\s*nhận\s*(?:thanh\s*toán|tiền|chuyển\s*khoản)|payment\s*received)/i },
     ];
     let __ofBlocked: string | null = null;
     for (const __ofP of __ofBlockPatterns) {
-      if (__ofP.re.test(body)) {
+      if (__ofP.re.test(__ofSanitized)) {
         __ofBlocked = __ofP.name;
         break;
       }
+    }
+    if (__ofBlocked === "bot-silent-token") {
+      logOutbound("info", "bot intended silence — suppressing send", { pattern: __ofBlocked });
+      return { messageId: "silent", kind: "text" as const };
     }
     if (__ofBlocked) {
       // Log the blocked content to a dedicated audit file (never to main
@@ -651,6 +684,55 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
     return { messageId: "transport-gated", kind: "text" as const };
   }
   // === END 9BizClaw OUTPUT-FILTER PATCH ===
+  // === 9BizClaw ESCALATION-DETECT PATCH v1 ===
+  try {
+    const __escPatterns: RegExp[] = [
+      /(?<![a-zA-Z0-9_])(chuyển (cho )?(sếp|quản lý|bộ phận|nhân viên|người phụ trách))(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(ghi nhận (khiếu nại|phản ánh|yêu cầu|vấn đề))(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(đã báo (lại )?(sếp|quản lý|CEO|ban giám đốc))(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(sếp sẽ liên hệ|sếp sẽ gọi|sếp sẽ phản hồi|sếp sẽ trả lời)(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(em sẽ chuyển|em đã chuyển|em xin chuyển)(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(ngoài khả năng|không thuộc phạm vi|vượt (ngoài )?thẩm quyền)(?![a-zA-Z0-9_])/i,
+      /(?<![a-zA-Z0-9_])(cần (sếp|quản lý|người) (hỗ trợ|xử lý|can thiệp))(?![a-zA-Z0-9_])/i,
+    ];
+    let __escMatch: string | null = null;
+    for (const __escRe of __escPatterns) {
+      const __escM = body.match(__escRe);
+      if (__escM) { __escMatch = __escM[0]; break; }
+    }
+    if (__escMatch) {
+      try {
+        const __escHome = __ofOs.homedir();
+        const __escAppDir = "9bizclaw";
+        let __escWsDir: string;
+        if (process.env['9BIZ_WORKSPACE']) {
+          __escWsDir = process.env['9BIZ_WORKSPACE'];
+        } else if (process.platform === "darwin") {
+          __escWsDir = __ofPath.join(__escHome, "Library", "Application Support", __escAppDir);
+        } else if (process.platform === "win32") {
+          const __escAppData = process.env.APPDATA || __ofPath.join(__escHome, "AppData", "Roaming");
+          __escWsDir = __ofPath.join(__escAppData, __escAppDir);
+        } else {
+          const __escConfig = process.env.XDG_CONFIG_HOME || __ofPath.join(__escHome, ".config");
+          __escWsDir = __ofPath.join(__escConfig, __escAppDir);
+        }
+        const __escLogDir = __ofPath.join(__escWsDir, "logs");
+        __ofFs.mkdirSync(__escLogDir, { recursive: true });
+        __ofFs.appendFileSync(
+          __ofPath.join(__escLogDir, "escalation-queue.jsonl"),
+          JSON.stringify({
+            t: new Date().toISOString(),
+            to: target.threadId,
+            isGroup: !!target.isGroup,
+            trigger: __escMatch,
+            botReply: body.slice(0, 500),
+          }) + "\n",
+          "utf-8",
+        );
+      } catch {}
+    }
+  } catch {}
+  // === END 9BizClaw ESCALATION-DETECT PATCH v1 ===
 
   const args = ["msg", "send", target.threadId, body];
   if (target.isGroup) {

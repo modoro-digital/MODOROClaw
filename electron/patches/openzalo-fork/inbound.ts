@@ -564,21 +564,38 @@ export async function handleOpenzaloInbound(params: {
   // Pattern targets: cron management, group messaging, broadcast, exec commands.
   // Does NOT match customer requests like "hẹn lịch", "đặt lịch hẹn" (legitimate CS).
   if (rawBody) {
-    const __cbText = rawBody.toLowerCase().normalize('NFC');
+    const __cbOrig = rawBody.toLowerCase();
+    const __cbStripped = __cbOrig.normalize('NFKD').replace(/[​-‏‪-‮﻿­⁠⁡-⁤⁪-⁯̀-ͯ]/g, '').normalize('NFC');
     const __cbPatterns: RegExp[] = [
       /(?:tạo|thêm|sửa|xóa|dừng|tắt|bật|liệt kê|list)\s+cron\b/i,
+      /(?:tao|them|sua|xoa|dung|tat|bat|liet ke|list)\s+cron\b/i,
       /gửi\s+(?:tin\s+)?(?:nhóm|group)\b/i,
+      /gui\s+(?:tin\s+)?(?:nhom|group)\b/i,
       /gửi\s+zalo\s+(?:cho\s+)?(?:nhóm|group)\b/i,
+      /gui\s+zalo\s+(?:cho\s+)?(?:nhom|group)\b/i,
       /gửi\s+tin\s+(?:nhắn\s+)?(?:cho\s+)?(?:tất cả|all|nhiều)\s+(?:nhóm|group)/i,
+      /gui\s+tin\s+(?:nhan\s+)?(?:cho\s+)?(?:tat ca|all|nhieu)\s+(?:nhom|group)/i,
       /broadcast\b/i,
       /^exec:\s/i,
       /openzca\s+msg\s+send\b/i,
       /gửi\s+(?:tin\s+)?(?:nhắn\s+)?(?:vào|cho)\s+(?:nhóm|group)\s+["']/i,
-      /127\.0\.0\.1[:/]\s*20[12]\d{2}/i,
-      /localhost[:/]\s*20[12]\d{2}/i,
+      /gui\s+(?:tin\s+)?(?:nhan\s+)?(?:vao|cho)\s+(?:nhom|group)\s+["']/i,
+      /127\.0\.0\.1[:/]\s*\d{2,5}/i,
+      /localhost[:/]\s*\d{2,5}/i,
+      /\[?::1\]?[:/]\s*\d{2,5}/i,
+      /0x7f0{0,6}1\b/i,
+      /0177\.0+\.0+\.0*1\b/,
+      /2130706433\b/,
       /\/api\/cron\//i,
+      /\/api\/workspace\//i,
+      /\/api\/auth\//i,
+      /cron-api-token/i,
+      /\b(create|add|delete|remove|stop|start|list|show)\s+cron\b/i,
+      /\bsend\s+(?:msg|message)\s+(?:to\s+)?(?:group|all)\b/i,
+      /\bexecute?\s+(?:command|shell|script|cmd)\b/i,
+      /\brun\s+(?:command|shell|script|cmd)\b/i,
     ];
-    if (__cbPatterns.some(p => p.test(__cbText))) {
+    if (__cbPatterns.some(p => p.test(__cbOrig) || p.test(__cbStripped))) {
       runtime.log?.(`openzalo: COMMAND-BLOCK from ${message.senderId}${message.isGroup ? ' (group)' : ''}: ${rawBody.slice(0, 120)}`);
       rawBody = '[nội dung nội bộ đã được lọc]';
     }
@@ -621,6 +638,14 @@ export async function handleOpenzaloInbound(params: {
     }
   }
   // === END 9BizClaw GROUP-RATE-LIMIT PATCH v1 ===
+  // === 9BizClaw MSG-LENGTH-GATE PATCH v1 ===
+  // Hard cap at 2000 chars. Messages beyond this are almost always prompt injection
+  // attempts or paste-bombs. Truncate with marker so agent knows content was cut.
+  if (rawBody && rawBody.length > 2000) {
+    runtime.log?.(`openzalo: truncating ${rawBody.length}-char message from ${message.senderId} to 2000`);
+    rawBody = rawBody.slice(0, 2000) + '\n[... tin nhắn quá dài, đã cắt bớt]';
+  }
+  // === END 9BizClaw MSG-LENGTH-GATE PATCH v1 ===
   // === 9BizClaw OUT-OF-SCOPE FILTER v1 ===
   // Code-level guard: auto-refuse requests that are outside bot scope BEFORE
   // the LLM sees them. continuation-skip may lose AGENTS.md rules on message 2+,

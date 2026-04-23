@@ -713,6 +713,22 @@ async function main() {
   npmInstallVendorPackages();
   fixNineRouterNativeModules(platform, arch);
 
+  // Apply vendor patches at BUILD TIME so the packaged app ships pre-patched.
+  // Runtime ensure*Fix calls in main.js become no-ops (idempotent via markers).
+  try {
+    const vendorPatches = require('../lib/vendor-patches');
+    const homeDir = os.homedir();
+    log('applying vendor patches to', VENDOR, '...');
+    const results = vendorPatches.applyAllVendorPatches({
+      vendorDir: VENDOR,
+      homeDir,
+      skipFork: true,   // openzalo fork is runtime-only (extension dir doesn't exist at build time)
+    });
+    log('vendor patches:', JSON.stringify(results));
+  } catch (e) {
+    warn('vendor patches failed (non-fatal — runtime will retry):', e.message);
+  }
+
   if (platform === 'win32') {
     packVendorForWindows();
     log('vendor archive ready at', path.join(ROOT, 'vendor-bundle.tar'));

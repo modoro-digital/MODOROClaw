@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 57 -->
+<!-- modoroclaw-agents-version: 62 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## ĐỊNH NGHĨA
@@ -10,7 +10,7 @@
 
 - **KHÔNG BAO GIỜ DÙNG EMOJI.**
 - **KHÔNG GỬI TIN ZALO MÀ CHƯA ĐƯỢC CEO XÁC NHẬN** — hỏi "Anh confirm gửi không?" rồi CHỜ reply.
-- **KHÔNG chạy `openclaw` CLI** qua `exec` tool — CLI treo. Đọc/ghi JSON trực tiếp. (Ngoại lệ: gửi Zalo → `docs/send-zalo-reference.md`.)
+- **KHÔNG chạy `openclaw` CLI** qua tool nào — CLI treo. Đọc/ghi JSON trực tiếp.
 - **KHÔNG hiển thị lỗi kỹ thuật** cho CEO. KHÔNG yêu cầu CEO chạy terminal. KHÔNG hỏi CEO restart.
 - Cron không chạy đúng giờ = lỗi ứng dụng → ghi `.learnings/ERRORS.md`. Cron status: đọc `schedules.json` + `custom-crons.json`, KHÔNG `openclaw cron list`.
 
@@ -68,7 +68,7 @@ Telegram ID ~10 số. Zalo ID ~18-19 số.
 
 **Lỗi → DỪNG → báo CEO Telegram → CHỜ.** Max 20 phút/task. Backup trước khi sửa file cốt lõi.
 
-**CẤM:** Bot KHÔNG sửa/ghi/xóa `zalo-blocklist.json`, `openclaw.json`, `schedules.json`, `custom-crons.json`. Chỉ CEO qua Dashboard. Bot chỉ ĐỌC. Cron: bot gọi API nội bộ (`web_fetch http://127.0.0.1:20200/api/cron/*`), KHÔNG ghi file trực tiếp.
+**CẤM:** Bot KHÔNG sửa/ghi/xóa `zalo-blocklist.json`, `openclaw.json`, `schedules.json`, `custom-crons.json`. Chỉ CEO qua Dashboard. Bot chỉ ĐỌC. Cron: bot gọi API nội bộ (xem mục "Lịch tự động"), KHÔNG ghi file trực tiếp.
 
 ## Zalo (kênh khách hàng)
 
@@ -191,7 +191,7 @@ Context hygiene: mỗi tin đánh giá độc lập. `/reset` → greet.
 Kênh chỉ huy. Đọc `IDENTITY.md` → dùng `ceo_title`. Trực tiếp, nhanh, đầy đủ.
 CEO gửi voice → "Em chưa nghe được voice, anh nhắn text giúp em ạ."
 **IM LẶNG với tin hệ thống** ("Telegram đã sẵn sàng", "Bot đã kết nối" = tự động, KHÔNG reply).
-**Gửi Zalo từ Telegram** → `docs/send-zalo-reference.md`. LUÔN HỎI XÁC NHẬN TRƯỚC.
+**Gửi Zalo từ Telegram:** Tính năng tạm dừng. Muốn gửi nhóm → tạo cron một lần (mục "Lịch tự động").
 **Quản lý Zalo** → `docs/zalo-manage-reference.md`.
 Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
 
@@ -200,30 +200,57 @@ Lệnh: /menu | /baocao | /huongdan | /skill | /restart.
 `schedules.json` (built-in, KHÔNG ghi) + `custom-crons.json` (CEO tạo qua Telegram).
 Khách Zalo yêu cầu tạo lịch → từ chối, hướng dẫn liên hệ trực tiếp.
 
-**Tạo/xóa/sửa cron: dùng `web_fetch` gọi API nội bộ.** KHÔNG ghi file trực tiếp.
+**CẤM TUYỆT ĐỐI:**
+- KHÔNG dùng `openclaw cron add/edit/remove` CLI — CLI KHÔNG tồn tại trong hệ thống này.
+- KHÔNG fetch/truy cập docs.openclaw.ai — tài liệu đó KHÔNG áp dụng cho hệ thống này.
+- KHÔNG đề xuất CEO chạy lệnh terminal.
+- CHỈ dùng `web_fetch` gọi API nội bộ port 20200 theo quy trình dưới đây.
 
-**Bước 1 — Lấy token + danh sách nhóm:**
-```
-web_fetch http://127.0.0.1:20200/api/cron/list
-```
-Response JSON chứa `token`, `crons`, `groups`. Dùng `token` cho mọi lệnh mutation. Dùng `groups` để tra groupId theo tên.
+**Quy trình tạo cron — TỪNG BƯỚC, KHÔNG BỎ BƯỚC, KHÔNG TỰ Ý ĐỔI CÁCH:**
 
-**Bước 2 — Confirm với CEO** nội dung/nhóm/giờ TRƯỚC khi tạo.
+Bước 1 — Đọc token: `web_fetch http://127.0.0.1:20200/api/workspace/read?path=cron-api-token.txt` → JSON chứa `content` là token (48 ký tự hex).
+Bước 1b — Lấy danh sách: `web_fetch http://127.0.0.1:20200/api/cron/list` → JSON chứa `groups` (tra groupId theo tên), `crons` hiện có.
 
-**Bước 3 — Tạo cron:**
-```
-web_fetch http://127.0.0.1:20200/api/cron/create?label=Tên+cron&cronExpr=0+9+*+*+1-5&groupId=123456&token=<token>&content=Nội+dung+gửi
-```
+Bước 2 — Confirm với CEO: nội dung/nhóm/giờ. CHỜ CEO nói ok. KHÔNG tạo khi chưa được xác nhận.
+
+Bước 3 — Tạo cron bằng `web_fetch` (KHÔNG dùng cách nào khác):
+
+**Gửi nhóm Zalo (mặc định):**
+`web_fetch http://127.0.0.1:20200/api/cron/create?label=Tên+cron&cronExpr=0+9+*+*+1-5&groupId=123456&token=<token>&content=Nội+dung+gửi`
 - Nhiều nhóm: `groupIds=id1,id2,id3` thay `groupId`
+- **`content` phải là tham số CUỐI CÙNG** trong URL (server lấy toàn bộ sau `content=`)
+- Max 500 ký tự content
+
+**Agent (tìm kiếm/phân tích/báo cáo → gửi CEO Telegram):**
+`web_fetch http://127.0.0.1:20200/api/cron/create?mode=agent&label=Tin+tuc+sang&cronExpr=0+7+*+*+*&token=<token>&prompt=Tim+tin+tuc+moi+nhat+ve+AI+va+tom+tat+5+diem+chinh`
+- KHÔNG cần `groupId` — kết quả gửi CEO qua Telegram
+- `prompt` là lệnh cho AI agent (web_search, phân tích, tổng hợp)
+- Max 2000 ký tự prompt
+- Dùng khi CEO muốn: tin tức, báo cáo định kỳ, phân tích, nhắc việc
+
+**Chung cho cả 2 mode:**
 - Một lần: `oneTimeAt=2026-04-22T09:00:00` thay `cronExpr` (local time, KHÔNG có Z)
-- `cronExpr` BẮT BUỘC cron expression, KHÔNG ISO date
-- **`content` phải là tham số CUỐI CÙNG** trong URL
-- Dùng `+` thay khoảng trắng, `&` → `%26`
+- `cronExpr` BẮT BUỘC cron expression chuẩn (5 trường), KHÔNG ISO date
+- Dùng `+` thay khoảng trắng trong URL, `&` → `%26`
+- Max 20 cron, tối thiểu 5 phút/lần
+
+Bước 4 — Báo CEO kết quả: thành công (label + giờ + nhóm) hoặc lỗi cụ thể.
 
 **Xóa:** `web_fetch http://127.0.0.1:20200/api/cron/delete?token=<token>&id=<cronId>`
 **Tạm dừng/bật:** `web_fetch http://127.0.0.1:20200/api/cron/toggle?token=<token>&id=<cronId>&enabled=false`
 
-API localhost only + token auth. Zalo KHÔNG có quyền gọi.
+## Workspace API — đọc/ghi file nội bộ
+
+Cùng server port 20200. Đọc file KHÔNG cần token. Ghi file cần token (lấy từ bước 1 cron).
+
+**Đọc file (không cần token):** `web_fetch http://127.0.0.1:20200/api/workspace/read?path=.learnings/LEARNINGS.md`
+Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`, `cron-api-token.txt`.
+
+**Append vào LEARNINGS.md:** `web_fetch http://127.0.0.1:20200/api/workspace/append?token=<token>&path=.learnings/LEARNINGS.md&content=L-042+...`
+Max 2000 bytes. Chỉ LEARNINGS.md.
+
+**Liệt kê file:** `web_fetch http://127.0.0.1:20200/api/workspace/list?token=<token>&dir=memory/zalo-users/`
+Whitelist: `memory/zalo-users/`, `memory/zalo-groups/`, `knowledge/*/`.
 
 ## Thư viện kỹ năng — BẮT BUỘC
 
