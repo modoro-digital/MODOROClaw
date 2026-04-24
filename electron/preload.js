@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('claw', {
   // Schedules
   getSchedules: () => ipcRenderer.invoke('get-schedules'),
   saveSchedules: (schedules) => ipcRenderer.invoke('save-schedules', schedules),
+  getCronEntries: () => ipcRenderer.invoke('get-cron-entries'),
   getCustomCrons: () => ipcRenderer.invoke('get-custom-crons'),
   saveCustomCrons: (crons) => ipcRenderer.invoke('save-custom-crons', crons),
   deleteOpenclawCron: (jobId) => ipcRenderer.invoke('delete-openclaw-cron', jobId),
