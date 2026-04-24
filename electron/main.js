@@ -637,7 +637,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 68;
+const CURRENT_AGENTS_MD_VERSION = 71;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -716,12 +716,12 @@ function seedWorkspace() {
         // their own version stamps, so they only get updated on AGENTS.md
         // version bumps. CEO customizations in these files are rare (they're
         // bot-internal, not user-facing), so overwriting is safe.
-        const alsoOverwrite = ['MEMORY.md', 'HEARTBEAT.md'];
+        const alsoOverwrite = ['MEMORY.md', 'HEARTBEAT.md', 'BOOTSTRAP.md', 'SOUL.md', 'TOOLS.md', 'README.md'];
         // Also force-refresh tools/ directory on upgrade — these are bot
         // utility scripts (send-zalo-safe.js, zalo-manage.js) that may have
         // bug fixes. copyDirRecursive only copies missing files, so we delete
         // the existing tools/ to force re-copy from template.
-        for (const dirName of ['tools', 'docs', 'skills']) {
+        for (const dirName of ['tools', 'docs', 'skills', 'prompts']) {
           const dirPath = path.join(ws, dirName);
           if (fs.existsSync(dirPath)) {
             try { fs.rmSync(dirPath, { recursive: true, force: true }); console.log('[seedWorkspace] ' + dirName + '/ force-refreshed (piggyback on AGENTS.md upgrade)'); } catch {}
@@ -16002,7 +16002,7 @@ function _readCeoNameFromIdentity() {
     if (!match) return { name: '', title: '' };
     let raw = match[1].trim();
     // Handle "em — gọi chủ nhân là anh Huy" form
-    raw = raw.replace(/^(em|tôi|mình)[s—-]*gọis+/i, '');
+    raw = raw.replace(/^(em|tôi|mình)\s*[—–\-]+\s*gọi\s+(chủ nhân là\s+)?/i, '');
     raw = raw.split(/[,(]/)[0].trim();
     // `raw` is now the full honorific+name like "anh Quốc" or "thầy Quốc" or "chị Lan"
     const title = raw.slice(0, 40); // full "anh Quốc" — used in greeting directly
