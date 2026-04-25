@@ -69,7 +69,7 @@ contextBridge.exposeInMainWorld('claw', {
   saveCustomCrons: (crons) => ipcRenderer.invoke('save-custom-crons', crons),
   deleteOpenclawCron: (jobId) => ipcRenderer.invoke('delete-openclaw-cron', jobId),
   // CRIT #10: Always removeAllListeners before re-registering so renderer
-  // hot-reloads / PIN re-lock don't stack N listeners that all fire per event.
+  // hot-reloads don't stack N listeners that all fire per event.
   onCustomCronsUpdated: (cb) => {
     ipcRenderer.removeAllListeners('custom-crons-updated');
     ipcRenderer.on('custom-crons-updated', (_e, data) => cb(data));
@@ -82,13 +82,6 @@ contextBridge.exposeInMainWorld('claw', {
 
   // App version
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-
-  // Dashboard PIN (Security Layer 4)
-  getPinStatus: () => ipcRenderer.invoke('get-pin-status'),
-  setupPin: (pin) => ipcRenderer.invoke('setup-pin', { pin }),
-  verifyPin: (pin) => ipcRenderer.invoke('verify-pin', { pin }),
-  resetPin: (telegramUserId, newPin) => ipcRenderer.invoke('reset-pin', { telegramUserId, newPin }),
-  changePin: (oldPin, newPin) => ipcRenderer.invoke('change-pin', { oldPin, newPin }),
 
   // Zalo per-user memory
   listZaloUserMemories: () => ipcRenderer.invoke('list-zalo-user-memories'),

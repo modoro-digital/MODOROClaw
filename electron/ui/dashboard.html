@@ -231,28 +231,6 @@
     .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:100; justify-content:center; align-items:center; }
     .modal-overlay.show { display:flex; }
 
-    /* === Dashboard PIN lock screen (Security Layer 4) === */
-    .pin-lock { position:fixed; inset:0; background:var(--bg); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:9999; }
-    .pin-lock.show { display:flex; }
-    .pin-lock-logo { font-size:24px; font-weight:700; letter-spacing:-0.5px; margin-bottom:8px; }
-    .pin-lock-sub { font-size:13px; color:var(--text-muted); margin-bottom:36px; }
-    .pin-lock-title { font-size:16px; font-weight:600; margin-bottom:18px; }
-    .pin-input-row { display:flex; gap:10px; margin-bottom:14px; }
-    .pin-input-box { width:48px; height:56px; border:2px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:24px; font-weight:600; text-align:center; outline:none; transition:border-color 0.15s; }
-    .pin-input-box:focus { border-color:var(--accent, #4a9eff); }
-    .pin-input-box.error { border-color:var(--danger,#e74c3c); }
-    .pin-status { font-size:13px; min-height:20px; margin:8px 0 14px; text-align:center; }
-    .pin-status.error { color:var(--danger,#e74c3c); }
-    .pin-status.success { color:var(--success,#16a34a); }
-    .pin-status.muted { color:var(--text-muted); }
-    .pin-actions { display:flex; gap:12px; margin-top:18px; }
-    .pin-link-btn { background:none; border:none; color:var(--text-muted); font-size:12px; text-decoration:underline; cursor:pointer; padding:4px 8px; }
-    .pin-link-btn:hover { color:var(--text); }
-    .pin-reset-form { display:none; flex-direction:column; gap:10px; max-width:320px; margin-top:20px; padding:18px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
-    .pin-reset-form.show { display:flex; }
-    .pin-reset-form input { padding:9px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; }
-    .pin-reset-form label { font-size:12px; color:var(--text-muted); }
-    .pin-locked-timer { font-size:14px; font-weight:600; color:var(--danger,#e74c3c); margin:12px 0; }
 
     /* Zalo per-user memory modal */
     .zum-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(640px, 92vw); max-height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.4); }
@@ -2987,7 +2965,7 @@
       </div>
       <ul style="font-size:12px;color:var(--text-muted);line-height:1.8;margin:0 0 16px 18px;padding:0">
         <li>Workspace (AGENTS, knowledge, memory, logs)</li>
-        <li>Config bot (openclaw.json, PIN, extensions)</li>
+        <li>Config bot (openclaw.json, extensions)</li>
         <li>Zalo session (cookies, friend cache)</li>
         <li>Telegram token + chat ID</li>
         <li>9Router (API keys, provider config)</li>
@@ -3083,39 +3061,6 @@
   <!-- Cron detail modal -->
   <div class="modal-overlay" id="cron-detail-modal" onclick="if(event.target===this)closeCronDetail()">
     <div class="cron-detail-box" id="cron-detail-content"></div>
-  </div>
-
-  <!-- PIN lock screen (Security Layer 4) -->
-  <div class="pin-lock" id="pin-lock">
-    <div class="pin-lock-logo">9BizClaw</div>
-    <div class="pin-lock-sub">Bảo mật Dashboard</div>
-    <div class="pin-lock-title" id="pin-lock-title">Nhập mã PIN 6 chữ số</div>
-    <div class="pin-input-row" id="pin-input-row">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="0">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="1">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="2">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="3">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="4">
-      <input type="password" inputmode="numeric" maxlength="1" class="pin-input-box" data-idx="5">
-    </div>
-    <div class="pin-status muted" id="pin-status"></div>
-    <div class="pin-locked-timer" id="pin-locked-timer" style="display:none"></div>
-    <div class="pin-actions" id="pin-actions">
-      <button class="pin-link-btn" onclick="showPinResetForm()">Quên PIN?</button>
-    </div>
-    <div class="pin-reset-form" id="pin-reset-form">
-      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Đặt lại PIN</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">Nhập User ID Telegram của chủ doanh nghiệp (đã cấu hình ở wizard) để xác minh, rồi đặt PIN mới.</div>
-      <label>User ID Telegram</label>
-      <input type="text" id="pin-reset-tg-id" placeholder="VD: 123456789">
-      <label>PIN mới (6 chữ số)</label>
-      <input type="password" id="pin-reset-new" maxlength="6" placeholder="••••••">
-      <div style="display:flex;gap:8px;margin-top:6px">
-        <button class="btn btn-primary btn-small" onclick="submitPinReset()" style="flex:1">Đặt lại PIN</button>
-        <button class="btn btn-secondary btn-small" onclick="hidePinResetForm()" style="flex:1">Huỷ</button>
-      </div>
-      <div id="pin-reset-status" style="font-size:11px;text-align:center;min-height:14px"></div>
-    </div>
   </div>
 
   <!-- Zalo per-user memory modal -->
@@ -5495,7 +5440,7 @@
     refreshPauseUI();
     let _pauseUiTimer = setInterval(refreshPauseUI, 30000);
 
-    // --- Deferred dashboard data loading (wait for PIN unlock to reduce input lag) ---
+    // --- Deferred dashboard data loading ---
     let _dashboardStarted = false;
     let _dashboardRefreshTimer = null;
     function startDashboardAfterUnlock() {
@@ -5617,238 +5562,8 @@
       });
     }
 
-    // === Dashboard PIN lock (Security Layer 4) ===
-    let _pinUnlocked = false;
-    let _pinLockedUntilMs = 0;
-    let _pinLockedTimerHandle = null;
-    let _idleTimerHandle = null;
-    const IDLE_LOCK_MS = 15 * 60 * 1000; // 15 minutes
-
-    async function initPinLock() {
-      try {
-        const status = await window.claw.getPinStatus();
-        const lock = document.getElementById('pin-lock');
-        if (!status.hasPin) {
-          // First time — prompt to setup PIN
-          showPinSetup();
-          return;
-        }
-        // Has PIN — show lock screen
-        document.getElementById('pin-lock-title').textContent = 'Nhập mã PIN 6 chữ số';
-        if (status.locked) {
-          enterLockedState(status.lockedUntilMs);
-        }
-        lock.classList.add('show');
-        focusFirstPinBox();
-      } catch (e) {
-        console.error('initPinLock error:', e);
-        // PIN system unavailable — load dashboard anyway
-        startDashboardAfterUnlock();
-      }
-    }
-
-    function showPinSetup() {
-      const lock = document.getElementById('pin-lock');
-      const title = document.getElementById('pin-lock-title');
-      const status = document.getElementById('pin-status');
-      const actions = document.getElementById('pin-actions');
-      title.textContent = 'Đặt mã PIN 6 chữ số bảo vệ Dashboard';
-      status.textContent = 'Chọn 6 chữ số dễ nhớ nhưng khó đoán. Bot sẽ yêu cầu mỗi lần mở Dashboard.';
-      status.className = 'pin-status muted';
-      actions.style.display = 'none';
-      lock.classList.add('show');
-      lock.dataset.mode = 'setup';
-      focusFirstPinBox();
-    }
-
-    function focusFirstPinBox() {
-      setTimeout(() => {
-        const first = document.querySelector('.pin-input-box[data-idx="0"]');
-        if (first) first.focus();
-      }, 50);
-    }
-
-    function getPinValue() {
-      return Array.from(document.querySelectorAll('.pin-input-box'))
-        .map(b => b.value.replace(/[^0-9]/g, ''))
-        .join('');
-    }
-
-    function clearPinBoxes() {
-      document.querySelectorAll('.pin-input-box').forEach(b => {
-        b.value = '';
-        b.classList.remove('error');
-      });
-      focusFirstPinBox();
-    }
-
-    function setPinError(msg) {
-      const status = document.getElementById('pin-status');
-      status.textContent = msg;
-      status.className = 'pin-status error';
-      document.querySelectorAll('.pin-input-box').forEach(b => b.classList.add('error'));
-    }
-
-    function setPinSuccess(msg) {
-      const status = document.getElementById('pin-status');
-      status.textContent = msg;
-      status.className = 'pin-status success';
-    }
-
-    function enterLockedState(lockedUntilMs) {
-      _pinLockedUntilMs = lockedUntilMs;
-      const timer = document.getElementById('pin-locked-timer');
-      const row = document.getElementById('pin-input-row');
-      timer.style.display = 'block';
-      row.style.display = 'none';
-      if (_pinLockedTimerHandle) clearInterval(_pinLockedTimerHandle);
-      const tick = () => {
-        const remain = Math.max(0, _pinLockedUntilMs - Date.now());
-        if (remain <= 0) {
-          clearInterval(_pinLockedTimerHandle);
-          _pinLockedTimerHandle = null;
-          _pinLockedUntilMs = 0;
-          timer.style.display = 'none';
-          row.style.display = 'flex';
-          document.getElementById('pin-status').textContent = 'Đã hết khoá. Thử lại PIN.';
-          document.getElementById('pin-status').className = 'pin-status muted';
-          clearPinBoxes();
-          return;
-        }
-        const min = Math.floor(remain / 60000);
-        const sec = Math.floor((remain % 60000) / 1000);
-        timer.textContent = 'Đã khoá ' + min + ':' + String(sec).padStart(2, '0');
-      };
-      tick();
-      _pinLockedTimerHandle = setInterval(tick, 1000);
-    }
-
-    async function submitPin() {
-      const pin = getPinValue();
-      if (pin.length !== 6) return;
-      const lock = document.getElementById('pin-lock');
-      const mode = lock.dataset.mode || 'verify';
-      try {
-        if (mode === 'setup') {
-          const res = await window.claw.setupPin(pin);
-          if (res.success) {
-            setPinSuccess('Đã đặt PIN. Đang mở Dashboard...');
-            setTimeout(unlockDashboard, 600);
-          } else {
-            setPinError(res.error || 'Lỗi đặt PIN');
-            clearPinBoxes();
-          }
-        } else {
-          const res = await window.claw.verifyPin(pin);
-          if (res.success) {
-            setPinSuccess('Đã mở khoá. Đang vào Dashboard...');
-            setTimeout(unlockDashboard, 400);
-          } else {
-            setPinError(res.error || 'PIN sai');
-            if (res.locked && res.lockedUntilMs) enterLockedState(res.lockedUntilMs);
-            clearPinBoxes();
-          }
-        }
-      } catch (e) {
-        setPinError('Lỗi: ' + e.message);
-      }
-    }
-
-    function unlockDashboard() {
-      _pinUnlocked = true;
-      const lock = document.getElementById('pin-lock');
-      lock.classList.remove('show');
-      lock.dataset.mode = 'verify';
-      hidePinResetForm();
-      resetIdleTimer();
-      startDashboardAfterUnlock();
-    }
-
-    function lockDashboard() {
-      if (!_pinUnlocked) return;
-      _pinUnlocked = false;
-      const lock = document.getElementById('pin-lock');
-      const title = document.getElementById('pin-lock-title');
-      const status = document.getElementById('pin-status');
-      title.textContent = 'Dashboard đã khoá tự động';
-      status.textContent = 'Nhập lại PIN để tiếp tục.';
-      status.className = 'pin-status muted';
-      lock.dataset.mode = 'verify';
-      lock.classList.add('show');
-      clearPinBoxes();
-      if (_idleTimerHandle) { clearTimeout(_idleTimerHandle); _idleTimerHandle = null; }
-    }
-
-    function resetIdleTimer() {
-      if (!_pinUnlocked) return;
-      if (_idleTimerHandle) clearTimeout(_idleTimerHandle);
-      _idleTimerHandle = setTimeout(lockDashboard, IDLE_LOCK_MS);
-    }
-
-    function showPinResetForm() {
-      document.getElementById('pin-reset-form').classList.add('show');
-      document.getElementById('pin-actions').style.display = 'none';
-      setTimeout(() => document.getElementById('pin-reset-tg-id').focus(), 50);
-    }
-
-    function hidePinResetForm() {
-      document.getElementById('pin-reset-form').classList.remove('show');
-      document.getElementById('pin-actions').style.display = 'flex';
-      document.getElementById('pin-reset-status').textContent = '';
-    }
-
-    async function submitPinReset() {
-      const tgId = document.getElementById('pin-reset-tg-id').value.trim();
-      const newPin = document.getElementById('pin-reset-new').value.trim();
-      const status = document.getElementById('pin-reset-status');
-      status.style.color = 'var(--text-muted)';
-      status.textContent = 'Đang xác minh...';
-      try {
-        const res = await window.claw.resetPin(tgId, newPin);
-        if (res.success) {
-          status.style.color = 'var(--success,#16a34a)';
-          status.textContent = 'Đã đặt lại PIN. Đang vào Dashboard...';
-          setTimeout(unlockDashboard, 800);
-        } else {
-          status.style.color = 'var(--danger,#e74c3c)';
-          status.textContent = res.error || 'Lỗi đặt lại PIN';
-        }
-      } catch (e) {
-        status.style.color = 'var(--danger,#e74c3c)';
-        status.textContent = 'Lỗi: ' + e.message;
-      }
-    }
-
-    // PIN box auto-advance + auto-submit when 6 digits filled
-    document.querySelectorAll('.pin-input-box').forEach((box, idx, all) => {
-      box.addEventListener('input', () => {
-        box.value = box.value.replace(/[^0-9]/g, '').slice(0, 1);
-        if (box.value && idx < all.length - 1) all[idx + 1].focus();
-        if (Array.from(all).every(b => b.value)) submitPin();
-      });
-      box.addEventListener('keydown', (e) => {
-        if (e.key === 'Backspace' && !box.value && idx > 0) {
-          all[idx - 1].focus();
-          all[idx - 1].value = '';
-        }
-        if (e.key === 'Enter') submitPin();
-      });
-      box.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const pasted = (e.clipboardData?.getData('text') || '').replace(/[^0-9]/g, '').slice(0, 6);
-        for (let i = 0; i < 6 && i < pasted.length; i++) all[i].value = pasted[i];
-        if (pasted.length === 6) submitPin();
-        else if (pasted.length > 0) all[Math.min(pasted.length, 5)].focus();
-      });
-    });
-
-    // Idle timer — reset on activity
-    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(ev => {
-      document.addEventListener(ev, () => { if (_pinUnlocked) resetIdleTimer(); }, { passive: true });
-    });
-
-    // Init lock screen on load — BEFORE any other dashboard activity
-    initPinLock();
+    // Dashboard loads immediately (PIN lock removed)
+    startDashboardAfterUnlock();
 
     // === Zalo per-user memory modal ===
     let zumCurrentSenderId = null;

@@ -153,14 +153,7 @@
 | 91 | Tone matching informal | Customer uses casual slang | Bot adapts tone to match |
 | 92 | Regional greeting | Set persona to southern Vietnam style | Bot uses appropriate regional expressions |
 
-## L. SECURITY & PIN (93-96)
-
-| # | Test | Steps | Expected |
-|---|------|-------|----------|
-| 93 | PIN setup | Settings > set 6-digit PIN | PIN lock activates on next app open |
-| 94 | PIN lock | Close and reopen app | PIN screen shown, dashboard hidden until correct PIN |
-| 95 | PIN wrong 3x | Enter wrong PIN 3 times | Lockout message shown |
-| 96 | PIN reset via Telegram | Click "Quen PIN" > enter Telegram chatId | Reset flow via Telegram verification |
+## L. (removed — PIN lock feature removed in v2.3.49)
 
 ## M. SYSTEM & MAINTENANCE (97-100)
 
@@ -203,4 +196,3 @@ If short on time, run these 10 critical tests:
 7. **#62** — Custom cron test fires
 8. **#78** — PDF upload works
 9. **#82** — Bot uses uploaded knowledge
-10. **#93** — PIN lock works

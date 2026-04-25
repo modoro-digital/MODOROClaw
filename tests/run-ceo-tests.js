@@ -574,29 +574,8 @@ test(92, 'Persona override rule (persona ref)', () => {
 });
 
 // ══════════════════════════════════════════
-//  L. SECURITY & PIN
+//  L. (removed — PIN lock feature removed in v2.3.49)
 // ══════════════════════════════════════════
-console.log('\n[L] SECURITY & PIN');
-
-test(93, 'PIN setup IPC', () => {
-  const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'setup-pin'") || 'no setup-pin';
-});
-
-test(94, 'PIN verify IPC', () => {
-  const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'verify-pin'") || 'no verify-pin';
-});
-
-test(95, 'PIN lockout logic', () => {
-  const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes('get-pin-status') || 'no pin status check';
-});
-
-test(96, 'PIN reset via Telegram', () => {
-  const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'reset-pin'") || 'no reset-pin';
-});
 
 // ══════════════════════════════════════════
 //  M. SYSTEM & MAINTENANCE
