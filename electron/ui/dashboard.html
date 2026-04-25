@@ -488,6 +488,7 @@
     .ready-dot[data-state="not-ready"] { background:#ef4444; box-shadow:0 0 0 2px var(--surface), 0 0 6px rgba(239,68,68,0.6); }
     .ready-dot[data-state="checking"] { background:#94a3b8; animation:pulse-dot 1.4s ease-in-out infinite; }
     @keyframes pulse-dot { 0%,100%{opacity:0.5} 50%{opacity:1} }
+    @keyframes pulse-save { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,106,0.4)} 50%{box-shadow:0 0 0 6px rgba(22,163,106,0)} }
     @keyframes pulse-update { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
     /* Inline status pill in channel page headers — explicit text for CEO */
     .ready-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:500; line-height:1; }
@@ -2389,7 +2390,7 @@
             <button class="btn btn-secondary btn-small" onclick="recheckZaloFull()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Refresh</button>
             <button class="btn btn-secondary btn-small" id="reconnect-zalo-btn" onclick="reconnectZalo()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Đổi tài khoản</button>
             <button class="btn btn-secondary btn-small" id="zalo-pause-btn" onclick="toggleZaloPause()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="pause-circle" data-icon-size="14"></span><span id="zalo-pause-label">Tạm dừng</span></button>
-            <button class="btn btn-small zalo-save-btn" onclick="saveZaloManager()" style="display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;font-size:12px"><span data-icon="save" data-icon-size="13"></span>Lưu cấu hình</button>
+            <button class="btn btn-small zalo-save-btn" id="zalo-save-main" onclick="saveZaloManager()" style="display:none;align-items:center;gap:6px;background:#16a34a;color:#fff;font-size:12px;animation:pulse-save 1.5s ease-in-out infinite"><span data-icon="save" data-icon-size="13"></span>Lưu cấu hình</button>
           </div>
         </div>
         <div id="zalo-pause-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:#2a2017;border:1px solid #5c4a1e;border-radius:8px;font-size:12px;color:#e8c66a;align-items:center;gap:8px">
@@ -2404,9 +2405,9 @@
               <div class="switch-row" style="padding:0;margin:0">
                 <div>
                   <div style="font-weight:600;font-size:13px">Bật Zalo</div>
-                  <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Thay đổi cần lưu và khởi động lại gateway</div>
+                  <div id="zalo-enabled-hint" style="display:none;font-size:10px;color:#e8c66a;margin-top:2px;font-weight:500">Chưa lưu — bấm "Lưu cấu hình" phía trên</div>
                 </div>
-                <label class="toggle-switch"><input type="checkbox" id="zalo-mgr-enabled"><span class="toggle-slider"></span></label>
+                <label class="toggle-switch"><input type="checkbox" id="zalo-mgr-enabled" onchange="onZaloEnabledToggle()"><span class="toggle-slider"></span></label>
               </div>
             </div>
             <div class="zs-section">
@@ -2444,7 +2445,7 @@
                 <option value="5000">5 giây</option>
               </select>
             </div>
-            <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);text-align:center">Bấm "Refresh" ở trên để đồng bộ nhóm + bạn bè</div>
+            <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted);text-align:center;line-height:1.5">Nhóm, bạn bè, chế độ: tự lưu ngay.<br>Bật/tắt Zalo: cần bấm "Lưu cấu hình".</div>
           </div>
 
           <!-- RIGHT: Groups/Friends tabs -->
@@ -4582,6 +4583,11 @@
       document.getElementById('zalo-mgr-friend-count').textContent = zaloFriends.length;
       document.getElementById('zalo-mgr-group-count').textContent = zaloGroups.length;
       document.getElementById('zalo-mgr-enabled').checked = zaloMgrConfig.enabled !== false;
+      _zaloEnabledSaved = zaloMgrConfig.enabled !== false;
+      const btn = document.getElementById('zalo-save-main');
+      const hint = document.getElementById('zalo-enabled-hint');
+      if (btn) btn.style.display = 'none';
+      if (hint) hint.style.display = 'none';
       const spEl = document.getElementById('zalo-stranger-policy');
       if (spEl) spEl.value = zaloMgrConfig.strangerPolicy || 'ignore';
       const defModeEl = document.getElementById('zalo-default-group-mode');
@@ -4753,6 +4759,15 @@
     // strangerPolicy). These files are read realtime by inbound.ts patches —
     // zero gateway restart needed. Master Zalo on/off is NOT auto-saved (it
     // triggers hard restart) and keeps the explicit "Lưu cấu hình" button.
+    let _zaloEnabledSaved = null;
+    function onZaloEnabledToggle() {
+      const cur = document.getElementById('zalo-mgr-enabled').checked;
+      const dirty = _zaloEnabledSaved !== null && cur !== _zaloEnabledSaved;
+      const btn = document.getElementById('zalo-save-main');
+      const hint = document.getElementById('zalo-enabled-hint');
+      if (btn) btn.style.display = dirty ? 'inline-flex' : 'none';
+      if (hint) hint.style.display = dirty ? 'block' : 'none';
+    }
     let _zaloAutoSaveTimer = null;
     // Freshness cache for the `enabled` flag. When cached value is younger
     // than 5s we trust it — avoids a round-trip per keystroke during rapid
@@ -5011,6 +5026,8 @@
           addActivity('Đã lưu cấu hình Zalo');
           showToast('Đã lưu cấu hình Zalo');
           markZmFresh(zaloMgrConfig.enabled);
+          _zaloEnabledSaved = zaloMgrConfig.enabled;
+          onZaloEnabledToggle();
           try { await loadZaloManagerData(); } catch (e) { console.warn('reload zalo data failed', e); }
         } else if (result?.error === 'BOOT_IN_PROGRESS') {
           // Soft info toast — not a red error. Bot is still booting; user can
