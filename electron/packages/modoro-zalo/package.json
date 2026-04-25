@@ -1,0 +1,53 @@
+{
+  "name": "modoro-zalo",
+  "version": "1.0.0",
+  "description": "MODOROClaw Zalo channel plugin (fork of @tuyenhx/openzalo, personal account via openzca CLI)",
+  "type": "module",
+  "scripts": {
+    "manifest:channel-schema:sync": "node --import tsx ./scripts/sync-manifest-channel-config.ts",
+    "manifest:channel-schema:check": "node --import tsx ./scripts/sync-manifest-channel-config.ts --check",
+    "test": "npm run manifest:channel-schema:check && node --import tsx --test src/*.test.ts src/**/*.test.ts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.23"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "setupEntry": "./setup-entry.ts",
+    "channel": {
+      "id": "modoro-zalo",
+      "label": "Modoro Zalo",
+      "selectionLabel": "Modoro Zalo (personal account)",
+      "detailLabel": "Modoro Zalo",
+      "docsPath": "/channels/modoro-zalo",
+      "docsLabel": "modoro-zalo",
+      "blurb": "Personal Zalo account integration via openzca CLI.",
+      "aliases": [
+        "ozl",
+        "zlu",
+        "zalo-personal"
+      ],
+      "systemImage": "message",
+      "order": 80,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "localPath": "extensions/modoro-zalo",
+      "defaultChoice": "local",
+      "minHostVersion": ">=2026.3.23"
+    }
+  }
+}
