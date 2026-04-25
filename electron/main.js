@@ -17173,7 +17173,8 @@ ipcMain.handle('get-diagnostic-log', async (_event, { tailLines = 500 } = {}) =>
     const raw = fs.readFileSync(logPath, 'utf-8');
     const lines = raw.split('\n');
     const tail = tailLines > 0 ? lines.slice(-tailLines).join('\n') : raw;
-    return { ok: true, path: logPath, content: tail, totalLines: lines.length };
+    const redacted = tail.replace(/\b(bot\d{5,}:\S{30,}|sk-[A-Za-z0-9_-]{20,}|[A-Za-z0-9+/=]{40,})/g, '[REDACTED]');
+    return { ok: true, path: logPath, content: redacted, totalLines: lines.length };
   } catch (e) {
     return { ok: false, error: String(e?.message || e) };
   }

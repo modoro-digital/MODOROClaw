@@ -183,7 +183,6 @@
       "target": "dmg",
       "icon": "build/icon.icns",
       "category": "public.app-category.productivity",
-      "identity": "MODORO DIGITAL COMPANY LIMITED (UQKLW82B3A)",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",

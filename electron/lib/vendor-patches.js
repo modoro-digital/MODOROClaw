@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const OPENZALO_FORK_VERSION = 'fork-v19-internal-groups';
+const OPENZALO_FORK_VERSION = 'fork-v20-review-fixes';
 
 // ---------------------------------------------------------------------------
 // Internal helpers

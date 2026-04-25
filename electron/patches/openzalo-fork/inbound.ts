@@ -598,7 +598,7 @@ export async function handleOpenzaloInbound(params: {
       /đã đặt tên cho nhóm/,
       /đã xóa lịch sử trò chuyện/,
     ];
-    if (__sysMsgText && __sysMsgText.length < 200 && __sysMsgPatterns.some(p => p.test(__sysMsgText))) {
+    if (__sysMsgText && __sysMsgText.length <= 200 && __sysMsgPatterns.some(p => p.test(__sysMsgText))) {
       runtime.log?.(`openzalo: drop group system event in ${message.threadId}: ${__sysMsgText.slice(0, 80)}`);
       return;
     }

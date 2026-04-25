@@ -119,10 +119,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.SIGN_AVAILABLE == 'true' && 'true' || 'false' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "$SIGN_AVAILABLE" != "true" ]; then
-            export CSC_LINK=""
-            export CSC_NAME=""
-          fi
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             npx electron-builder --mac --arm64 --publish never
           else
