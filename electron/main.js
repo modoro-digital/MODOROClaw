@@ -11281,27 +11281,30 @@ async function broadcastChannelStatusOnce() {
       });
       return;
     }
-        // Gate 2: gateway spawned (botRunning=true) but not yet listening on :18789.
-    // Telegram getMe returns green even when gateway can't process messages.
-    // CEO sees green dot but bot won't reply for 30-60s. Quick 2s probe.
-    const __gwAlive = await isGatewayAlive(2000);
-    if (!__gwAlive) {
-      mainWindow.webContents.send('channel-status', {
-        telegram: { ready: false, error: 'Đang khởi động...' },
-        zalo: { ready: false, error: 'Đang khởi động...' },
-        checkedAt: new Date().toISOString(),
-      });
-      return;
-    }
-    // OPTIM: skip expensive network probe if gateway recently emitted a
-    // "provider ready" marker (within 5min). Marker is ground-truth readiness
-    // — no need to hit Telegram getMe / scan process list again. Saves probe
-    // cost AND avoids false-negatives during transient network blips.
+    // Marker cache: if gateway confirmed alive within 5 min, skip the alive
+    // probe entirely. This MUST run before isGatewayAlive() — the old order
+    // (alive check first, marker check second) caused false-negative gray dots
+    // when gateway was busy serving an AI completion and didn't respond to the
+    // 2s health check. The marker IS proof the gateway is alive.
     const MARKER_FRESH_MS = 5 * 60 * 1000;
     const notifyState = global._readyNotifyState || null;
     const now = Date.now();
     const tgFresh = notifyState?.telegram?.markerSeenAt && (now - notifyState.telegram.markerSeenAt) < MARKER_FRESH_MS;
     const zlFresh = notifyState?.zalo?.markerSeenAt && (now - notifyState.zalo.markerSeenAt) < MARKER_FRESH_MS;
+    const bothFresh = tgFresh && zlFresh;
+    // Gate 2: gateway spawned (botRunning=true) but not yet listening on :18789.
+    // Skip if both markers fresh — gateway was confirmed alive recently.
+    if (!bothFresh) {
+      const __gwAlive = await isGatewayAlive(8000);
+      if (!__gwAlive) {
+        mainWindow.webContents.send('channel-status', {
+          telegram: { ready: false, error: 'Đang khởi động...' },
+          zalo: { ready: false, error: 'Đang khởi động...' },
+          checkedAt: new Date().toISOString(),
+        });
+        return;
+      }
+    }
     const [tg, zl] = await Promise.all([
       tgFresh
         ? Promise.resolve({ ready: true, cachedFromMarker: true })
