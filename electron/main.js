@@ -738,15 +738,30 @@ function seedWorkspace() {
         // version bumps. CEO customizations in these files are rare (they're
         // bot-internal, not user-facing), so overwriting is safe.
         const alsoOverwrite = ['MEMORY.md', 'HEARTBEAT.md', 'BOOTSTRAP.md', 'SOUL.md', 'TOOLS.md', 'README.md'];
-        // Also force-refresh tools/ directory on upgrade — these are bot
-        // utility scripts (send-zalo-safe.js, zalo-manage.js) that may have
-        // bug fixes. copyDirRecursive only copies missing files, so we delete
-        // the existing tools/ to force re-copy from template.
+        // Force-refresh template-owned files in these dirs while preserving
+        // any files the customer created (custom skills, prompts, etc.).
+        // Strategy: walk the template dir, overwrite matching files in workspace,
+        // but never delete workspace files that don't exist in the template.
         for (const dirName of ['tools', 'docs', 'skills', 'prompts']) {
-          const dirPath = path.join(ws, dirName);
-          if (fs.existsSync(dirPath)) {
-            try { fs.rmSync(dirPath, { recursive: true, force: true }); console.log('[seedWorkspace] ' + dirName + '/ force-refreshed (piggyback on AGENTS.md upgrade)'); } catch {}
-          }
+          const tmplDir = path.join(templateRoot, dirName);
+          const wsDir = path.join(ws, dirName);
+          if (!fs.existsSync(tmplDir)) continue;
+          let refreshed = 0;
+          const walkAndRefresh = (rel) => {
+            const srcDir = path.join(tmplDir, rel);
+            const dstDir = path.join(wsDir, rel);
+            try { fs.mkdirSync(dstDir, { recursive: true }); } catch {}
+            for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+              if (entry.isDirectory()) {
+                walkAndRefresh(path.join(rel, entry.name));
+              } else {
+                const srcFile = path.join(srcDir, entry.name);
+                const dstFile = path.join(dstDir, entry.name);
+                try { fs.copyFileSync(srcFile, dstFile); refreshed++; } catch {}
+              }
+            }
+          };
+          try { walkAndRefresh(''); console.log('[seedWorkspace] ' + dirName + '/ refreshed ' + refreshed + ' template files (user files preserved)'); } catch (we) { console.warn('[seedWorkspace] ' + dirName + '/ refresh failed:', we.message); }
         }
         for (const f of alsoOverwrite) {
           const fp = path.join(ws, f);
