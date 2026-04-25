@@ -168,16 +168,16 @@ if (ocConfig) {
     else skip('T2.2 Telegram enabled', 'no botToken configured');
   })();
 
-  // T2.3: openzalo channel exists with correct defaults
+  // T2.3: modoro-zalo channel exists with correct defaults
   (() => {
-    const oz = ocConfig.channels?.openzalo;
-    if (!oz) return skip('T2.3 openzalo config', 'no openzalo section');
+    const oz = ocConfig.channels?.['modoro-zalo'];
+    if (!oz) return skip('T2.3 modoro-zalo config', 'no modoro-zalo section');
     const issues = [];
     if (oz.blockStreaming !== false) issues.push('blockStreaming should be false');
     if (oz.dmPolicy && oz.dmPolicy !== 'open') issues.push('dmPolicy=' + oz.dmPolicy + ' (expected open)');
     if ('streaming' in oz) issues.push('"streaming" key present — schema rejects it');
-    if (issues.length) fail('T2.3 openzalo config', issues.join('; '));
-    else pass('T2.3 openzalo config healthy');
+    if (issues.length) fail('T2.3 modoro-zalo config', issues.join('; '));
+    else pass('T2.3 modoro-zalo config healthy');
   })();
 
   // T2.4: crossContext messaging enabled
@@ -248,15 +248,15 @@ if (!fs.existsSync(safeScript)) {
   // T3.3: Disabled gate
   (() => {
     if (!ocConfig) return skip('T3.3 disabled gate', 'no openclaw.json');
-    const wasEnabled = ocConfig.channels?.openzalo?.enabled;
+    const wasEnabled = ocConfig.channels?.['modoro-zalo']?.enabled;
     try {
-      ocConfig.channels.openzalo.enabled = false;
+      ocConfig.channels['modoro-zalo'].enabled = false;
       fs.writeFileSync(OC_CONFIG, JSON.stringify(ocConfig, null, 2));
       const r = runSafe(['123', 'test', '--group']);
       if (r.code === 1 && r.stderr.includes('disabled')) pass('T3.3 disabled gate blocks', r.stderr.slice(0, 80));
       else fail('T3.3 disabled gate', 'exit=' + r.code + ' stderr=' + r.stderr.slice(0, 100));
     } finally {
-      ocConfig.channels.openzalo.enabled = wasEnabled;
+      ocConfig.channels['modoro-zalo'].enabled = wasEnabled;
       fs.writeFileSync(OC_CONFIG, JSON.stringify(ocConfig, null, 2));
     }
   })();
@@ -317,7 +317,7 @@ if (!fs.existsSync(safeScript)) {
 
   // T3.8: Clean message with ALLOWED groupId passes all gates
   (() => {
-    if (!ocConfig || ocConfig.channels?.openzalo?.enabled === false) {
+    if (!ocConfig || ocConfig.channels?.['modoro-zalo']?.enabled === false) {
       return skip('T3.8 clean message pass', 'Zalo disabled');
     }
     const pausePath = path.join(WS, 'zalo-paused.json');
@@ -328,7 +328,7 @@ if (!fs.existsSync(safeScript)) {
     let groupId;
     try {
       const groups = JSON.parse(fs.readFileSync(groupsFile, 'utf-8'));
-      const oz = ocConfig.channels?.openzalo || {};
+      const oz = ocConfig.channels?.['modoro-zalo'] || {};
       const allowFrom = Array.isArray(oz.groupAllowFrom) ? oz.groupAllowFrom : ['*'];
       const isOpen = oz.groupPolicy !== 'allowlist' || allowFrom.includes('*');
       if (isOpen) { groupId = groups[0]?.groupId; }
@@ -572,7 +572,7 @@ console.log('\n\x1b[1m=== SUITE 8: Fresh Install Defaults ===\x1b[0m\n');
   else fail('T8.1 version mismatch', 'AGENTS.md v' + mdVer[1] + ' vs main.js v' + jsVer[1]);
 })();
 
-// T8.2: ensureDefaultConfig sets openzalo.enabled = false for fresh (undefined → false)
+// T8.2: ensureDefaultConfig sets modoro-zalo.enabled = false for fresh (undefined → false)
 (() => {
   const mainJs = fs.readFileSync(path.join(REPO_ROOT, 'electron', 'main.js'), 'utf-8');
   if (mainJs.includes('oz.enabled === undefined') && mainJs.includes('oz.enabled = false')) {

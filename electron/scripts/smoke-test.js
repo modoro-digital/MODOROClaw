@@ -10,7 +10,7 @@
  *   - openclaw            (the gateway + agent runtime)
  *   - openzca             (Zalo websocket listener)
  *   - 9router             (AI provider router)
- *   - @tuyenhx/openzalo   (openclaw plugin for Zalo channel)
+ *   - modoro-zalo          (our fork of openzalo — Zalo channel plugin)
  *
  * Each upstream version bump can silently break 9BizClaw if:
  *   - Config schema validator rejects fields we set
@@ -59,7 +59,6 @@ const PINNED = {
   openclaw: '2026.4.14',
   '9router': '0.3.82',
   openzca: '0.1.57',
-  '@tuyenhx/openzalo': '2026.3.31',
 };
 
 // =========================================================================
@@ -143,6 +142,24 @@ for (const [name, version] of Object.entries(PINNED)) {
   checkVendorVersion(name, version);
 }
 
+// modoro-zalo is our fork (copied from packages/, not installed via npm) —
+// verify it's present in vendor with the plugin manifest.
+if (hasVendorDir) {
+  const modoroZaloManifest = path.join(VENDOR_NM, 'modoro-zalo', 'openclaw.plugin.json');
+  if (fs.existsSync(modoroZaloManifest)) {
+    pass('vendor modoro-zalo (plugin manifest present)');
+  } else {
+    fail('vendor modoro-zalo', 'modoro-zalo/openclaw.plugin.json missing from vendor. Run: npm run prebuild:vendor');
+  }
+} else if (tarContents) {
+  const hasEntry = [...tarContents].some(e => e.startsWith('vendor/node_modules/modoro-zalo/'));
+  if (hasEntry) {
+    pass('vendor tar: modoro-zalo present');
+  } else {
+    fail('vendor tar modoro-zalo', 'modoro-zalo not found in vendor-bundle.tar. Run: rm vendor-bundle.tar vendor-meta.json && npm run prebuild:vendor');
+  }
+}
+
 // =========================================================================
 // TEST 2: openclaw CLI is runnable + `agent --help` works
 // =========================================================================
@@ -184,7 +201,7 @@ if (!openclawCli) {
         blockStreaming: false, streaming: 'off',
         groupPolicy: 'open', requireMention: true,
       },
-      openzalo: {
+      'modoro-zalo': {
         enabled: false, dmPolicy: 'open', allowFrom: ['*'],
         groupPolicy: 'open', groupAllowFrom: ['*'], blockStreaming: false,
         groups: {
@@ -193,8 +210,8 @@ if (!openclawCli) {
       },
     },
     plugins: {
-      entries: { openzalo: { enabled: false } },
-      allow: ['openzalo'],
+      entries: { 'modoro-zalo': { enabled: false } },
+      allow: ['modoro-zalo'],
     },
     models: { providers: { ninerouter: { baseUrl: 'http://127.0.0.1:20128/v1', apiKey: 'sk-fake', api: 'openai-completions', models: [{ id: 'main', name: 'fake' }] } } },
     agents: { defaults: { model: 'ninerouter/main', workspace: tmpDir, blockStreamingDefault: 'off', contextInjection: 'always' } },
@@ -318,53 +335,53 @@ function checkPatchAnchor(name, file, anchorRegex, patchMarker, hint) {
   fail(name, `neither anchor regex NOR patch marker "${patchMarker}" found. ${hint}`);
 }
 
-// Look for openzalo source in vendor first, then user-installed
-const openzaloSrcCandidates = [
-  path.join(VENDOR_NM, '@tuyenhx', 'openzalo', 'src'),
-  path.join(process.env.USERPROFILE || process.env.HOME || '', '.openclaw', 'extensions', 'openzalo', 'src'),
+// Look for modoro-zalo source in vendor first, then user-installed extensions
+const modoroZaloSrcCandidates = [
+  path.join(VENDOR_NM, 'modoro-zalo', 'src'),
+  path.join(process.env.USERPROFILE || process.env.HOME || '', '.openclaw', 'extensions', 'modoro-zalo', 'src'),
 ];
-let openzaloSrc = null;
-for (const c of openzaloSrcCandidates) {
-  if (fs.existsSync(c)) { openzaloSrc = c; break; }
+let modoroZaloSrc = null;
+for (const c of modoroZaloSrcCandidates) {
+  if (fs.existsSync(c)) { modoroZaloSrc = c; break; }
 }
 
-// In CI Mac builds the vendor MUST contain openzalo (no user-installed
+// In CI Mac builds the vendor MUST contain modoro-zalo (no user-installed
 // fallback exists in CI). Fail loudly if vendor is empty so the build doesn't
 // silently ship a DMG with no plugin patches applied at runtime.
 const isCiBuild = !!process.env.CI || !!process.env.GITHUB_ACTIONS;
-if (!openzaloSrc && isCiBuild && process.platform === 'darwin') {
-  fail('openzalo vendor source', 'CI Mac build requires vendor/node_modules/@tuyenhx/openzalo/src — prebuild-vendor failed silently');
+if (!modoroZaloSrc && isCiBuild && process.platform === 'darwin') {
+  fail('modoro-zalo vendor source', 'CI Mac build requires vendor/node_modules/modoro-zalo/src — prebuild-vendor failed silently');
 }
 
-if (openzaloSrc) {
+if (modoroZaloSrc) {
   // Anchor 1: openzca.ts shell-fix (fork file)
   checkPatchAnchor(
     'openzca.ts spawn anchor',
-    path.join(openzaloSrc, 'openzca.ts'),
+    path.join(modoroZaloSrc, 'openzca.ts'),
     /spawn\s*\(\s*binary\s*,/,
     '9BizClaw PATCH',
-    'openzalo fork openzca.ts missing shell-fix patch — check electron/patches/openzalo-fork/openzca.ts'
+    'modoro-zalo fork openzca.ts missing shell-fix patch — check electron/patches/openzalo-fork/openzca.ts'
   );
 
   // Anchor 2: inbound.ts blockStreaming (fork file)
   checkPatchAnchor(
     'inbound.ts disableBlockStreaming anchor',
-    path.join(openzaloSrc, 'inbound.ts'),
+    path.join(modoroZaloSrc, 'inbound.ts'),
     /disableBlockStreaming:\s*\n?\s*typeof account\.config\.blockStreaming === ["']boolean["']/,
     '9BizClaw FORCE-ONE-MESSAGE PATCH',
-    'openzalo fork inbound.ts missing force-one-message patch — check electron/patches/openzalo-fork/inbound.ts'
+    'modoro-zalo fork inbound.ts missing force-one-message patch — check electron/patches/openzalo-fork/inbound.ts'
   );
 
   // Anchor 3: inbound.ts blocklist (fork file)
   checkPatchAnchor(
     'inbound.ts blocklist anchor',
-    path.join(openzaloSrc, 'inbound.ts'),
+    path.join(modoroZaloSrc, 'inbound.ts'),
     /if\s*\(!rawBody\s*&&\s*!hasMedia\)\s*\{\s*\n\s*return;\s*\n\s*\}/,
     '9BizClaw BLOCKLIST PATCH',
-    'openzalo fork inbound.ts missing blocklist patch — check electron/patches/openzalo-fork/inbound.ts'
+    'modoro-zalo fork inbound.ts missing blocklist patch — check electron/patches/openzalo-fork/inbound.ts'
   );
 } else {
-  warn('openzalo plugin source', 'not found in vendor or ~/.openclaw/extensions — patch anchors skipped');
+  warn('modoro-zalo plugin source', 'not found in vendor or ~/.openclaw/extensions — patch anchors skipped');
 }
 
 // =========================================================================

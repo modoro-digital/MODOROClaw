@@ -47,7 +47,7 @@ const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
 try {
   if (fs.existsSync(configPath)) {
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    if (cfg?.channels?.openzalo?.enabled === false) {
+    if (cfg?.channels?.['modoro-zalo']?.enabled === false) {
       process.stderr.write('BLOCKED: Zalo channel is disabled. CEO must enable in Dashboard > Zalo.\n');
       process.exit(1);
     }
@@ -79,7 +79,7 @@ if (isGroup) {
   try {
     if (fs.existsSync(configPath)) {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      const oz = cfg?.channels?.openzalo || {};
+      const oz = cfg?.channels?.['modoro-zalo'] || {};
       const policy = oz.groupPolicy || 'open';
       const allowFrom = Array.isArray(oz.groupAllowFrom) ? oz.groupAllowFrom.map(String) : ['*'];
       if (policy === 'allowlist' && !allowFrom.includes('*') && !allowFrom.includes(targetId)) {

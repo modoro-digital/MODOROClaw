@@ -13,7 +13,7 @@
  *       node_modules/openclaw/         ← npm-installed openclaw
  *       node_modules/9router/          ← 9router AI proxy
  *       node_modules/openzca/          ← Zalo listener backend
- *       node_modules/@tuyenhx/openzalo ← Zalo plugin
+ *       node_modules/modoro-zalo/       ← Zalo plugin (our fork, copied from packages/)
  *
  *   win32:
  *     electron/vendor/
@@ -22,7 +22,7 @@
  *       node_modules/openclaw/         ← (same as Mac)
  *       node_modules/9router/
  *       node_modules/openzca/
- *       node_modules/@tuyenhx/openzalo
+ *       node_modules/modoro-zalo/      ← Zalo plugin (our fork, copied from packages/)
  *
  * electron-builder copies vendor/ → Resources/vendor/ via extraResources.
  * At runtime, main.js (getBundledNodeBin / getBundledOpenClawCliJs) detects
@@ -100,6 +100,19 @@ function sha256File(filePath) {
 function rmrf(p) {
   if (!fs.existsSync(p)) return;
   fs.rmSync(p, { recursive: true, force: true });
+}
+
+function copyDirSync(src, dst) {
+  mkdirp(dst);
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const dstPath = path.join(dst, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, dstPath);
+    } else {
+      fs.copyFileSync(srcPath, dstPath);
+    }
+  }
 }
 
 function mkdirp(p) {
@@ -266,13 +279,11 @@ function npmInstallVendorPackages() {
     openclaw: '2026.4.14',
     '9router': '0.3.82',
     openzca: '0.1.57',
-    '@tuyenhx/openzalo': '2026.3.31',
   };
   const installedVersions = {
     openclaw: readVendorVersion(path.join(VENDOR_NM, 'openclaw', 'package.json')),
     '9router': readVendorVersion(path.join(VENDOR_NM, '9router', 'package.json')),
     openzca: readVendorVersion(path.join(VENDOR_NM, 'openzca', 'package.json')),
-    '@tuyenhx/openzalo': readVendorVersion(path.join(VENDOR_NM, '@tuyenhx', 'openzalo', 'package.json')),
   };
   const allMatch = Object.entries(expectedVersions).every(([k, v]) => installedVersions[k] === v);
   // Arch marker — vendor/node_modules has native binaries (better-sqlite3 etc).
@@ -307,11 +318,13 @@ function npmInstallVendorPackages() {
   // listener (silently), leaving Zalo dead with the user seeing a perpetual
   // red "waiting for gateway" dot. Documented root cause — see session log.
   //
-  // CRITICAL #2: @tuyenhx/openzalo is the plugin PACKAGE itself. On fresh
+  // CRITICAL #2: modoro-zalo is our fork of the Zalo plugin. On fresh
   // install the openclaw gateway doesn't auto-install plugins from npm —
   // it expects them pre-extracted at ~/.openclaw/extensions/<plugin>/. By
-  // bundling @tuyenhx/openzalo in vendor, main.js can copy it on first boot
+  // bundling modoro-zalo in vendor, main.js can copy it on first boot
   // with zero network dependency. No network, no failure.
+  // modoro-zalo is NOT installed from npm — it's copied from packages/
+  // after npm install of the remaining 3 packages.
   // ===== PINNED VERSIONS =====
   // CRITICAL: Pin EXACT versions to protect against upstream breakage. Without
   // pinning, every build fetches `latest` from npm — which means a single
@@ -326,7 +339,6 @@ function npmInstallVendorPackages() {
     'openclaw@2026.4.14',
     '9router@0.3.82',
     'openzca@0.1.57',
-    '@tuyenhx/openzalo@2026.3.31',
   ];
 
   log('npm install (PINNED versions): ' + PINNED.join(' '));
@@ -365,20 +377,33 @@ function npmInstallVendorPackages() {
   }
   log('✓ 9router installed at', ninerouter);
 
-  // @tuyenhx/openzalo is REQUIRED for Zalo. Without this pre-bundled, fresh
-  // install would have to download the plugin from npm on first boot (which
-  // requires network + working system npm — neither guaranteed on a fresh
-  // Mac). With it bundled, main.js copies from vendor to extensions on first
-  // run with zero network.
-  const openzaloPlugin = path.join(VENDOR_NM, '@tuyenhx', 'openzalo', 'openclaw.plugin.json');
-  if (!fs.existsSync(openzaloPlugin)) {
+  // Copy modoro-zalo package from source tree (our fork, not from npm)
+  const modoroZaloSrc = path.join(__dirname, '..', 'packages', 'modoro-zalo');
+  const modoroZaloDst = path.join(VENDOR_NM, 'modoro-zalo');
+  if (fs.existsSync(modoroZaloSrc)) {
+    rmrf(modoroZaloDst);
+    copyDirSync(modoroZaloSrc, modoroZaloDst);
+    log('✓ modoro-zalo copied from packages/');
+  } else {
     fatal(
-      `vendor @tuyenhx/openzalo missing: ${openzaloPlugin}\n` +
-      `The Zalo plugin must be bundled — without it, Zalo cannot work on ` +
-      `fresh Mac installs. Refusing to ship a broken .app.`
+      `modoro-zalo source not found at ${modoroZaloSrc}\n` +
+      `The Zalo plugin fork must exist at electron/packages/modoro-zalo/. ` +
+      `Refusing to ship without it.`
     );
   }
-  log('✓ @tuyenhx/openzalo installed at', path.dirname(openzaloPlugin));
+
+  // modoro-zalo is REQUIRED for Zalo. Without this pre-bundled, fresh
+  // install would have no Zalo plugin. With it bundled, main.js copies
+  // from vendor to extensions on first run with zero network dependency.
+  const modoroZaloPlugin = path.join(VENDOR_NM, 'modoro-zalo', 'openclaw.plugin.json');
+  if (!fs.existsSync(modoroZaloPlugin)) {
+    fatal(
+      `vendor modoro-zalo missing plugin manifest: ${modoroZaloPlugin}\n` +
+      `The Zalo plugin must be bundled — without it, Zalo cannot work on ` +
+      `fresh installs. Refusing to ship a broken build.`
+    );
+  }
+  log('✓ modoro-zalo installed at', path.dirname(modoroZaloPlugin));
 
   // Stamp arch marker so next prebuild can detect arch drift and force rebuild.
   try {
@@ -722,7 +747,6 @@ async function main() {
     const results = vendorPatches.applyAllVendorPatches({
       vendorDir: VENDOR,
       homeDir,
-      skipFork: true,   // openzalo fork is runtime-only (extension dir doesn't exist at build time)
     });
     log('vendor patches:', JSON.stringify(results));
   } catch (e) {

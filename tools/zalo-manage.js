@@ -119,8 +119,8 @@ switch (cmd) {
     const groups = readJson(path.join(getZcaCacheDir(), 'groups.json'), []);
     const settings = readJson(groupSettingsPath, {});
     const cfg = readJson(openclawConfigPath, {});
-    const allowFrom = cfg?.channels?.openzalo?.groupAllowFrom || [];
-    const isOpen = cfg?.channels?.openzalo?.groupPolicy === 'open';
+    const allowFrom = cfg?.channels?.['modoro-zalo']?.groupAllowFrom || [];
+    const isOpen = cfg?.channels?.['modoro-zalo']?.groupPolicy === 'open';
 
     if (groups.length === 0) { console.log('Chưa có nhóm Zalo nào.'); break; }
     for (const g of groups) {
@@ -148,7 +148,7 @@ switch (cmd) {
 
   case 'status': {
     const cfg = readJson(openclawConfigPath, {});
-    const oz = cfg?.channels?.openzalo || {};
+    const oz = cfg?.channels?.['modoro-zalo'] || {};
     const settings = readJson(groupSettingsPath, {});
     const blocklist = readJson(blocklistPath, []);
     const groups = readJson(path.join(getZcaCacheDir(), 'groups.json'), []);

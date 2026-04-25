@@ -9,7 +9,7 @@ MODOROClaw bundles 4 third-party npm packages. Their versions are **pinned exact
 | `openclaw` | `2026.4.14` | Gateway + agent runtime + cron pipeline + vision + web search | All bot replies dead, all crons fail |
 | `openzca` | `0.1.57` | Zalo websocket listener (Zalo channel backend) | Zalo silent, Telegram still works |
 | `9router` | `0.3.82` | AI provider router (proxies to Ollama / Codex / etc.) | All AI calls fail, bot can't think |
-| `@tuyenhx/openzalo` | `2026.3.31` | OpenClaw plugin for Zalo channel | Zalo channel disabled |
+| `modoro-zalo` | `1.0.0` | Self-owned Zalo channel plugin (fork of @tuyenhx/openzalo@2026.3.31) | Zalo channel disabled |
 
 ## Where versions are referenced (single source of truth = this file)
 
