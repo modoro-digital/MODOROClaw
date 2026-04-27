@@ -204,7 +204,8 @@
             "!**/node/bin/corepack",
             "!**/node/bin/npx",
             "!**/node/share/**",
-            "!**/node/include/**"
+            "!**/node/include/**",
+            "!**/node_modules/@tloncorp/**"
           ]
         }
       ],
