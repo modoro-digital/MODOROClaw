@@ -129,7 +129,11 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.SIGN_AVAILABLE == 'true' && 'true' || 'false' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ulimit -n 65536
+          # 184k vendor files exhaust macOS default fd limits during codesign
+          sudo sysctl -w kern.maxfiles=524288 || true
+          sudo sysctl -w kern.maxfilesperproc=524288 || true
+          ulimit -n 524288
+          echo "ulimit -n: $(ulimit -n)"
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             npx electron-builder --mac --arm64 --publish never
           else
