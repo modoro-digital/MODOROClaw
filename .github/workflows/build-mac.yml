@@ -93,8 +93,13 @@ jobs:
             echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
           else
             CERT_PATH="$RUNNER_TEMP/cert.p12"
-            if ! echo "$MAC_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH" 2>/dev/null || [ ! -s "$CERT_PATH" ]; then
+            # Strip whitespace/newlines that GitHub Secrets UI may inject,
+            # then decode. printf avoids echo's trailing-newline ambiguity.
+            CLEAN_B64=$(printf '%s' "$MAC_CERT_P12_BASE64" | tr -d '[:space:]')
+            if ! printf '%s' "$CLEAN_B64" | base64 --decode > "$CERT_PATH" 2>/dev/null || [ ! -s "$CERT_PATH" ]; then
               echo "⚠ MAC_CERT_P12_BASE64 secret is set but base64 decode failed — building unsigned"
+              echo "  hint: re-encode with: base64 -i cert.p12 | tr -d '\\n'"
+              echo "  secret length: ${#MAC_CERT_P12_BASE64}, cleaned: ${#CLEAN_B64}"
               echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
               rm -f "$CERT_PATH"
             else
