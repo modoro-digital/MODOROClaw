@@ -4424,7 +4424,9 @@ async function _startOpenClawImpl(opts = {}) {
     ensureOpenclawPricingFix,
     ensureOpenclawPrewarmFix,
     applyOpenzaloFork,
-    cleanBlocklist,
+    // cleanBlocklist removed — it wiped zalo-blocklist.json to [] on every boot,
+    // destroying friend block/unblock settings. The blocklist IS the active store
+    // for per-friend toggle state (Dashboard Bạn bè tab).
     ensureOpenzcaFriendEventFix,
     ensureVisionFix,
     ensureVisionCatalogFix,
