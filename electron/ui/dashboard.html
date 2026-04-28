@@ -4606,8 +4606,12 @@
             && typeof markZmFresh === 'function') {
           markZmFresh(config.enabled);
         }
-        zaloDataLoaded = true;
-        console.log('[loadZaloManagerData] blocklist loaded:', (zaloMgrConfig.userBlocklist || []).length, 'entries, friends:', zaloFriends.length);
+        if (config && Array.isArray(config.userBlocklist)) {
+          zaloDataLoaded = true;
+          console.log('[loadZaloManagerData] blocklist loaded:', config.userBlocklist.length, 'entries, friends:', zaloFriends.length);
+        } else {
+          console.warn('[loadZaloManagerData] config null or no blocklist — zaloDataLoaded stays', zaloDataLoaded);
+        }
         syncZaloManagerUi();
       } catch (e) {
         console.error('loadZaloManagerData error:', e);
@@ -4783,7 +4787,7 @@
             const fresh = await window.claw.getZaloManagerConfig();
             if (!fresh || typeof fresh.enabled !== 'boolean') {
               console.warn('[autoSaveZaloManager] could not read current enabled state — skipping (fail-closed, NOT flipping to true)');
-              showToast('Chưa lưu được — bấm "Lưu cấu hình" để áp dụng', 'info');
+              showToast('Chưa lưu được — vui lòng thử lại sau vài giây', 'info');
               return;
             }
             markZmFresh(fresh.enabled);
@@ -4988,7 +4992,7 @@
     async function saveZaloManager() {
       if (!zaloDataLoaded) {
         console.warn('[saveZaloManager] skipped — zalo data not loaded yet');
-        showToast('Đang tải dữ liệu Zalo, vui lòng đợi...', 'info');
+        showToast('Đang tải dữ liệu Zalo, vui lòng đợi vài giây...', 'info');
         return;
       }
       zaloMgrConfig.enabled = document.getElementById('zalo-mgr-enabled').checked;
