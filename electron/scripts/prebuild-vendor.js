@@ -58,6 +58,18 @@ const NODE_CHECKSUMS = {
   },
 };
 
+const GOG_VERSION = 'v0.13.0';
+// SHA256 from https://github.com/steipete/gogcli/releases/tag/v0.13.0
+// To regenerate: download each binary, run `sha256sum <file>`
+const GOG_CHECKSUMS = {
+  [GOG_VERSION]: {
+    'win32-x64':    '', // TODO: fill from release page
+    'win32-arm64':  '', // TODO: fill from release page
+    'darwin-arm64': '', // TODO: fill from release page
+    'darwin-x64':   '', // TODO: fill from release page
+  },
+};
+
 const ROOT = path.resolve(__dirname, '..');
 const VENDOR = path.join(ROOT, 'vendor');
 const VENDOR_NODE = path.join(VENDOR, 'node');
@@ -252,6 +264,65 @@ async function downloadAndExtractNode(platform, arch) {
     }
   } else {
     log(`vendor node downloaded for ${platform}-${arch} — host is ${process.platform}, skipping run check`);
+  }
+}
+
+async function downloadGogBinary(platform, arch) {
+  const gogDir = path.join(VENDOR, 'gog');
+  const gogBin = platform === 'win32'
+    ? path.join(gogDir, 'gog.exe')
+    : path.join(gogDir, 'gog');
+
+  const stamp = path.join(gogDir, '.target');
+  const stampValue = `${GOG_VERSION}-${platform}-${arch}`;
+  if (fs.existsSync(gogBin) && fs.existsSync(stamp) &&
+      fs.readFileSync(stamp, 'utf-8').trim() === stampValue) {
+    log('gog binary already present for', stampValue, '— skipping download');
+    return;
+  }
+
+  rmrf(gogDir);
+  mkdirp(gogDir);
+
+  const archMap = { x64: 'amd64', arm64: 'arm64' };
+  const platMap = { win32: 'windows', darwin: 'darwin' };
+  const ext = platform === 'win32' ? '.exe' : '';
+  const assetName = `gog_${platMap[platform]}_${archMap[arch]}${ext}`;
+  const url = `https://github.com/steipete/gogcli/releases/download/${GOG_VERSION}/${assetName}`;
+  const tmp = path.join(os.tmpdir(), assetName);
+
+  await downloadFile(url, tmp);
+
+  const checksumKey = `${platform}-${arch}`;
+  const expected = GOG_CHECKSUMS[GOG_VERSION]?.[checksumKey];
+  if (expected) {
+    const actual = sha256File(tmp);
+    if (actual !== expected) {
+      try { fs.unlinkSync(tmp); } catch {}
+      fatal(`gog SHA256 mismatch for ${checksumKey}.\n  Expected: ${expected}\n  Got:      ${actual}`);
+    }
+    log(`gog SHA256 verified for ${checksumKey}`);
+  } else {
+    warn(`No SHA256 checksum for gog ${GOG_VERSION}/${checksumKey}. Fill GOG_CHECKSUMS.`);
+  }
+
+  fs.copyFileSync(tmp, gogBin);
+  fs.unlinkSync(tmp);
+  if (platform !== 'win32') {
+    try { fs.chmodSync(gogBin, 0o755); } catch {}
+  }
+
+  fs.writeFileSync(stamp, stampValue + '\n');
+
+  if (process.platform === platform) {
+    try {
+      const out = execSync(`"${gogBin}" version`, { encoding: 'utf-8', timeout: 10000 }).trim();
+      log('vendor gog version:', out);
+    } catch (e) {
+      warn('gog binary present but failed to run:', e.message);
+    }
+  } else {
+    log(`gog downloaded for ${platform}-${arch} — host is ${process.platform}, skipping run check`);
   }
 }
 
@@ -650,7 +721,7 @@ function packVendorForWindows() {
   // Bundle version: deterministic fingerprint based on Node + openclaw version
   // + platform. NO Date.now() — otherwise every build forces a 2-minute
   // re-extract on customer machines even when vendor contents are identical.
-  const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_${process.platform}-${process.arch}`;
+  const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_modoro-zalo_${process.platform}-${process.arch}`;
 
   // H7: per-model-file SHA so runtime can verify extracted .onnx wasn't
   // swapped (user-writable %APPDATA% on Windows). Read hashes from
@@ -735,6 +806,7 @@ async function main() {
   mkdirp(VENDOR);
 
   await downloadAndExtractNode(platform, arch);
+  await downloadGogBinary(platform, arch);
   npmInstallVendorPackages();
   fixNineRouterNativeModules(platform, arch);
 
