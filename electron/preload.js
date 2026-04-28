@@ -154,6 +154,11 @@ contextBridge.exposeInMainWorld('claw', {
   googleDriveUpload: (opts) => ipcRenderer.invoke('google-drive-upload', opts),
   googleDriveDownload: (opts) => ipcRenderer.invoke('google-drive-download', opts),
   googleDriveShare: (opts) => ipcRenderer.invoke('google-drive-share', opts),
+  googleContactsList: (opts) => ipcRenderer.invoke('google-contacts-list', opts || {}),
+  googleContactsCreate: (opts) => ipcRenderer.invoke('google-contacts-create', opts),
+  googleTasksList: (opts) => ipcRenderer.invoke('google-tasks-list', opts || {}),
+  googleTasksCreate: (opts) => ipcRenderer.invoke('google-tasks-create', opts),
+  googleTasksComplete: (opts) => ipcRenderer.invoke('google-tasks-complete', opts),
 
   // First-time channel guide
   checkGuideNeeded: (channel) => ipcRenderer.invoke('check-guide-needed', { channel }),

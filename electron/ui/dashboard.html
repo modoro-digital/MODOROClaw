@@ -3098,13 +3098,58 @@
           </div>
         </div>
         <div class="gw-panel" id="gw-contacts" style="display:none">
-          <div style="padding:60px 20px;text-align:center;color:var(--text-muted)">
-            <p style="margin:0;font-size:14px">Đang phát triển</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:8px;flex:1">
+              <input type="text" id="contacts-search" placeholder="Tìm liên hệ..." style="flex:1;max-width:320px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')searchContacts()" />
+              <button class="btn btn-secondary btn-small" onclick="searchContacts()">Tìm</button>
+            </div>
+            <button class="btn btn-primary btn-small" onclick="showAddContactModal()">Thêm liên hệ</button>
+          </div>
+          <div id="contacts-list" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div id="contacts-empty" style="display:none;padding:60px 20px;text-align:center;color:var(--text-muted)">
+            <p style="margin:0;font-size:14px">Không có liên hệ nào</p>
+          </div>
+          <!-- Add contact modal -->
+          <div id="contact-add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+            <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:28px;width:380px;max-width:90vw">
+              <h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:var(--text)">Thêm liên hệ</h3>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div><label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Tên</label><input type="text" id="contact-new-name" placeholder="Nguyễn Văn A" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" /></div>
+                <div><label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Số điện thoại</label><input type="tel" id="contact-new-phone" placeholder="0901234567" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" /></div>
+                <div><label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Email</label><input type="email" id="contact-new-email" placeholder="email@company.com" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" /></div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+                <button class="btn btn-secondary btn-small" onclick="hideAddContactModal()">Hủy</button>
+                <button class="btn btn-primary btn-small" onclick="submitAddContact()">Thêm</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="gw-panel" id="gw-tasks" style="display:none">
-          <div style="padding:60px 20px;text-align:center;color:var(--text-muted)">
-            <p style="margin:0;font-size:14px">Đang phát triển</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Danh sách công việc</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-small" onclick="loadTasksList()">Làm mới</button>
+              <button class="btn btn-primary btn-small" onclick="showAddTaskModal()">Thêm việc</button>
+            </div>
+          </div>
+          <div id="tasks-list" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div id="tasks-empty" style="display:none;padding:60px 20px;text-align:center;color:var(--text-muted)">
+            <p style="margin:0;font-size:14px">Không có công việc nào</p>
+          </div>
+          <!-- Add task modal -->
+          <div id="task-add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+            <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:28px;width:380px;max-width:90vw">
+              <h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:var(--text)">Thêm công việc</h3>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div><label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Tiêu đề</label><input type="text" id="task-new-title" placeholder="Gọi khách hàng" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" /></div>
+                <div><label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Hạn chót</label><input type="date" id="task-new-due" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" /></div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+                <button class="btn btn-secondary btn-small" onclick="hideAddTaskModal()">Hủy</button>
+                <button class="btn btn-primary btn-small" onclick="submitAddTask()">Thêm</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="gw-panel" id="gw-settings">
@@ -7428,6 +7473,8 @@
       if (tab === 'calendar') loadCalendarEvents();
       if (tab === 'gmail') loadGmailInbox();
       if (tab === 'drive') loadDriveFiles();
+      if (tab === 'contacts') loadContactsList();
+      if (tab === 'tasks') loadTasksList();
       if (tab === 'settings') loadGoogleStatus();
     }
     switchGwTab('settings');
@@ -7639,6 +7686,91 @@
     function searchDriveFiles() {
       const q = document.getElementById('drive-search').value.trim();
       loadDriveFiles(q || undefined);
+    }
+
+    // --- Contacts tab ---
+    async function loadContactsList(query) {
+      const list = document.getElementById('contacts-list');
+      const empty = document.getElementById('contacts-empty');
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
+      empty.style.display = 'none';
+      try {
+        const data = await window.claw.googleContactsList({ query });
+        const contacts = data.contacts || data.connections || data.data || [];
+        if (!contacts.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+        list.innerHTML = contacts.map(c => {
+          const name = c.name || c.displayName || '';
+          const phone = c.phone || (c.phoneNumbers && c.phoneNumbers[0]?.value) || '';
+          const email = c.email || (c.emailAddresses && c.emailAddresses[0]?.value) || '';
+          return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px">' +
+            '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text)">' + (name.charAt(0) || '?') + '</div>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text)">' + name + '</div>' +
+            '<div style="font-size:12px;color:var(--text-muted)">' + [phone, email].filter(Boolean).join(' · ') + '</div></div></div>';
+        }).join('');
+      } catch (e) {
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải liên hệ') + '</div>';
+      }
+    }
+    function searchContacts() { loadContactsList(document.getElementById('contacts-search').value.trim() || undefined); }
+    function showAddContactModal() { document.getElementById('contact-add-modal').style.display = 'flex'; }
+    function hideAddContactModal() { document.getElementById('contact-add-modal').style.display = 'none'; }
+    async function submitAddContact() {
+      const name = document.getElementById('contact-new-name').value.trim();
+      if (!name) { alert('Vui lòng nhập tên'); return; }
+      const phone = document.getElementById('contact-new-phone').value.trim();
+      const email = document.getElementById('contact-new-email').value.trim();
+      try {
+        const r = await window.claw.googleContactsCreate({ name, phone: phone || undefined, email: email || undefined });
+        if (r.error) throw new Error(r.error);
+        hideAddContactModal();
+        loadContactsList();
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    // --- Tasks tab ---
+    async function loadTasksList() {
+      const list = document.getElementById('tasks-list');
+      const empty = document.getElementById('tasks-empty');
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
+      empty.style.display = 'none';
+      try {
+        const data = await window.claw.googleTasksList({});
+        const tasks = data.tasks || data.items || data.data || [];
+        if (!tasks.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+        list.innerHTML = tasks.map(t => {
+          const title = t.title || t.name || '';
+          const due = t.due || t.dueDate || '';
+          const dueStr = due ? new Date(due).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' }) : '';
+          const done = t.status === 'completed' || t.completed;
+          return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">' +
+            '<input type="checkbox" ' + (done ? 'checked disabled' : '') + ' onchange="completeTaskItem(\'' + (t.id || '') + '\')" style="width:16px;height:16px;cursor:pointer" />' +
+            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);' + (done ? 'text-decoration:line-through;opacity:.5' : '') + '">' + title + '</div>' +
+            (dueStr ? '<div style="font-size:11px;color:var(--text-muted)">Hạn: ' + dueStr + '</div>' : '') +
+            '</div></div>';
+        }).join('');
+      } catch (e) {
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải danh sách') + '</div>';
+      }
+    }
+    async function completeTaskItem(id) {
+      if (!id) return;
+      try {
+        await window.claw.googleTasksComplete({ taskId: id });
+        loadTasksList();
+      } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+    function showAddTaskModal() { document.getElementById('task-add-modal').style.display = 'flex'; }
+    function hideAddTaskModal() { document.getElementById('task-add-modal').style.display = 'none'; }
+    async function submitAddTask() {
+      const title = document.getElementById('task-new-title').value.trim();
+      if (!title) { alert('Vui lòng nhập tiêu đề'); return; }
+      const due = document.getElementById('task-new-due').value || undefined;
+      try {
+        const r = await window.claw.googleTasksCreate({ title, due });
+        if (r.error) throw new Error(r.error);
+        hideAddTaskModal();
+        loadTasksList();
+      } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
     async function loadGoogleStatus() {
