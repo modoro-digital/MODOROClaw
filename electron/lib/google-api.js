@@ -135,8 +135,60 @@ function disconnectAccount() {
   return { ok: true };
 }
 
+// --- Calendar ---
+
+async function listEvents(from, to) {
+  const args = ['calendar', 'events', 'list'];
+  if (from) args.push('--from', from);
+  if (to) args.push('--to', to);
+  return gogExec(args);
+}
+
+async function createEvent(summary, start, end, attendees) {
+  const args = ['calendar', 'events', 'create', '--summary', summary, '--start', start, '--end', end];
+  if (attendees) {
+    const list = Array.isArray(attendees) ? attendees.join(',') : attendees;
+    args.push('--attendees', list);
+  }
+  return gogExec(args);
+}
+
+async function deleteEvent(eventId) {
+  return gogExec(['calendar', 'events', 'delete', eventId]);
+}
+
+async function getFreeBusy(from, to) {
+  return gogExec(['calendar', 'freebusy', '--from', from, '--to', to]);
+}
+
+async function getFreeSlots(date, workStart, workEnd, slotMinutes) {
+  workStart = workStart || '08:00';
+  workEnd = workEnd || '18:00';
+  slotMinutes = parseInt(slotMinutes) || 30;
+  const from = date + 'T' + workStart + ':00';
+  const to = date + 'T' + workEnd + ':00';
+  const busy = await getFreeBusy(from, to);
+  const busyPeriods = (busy.calendars || busy.data || [])
+    .flatMap(c => c.busy || [])
+    .map(b => ({ start: new Date(b.start), end: new Date(b.end) }))
+    .sort((a, b) => a.start - b.start);
+
+  const slots = [];
+  let cursor = new Date(from);
+  const endTime = new Date(to);
+  const slotMs = slotMinutes * 60000;
+  while (cursor.getTime() + slotMs <= endTime.getTime()) {
+    const slotEnd = new Date(cursor.getTime() + slotMs);
+    const conflict = busyPeriods.some(b => cursor < b.end && slotEnd > b.start);
+    if (!conflict) slots.push({ start: cursor.toISOString(), end: slotEnd.toISOString() });
+    cursor = new Date(cursor.getTime() + slotMs);
+  }
+  return { slots };
+}
+
 module.exports = {
   getGogBinaryPath, getGogConfigDir, getGogAccount,
   gogExec, gogExecSync, gogSpawnAsync, gogEnv,
   authStatus, registerCredentials, connectAccount, disconnectAccount,
+  listEvents, createEvent, deleteEvent, getFreeBusy, getFreeSlots,
 };
