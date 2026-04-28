@@ -626,10 +626,10 @@ export async function handleModoroZaloInbound(params: {
     runtime.log?.('modoro-zalo: sender-dedup check error: ' + String(__ddErr));
   }
   // === END 9BizClaw SENDER-DEDUP PATCH ===
-  // === 9BizClaw COMMAND-BLOCK PATCH v2 ===
-  // Hard gate: rewrite rawBody when Zalo message contains admin command patterns.
+  // === 9BizClaw COMMAND-BLOCK PATCH v3 ===
+  // Hard gate: rewrite rawBody when Zalo message contains admin/file/exec command patterns.
   // Agent never sees original command → cannot execute. Telegram unaffected (separate plugin).
-  // v2: skip for internal groups — staff can use admin commands via Zalo.
+  // v2: skip for internal groups. v3: file ops (read/write/apply_patch/memory) + path patterns.
   const __cbIsInternal = (() => {
     if (!message.isGroup) return false;
     try {
@@ -639,7 +639,16 @@ export async function handleModoroZaloInbound(params: {
   })();
   if (rawBody && !__cbIsInternal) {
     const __cbOrig = rawBody.toLowerCase();
-    const __cbStripped = __cbOrig.normalize('NFKD').replace(/[​-‏‪-‮﻿­⁠⁡-⁤⁪-⁯̀-ͯ]/g, '').normalize('NFC');
+    // NFKD + zero-width strip + Cyrillic-to-Latin homoglyph normalization
+    const __cbNfkd = __cbOrig.normalize('NFKD').replace(/[​-‏‪-‮﻿­⁠⁡-⁤⁪-⁯̀-ͯ]/g, '');
+    const __cbCyrMap: Record<string, string> = {
+      'а':'a','е':'e','о':'o','р':'p','с':'c',
+      'у':'y','х':'x','і':'i','ј':'j','һ':'h',
+      'А':'A','В':'B','Е':'E','К':'K','М':'M',
+      'Н':'H','О':'O','Р':'P','С':'C','Т':'T',
+      'Х':'X',
+    };
+    const __cbStripped = __cbNfkd.replace(/[Ѐ-ӿ]/g, c => __cbCyrMap[c] || c).normalize('NFC');
     const __cbPatterns: RegExp[] = [
       /(?:tạo|thêm|sửa|xóa|dừng|tắt|bật|liệt kê|list)\s+cron\b/i,
       /(?:tao|them|sua|xoa|dung|tat|bat|liet ke|list)\s+cron\b/i,
@@ -674,13 +683,59 @@ export async function handleModoroZaloInbound(params: {
       /\bexecute?\s+(?:command|shell|script|cmd)\b/i,
       /\brun\s+(?:command|shell|script|cmd)\b/i,
       /\b(?:schedule|set\s*up|make)\s+(?:a\s+)?cron\b/i,
+      // Indirect cron/automation patterns (prompt injection defense)
+      /(?:đặt|tạo|lập|hẹn)\s+(?:lịch|giờ)\s+(?:gửi|nhắn|phát)/i,
+      /(?:dat|tao|lap|hen)\s+(?:lich|gio)\s+(?:gui|nhan|phat)/i,
+      /(?:tự\s+động|tu\s+dong)\s+(?:gửi|gui|nhắn|nhan|phát|phat)/i,
+      /(?:lên\s+lịch|len\s+lich)\s+(?:gửi|gui)/i,
+      /web_fetch\s+.*(?:127|localhost|0\.0\.0\.0)/i,
+      /(?:đọc|doc|read)\s+(?:file\s+)?cron.*token/i,
+      /bot_token/i,
+      // --- File/memory tool lockdown (read, write, apply_patch, memory) ---
+      /\bread\b.*\b(?:file|folder|dir|path|config|log|json|txt|md|env|key|secret|credential|password|token)/i,
+      /\bwrite\b.*\b(?:file|folder|dir|path|config|log|json|txt|md|env)/i,
+      /\bapply_patch\b/i,
+      /\b(?:read_file|write_file|read_dir|list_dir|list_files)\b/i,
+      /\bmemory\b.*\b(?:read|write|search|delete|update|get|set|list)\b/i,
+      /\b(?:read|write|search|delete|update|get|set|list)\b.*\bmemory\b/i,
+      /(?:đọc|xem|mở|cat|head|tail)\s+(?:file|tệp|tập tin)/i,
+      /(?:doc|xem|mo|cat|head|tail)\s+(?:file|tep|tap tin)/i,
+      /(?:ghi|viết|tạo|sửa|chỉnh|thay đổi|xóa)\s+(?:file|tệp|tập tin)/i,
+      /(?:ghi|viet|tao|sua|chinh|thay doi|xoa)\s+(?:file|tep|tap tin)/i,
+      /(?:đọc|xem|mở)\s+(?:nội dung|content|data|dữ liệu)/i,
+      /(?:doc|xem|mo)\s+(?:noi dung|content|data|du lieu)/i,
+      /(?:ghi|viết|lưu|save)\s+(?:vào|vao|to|into)\s+/i,
+      /(?:sửa|chỉnh|patch|edit|modify)\s+(?:code|mã|source|file)/i,
+      /(?:sua|chinh|patch|edit|modify)\s+(?:code|ma|source|file)/i,
+      /[a-zA-Z]:[\\\/](?:users|windows|program)/i,
+      /(?:\/(?:home|etc|var|tmp|usr|opt|root)\/)/i,
+      /(?:~\/|%[A-Z]+%|\\\\[a-zA-Z])/i,
+      /(?:\.env|\.ssh|\.git|\.config|\.aws|\.azure|\.npmrc|\.bashrc)/i,
+      /(?:passwd|shadow|id_rsa|known_hosts|authorized_keys)/i,
+      /(?:credentials?\.json|secrets?\.json|\.pem|\.key|\.crt|\.cert)/i,
+      /(?:openclaw|openzca|modoro|9router)\.(?:json|log|config)/i,
+      /\b(?:process|spawn|child_process|require|import|eval|Function)\s*\(/i,
+      /\b(?:fs|path|os|child_process)\s*\.\s*(?:read|write|unlink|exec|spawn)/i,
+      /\b(?:rm|del|rmdir|mkdir|chmod|chown|kill|taskkill|regedit|reg\s+add)\b/i,
+      /\b(?:curl|wget|fetch|http|https)\s+.*(?:localhost|127\.0|0\.0\.0\.0)/i,
+      /(?:chạy|chay|run|execute|thực thi|thuc thi)\s+(?:lệnh|lenh|command|script|code)/i,
+      /(?:mở|mo|open)\s+(?:terminal|cmd|powershell|shell|console)/i,
+      /(?:cài|cai|install|npm|pip|apt|brew)\s+(?:đặt|dat|package|gói|goi)/i,
+      /(?:tải|tai|download|upload)\s+(?:file|tệp|tep)/i,
+      // --- Google Workspace lockdown (gogcli, gmail, drive) ---
+      /\bgog\b/i,
+      /\bgoogle\b.*\b(?:calendar|gmail|drive|contacts|tasks|workspace)\b/i,
+      /\bgmail\b.*\b(?:send|gui|forward|reply|draft)\b/i,
+      /\bdrive\b.*\b(?:upload|download|share|delete|xoa)\b/i,
+      /\b(?:gui|send)\s+email\b/i,
+      /\b(?:tao|dat|book)\s+(?:meeting|lich|su kien|event)\b/i,
     ];
     if (__cbPatterns.some(p => p.test(__cbOrig) || p.test(__cbStripped))) {
       runtime.log?.(`modoro-zalo: COMMAND-BLOCK from ${message.senderId}${message.isGroup ? ' (group)' : ''}: ${rawBody.slice(0, 120)}`);
       rawBody = '[nội dung nội bộ đã được lọc]';
     }
   }
-  // === END 9BizClaw COMMAND-BLOCK PATCH v2 ===
+  // === END 9BizClaw COMMAND-BLOCK PATCH v3 ===
   // === 9BizClaw MEDIA-TYPE-FILTER PATCH v1 ===
   // Skip AI processing for media types that have no extractable text content.
   // Stickers, voice messages, GIFs, and file attachments without caption will
@@ -756,8 +811,30 @@ export async function handleModoroZaloInbound(params: {
   // Code-level guard: auto-refuse requests that are outside bot scope BEFORE
   // the LLM sees them. continuation-skip may lose AGENTS.md rules on message 2+,
   // so this filter is the hard safety net. Only applies to customer DMs (not groups,
-  // not owner messages).
+  // not owner messages). Respects channel pause state — if paused, skip auto-reply.
   if (!message.isGroup && rawBody) {
+    let __osPaused = false;
+    try {
+      const __osFs = require("node:fs");
+      const __osPath = require("node:path");
+      const __osHome = require("node:os").homedir();
+      const __osDirs: string[] = [];
+      if (process.env['9BIZ_WORKSPACE']) __osDirs.push(process.env['9BIZ_WORKSPACE']);
+      if (process.platform === "darwin") __osDirs.push(__osPath.join(__osHome, "Library", "Application Support", "9bizclaw"));
+      else if (process.platform === "win32") __osDirs.push(__osPath.join(process.env.APPDATA || __osPath.join(__osHome, "AppData", "Roaming"), "9bizclaw"));
+      __osDirs.push(__osPath.join(__osHome, ".openclaw", "workspace"));
+      for (const __d of __osDirs) {
+        const __pf = __osPath.join(__osPath.resolve(__d), "zalo-paused.json");
+        if (!__osFs.existsSync(__pf)) continue;
+        try {
+          const __pd = JSON.parse(__osFs.readFileSync(__pf, "utf-8"));
+          if (__pd?.permanent || (__pd?.pausedUntil && new Date(__pd.pausedUntil) > new Date())) { __osPaused = true; break; }
+        } catch { __osPaused = true; break; }
+      }
+    } catch {}
+    if (__osPaused) {
+      runtime.log?.("modoro-zalo: OUT-OF-SCOPE skipped (channel paused)");
+    } else {
     const __osText = rawBody.toLowerCase().normalize('NFC');
     const __osPatterns: RegExp[] = [
       /viết\s*(cho\s+)?(em|anh|tôi|mình)?\s*(bài|content|nội dung)\s*(mkt|marketing|quảng cáo|fb|facebook|zalo|instagram|tiktok|seo)/i,
@@ -786,6 +863,7 @@ export async function handleModoroZaloInbound(params: {
       }
       return;
     }
+    } // close __osPaused else
   }
   // === END 9BizClaw OUT-OF-SCOPE FILTER v1 ===
   // === 9BizClaw GROUP-SETTINGS PATCH v7 ===
@@ -862,7 +940,13 @@ export async function handleModoroZaloInbound(params: {
             } catch {}
           }
           break;
-        } catch {}
+        } catch (__gsInnerErr: any) {
+          if (__gsInnerErr?.code === "ENOENT") {
+            runtime.log?.(`modoro-zalo: group settings file temporarily unavailable (atomic write in progress) — allowing message through`);
+            __gsFound = true;
+            break;
+          }
+        }
       }
       if (!__gsFound) {
         runtime.log?.(`modoro-zalo: group ${__gsThreadId} — no settings file, default=off`);
