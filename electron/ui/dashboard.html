@@ -2989,8 +2989,47 @@
         </div>
         <!-- Tab contents -->
         <div class="gw-panel" id="gw-calendar" style="display:none">
-          <div style="padding:60px 20px;text-align:center;color:var(--text-muted)">
-            <p style="margin:0;font-size:14px">Đang phát triển</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <button class="btn btn-secondary btn-small" onclick="calNavWeek(-1)" style="padding:6px 10px">&larr;</button>
+              <span id="cal-week-label" style="font-size:14px;font-weight:500;color:var(--text);min-width:200px;text-align:center"></span>
+              <button class="btn btn-secondary btn-small" onclick="calNavWeek(1)" style="padding:6px 10px">&rarr;</button>
+            </div>
+            <button class="btn btn-primary btn-small" onclick="showCalCreateModal()">Tạo sự kiện</button>
+          </div>
+          <div id="cal-week-view" style="display:flex;flex-direction:column;gap:2px"></div>
+          <div id="cal-empty" style="display:none;padding:60px 20px;text-align:center;color:var(--text-muted)">
+            <p style="margin:0;font-size:14px">Chưa có sự kiện nào trong tuần này</p>
+          </div>
+          <!-- Create event modal -->
+          <div id="cal-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+            <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:28px;width:400px;max-width:90vw">
+              <h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:var(--text)">Tạo sự kiện</h3>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Tiêu đề</label>
+                  <input type="text" id="cal-new-summary" placeholder="Họp với khách hàng" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
+                </div>
+                <div style="display:flex;gap:12px">
+                  <div style="flex:1">
+                    <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Bắt đầu</label>
+                    <input type="datetime-local" id="cal-new-start" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
+                  </div>
+                  <div style="flex:1">
+                    <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Kết thúc</label>
+                    <input type="datetime-local" id="cal-new-end" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Người tham dự (email, phân cách bằng dấu phẩy)</label>
+                  <input type="text" id="cal-new-attendees" placeholder="a@company.com, b@company.com" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+                <button class="btn btn-secondary btn-small" onclick="hideCalCreateModal()">Hủy</button>
+                <button class="btn btn-primary btn-small" onclick="submitCalCreate()">Tạo</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="gw-panel" id="gw-gmail" style="display:none">
@@ -7331,8 +7370,108 @@
       document.querySelectorAll('.gw-panel').forEach(p => p.style.display = 'none');
       const panel = document.getElementById('gw-' + tab);
       if (panel) panel.style.display = '';
+      if (tab === 'calendar') loadCalendarEvents();
+      if (tab === 'settings') loadGoogleStatus();
     }
     switchGwTab('settings');
+
+    // --- Calendar tab ---
+    let _calWeekOffset = 0;
+    function calNavWeek(delta) { _calWeekOffset += delta; loadCalendarEvents(); }
+
+    async function loadCalendarEvents() {
+      const now = new Date();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - now.getDay() + 1 + (_calWeekOffset * 7));
+      monday.setHours(0,0,0,0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23,59,59,999);
+
+      const fmt = d => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      document.getElementById('cal-week-label').textContent = fmt(monday) + ' — ' + fmt(sunday);
+
+      const view = document.getElementById('cal-week-view');
+      const empty = document.getElementById('cal-empty');
+      view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
+      empty.style.display = 'none';
+
+      try {
+        const data = await window.claw.googleCalendarEvents({
+          from: monday.toISOString(),
+          to: sunday.toISOString()
+        });
+        const events = data.events || data.items || data.data || [];
+        if (!events.length) {
+          view.innerHTML = '';
+          empty.style.display = '';
+          return;
+        }
+        const byDay = {};
+        const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          const key = d.toISOString().slice(0, 10);
+          byDay[key] = { label: dayNames[d.getDay()] + ' ' + fmt(d), events: [] };
+        }
+        events.forEach(ev => {
+          const start = ev.start?.dateTime || ev.start?.date || ev.start || '';
+          const key = new Date(start).toISOString().slice(0, 10);
+          if (byDay[key]) byDay[key].events.push(ev);
+        });
+        let html = '';
+        Object.values(byDay).forEach(day => {
+          html += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--border)">' + day.label + '</div>';
+          if (!day.events.length) {
+            html += '<div style="padding:6px 0;font-size:13px;color:var(--text-muted);opacity:.5">—</div>';
+          } else {
+            day.events.forEach(ev => {
+              const s = ev.start?.dateTime || ev.start || '';
+              const e = ev.end?.dateTime || ev.end || '';
+              const timeStr = s ? new Date(s).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) + (e ? ' — ' + new Date(e).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '') : '';
+              const title = ev.summary || ev.title || 'Không có tiêu đề';
+              html += '<div style="padding:8px 12px;background:var(--surface);border-radius:8px;margin-bottom:4px;display:flex;align-items:center;gap:10px;border:1px solid var(--border)">';
+              html += '<span style="font-size:12px;color:var(--text-muted);min-width:100px">' + timeStr + '</span>';
+              html += '<span style="font-size:13px;color:var(--text);font-weight:500">' + title + '</span>';
+              html += '</div>';
+            });
+          }
+          html += '</div>';
+        });
+        view.innerHTML = html;
+        empty.style.display = 'none';
+      } catch (e) {
+        view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải lịch') + '</div>';
+      }
+    }
+
+    function showCalCreateModal() {
+      const m = document.getElementById('cal-create-modal');
+      m.style.display = 'flex';
+      const now = new Date();
+      const later = new Date(now.getTime() + 3600000);
+      const toLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      document.getElementById('cal-new-start').value = toLocal(now);
+      document.getElementById('cal-new-end').value = toLocal(later);
+      document.getElementById('cal-new-summary').value = '';
+      document.getElementById('cal-new-attendees').value = '';
+    }
+    function hideCalCreateModal() { document.getElementById('cal-create-modal').style.display = 'none'; }
+
+    async function submitCalCreate() {
+      const summary = document.getElementById('cal-new-summary').value.trim();
+      const start = document.getElementById('cal-new-start').value;
+      const end = document.getElementById('cal-new-end').value;
+      const attendees = document.getElementById('cal-new-attendees').value.trim();
+      if (!summary || !start || !end) { alert('Vui lòng điền đầy đủ thông tin'); return; }
+      try {
+        const result = await window.claw.googleCalendarCreate({ summary, start, end, attendees: attendees || undefined });
+        if (result.error) throw new Error(result.error);
+        hideCalCreateModal();
+        loadCalendarEvents();
+      } catch (e) { alert('Lỗi tạo sự kiện: ' + e.message); }
+    }
 
     async function loadGoogleStatus() {
       try {
