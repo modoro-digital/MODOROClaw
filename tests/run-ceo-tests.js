@@ -274,7 +274,8 @@ test(38, 'Zalo resume IPC exists', () => {
 // ══════════════════════════════════════════
 console.log('\n[E] ZALO DEFENSE');
 
-const defenseRef = readFile(path.join(ROOT, 'docs', 'zalo-defense-reference.md'));
+const defenseRefPath = path.join(ROOT, 'docs', 'zalo-defense-reference.md');
+const defenseRef = fileExists(defenseRefPath) ? readFile(defenseRefPath) : '';
 
 test(39, 'Defense: prompt injection row', () => {
   return defenseRef.includes('Prompt injection') || 'no prompt injection defense';
@@ -574,28 +575,36 @@ test(92, 'Persona override rule (persona ref)', () => {
 });
 
 // ══════════════════════════════════════════
-//  L. SECURITY & PIN
+//  L. SECURITY
 // ══════════════════════════════════════════
-console.log('\n[L] SECURITY & PIN');
+console.log('\n[L] SECURITY');
 
-test(93, 'PIN setup IPC', () => {
+test(93, 'PIN removed from main.js', () => {
   const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'setup-pin'") || 'no setup-pin';
+  if (main.includes("'setup-pin'")) return 'setup-pin still present';
+  if (main.includes("'verify-pin'")) return 'verify-pin still present';
+  if (main.includes("'get-pin-status'")) return 'get-pin-status still present';
+  if (main.includes("'reset-pin'")) return 'reset-pin still present';
+  return true;
 });
 
-test(94, 'PIN verify IPC', () => {
-  const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'verify-pin'") || 'no verify-pin';
+test(94, 'PIN removed from preload.js', () => {
+  const preload = readFile(path.join(ELECTRON, 'preload.js'));
+  if (preload.includes('setupPin')) return 'setupPin still in preload';
+  if (preload.includes('verifyPin')) return 'verifyPin still in preload';
+  if (preload.includes('getPinStatus')) return 'getPinStatus still in preload';
+  if (preload.includes('resetPin')) return 'resetPin still in preload';
+  return true;
 });
 
-test(95, 'PIN lockout logic', () => {
+test(95, 'Zalo sticky file fallback in readZaloChannelState', () => {
   const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes('get-pin-status') || 'no pin status check';
+  return main.includes('modoroclaw-sticky-zalo-enabled') || 'no sticky fallback in readZaloChannelState';
 });
 
-test(96, 'PIN reset via Telegram', () => {
+test(96, 'Output filter applied to both channels', () => {
   const main = readFile(path.join(ELECTRON, 'main.js'));
-  return main.includes("'reset-pin'") || 'no reset-pin';
+  return main.includes('filterSensitiveOutput') || 'no filterSensitiveOutput';
 });
 
 // ══════════════════════════════════════════

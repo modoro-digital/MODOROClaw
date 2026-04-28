@@ -442,7 +442,7 @@ async function ensureVendorExtracted({ onProgress } = {}) {
 
   // Verify SHA256 BEFORE extraction — defends against corrupted install, disk
   // bit rot, MITM at download (if future version streams from network).
-  if (meta.sha256 && onProgress) {
+  if (meta.sha256) {
     onProgress({ percent: 1, message: 'Đang kiểm tra tính toàn vẹn...' });
     try {
       const crypto = require('crypto');
@@ -658,7 +658,7 @@ function augmentPathWithBundledNode() {
 //       contradiction fix
 //   4 — v2.2.8 (current) — bumped after audit, no new rules but the
 //       version-stamp mechanism itself was added
-const CURRENT_AGENTS_MD_VERSION = 73;
+const CURRENT_AGENTS_MD_VERSION = 76;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 function seedWorkspace() {
@@ -862,16 +862,16 @@ function seedWorkspace() {
     // Archetype id → mix config map (mirrors PERSONA_PRESETS in wizard.html).
     // Traits use the 15 scientific slugs (Big Five + service-specific).
     const ARCHETYPE_TO_MIX = {
-      'chi-ban-hang-mien-tay': { region: 'tay',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['am-ap','thuc-te','kien-nhan','chu-dao'],            formality: 4 },
-      'em-sale-bds-sg':        { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['nang-dong','chu-dong','chuyen-nghiep','chu-dao'],   formality: 6 },
-      'co-giao-ha-noi':        { region: 'bac',         voice: 'chi-trung-nien',  customer: 'anh-chi',   traits: ['chin-chu','kien-nhan','chu-dao','tinh-te'],         formality: 8 },
-      'duoc-si-an-can':        { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['chin-chu','dong-cam','diem-tinh','chu-dao'],        formality: 6 },
-      'chi-spa-nhe-nhang':     { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['tinh-te','am-ap','diem-tinh','linh-hoat'],          formality: 7 },
-      'anh-tho-sua-xe':        { region: 'nam',         voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['thang-than','thuc-te','chu-dao','than-thien'],      formality: 4 },
-      'co-le-tan-khach-san':   { region: 'bac',         voice: 'em-nu-tre',       customer: 'quy-khach', traits: ['tinh-te','chuyen-nghiep','chin-chu','linh-hoat'],  formality: 10 },
-      'anh-sale-oto':          { region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','chu-dong','chu-dao','linh-hoat'],  formality: 7 },
-      'chi-chu-boutique':      { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['sang-tao','tinh-te','am-ap','linh-hoat'],           formality: 6 },
-      'anh-ky-thuat-cong-nghe':{ region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','kien-nhan','thuc-te','chu-dao'],   formality: 6 },
+      'chi-ban-hang-mien-tay': { region: 'tay',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['am-ap','thuc-te','kien-nhan','chu-dao'] },
+      'em-sale-bds-sg':        { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['nang-dong','chu-dong','chuyen-nghiep','chu-dao'] },
+      'co-giao-ha-noi':        { region: 'bac',         voice: 'chi-trung-nien',  customer: 'anh-chi',   traits: ['chin-chu','kien-nhan','chu-dao','tinh-te'] },
+      'duoc-si-an-can':        { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['chin-chu','dong-cam','diem-tinh','chu-dao'] },
+      'chi-spa-nhe-nhang':     { region: 'trung-tinh',  voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['tinh-te','am-ap','diem-tinh','linh-hoat'] },
+      'anh-tho-sua-xe':        { region: 'nam',         voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['thang-than','thuc-te','chu-dao','than-thien'] },
+      'co-le-tan-khach-san':   { region: 'bac',         voice: 'em-nu-tre',       customer: 'quy-khach', traits: ['tinh-te','chuyen-nghiep','chin-chu','linh-hoat'] },
+      'anh-sale-oto':          { region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','chu-dong','chu-dao','linh-hoat'] },
+      'chi-chu-boutique':      { region: 'nam',         voice: 'em-nu-tre',       customer: 'anh-chi',   traits: ['sang-tao','tinh-te','am-ap','linh-hoat'] },
+      'anh-ky-thuat-cong-nghe':{ region: 'trung-tinh',  voice: 'em-nam-tre',      customer: 'anh-chi',   traits: ['chuyen-nghiep','kien-nhan','thuc-te','chu-dao'] },
     };
 
     if (!fs.existsSync(mixJsonPath)) {
@@ -897,7 +897,6 @@ function seedWorkspace() {
           voice: 'em-nu-tre',
           customer: 'anh-chi',
           traits: ['am-ap', 'chu-dao', 'chuyen-nghiep'],
-          formality: 5,
           greeting: '',
           closing: '',
           phrases: '',
@@ -2616,10 +2615,10 @@ async function _runCronAgentPromptImpl(prompt, { label, timeoutMs = 600000 } = {
     return false;
   }
 
-  // Defense-in-depth heal #1: synchronously remove deprecated openclaw config
-  // keys BEFORE the first agent spawn. Cheap, idempotent. Catches any path that
-  // bypasses the boot heal.
-  try { healOpenClawConfigInline(); } catch (e) { console.error('[cron-agent] inline heal:', e?.message || e); }
+  // Defense-in-depth heal #1: remove deprecated openclaw config keys BEFORE the
+  // first agent spawn. Cheap, idempotent. Must hold config lock to avoid racing
+  // with concurrent config writers (e.g. ensureDefaultConfig, save-zalo-manager).
+  try { await withOpenClawConfigLock(() => healOpenClawConfigInline()); } catch (e) { console.error('[cron-agent] inline heal:', e?.message || e); }
 
   await selfTestOpenClawAgent(); // optimistic: never gates
 
@@ -2698,7 +2697,7 @@ async function _runCronAgentPromptImpl(prompt, { label, timeoutMs = 600000 } = {
     // and immediately retry. The known-key path heals before attempt 1; this
     // catches anything else that surfaces during retries.
     if (attempt < 3 && isConfigInvalidErr(lastErr)) {
-      const healed = healOpenClawConfigInline(lastErr);
+      const healed = await withOpenClawConfigLock(() => healOpenClawConfigInline(lastErr));
       console.log(`[cron-agent] config-invalid detected; inline heal ${healed ? 'WROTE' : 'noop'}, retrying immediately`);
       continue;
     }
@@ -3451,13 +3450,18 @@ function start9Router() {
     // when 9router is missing/misconfigured.
     routerProcess.on('error', (err) => {
       console.error('[9router] spawn error:', err.message);
+      sendCeoAlert(`[Cảnh báo] 9Router không khởi động được: ${err.message}`);
       if (_routerLogFd !== null) { try { fs.closeSync(_routerLogFd); } catch {} _routerLogFd = null; }
       routerProcess = null;
     });
     routerProcess.unref();
-    routerProcess.on('exit', () => {
+    routerProcess.on('exit', (code) => {
       routerProcess = null;
       if (_routerLogFd !== null) { try { fs.closeSync(_routerLogFd); } catch {} _routerLogFd = null; }
+      if (code !== 0 && code !== null && !app.isQuitting) {
+        console.error('[9router] unexpected exit code', code);
+        sendCeoAlert('[Cảnh báo] 9Router dừng bất thường (code ' + code + ')').catch(() => {});
+      }
     });
     console.log('9Router started (log: logs/9router.log)');
   } catch (e) {
@@ -3798,28 +3802,16 @@ async function ensureDefaultConfig() {
       config.agents.defaults.bootstrapMaxChars = 40000;
       changed = true;
     }
-    // TOOL-BLOAT FIX: deny media-generation tools (unused in support flow).
-    // exec + process ALLOWED — needed for CEO "gửi Zalo từ Telegram" flow
-    // (agent runs send-zalo-safe.js). AGENTS.md restricts exec to only
-    // send-zalo-safe.js + forbids config/blocklist writes.
-    //
-    // tools.allow verified in openclaw 2026.4.x runtime-schema at "tools.allow".
+    // SECURITY: tools.allow is GLOBAL — applies to ALL channels including Zalo.
+    // Only safe tools allowed. CEO operations (file read/write, exec, cron)
+    // go through web_fetch to the authenticated local API on port 20200.
+    // COMMAND-BLOCK in inbound.ts is defense-in-depth, NOT the primary barrier.
     if (!config.tools) config.tools = {};
-    // tools.allow = absolute allowlist. Tools available to the agent.
-    // Zalo strangers are protected by inbound.ts COMMAND-BLOCK patch which
-    // rewrites admin commands before the agent sees them.
     const ALLOW_TOOLS = [
       'message',
       'web_search',
       'web_fetch',
       'update_plan',
-      'read_file',
-      'write_file',
-      'list_files',
-      'search_files',
-      'exec',
-      'process',
-      'cron',
     ];
     const existingAllow = Array.isArray(config.tools.allow) ? config.tools.allow : [];
     if (JSON.stringify(existingAllow.slice().sort()) !== JSON.stringify(ALLOW_TOOLS.slice().sort())) {
@@ -4054,6 +4046,7 @@ function enforceRetentionPolicies() {
       { name: 'openclaw.log', maxBytes: 10 * MB },
       { name: 'openzca.log', maxBytes: 10 * MB },
       { name: 'main.log', maxBytes: 20 * MB },
+      { name: '9router.log', maxBytes: 10 * MB },
       { name: 'audit.jsonl', maxBytes: 50 * MB },
       { name: 'cron-runs.jsonl', maxBytes: 10 * MB },
       { name: 'security-output-filter.jsonl', maxBytes: 10 * MB },
@@ -5119,6 +5112,10 @@ async function _startOpenClawImpl(opts = {}) {
         startOpenClaw();
       }, 2000);
       return;
+    }
+
+    if (code !== 0 && code !== null) {
+      sendCeoAlert('[Cảnh báo] Gateway dừng bất thường (code ' + code + '): ' + String(lastError || '').slice(0, 150)).catch(() => {});
     }
 
     // Normal exit — check if another instance took over
@@ -6625,7 +6622,10 @@ async function _ensureZaloPluginImpl() {
       try { applyOpenzaloFork(); } catch (e) { console.warn('[ensureZaloPlugin] fork apply after network install failed:', e?.message); }
     }
     _zaloReady = true;
-  } catch {}
+  } catch (e) {
+    console.error('[ensureZaloPlugin] FAILED:', e?.message || e);
+    sendCeoAlert('[Lỗi Zalo] Cài đặt plugin Zalo thất bại: ' + String(e?.message || e).slice(0, 200)).catch(() => {});
+  }
 }
 
 // Setup Zalo — only runs QR login (fast), plugin already installed
@@ -6803,7 +6803,6 @@ ipcMain.handle('save-persona-mix', async (_event, mix) => {
       voice: mix.voice || 'em-nu-tre',
       customer: mix.customer || 'anh-chi',
       traits: Array.isArray(mix.traits) ? mix.traits.slice(0, 5) : [],
-      formality: Math.max(1, Math.min(10, parseInt(mix.formality, 10) || 5)),
       greeting: (mix.greeting || '').toString().slice(0, 300),
       closing: (mix.closing || '').toString().slice(0, 300),
       phrases: (mix.phrases || '').toString().slice(0, 1000),
@@ -6813,7 +6812,7 @@ ipcMain.handle('save-persona-mix', async (_event, mix) => {
     writeJsonAtomic(jsonPath, normalized);
     fs.writeFileSync(mdPath, compilePersonaMix(normalized), 'utf-8');
     syncPersonaToBootstrap();
-    try { auditLog('persona_mix_updated', { voice: normalized.voice, traits: normalized.traits.length, formality: normalized.formality }); } catch {}
+    try { auditLog('persona_mix_updated', { voice: normalized.voice, traits: normalized.traits.length }); } catch {}
     console.log('[save-persona-mix] updated via Dashboard');
     return { ok: true };
   } catch (e) {
@@ -6895,7 +6894,17 @@ function readZaloChannelState() {
     if (fs.existsSync(configPath)) {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const oz = cfg?.channels?.openzalo || {};
-      state.enabled = oz.enabled !== false;
+      let resolvedEnabled = oz.enabled;
+      if (resolvedEnabled === undefined) {
+        try {
+          const stickyPath = path.join(HOME, '.openclaw', 'modoroclaw-sticky-zalo-enabled.json');
+          if (fs.existsSync(stickyPath)) {
+            const sticky = JSON.parse(fs.readFileSync(stickyPath, 'utf-8'));
+            if (typeof sticky.enabled === 'boolean') resolvedEnabled = sticky.enabled;
+          }
+        } catch {}
+      }
+      state.enabled = resolvedEnabled !== false;
       state.groupPolicy = oz.groupPolicy || 'open';
       state.groupAllowFrom = Array.isArray(oz.groupAllowFrom)
         ? oz.groupAllowFrom.map(String)
@@ -7377,6 +7386,7 @@ ipcMain.handle('get-zalo-group-memory', async (_evt, groupId) => {
   try {
     const dir = getZaloGroupsDir();
     if (!dir) return { content: '', exists: false };
+    if (typeof groupId !== 'string' || !groupId || /[\/\\]|\.\./.test(groupId)) return { content: '', exists: false };
     const fp = path.join(dir, groupId + '.md');
     if (!fs.existsSync(fp)) return { content: '', exists: false };
     return { content: fs.readFileSync(fp, 'utf-8'), exists: true };
@@ -7742,12 +7752,9 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
   });
 });
 
-// Save personalization (industry, tone, pronouns)
 // Compile a persona mix config into a human-readable Markdown prompt that
 // the bot reads on bootstrap. Mix contains: region, voice, customer, traits[],
-// formality (1-10), greeting/closing/phrases (optional custom text).
-// Bot reads the compiled file (not the raw JSON) to get concrete instructions
-// + signature phrases it can apply naturally.
+// greeting/closing/phrases (optional custom text).
 function compilePersonaMix(mix) {
   if (!mix || typeof mix !== 'object') mix = {};
   const voiceMap = {
@@ -7792,11 +7799,6 @@ function compilePersonaMix(mix) {
   const voice = voiceMap[mix.voice] || voiceMap['em-nu-tre'];
   const customerAddr = customerMap[mix.customer] || customerMap['anh-chi'];
   const traits = Array.isArray(mix.traits) ? mix.traits : [];
-  const formality = Math.max(1, Math.min(10, parseInt(mix.formality, 10) || 5));
-  const formalityDesc = formality >= 8 ? 'Rất trang trọng (10 = lễ tân khách sạn 5 sao)'
-    : formality >= 6 ? 'Trang trọng vừa phải (giống nhân viên văn phòng)'
-    : formality >= 4 ? 'Balance — thân thiện nhưng vẫn lịch sự (chuẩn CSKH phổ biến)'
-    : 'Thân mật — giống bạn bè, không formal';
 
   const traitList = traits.map(t => `- ${traitMap[t] || t}`).join('\n') || '- (CEO chưa chọn trait cụ thể — dùng style mặc định)';
   const customGreeting = (mix.greeting || '').trim();
@@ -7815,9 +7817,6 @@ function compilePersonaMix(mix) {
 
 ## Tính cách đặc trưng (${traits.length}/5 đặc điểm đã chọn)
 ${traitList}
-
-## Độ trang trọng: ${formality}/10
-${formalityDesc}
 
 ${customGreeting ? `## Câu chào riêng (CEO tự đặt)
 "${customGreeting}"
@@ -8045,7 +8044,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
 
     // Save persona mix config from wizard. Bot reads compiled active-persona.md
     // on bootstrap. JSON config saved separately for Dashboard settings edit.
-    // personaMix format: { region, voice, customer, traits:[], formality:1-10,
+    // personaMix format: { region, voice, customer, traits:[],
     //                      greeting, closing, phrases }
     // Legacy: `selectedPersona` (archetype id) still accepted for backwards
     // compat — if present and personaMix missing, map to default mix.
@@ -8053,7 +8052,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
       let mix = personaMix;
       if (!mix || typeof mix !== 'object') {
         // Legacy fallback: single archetype id → default mix
-        mix = { voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap', 'chu-dao'], formality: 5, greeting: '', closing: '', phrases: '' };
+        mix = { voice: 'em-nu-tre', customer: 'anh-chi', traits: ['am-ap', 'chu-dao'], greeting: '', closing: '', phrases: '' };
       }
       // Write structured JSON for Dashboard settings editor
       const mixJsonPath = path.join(ws, 'active-persona.json');
@@ -8066,7 +8065,7 @@ ipcMain.handle('save-personalization', async (_event, { industry, tone, pronouns
         const legacyPath = path.join(ws, 'active-persona.txt');
         if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
       } catch {}
-      console.log('[save-personalization] persona mix saved: voice=' + mix.voice + ' traits=' + (mix.traits || []).length + ' formality=' + mix.formality);
+      console.log('[save-personalization] persona mix saved: voice=' + mix.voice + ' traits=' + (mix.traits || []).length);
       syncPersonaToBootstrap();
     } catch (e) { console.warn('[save-personalization] persona mix write failed:', e?.message); }
 
@@ -8529,8 +8528,11 @@ ipcMain.handle('add-cron', async (_event, { name, cron, tz, message, channel }) 
       restartCronJobs();
       console.log('[add-cron] Saved custom time:', name, time);
     }
-  } catch (e) { console.error('[add-cron] error:', e.message); }
-  return { success: true };
+    return { success: true };
+  } catch (e) {
+    console.error('[add-cron] error:', e.message);
+    return { success: false, error: e.message };
+  }
 });
 
 // Schedule management (CEO-friendly cron display)
@@ -9461,6 +9463,7 @@ const _outputFilterPatterns = [
   { name: 'api-key-sk', re: /\bsk-[a-zA-Z0-9_\-]{16,}/i },
   { name: 'bearer-token', re: /\bBearer\s+[a-zA-Z0-9_\-.]{20,}/i },
   { name: 'hex-token-48', re: /\b[a-f0-9]{48}\b/i },
+  { name: 'hex-token-partial', re: /\b[a-f0-9]{16,47}\b/i },
   { name: 'botToken-field', re: /\bbotToken\b/i },
   { name: 'apiKey-field', re: /\bapiKey\b/i },
   // Layer A1.7: PII masking — bot MUST NOT echo sensitive customer data
@@ -9663,22 +9666,28 @@ function isZaloChannelEnabled() {
 }
 
 function setZaloChannelEnabled(enabled) {
-  try {
-    const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
-    if (!fs.existsSync(configPath)) return false;
-    const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    if (!cfg.channels) cfg.channels = {};
-    if (!cfg.channels.openzalo || typeof cfg.channels.openzalo !== 'object') {
-      cfg.channels.openzalo = {};
+  return withOpenClawConfigLock(async () => {
+    try {
+      const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
+      if (!fs.existsSync(configPath)) return false;
+      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (!cfg.channels) cfg.channels = {};
+      if (!cfg.channels.openzalo || typeof cfg.channels.openzalo !== 'object') {
+        cfg.channels.openzalo = {};
+      }
+      const next = enabled !== false;
+      if (cfg.channels.openzalo.enabled === next) return true;
+      cfg.channels.openzalo.enabled = next;
+      try {
+        const stickyPath = path.join(HOME, '.openclaw', 'modoroclaw-sticky-zalo-enabled.json');
+        fs.writeFileSync(stickyPath, JSON.stringify({ enabled: next, ts: Date.now() }), 'utf-8');
+      } catch (e) { console.warn('[zalo] sticky write error:', e?.message); }
+      return writeOpenClawConfigIfChanged(configPath, cfg);
+    } catch (e) {
+      console.error('[zalo] set enabled state error:', e.message);
+      return false;
     }
-    const next = enabled !== false;
-    if (cfg.channels.openzalo.enabled === next) return true;
-    cfg.channels.openzalo.enabled = next;
-    return writeOpenClawConfigIfChanged(configPath, cfg);
-  } catch (e) {
-    console.error('[zalo] set enabled state error:', e.message);
-    return false;
-  }
+  });
 }
 
 function isChannelPaused(channel) {
@@ -10826,8 +10835,10 @@ ipcMain.handle('get-telegram-config', async () => {
     const configPath = path.join(HOME, '.openclaw', 'openclaw.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const tg = config.channels?.telegram || {};
+    const token = tg.botToken || '';
     return {
-      botToken: tg.botToken || '',
+      botToken: token ? token.slice(0, 6) + '…' + token.slice(-4) : '',
+      botTokenSet: !!token,
       allowFrom: tg.allowFrom || [],
     };
   } catch { return { botToken: '', allowFrom: [] }; }
@@ -12328,6 +12339,23 @@ function startCronApi() {
     const tokenPath = path.join(getWorkspace(), 'cron-api-token.txt');
     fs.writeFileSync(tokenPath, _cronApiToken, 'utf-8');
   } catch (e) { console.error('[cron-api] failed to write token file:', e.message); }
+  // Inject the boot-rotated token into AGENTS.md so the agent can call
+  // token-gated endpoints. The template uses {{CRON_API_TOKEN}} placeholders.
+  // The token is in the system prompt for ALL channels, but since file/read,
+  // exec, etc. now ALL require it, this is the only path to obtain it.
+  try {
+    const ws = getWorkspace();
+    if (ws) {
+      const agentsPath = path.join(ws, 'AGENTS.md');
+      if (fs.existsSync(agentsPath)) {
+        const content = fs.readFileSync(agentsPath, 'utf-8');
+        if (content.includes('{{CRON_API_TOKEN}}')) {
+          fs.writeFileSync(agentsPath, content.replace(/\{\{CRON_API_TOKEN\}\}/g, _cronApiToken), 'utf-8');
+          console.log('[cron-api] injected token into AGENTS.md');
+        }
+      }
+    }
+  } catch (e) { console.error('[cron-api] AGENTS.md token inject failed:', e.message); }
 
   function loadGroupsMap() {
     try {
@@ -12368,7 +12396,13 @@ function startCronApi() {
         return;
       }
       let chunks = [];
-      req.on('data', c => chunks.push(c));
+      let totalLen = 0;
+      const MAX_BODY = 1024 * 1024;
+      req.on('data', c => {
+        totalLen += c.length;
+        if (totalLen <= MAX_BODY) chunks.push(c);
+        else { req.destroy(); resolve({}); }
+      });
       req.on('end', () => {
         try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
         catch { resolve({}); }
@@ -12389,10 +12423,14 @@ function startCronApi() {
     const urlPath = (new URL(req.url, 'http://127.0.0.1')).pathname;
     const params = await parseBody(req);
 
-    const readOnlyEndpoints = ['/api/cron/list', '/api/workspace/read', '/api/workspace/list', '/api/file/read', '/api/file/list', '/api/file/search', '/api/system/info'];
-    const isMutation = !readOnlyEndpoints.includes(urlPath);
-    if (isMutation && params.token !== _cronApiToken) {
-      return jsonResp(res, 403, { error: 'invalid or missing token. Read cron-api-token.txt via /api/workspace/read?path=cron-api-token.txt first.' });
+    // SECURITY: Only workspace/read and workspace/list are unauthenticated (scoped
+    // to a strict whitelist of non-sensitive files). ALL other endpoints require
+    // the boot-rotated auth token — including file/read (arbitrary FS access),
+    // file/list, file/search, system/info, exec, cron/*, and file/write.
+    const publicEndpoints = ['/api/cron/list', '/api/workspace/read', '/api/workspace/list'];
+    const needsToken = !publicEndpoints.includes(urlPath);
+    if (needsToken && params.token !== _cronApiToken) {
+      return jsonResp(res, 403, { error: 'invalid or missing token' });
     }
 
     if (urlPath === '/api/cron/create') {
@@ -12438,9 +12476,8 @@ function startCronApi() {
           if (!resolvedGroupName) {
             return jsonResp(res, 400, { error: 'unknown groupId: ' + groupId + '. Check /api/cron/list for available groups.' });
           }
-          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào nhóm Zalo bằng cách gọi 2 API:\n'
-            + '1. Đọc token: web_fetch url=http://127.0.0.1:20200/api/workspace/read?path=cron-api-token.txt\n'
-            + '2. Gửi tin: web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=TOKEN_VỪA_ĐỌC&groupId=' + resolvedGroupId + '&text=KẾT_QUẢ\n'
+          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào nhóm Zalo:\n'
+            + 'web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=' + _cronApiToken + '&groupId=' + resolvedGroupId + '&text=KẾT_QUẢ\n'
             + 'QUY TẮC VIẾT:\n'
             + '- Viết tiếng Việt CÓ DẤU đầy đủ (ví dụ: "trí tuệ nhân tạo" chứ KHÔNG "tri tue nhan tao")\n'
             + '- Viết dạng đoạn văn tự nhiên như đang chat, KHÔNG dùng danh sách số (1. 2. 3.), KHÔNG dùng bullet points\n'
@@ -12583,9 +12620,6 @@ function startCronApi() {
         /^schedules\.json$/,
         /^custom-crons\.json$/,
         /^logs\/cron-runs\.jsonl$/,
-        /^logs\/escalation-queue\.jsonl$/,
-        /^logs\/ceo-alerts-missed\.log$/,
-        /^cron-api-token\.txt$/,
       ];
       if (reqPath.includes('..') || !ALLOWED.some(r => r.test(reqPath))) {
         return jsonResp(res, 403, { error: 'path not in whitelist' });
@@ -12766,6 +12800,9 @@ function startCronApi() {
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         fs.writeFileSync(abs, String(content), 'utf-8');
         console.log('[file-api] write:', abs, '(' + String(content).length + ' chars)');
+        if (/[\/\\]memory[\/\\]zalo-groups[\/\\][^\/\\]+\.md$/.test(abs)) {
+          try { trimZaloMemoryFile(abs, 50 * 1024); } catch {}
+        }
         return jsonResp(res, 200, { success: true, path: abs, size: Buffer.byteLength(String(content), 'utf-8') });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
@@ -13054,6 +13091,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Morning handler threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'morning', label: s.label || 'Báo cáo sáng', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Báo cáo sáng thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally {
             global._cronInFlight?.delete('morning');
           }
@@ -13077,6 +13115,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Evening handler threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'evening', label: s.label || 'Tóm tắt cuối ngày', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Tóm tắt cuối ngày thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally {
             global._cronInFlight?.delete('evening');
           }
@@ -13260,6 +13299,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Weekly handler threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'weekly', label: 'Báo cáo tuần', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Báo cáo tuần thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally { global._cronInFlight?.delete('weekly'); }
         };
         break;
@@ -13279,6 +13319,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Monthly handler threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'monthly', label: 'Báo cáo tháng', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Báo cáo tháng thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally { global._cronInFlight?.delete('monthly'); }
         };
         break;
@@ -13300,6 +13341,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Zalo follow-up threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'zalo-followup', label: 'Follow-up khách Zalo', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Follow-up khách Zalo thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally { global._cronInFlight?.delete('zalo-followup'); }
         };
         break;
@@ -13318,6 +13360,7 @@ function _startCronJobsInner() {
           } catch (e) {
             console.error('[cron] Memory cleanup threw:', e?.message || e);
             try { auditLog('cron_failed', { id: 'memory-cleanup', label: 'Dọn dẹp memory', error: String(e?.message || e).slice(0, 200) }); } catch {}
+            sendCeoAlert('[Cảnh báo cron] Dọn dẹp memory thất bại: ' + String(e?.message || e).slice(0, 150)).catch(() => {});
           } finally { global._cronInFlight?.delete('memory-cleanup'); }
         };
         break;
@@ -14772,6 +14815,9 @@ ipcMain.handle('list-knowledge-files', async (_event, { category }) => {
 ipcMain.handle('delete-knowledge-file', async (_event, { category, filename }) => {
   try {
     if (!KNOWLEDGE_CATEGORIES.includes(category)) return { success: false };
+    if (!filename || typeof filename !== 'string' || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return { success: false, error: 'invalid filename' };
+    }
     const db = getDocumentsDb();
     if (db) {
       try {
@@ -17737,8 +17783,10 @@ async function runSplashAndExtractVendor() {
     show: false,
     skipTaskbar: false,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: path.join(__dirname, 'splash-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
     },
   });
   splashWindow.setMenuBarVisibility(false);
@@ -17818,6 +17866,9 @@ app.whenReady().then(async () => {
     // Fatal — can't proceed without vendor
     return;
   }
+  // Re-run after vendor extraction so bundled Node/npm are on PATH for
+  // autoFixBetterSqlite3 and other operations that shell out to node/npx.
+  try { augmentPathWithBundledNode(); } catch {}
 
   // Boot diagnostic: writes <workspace>/logs/boot-diagnostic.txt with everything
   // we need to debug "why didn't cron work?". MUST run after userDataDir update

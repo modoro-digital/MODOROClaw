@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const OPENZALO_FORK_VERSION = 'fork-v22-command-block-v3';
+const OPENZALO_FORK_VERSION = 'fork-v24-partial-hex-filter';
 
 // ---------------------------------------------------------------------------
 // Internal helpers

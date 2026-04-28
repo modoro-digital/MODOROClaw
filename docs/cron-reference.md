@@ -109,7 +109,7 @@ API validate: reject nếu date không hợp lệ hoặc trong quá khứ.
 
 1. CEO nhắn Telegram: "tạo cron gửi nhóm X mỗi sáng 9h nội dung Y"
 2. Bot gọi `web_fetch .../api/cron/list` để xem nhóm available (không cần token)
-3. Bot đọc `cron-api-token.txt` lấy token
+3. Bot dùng token đã được inject vào AGENTS.md lúc boot
 4. Bot CONFIRM với CEO trước khi tạo
 5. CEO xác nhận → bot gọi `web_fetch .../api/cron/create?...&token=<token>&content=...`
 6. Hệ thống tự động reload cron

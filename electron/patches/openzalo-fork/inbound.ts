@@ -564,8 +564,7 @@ export async function handleOpenzaloInbound(params: {
       }
     }
     if (__mzPolicyError) {
-      runtime.log?.("openzalo: blocklist policy error → fail closed");
-      return;
+      runtime.log?.("openzalo: blocklist policy error — skipping blocklist check (allow message through)");
     }
     // Blocklist applies ONLY to DMs — in groups, everyone should be answered
     // if the group is enabled. Otherwise one blocked user silences the whole group.
@@ -579,8 +578,7 @@ export async function handleOpenzaloInbound(params: {
       }
     }
   } catch (__e) {
-    runtime.log?.(`openzalo: blocklist check error: ${String(__e)}`);
-    return;
+    runtime.log?.(`openzalo: blocklist check error (allowing message): ${String(__e)}`);
   }
   // === END 9BizClaw BLOCKLIST PATCH ===
   // === 9BizClaw SYSTEM-MSG PATCH ===

@@ -455,9 +455,9 @@ console.log('\n\x1b[1m=== SUITE 6: AGENTS.md Consistency ===\x1b[0m\n');
     pass('T6.3 no openzca-bash contradiction');
   }
 
-  // T6.4: "send-zalo-safe.js" mentioned in Telegram section
-  if (content.includes('send-zalo-safe.js')) pass('T6.4 send-zalo-safe.js referenced');
-  else fail('T6.4 send-zalo-safe.js not referenced in AGENTS.md');
+  // T6.4: Zalo send goes through local API, not exec/send-zalo-safe.js
+  if (content.includes('/api/zalo/send')) pass('T6.4 Zalo send via local API');
+  else fail('T6.4 /api/zalo/send not referenced in AGENTS.md');
 
   // T6.5: Spam threshold consistent (should be 2 everywhere)
   const thresholds = [];
@@ -467,13 +467,13 @@ console.log('\n\x1b[1m=== SUITE 6: AGENTS.md Consistency ===\x1b[0m\n');
   if (unique.length <= 1) pass('T6.5 spam threshold consistent', unique[0] ? '≥' + unique[0] : 'none found');
   else fail('T6.5 spam threshold conflict', 'found thresholds: ' + unique.join(', '));
 
-  // T6.6: Tool names correct — should use "read" and "exec", not "file_read" and "bash"
-  if (/dùng `read` tool/i.test(content)) pass('T6.6 correct tool name "read"');
-  else if (/dùng.*read/i.test(content)) pass('T6.6 references read tool');
-  else fail('T6.6 "read" tool not referenced');
+  // T6.6: web_fetch used for API access
+  if (content.includes('web_fetch')) pass('T6.6 web_fetch referenced for API access');
+  else fail('T6.6 web_fetch not referenced');
 
-  if (/`exec` tool/i.test(content)) pass('T6.7 correct tool name "exec"');
-  else fail('T6.7 "exec" tool not referenced');
+  // T6.7: exec/process NOT in safe tools list (security: only via API)
+  if (/CHỈ được dùng.*exec/i.test(content)) fail('T6.7 exec listed as safe tool');
+  else pass('T6.7 exec not listed as safe Zalo tool');
 })();
 
 // ============================================================

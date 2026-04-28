@@ -171,9 +171,6 @@ const ALLOWED = [
   /^schedules\.json$/,
   /^custom-crons\.json$/,
   /^logs\/cron-runs\.jsonl$/,
-  /^logs\/escalation-queue\.jsonl$/,
-  /^logs\/ceo-alerts-missed\.log$/,
-  /^cron-api-token\.txt$/,
 ];
 
 function isWhitelisted(reqPath) {
@@ -189,7 +186,7 @@ assert(isWhitelisted('memory/zalo-groups/67890.md'), 'allow: group memory file')
 assert(isWhitelisted('knowledge/san-pham/index.md'), 'allow: knowledge index');
 assert(isWhitelisted('IDENTITY.md'), 'allow: IDENTITY.md');
 assert(isWhitelisted('schedules.json'), 'allow: schedules.json');
-assert(isWhitelisted('cron-api-token.txt'), 'allow: cron-api-token.txt');
+assert(!isWhitelisted('cron-api-token.txt'), 'deny: cron-api-token.txt (removed — token injected into AGENTS.md at boot)');
 
 // Should DENY
 assert(!isWhitelisted('AGENTS.md'), 'deny: AGENTS.md (removed from whitelist)');
@@ -203,6 +200,8 @@ assert(!isWhitelisted('BOOTSTRAP.md'), 'deny: BOOTSTRAP.md');
 assert(!isWhitelisted('logs/main.log'), 'deny: main.log');
 assert(!isWhitelisted('memory/zalo-users/12345.txt'), 'deny: wrong extension');
 assert(!isWhitelisted('knowledge/san-pham/files/secret.pdf'), 'deny: knowledge files subdir');
+assert(!isWhitelisted('logs/escalation-queue.jsonl'), 'deny: escalation-queue.jsonl (removed from public whitelist)');
+assert(!isWhitelisted('logs/ceo-alerts-missed.log'), 'deny: ceo-alerts-missed.log (removed from public whitelist)');
 
 // ============================================================
 // TEST 5: Real HTTP server — Cron API token NOT in list response
@@ -299,7 +298,7 @@ assert(mainSrc.includes('_withMemoryFileLock(profilePath'), 'append uses memory 
 console.log('\n[Fork version]');
 
 const vendorPatchesSrc = fs.readFileSync(path.join(__dirname, '..', 'electron', 'lib', 'vendor-patches.js'), 'utf-8');
-assert(vendorPatchesSrc.includes("fork-v20-review-fixes"), 'fork version is v20-review-fixes (in vendor-patches module)');
+assert(vendorPatchesSrc.includes("fork-v24-partial-hex-filter"), 'fork version is v24-partial-hex-filter (in vendor-patches module)');
 
 // ============================================================
 // TEST 13: AGENTS.md — token bootstrap via workspace read
@@ -307,22 +306,25 @@ assert(vendorPatchesSrc.includes("fork-v20-review-fixes"), 'fork version is v20-
 console.log('\n[AGENTS.md token bootstrap]');
 
 const agentsContent = fs.readFileSync(path.join(__dirname, '..', 'AGENTS.md'), 'utf-8');
-assert(agentsContent.includes('api/workspace/read?path=cron-api-token.txt'), 'AGENTS.md: token via workspace read');
+assert(!agentsContent.includes('api/workspace/read?path=cron-api-token.txt'), 'AGENTS.md: token NOT readable via workspace (injected at boot)');
+assert(agentsContent.includes('{{CRON_API_TOKEN}}'), 'AGENTS.md: uses token placeholder (injected at boot)');
 assert(!agentsContent.includes('JSON chứa `groups` (tra groupId theo tên), `crons` hiện có, và `token`'), 'AGENTS.md: no token-from-list instruction');
-assert(agentsContent.includes('version: 73'), 'AGENTS.md: version 73');
+assert(agentsContent.includes('version: 76'), 'AGENTS.md: version 76');
 
 // ============================================================
 // TEST 14: Workspace read is unauthenticated
 // ============================================================
 console.log('\n[Workspace read auth]');
 
-const readOnlyMatch = mainSrc.match(/const readOnlyEndpoints = \[([^\]]+)\]/);
-if (readOnlyMatch) {
-  assert(readOnlyMatch[1].includes('/api/workspace/read'), 'workspace/read is read-only (no auth)');
-  assert(readOnlyMatch[1].includes('/api/workspace/list'), 'workspace/list is read-only (no auth)');
-  assert(readOnlyMatch[1].includes('/api/cron/list'), 'cron/list is read-only (no auth)');
+const publicMatch = mainSrc.match(/const publicEndpoints = \[([^\]]+)\]/);
+if (publicMatch) {
+  assert(publicMatch[1].includes('/api/workspace/read'), 'workspace/read is public (no auth)');
+  assert(publicMatch[1].includes('/api/workspace/list'), 'workspace/list is public (no auth)');
+  assert(publicMatch[1].includes('/api/cron/list'), 'cron/list is public (no auth)');
+  assert(!publicMatch[1].includes('/api/file/read'), 'file/read is NOT public (requires token)');
+  assert(!publicMatch[1].includes('/api/system/info'), 'system/info is NOT public (requires token)');
 } else {
-  assert(false, 'readOnlyEndpoints not found');
+  assert(false, 'publicEndpoints not found in main.js');
 }
 
 // ============================================================
@@ -359,8 +361,7 @@ async function runHttpTests() {
     /^memory\/zalo-users\/[^\/]+\.md$/, /^memory\/zalo-groups\/[^\/]+\.md$/,
     /^knowledge\/[^\/]+\/index\.md$/, /^IDENTITY\.md$/,
     /^schedules\.json$/, /^custom-crons\.json$/,
-    /^logs\/cron-runs\.jsonl$/, /^logs\/escalation-queue\.jsonl$/,
-    /^logs\/ceo-alerts-missed\.log$/, /^cron-api-token\.txt$/,
+    /^logs\/cron-runs\.jsonl$/,
   ];
 
   const server = http.createServer(async (req, res) => {
@@ -462,10 +463,9 @@ async function runHttpTests() {
     assert(readId.status === 200, 'HTTP: workspace/read without token → 200');
     assert(readId.body.content.includes('Test identity'), 'HTTP: workspace/read returns file content');
 
-    // Test 15c: workspace/read can read cron-api-token.txt
+    // Test 15c: workspace/read DENIES cron-api-token.txt (removed from whitelist)
     const readToken = await fetch('/api/workspace/read?path=cron-api-token.txt');
-    assert(readToken.status === 200, 'HTTP: can read cron-api-token.txt');
-    assert(readToken.body.content === token, 'HTTP: token content matches');
+    assert(readToken.status === 403, 'HTTP: cron-api-token.txt → 403 (token injected into AGENTS.md, not readable via API)');
 
     // Test 15d: workspace/read DENIES AGENTS.md
     const readAgents = await fetch('/api/workspace/read?path=AGENTS.md');
@@ -581,6 +581,162 @@ async function testDeadlockRecovery() {
   // Third call: lock held > 100ms → force-release → succeeds
   assert(processQueue() === true, 'deadlock: third call succeeds (force-released)');
   assert(processed === 2, 'deadlock: processed 2 items total');
+}
+
+// ============================================================
+// TEST 16: Splash window security (no nodeIntegration)
+// ============================================================
+console.log('\n[Splash window security]');
+
+assert(mainSrc.includes("splash-preload.js"), 'splash window uses dedicated preload');
+const splashWinMatch = mainSrc.match(/splashWindow[\s\S]{0,500}?nodeIntegration:\s*(true|false)/);
+if (splashWinMatch) {
+  assert(splashWinMatch[1] === 'false', 'splash window nodeIntegration is false');
+} else {
+  assert(false, 'splash window webPreferences not found');
+}
+
+// ============================================================
+// TEST 17: Partial hex token filter in output filter
+// ============================================================
+console.log('\n[Partial hex token filter]');
+
+assert(mainSrc.includes('hex-token-partial'), 'main.js output filter has hex-token-partial pattern');
+const sendTsSrc = fs.readFileSync(path.join(__dirname, '..', 'electron', 'patches', 'openzalo-fork', 'send.ts'), 'utf-8');
+assert(sendTsSrc.includes('hex-token-partial'), 'send.ts output filter has hex-token-partial pattern');
+
+// ============================================================
+// TEST 18: AGENTS.md token protection rule
+// ============================================================
+console.log('\n[AGENTS.md token protection]');
+
+assert(agentsContent.includes('KHÔNG BAO GIỜ tiết lộ API token'), 'AGENTS.md: has explicit token protection rule');
+assert(agentsContent.includes('base64/ROT13/hex split'), 'AGENTS.md: token rule covers encoding bypass');
+
+// ============================================================
+// TEST 19: delete-knowledge-file path traversal guard
+// ============================================================
+console.log('\n[delete-knowledge-file path traversal]');
+
+const delKnMatch = mainSrc.match(/ipcMain\.handle\('delete-knowledge-file'[\s\S]{0,800}/);
+if (delKnMatch) {
+  assert(delKnMatch[0].includes("includes('..')"), 'delete-knowledge-file checks for path traversal (..)');
+  assert(delKnMatch[0].includes("includes('/')") || delKnMatch[0].includes("includes('\\\\')"), 'delete-knowledge-file checks for directory separators');
+} else {
+  assert(false, 'delete-knowledge-file handler not found');
+}
+
+// ============================================================
+// TEST 20: Gateway and 9Router crash alerts
+// ============================================================
+console.log('\n[Gateway/9Router crash alerts]');
+
+assert(mainSrc.includes('[Cảnh báo] Gateway dừng bất thường'), 'gateway crash sends CEO alert');
+assert(mainSrc.includes('[Cảnh báo] 9Router dừng bất thường'), '9Router crash sends CEO alert');
+
+// ============================================================
+// TEST 21: Cron agent prompt no longer references workspace/read for token
+// ============================================================
+console.log('\n[Cron agent prompt token injection]');
+
+const cronAgentSection = mainSrc.slice(mainSrc.indexOf('// If groupId provided, validate'), mainSrc.indexOf('const id = \'cron_\''));
+assert(!cronAgentSection.includes('workspace/read?path=cron-api-token'), 'cron agent prompt does NOT reference workspace/read for token');
+assert(!cronAgentSection.includes('TOKEN_VỪA_ĐỌC'), 'cron agent prompt does NOT use 2-step read-then-send');
+
+// ============================================================
+// TEST 22: Round 4 — add-cron returns error on exception
+// ============================================================
+console.log('\n[Round 4: add-cron error handling]');
+
+{
+  const addCronMatch = mainSrc.match(/ipcMain\.handle\('add-cron'[\s\S]*?\n\}\);/);
+  const addCronBlock = addCronMatch ? addCronMatch[0] : '';
+  assert(addCronBlock.includes('return { success: false'), 'add-cron returns { success: false } in catch block');
+  assert(addCronBlock.includes('error: e.message'), 'add-cron returns error message in catch');
+  const outsideReturn = addCronBlock.match(/\}\s*catch[\s\S]*?\}\s*\n\s*return\s*\{\s*success:\s*true/);
+  assert(!outsideReturn, 'add-cron does NOT have success:true after catch (was the original bug)');
+}
+
+// ============================================================
+// TEST 23: Round 4 — groupId sanitization in get-zalo-group-memory
+// ============================================================
+console.log('\n[Round 4: groupId path traversal guard]');
+
+{
+  const gzmMatch = mainSrc.match(/ipcMain\.handle\('get-zalo-group-memory'[\s\S]*?\n\}\);/);
+  const gzmBlock = gzmMatch ? gzmMatch[0] : '';
+  assert(gzmBlock.includes('\\.\\.')  || gzmBlock.includes("'..'"), 'get-zalo-group-memory checks for ".." in groupId');
+  assert(/[\/\\]|\\\\/.test(gzmBlock) || gzmBlock.includes('\\/\\\\'), 'get-zalo-group-memory checks for slashes in groupId');
+  assert(gzmBlock.includes('typeof groupId'), 'get-zalo-group-memory validates groupId type');
+}
+
+// ============================================================
+// TEST 24: Round 4 — botToken redacted in get-telegram-config
+// ============================================================
+console.log('\n[Round 4: botToken redaction]');
+
+{
+  const tgCfgMatch = mainSrc.match(/ipcMain\.handle\('get-telegram-config'[\s\S]*?\n\}\);/);
+  const tgCfgBlock = tgCfgMatch ? tgCfgMatch[0] : '';
+  assert(tgCfgBlock.includes('slice(0, 6)'), 'get-telegram-config truncates token prefix');
+  assert(tgCfgBlock.includes('slice(-4)'), 'get-telegram-config keeps only last 4 chars');
+  assert(tgCfgBlock.includes('botTokenSet'), 'get-telegram-config returns botTokenSet boolean');
+  assert(!tgCfgBlock.includes("botToken: tg.botToken"), 'get-telegram-config does NOT return raw botToken');
+}
+
+// ============================================================
+// TEST 25: Round 4 — 9Router spawn error sends CEO alert
+// ============================================================
+console.log('\n[Round 4: 9Router spawn error CEO alert]');
+
+{
+  const spawnErrMatch = mainSrc.match(/routerProcess\.on\('error'[\s\S]*?\}\);/);
+  const spawnErrBlock = spawnErrMatch ? spawnErrMatch[0] : '';
+  assert(spawnErrBlock.includes('sendCeoAlert'), '9Router spawn error handler calls sendCeoAlert');
+  assert(spawnErrBlock.includes('không khởi động được'), '9Router spawn alert has descriptive message');
+}
+
+// ============================================================
+// TEST 26: Round 4 — POST body size limit in parseBody
+// ============================================================
+console.log('\n[Round 4: POST body size limit]');
+
+{
+  const parseBodyStart = mainSrc.indexOf('function parseBody(req)');
+  const parseBodyEnd = mainSrc.indexOf('async function withWriteLock');
+  const parseBodyBlock = parseBodyStart !== -1 && parseBodyEnd !== -1 ? mainSrc.slice(parseBodyStart, parseBodyEnd) : '';
+  assert(parseBodyBlock.includes('MAX_BODY'), 'parseBody has MAX_BODY size limit');
+  assert(parseBodyBlock.includes('1024 * 1024'), 'parseBody limits to 1MB');
+  assert(parseBodyBlock.includes('req.destroy'), 'parseBody destroys request on oversized body');
+}
+
+// ============================================================
+// TEST 27: Round 4 — SHA256 check is unconditional
+// ============================================================
+console.log('\n[Round 4: SHA256 unconditional check]');
+
+{
+  const sha256CondMatch = mainSrc.match(/if\s*\(meta\.sha256[^)]*\)\s*\{/);
+  if (sha256CondMatch) {
+    const condExpr = sha256CondMatch[0];
+    assert(!condExpr.includes('onProgress'), 'SHA256 if-condition does NOT depend on onProgress callback');
+    assert(condExpr.includes('meta.sha256'), 'SHA256 if-condition checks meta.sha256 hash');
+  } else {
+    assert(false, 'SHA256 conditional block not found');
+    assert(false, 'SHA256 check (skipped — block not found)');
+  }
+}
+
+// ============================================================
+// TEST 28: Round 4 — group memory files get trimmed
+// ============================================================
+console.log('\n[Round 4: group memory trim on file/write]');
+
+{
+  const fileWriteMatch = mainSrc.match(/urlPath === '\/api\/file\/write'[\s\S]*?(?=\} else if)/);
+  const fileWriteBlock = fileWriteMatch ? fileWriteMatch[0] : '';
+  assert(fileWriteBlock.includes('zalo-groups'), 'file/write handler checks for zalo-groups path');
+  assert(fileWriteBlock.includes('trimZaloMemoryFile'), 'file/write handler calls trimZaloMemoryFile for group files');
 }
 
 // ============================================================

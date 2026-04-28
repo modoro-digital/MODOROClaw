@@ -552,6 +552,7 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
       { name: "api-key-sk", re: /\bsk-[a-zA-Z0-9_\-]{16,}/i },
       { name: "bearer-token", re: /\bBearer\s+[a-zA-Z0-9_\-.]{20,}/i },
       { name: "hex-token-48", re: /\b[a-f0-9]{48}\b/i },
+      { name: "hex-token-partial", re: /\b[a-f0-9]{16,47}\b/i },
       { name: "botToken-field", re: /\bbotToken\b/i },
       { name: "apiKey-field", re: /\bapiKey\b/i },
       // --- Layer A1.5: bot "silent" tokens leaked as reply ---
@@ -605,13 +606,9 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
       { name: "system-prompt-leak", re: /\b(my (?:instructions|prompt|system prompt|rules)|here (?:are|is) my (?:rules|instructions))/i },
       // --- Layer G: cross-customer PII leakage ---
       { name: "list-all-customers", re: /(?:tất cả khách hàng|all customers|list customers|other customers?|khách khác cũng|khách hàng khác)/i },
-      // --- Layer H: fake commerce commitments ---
-      { name: "fake-order-confirm", re: /(?:đã\s+(?:xác\s*nhận|tạo|lưu|ghi\s*nhận)\s*đơn|đơn\s*(?:của\s+(?:anh|chị|mình|bạn))?\s*(?:đã|được)\s+(?:tạo|xác\s*nhận|lưu|ghi))/i },
-      { name: "fake-shipping-fee", re: /(?:phí\s*ship|ship\s*phí|phí\s*vận\s*chuyển|tiền\s*ship)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
-      { name: "fake-total-amount", re: /tổng\s*(?:tiền|cộng|đơn\s*hàng|thanh\s*toán|cần\s*thanh\s*toán)\s*[:=]?\s*\d{1,3}[.,]?\d{3}/i },
-      { name: "fake-discount-percent", re: /(?:giảm\s*(?:giá)?|discount|khuyến\s*mãi|sale)\s*\d{1,2}\s*%/i },
-      { name: "fake-booking-confirmed", re: /(?:đã\s*(?:đặt|book|giữ|xác\s*nhận))\s*(?:lịch|bàn|phòng|chỗ|slot|lịch\s*hẹn|cuộc\s*hẹn)/i },
-      { name: "fake-payment-received", re: /(?:đã\s*nhận\s*(?:thanh\s*toán|tiền|chuyển\s*khoản)|payment\s*received)/i },
+      // Layer H removed: "fake commerce" patterns were false-positive blocking
+      // legitimate CS replies (order confirmations, shipping fees, price quotes).
+      // The bot SHOULD quote prices and confirm orders — that's core CS function.
     ];
     let __ofBlocked: string | null = null;
     for (const __ofP of __ofBlockPatterns) {
@@ -707,8 +704,9 @@ export async function sendTextOpenzalo(options: SendTextOptions): Promise<Openza
     }
     } // end if (!__ofIsInternal)
   } catch (__ofE) {
-    try { logOutbound("error", "output filter error", { err: String(__ofE) }); } catch {}
-    return { messageId: "transport-gated", kind: "text" as const };
+    try { logOutbound("error", "output filter error — allowing message through", { err: String(__ofE) }); } catch {}
+    // DO NOT return early — let the message proceed to the customer.
+    // A filter crash should not silently swallow the reply.
   }
   // === END 9BizClaw OUTPUT-FILTER PATCH ===
   // === 9BizClaw ESCALATION-DETECT PATCH v1 ===

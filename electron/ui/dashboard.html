@@ -1365,20 +1365,7 @@
       color: var(--accent);
       font-weight: 500;
     }
-    #page-persona-mix .persona-slider-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    #page-persona-mix .persona-slider-row input[type="range"] {
-      flex: 1;
-      accent-color: var(--accent);
-    }
-    #page-persona-mix .persona-slider-edge {
-      font-size: 11px;
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
+
     #page-persona-mix .persona-custom-summary {
       cursor: pointer;
       font-size: 13px;
@@ -5275,7 +5262,7 @@
       const tokenEl = document.getElementById('tg-modal-token');
       const uidEl = document.getElementById('tg-modal-uid');
       const statusEl = document.getElementById('tg-modal-status');
-      if (tokenEl) tokenEl.value = _tgCfgCache.botToken || '';
+      if (tokenEl) { tokenEl.value = ''; tokenEl.placeholder = _tgCfgCache.botToken || 'Nhập Bot Token'; }
       if (uidEl) uidEl.value = _tgCfgCache.allowFrom?.length ? String(_tgCfgCache.allowFrom[0]) : '';
       if (statusEl) statusEl.textContent = '';
       modal.classList.add('show');
