@@ -4404,6 +4404,27 @@ ipcMain.handle('download-and-install-update', async () => {
     catch (e) { return { error: e.message }; }
   });
 
+  ipcMain.handle('google-calendar-events', async (_ev, opts) => {
+    try { return await googleApi.listEvents(opts?.from, opts?.to); }
+    catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-calendar-create', async (_ev, opts) => {
+    try { return await googleApi.createEvent(opts.summary, opts.start, opts.end, opts.attendees); }
+    catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-calendar-delete', async (_ev, opts) => {
+    try { return await googleApi.deleteEvent(opts.eventId); }
+    catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-calendar-freebusy', async (_ev, opts) => {
+    try { return await googleApi.getFreeBusy(opts?.from, opts?.to); }
+    catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-calendar-free-slots', async (_ev, opts) => {
+    try { return await googleApi.getFreeSlots(opts.date, opts.workStart, opts.workEnd, opts.slotMinutes); }
+    catch (e) { return { error: e.message }; }
+  });
+
 } // end registerAllIpcHandlers
 
 module.exports = { registerAllIpcHandlers };

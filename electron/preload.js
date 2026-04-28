@@ -141,6 +141,11 @@ contextBridge.exposeInMainWorld('claw', {
   googleUploadCredentials: (path) => ipcRenderer.invoke('google-upload-credentials', path),
   googleConnect: (email) => ipcRenderer.invoke('google-connect', email),
   googleDisconnect: () => ipcRenderer.invoke('google-disconnect'),
+  googleCalendarEvents: (opts) => ipcRenderer.invoke('google-calendar-events', opts || {}),
+  googleCalendarCreate: (opts) => ipcRenderer.invoke('google-calendar-create', opts),
+  googleCalendarDelete: (opts) => ipcRenderer.invoke('google-calendar-delete', opts),
+  googleCalendarFreebusy: (opts) => ipcRenderer.invoke('google-calendar-freebusy', opts || {}),
+  googleCalendarFreeSlots: (opts) => ipcRenderer.invoke('google-calendar-free-slots', opts),
 
   // First-time channel guide
   checkGuideNeeded: (channel) => ipcRenderer.invoke('check-guide-needed', { channel }),
