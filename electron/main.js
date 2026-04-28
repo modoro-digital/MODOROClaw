@@ -7691,6 +7691,7 @@ ipcMain.handle('get-zalo-manager-config', async () => {
     if (fs.existsSync(bp)) {
       try { blocklist = JSON.parse(fs.readFileSync(bp, 'utf-8')); } catch {}
     }
+    console.log(`[get-zalo-manager-config] blocklist path=${bp} entries=${Array.isArray(blocklist) ? blocklist.length : 'not-array'} exists=${fs.existsSync(bp)}`);
     let groupSettings = {};
     try {
       const gsPath = path.join(getWorkspace(), 'zalo-group-settings.json');
@@ -7797,7 +7798,17 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
     }
     // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
     const bp = getZaloBlocklistPath();
-    writeJsonAtomic(bp, userBlocklist || []);
+    const incomingBl = userBlocklist || [];
+    if (incomingBl.length === 0 && fs.existsSync(bp)) {
+      try {
+        const existing = JSON.parse(fs.readFileSync(bp, 'utf-8'));
+        if (Array.isArray(existing) && existing.length > 0) {
+          console.warn(`[save-zalo-manager] incoming blocklist empty but file has ${existing.length} entries — preserving (backup .bak)`);
+          try { fs.copyFileSync(bp, bp + '.bak'); } catch {}
+        }
+      } catch {}
+    }
+    writeJsonAtomic(bp, incomingBl);
     // 3. CRIT #5: Persist ALL explicit modes (off/mention/all) — zalo-group-settings.json
     // is the single source of truth used by GROUP-SETTINGS PATCH v2. If user
     // sets 'mention' in Dashboard we must persist it so the patch enforces

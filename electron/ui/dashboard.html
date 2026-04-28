@@ -4607,6 +4607,7 @@
           markZmFresh(config.enabled);
         }
         zaloDataLoaded = true;
+        console.log('[loadZaloManagerData] blocklist loaded:', (zaloMgrConfig.userBlocklist || []).length, 'entries, friends:', zaloFriends.length);
         syncZaloManagerUi();
       } catch (e) {
         console.error('loadZaloManagerData error:', e);
@@ -4761,6 +4762,10 @@
       }
     }
     async function autoSaveZaloManager() {
+      if (!zaloDataLoaded) {
+        console.warn('[autoSaveZaloManager] skipped — zalo data not loaded yet');
+        return;
+      }
       if (_zaloAutoSaveTimer) clearTimeout(_zaloAutoSaveTimer);
       _zaloAutoSaveTimer = setTimeout(async () => {
         _zaloAutoSaveTimer = null;
@@ -4981,6 +4986,11 @@
     }
 
     async function saveZaloManager() {
+      if (!zaloDataLoaded) {
+        console.warn('[saveZaloManager] skipped — zalo data not loaded yet');
+        showToast('Đang tải dữ liệu Zalo, vui lòng đợi...', 'info');
+        return;
+      }
       zaloMgrConfig.enabled = document.getElementById('zalo-mgr-enabled').checked;
       zaloMgrConfig.groupPolicy = 'open';
       zaloMgrConfig.groupAllowFrom = ['*'];
