@@ -122,6 +122,10 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     // Sheets
+    if (urlPath === '/sheets/list') {
+      const r = await googleApi.listSheets(params.max);
+      return jsonResp(res, 200, r);
+    }
     if (urlPath === '/sheets/metadata') {
       if (!params.spreadsheetId) return jsonResp(res, 400, { error: 'spreadsheetId required' });
       const r = await googleApi.getSheetMetadata(params.spreadsheetId);

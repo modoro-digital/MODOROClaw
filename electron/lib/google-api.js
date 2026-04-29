@@ -246,7 +246,7 @@ async function getFreeSlots(date, workStart, workEnd, slotMinutes) {
 // --- Gmail ---
 
 async function listInbox(max) {
-  return gogExec(['gmail', 'search', '--query', 'in:inbox', '--max', String(max || 20)]);
+  return gogExec(['gmail', 'search', 'in:inbox', '--max', String(max || 20)]);
 }
 
 async function readEmail(id) {
@@ -266,6 +266,15 @@ async function replyEmail(id, body) {
 async function listFiles(query, max) {
   const args = query ? ['drive', 'search', query, '--max', String(max || 20)] : ['drive', 'ls', '--max', String(max || 20)];
   return gogExec(args);
+}
+
+async function listSheets(max) {
+  return gogExec([
+    'drive', 'ls',
+    '--all',
+    '--query', "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
+    '--max', String(max || 20),
+  ]);
 }
 
 async function uploadFile(filePath, folderId) {
@@ -389,7 +398,7 @@ module.exports = {
   authStatus, validateOAuthClientSecret, registerCredentials, connectAccount, disconnectAccount,
   listEvents, createEvent, deleteEvent, getFreeBusy, getFreeSlots,
   listInbox, readEmail, sendEmail, replyEmail,
-  listFiles, uploadFile, downloadFile, shareFile,
+  listFiles, listSheets, uploadFile, downloadFile, shareFile,
   listContacts, createContact,
   listTaskLists, listTasks, createTask, completeTask,
   getSheet, updateSheet, appendSheet, getSheetMetadata, runAppScript,

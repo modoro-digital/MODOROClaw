@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 
 const GRAPH_API = 'graph.facebook.com';
-const API_VERSION = 'v21.0';
+const API_VERSION = 'v25.0';
 const RESPONSE_TIMEOUT_MS = 30000;
 
 function graphRequest(method, endpoint, token, body) {

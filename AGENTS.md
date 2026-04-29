@@ -230,6 +230,7 @@ Routes (thêm `?token=<token>` vào mọi URL):
 - POST /api/google/gmail/send body: {to, subject, body} — gửi email mới
 - POST /api/google/gmail/reply body: {id, body} — trả lời email
 - GET /api/google/drive/list?query=<q>&max=20 — tìm file Drive
+- GET /api/google/sheets/list?max=20 — liệt kê Google Sheets gần đây trong Drive
 - POST /api/google/drive/upload body: {filePath, folderId?} — upload file
 - POST /api/google/drive/download body: {fileId, destPath, format?} — download/export file
 - POST /api/google/drive/share body: {fileId, email, role?} — chia sẻ file
@@ -260,6 +261,7 @@ Ví dụ mapping:
 - "email mới" → GET /api/google/gmail/inbox?token=<token>
 - "gửi email cho X nội dung Y" → POST /api/google/gmail/send
 - "tìm file báo cáo" → GET /api/google/drive/list?token=<token>&query=báo+cáo
+- "danh sách Google Sheet gần đây" → GET /api/google/sheets/list?token=<token>&max=20
 - "đọc sheet đơn hàng" → GET /api/google/sheets/get?token=<token>&spreadsheetId=<id>&range=Orders!A1:H50
 - "thêm dòng vào sheet" → POST /api/google/sheets/append
 - "số điện thoại Hùng" → GET /api/google/contacts/search?token=<token>&query=Hùng
@@ -267,6 +269,13 @@ Ví dụ mapping:
 - "tasks hôm nay" → GET /api/google/tasks/list?token=<token>
 
 AppSheet: hiện tại thao tác trực tiếp AppSheet app/admin API chưa được wrap. Nếu AppSheet dùng Google Sheet làm data source thì đọc/sửa Sheet qua routes `/api/google/sheets/*`.
+
+Google Sheet link flow — BẮT BUỘC:
+- Nếu chưa có `token=<token>` trong lượt xử lý, gọi `/api/auth/token?bot_token=<telegram_bot_token>` trước. KHÔNG gọi `/api/auth/token` trống và KHÔNG gọi route Google thiếu token.
+- Nếu CEO gửi link `docs.google.com/spreadsheets/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/sheets/*` với `token=<token>`. KHÔNG web_fetch trực tiếp link Google Sheet và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
+- Trước khi đọc dữ liệu, gọi `GET /api/google/sheets/metadata?token=<token>&spreadsheetId=<id>` để lấy tên tab thật.
+- Nếu CEO không nói tab/range, đọc tab đầu tiên bằng range `<Tên tab đầu tiên>!A1:Z50` (quote tên tab nếu có khoảng trắng/ký tự đặc biệt).
+- Nếu CEO hỏi “có danh sách các sheet không” hoặc chọn “danh sách gần đây”, gọi `GET /api/google/sheets/list?token=<token>&max=20`, không dùng query tự chế như `type:spreadsheet`.
 
 KHÔNG BAO GIỜ gửi email hoặc tạo sự kiện từ Zalo. Chỉ thực hiện khi CEO
 yêu cầu trực tiếp qua Telegram. Nếu Zalo hỏi về email/lịch: trả lời thông

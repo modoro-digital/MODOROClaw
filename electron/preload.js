@@ -158,6 +158,7 @@ contextBridge.exposeInMainWorld('claw', {
   googleTasksList: (opts) => ipcRenderer.invoke('google-tasks-list', opts || {}),
   googleTasksCreate: (opts) => ipcRenderer.invoke('google-tasks-create', opts),
   googleTasksComplete: (opts) => ipcRenderer.invoke('google-tasks-complete', opts),
+  googleSheetsList: (opts) => ipcRenderer.invoke('google-sheets-list', opts || {}),
   googleSheetsMetadata: (opts) => ipcRenderer.invoke('google-sheets-metadata', opts),
   googleSheetsGet: (opts) => ipcRenderer.invoke('google-sheets-get', opts),
   googleSheetsUpdate: (opts) => ipcRenderer.invoke('google-sheets-update', opts),

@@ -13,6 +13,7 @@
       document.documentElement.setAttribute('data-theme', saved);
     } catch {}
   </script>
+  <script src="../node_modules/fullcalendar/index.global.min.js"></script>
   <link rel="stylesheet" href="styles.css">
   <style>
     html, body { height:100%; margin:0; overflow:hidden; }
@@ -66,6 +67,16 @@
     /* Cards in main */
     .main-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
     .main-card h3 { margin:0 0 12px; font-size:14px; font-weight:600; text-transform:none; letter-spacing:0; color:var(--text-secondary); }
+    .card {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:18px;
+      min-width:0;
+      overflow:hidden;
+      box-sizing:border-box;
+    }
+    .card > * { min-width:0; }
     .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 
     /* How it works */
@@ -164,6 +175,53 @@
     @media (max-width:1100px) {
       .gw-guide-grid, .gw-file-check { grid-template-columns:1fr; }
       .gw-api-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    }
+
+    /* Google Workspace working screens */
+    .gw-tabs { display:flex; gap:0; overflow-x:auto; min-width:0; border-bottom:1.5px solid var(--border); margin:0 0 24px; scrollbar-width:thin; }
+    .gw-tab { flex:0 0 auto; white-space:nowrap; padding:10px 18px; font-size:13px; font-weight:500; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all .15s; }
+    .gw-tab.active { color:var(--text); border-bottom-color:var(--primary, var(--accent)); }
+    .gw-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .gw-card { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:16px; min-width:0; }
+    .gw-card h3 { margin:0 0 12px; font-size:15px; font-weight:600; color:var(--text); line-height:1.35; }
+    .gw-grid { display:grid; grid-template-columns:minmax(280px,420px) minmax(0,1fr); gap:16px; align-items:start; }
+    .gw-result { margin:0; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:16px; color:var(--text); font-size:12px; line-height:1.5; white-space:pre-wrap; overflow:auto; max-height:560px; min-width:0; word-break:break-word; }
+    .gw-list-row { padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+    .gw-list-main { flex:1; min-width:0; }
+    .gw-list-title { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gw-list-meta { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    .gw-calendar-shell { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:12px; min-height:640px; overflow:hidden; }
+    .gw-calendar-shell .fc { color:var(--text); font-size:12px; }
+    .gw-calendar-shell .fc .fc-toolbar { gap:10px; flex-wrap:wrap; align-items:center; }
+    .gw-calendar-shell .fc .fc-toolbar-title { font-size:18px; font-weight:700; line-height:1.25; }
+    .gw-calendar-shell .fc .fc-button { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; box-shadow:none; }
+    .gw-calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .gw-calendar-shell .fc .fc-button-primary:not(:disabled):active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .gw-calendar-shell .fc .fc-col-header-cell-cushion,
+    .gw-calendar-shell .fc .fc-daygrid-day-number { color:var(--text); text-decoration:none; }
+    .gw-calendar-shell .fc .fc-event { border-radius:6px; border:0; padding:2px 4px; overflow:hidden; }
+    .gw-sheet-list { display:flex; flex-direction:column; gap:6px; margin:0 0 14px; max-height:180px; overflow:auto; }
+    .gw-sheet-row { width:100%; text-align:left; border:1px solid var(--border); background:var(--bg); color:var(--text); border-radius:8px; padding:8px 10px; cursor:pointer; min-width:0; }
+    .gw-sheet-row:hover { border-color:var(--accent); }
+    .gw-sheet-row-title { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gw-sheet-row-meta { font-size:10.5px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .text-ellipsis { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .row-date { flex-shrink:0; font-size:11px; color:var(--text-muted); white-space:nowrap; }
+    .row-action { flex-shrink:0; }
+    .sidebar-menu-item .label { min-width:0; }
+    #check-update-btn { min-width:0; }
+    #check-update-btn .label { white-space:normal; line-height:1.25; }
+    @media (max-width:900px) {
+      .main-content { padding:18px 16px !important; }
+      .gw-grid { grid-template-columns:1fr; }
+      .gw-calendar-shell { min-height:520px; }
+    }
+    @media (max-width:800px) {
+      .sidebar { width:72px !important; padding:14px 8px !important; }
+      .sidebar-brand-text, .sidebar-menu-header,
+      .sidebar-status span:not(.status-dot),
+      .sidebar-menu-item .label { display:none !important; }
+      .sidebar-menu-item { justify-content:center !important; }
     }
 
     /* === Tooltip system (CSS-only) === */
@@ -2014,7 +2072,7 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="sidebar-menu-item" onclick="manualCheckUpdate()" id="check-update-btn" style="margin-top:2px">
+        <div class="sidebar-menu-item" onclick="manualCheckUpdate()" id="check-update-btn" style="margin-top:2px" title="Kiểm tra cập nhật">
           <span class="icon" data-icon="refresh-cw"></span>
           <span class="label" id="check-update-label">Kiểm tra cập nhật</span>
         </div>
@@ -2989,7 +3047,9 @@
                   <b>Gõ tìm</b> từng quyền (không browse theo nhóm):<br>
                   <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_show_list</code>
                   <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_manage_posts</code>
-                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_read_engagement</code><br>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_read_engagement</code>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">business_management</code><br>
+                  <span style="font-size:11px;color:var(--text-muted)">business_management giúp hiện Page nằm trong Business Portfolio, nhưng một mình nó không đủ để đăng bài.</span><br>
                   Nhấn <b>"Generate Access Token"</b> &rarr; popup đăng nhập &rarr; cấp tất cả quyền &rarr; <b>chọn Fanpage</b> trong popup
                 </div>
 
@@ -3019,10 +3079,13 @@
 
                 <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-top:10px">
                   <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
-                    <b>Lưu ý:</b> Nếu <code>pages_manage_posts</code> không hiện khi tìm, vào
+                    <b>Nếu chỉ thấy</b> <code>business_management</code> và <code>pages_show_list</code> như Graph API Explorer mới:
+                    token đó chỉ đủ để liệt kê Page, <b>chưa đủ để 9BizClaw đăng bài</b>. Đừng paste token đó vào app.
+                    Vào
                     <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/');return false" style="color:var(--accent)">App Dashboard</a>
-                    &rarr; app &rarr; <b>App Review &gt; Permissions and Features</b> &rarr; tìm <code>pages_manage_posts</code> &rarr; nhấn "Request".
-                    Ở chế độ Development, quyền này tự dùng được cho Page bạn admin, không cần chờ review.
+                    &rarr; app &rarr; <b>Use cases</b> hoặc <b>App Review &gt; Permissions and Features</b> &rarr; tìm và thêm
+                    <code>pages_manage_posts</code> + <code>pages_read_engagement</code>. Sau đó quay lại Graph API Explorer,
+                    bấm Generate Access Token lại và chọn Fanpage trong popup. Ở Development mode, tài khoản dùng để lấy token phải là Admin/Developer/Tester của app và có quyền tạo nội dung trên Page.
                   </div>
                 </div>
 
@@ -3067,18 +3130,15 @@
         </div>
         <!-- Tab contents -->
         <div class="gw-panel" id="gw-calendar" style="display:none">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <button class="btn btn-secondary btn-small" onclick="calNavWeek(-1)" style="padding:6px 10px">&larr;</button>
-              <span id="cal-week-label" style="font-size:14px;font-weight:500;color:var(--text);min-width:200px;text-align:center"></span>
-              <button class="btn btn-secondary btn-small" onclick="calNavWeek(1)" style="padding:6px 10px">&rarr;</button>
+          <div class="gw-toolbar">
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Lịch Google Calendar</h3>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:3px">Xem theo tháng, tuần, ngày hoặc danh sách.</div>
             </div>
             <button class="btn btn-primary btn-small" onclick="showCalCreateModal()">Tạo sự kiện</button>
           </div>
-          <div id="cal-week-view" style="display:flex;flex-direction:column;gap:2px"></div>
-          <div id="cal-empty" style="display:none;padding:60px 20px;text-align:center;color:var(--text-muted)">
-            <p style="margin:0;font-size:14px">Chưa có sự kiện nào trong tuần này</p>
-          </div>
+          <div id="cal-fullcalendar" class="gw-calendar-shell"></div>
+          <div id="cal-empty" style="display:none;padding:14px 16px;text-align:center;color:var(--text-muted);font-size:13px">Không có sự kiện trong khung thời gian này.</div>
           <!-- Create event modal -->
           <div id="cal-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
             <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:28px;width:400px;max-width:90vw">
@@ -3176,23 +3236,29 @@
           </div>
         </div>
         <div class="gw-panel" id="gw-sheets" style="display:none">
-          <div style="display:grid;grid-template-columns:minmax(260px,420px) minmax(320px,1fr);gap:16px;align-items:start">
-            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px">
+          <div class="gw-grid">
+            <div class="gw-card">
               <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:var(--text)">Đọc và sửa Google Sheet</h3>
-              <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Spreadsheet ID</label>
-              <input type="text" id="sheets-id" placeholder="ID trong URL Google Sheet" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px" />
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+                <span style="font-size:12px;color:var(--text-muted)">Sheets gần đây</span>
+                <button class="btn btn-secondary btn-small" onclick="loadRecentSheets()">Tải danh sách</button>
+              </div>
+              <div id="sheets-recent-list" class="gw-sheet-list"></div>
+              <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Link hoặc Spreadsheet ID</label>
+              <input type="text" id="sheets-id" placeholder="Dán link Google Sheet hoặc ID" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px" />
               <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Range</label>
               <input type="text" id="sheets-range" value="Sheet1!A1:D20" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px" />
               <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Values để cập nhật / thêm dòng</label>
               <textarea id="sheets-values" rows="5" placeholder='[["Tên","SĐT"],["An","090..."]]' style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;margin-bottom:12px"></textarea>
               <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button class="btn btn-secondary btn-small" onclick="loadSheetMetadata()">Xem tab</button>
                 <button class="btn btn-secondary btn-small" onclick="loadSheetRange()">Đọc range</button>
                 <button class="btn btn-secondary btn-small" onclick="submitSheetUpdate()">Cập nhật</button>
                 <button class="btn btn-primary btn-small" onclick="submitSheetAppend()">Thêm dòng</button>
               </div>
               <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:12px">Với AppSheet dùng Google Sheet làm data source, thao tác ở đây sẽ sửa dữ liệu nguồn của AppSheet.</div>
             </div>
-            <pre id="sheets-result" style="margin:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px;color:var(--text);font-size:12px;line-height:1.5;white-space:pre-wrap;overflow:auto;max-height:520px">Chưa có dữ liệu.</pre>
+            <pre id="sheets-result" class="gw-result">Chưa có dữ liệu.</pre>
           </div>
         </div>
         <div class="gw-panel" id="gw-contacts" style="display:none">
@@ -6146,14 +6212,20 @@
     }
     async function manualCheckUpdate() {
       const label = document.getElementById('check-update-label');
-      if (label) label.textContent = 'Đang kiểm tra...';
+      if (label) {
+        label.textContent = 'Đang kiểm tra';
+        label.title = 'Đang kiểm tra cập nhật';
+      }
       try {
         const r = await window.claw.checkForUpdates();
         if (r && r.available) {
           // User explicitly clicked check → they want the update.
           // Skip the intermediate banner "Nhấn để cập nhật" — kick off install directly.
           // Banner still displays progress (Đang tải X%, Đang cài..., etc) via startUpdate().
-          if (label) label.textContent = 'v' + r.version + ' — đang tải';
+          if (label) {
+            label.textContent = 'Có bản mới';
+            label.title = 'Đang tải bản v' + r.version;
+          }
           _pendingUpdate = r;  // set so startUpdate() doesn't bail
           const banner = document.getElementById('update-banner');
           const text = document.getElementById('update-banner-text');
@@ -6163,12 +6235,28 @@
           }
           await startUpdate();
         } else {
-          if (label) label.textContent = 'Đã mới nhất';
-          setTimeout(() => { if (label) label.textContent = 'Kiểm tra cập nhật'; }, 3000);
+          if (label) {
+            label.textContent = 'Đã mới nhất';
+            label.title = 'Không có bản cập nhật mới';
+          }
+          setTimeout(() => {
+            if (label) {
+              label.textContent = 'Kiểm tra cập nhật';
+              label.title = 'Kiểm tra cập nhật';
+            }
+          }, 3000);
         }
       } catch {
-        if (label) label.textContent = 'Lỗi kết nối';
-        setTimeout(() => { if (label) label.textContent = 'Kiểm tra cập nhật'; }, 3000);
+        if (label) {
+          label.textContent = 'Lỗi cập nhật';
+          label.title = 'Không kiểm tra được cập nhật';
+        }
+        setTimeout(() => {
+          if (label) {
+            label.textContent = 'Kiểm tra cập nhật';
+            label.title = 'Kiểm tra cập nhật';
+          }
+        }, 3000);
       }
     }
     // Listen for auto-check result from main process
@@ -6180,6 +6268,11 @@
       window.claw.onUpdateDownloadProgress((p) => {
         const text = document.getElementById('update-banner-text');
         if (text && p) text.textContent = 'Đang tải... ' + (p.percent || 0) + '%';
+        const label = document.getElementById('check-update-label');
+        if (label && p) {
+          label.textContent = 'Đang tải';
+          label.title = 'Đang tải cập nhật ' + (p.percent || 0) + '%';
+        }
       });
     }
     // Install status (Mac DMG install phases)
@@ -6187,6 +6280,11 @@
       window.claw.onUpdateInstallStatus((data) => {
         const text = document.getElementById('update-banner-text');
         if (text && data && data.status) text.textContent = data.status;
+        const label = document.getElementById('check-update-label');
+        if (label && data && data.status) {
+          label.textContent = 'Cài cập nhật';
+          label.title = data.status;
+        }
       });
     }
 
@@ -7677,7 +7775,10 @@
       if (tab === 'calendar') loadCalendarEvents();
       if (tab === 'gmail') loadGmailInbox();
       if (tab === 'drive') loadDriveFiles();
-      if (tab === 'sheets') resetSheetResultIfEmpty();
+      if (tab === 'sheets') {
+        resetSheetResultIfEmpty();
+        loadRecentSheets(false);
+      }
       if (tab === 'contacts') loadContactsList();
       if (tab === 'tasks') loadTasksList();
       if (tab === 'settings') loadGoogleStatus();
@@ -7766,6 +7867,112 @@
       }
     }
 
+    let _fcCalendar = null;
+    let _fcRequestId = 0;
+    let _fcLoadingKey = '';
+
+    function ensureGoogleCalendar() {
+      const el = document.getElementById('cal-fullcalendar');
+      if (!el) return false;
+      if (!window.FullCalendar) {
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">Không tải được thư viện lịch.</div>';
+        return false;
+      }
+      if (_fcCalendar) return true;
+      _fcCalendar = new FullCalendar.Calendar(el, {
+        initialView: 'timeGridWeek',
+        locale: 'vi',
+        firstDay: 1,
+        height: 'auto',
+        expandRows: true,
+        nowIndicator: true,
+        allDaySlot: true,
+        slotMinTime: '06:00:00',
+        slotMaxTime: '22:00:00',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        buttonText: {
+          today: 'Hôm nay',
+          month: 'Tháng',
+          week: 'Tuần',
+          day: 'Ngày',
+          list: 'Danh sách'
+        },
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        datesSet: () => {
+          const panel = document.getElementById('gw-calendar');
+          if (panel && panel.style.display !== 'none') loadCalendarEvents();
+        },
+        eventClick: (info) => {
+          info.jsEvent?.preventDefault();
+          const start = info.event.start ? info.event.start.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '';
+          alert([info.event.title, start].filter(Boolean).join('\n'));
+        }
+      });
+      _fcCalendar.render();
+      return true;
+    }
+
+    function normalizeCalendarEvents(events) {
+      return events.map(ev => {
+        const start = ev.start?.dateTime || ev.start?.date || ev.start || ev.startTime || '';
+        const end = ev.end?.dateTime || ev.end?.date || ev.end || ev.endTime || '';
+        return {
+          id: ev.id,
+          title: ev.summary || ev.title || 'Không có tiêu đề',
+          start,
+          end: end || undefined,
+          allDay: Boolean(ev.start?.date && !ev.start?.dateTime),
+          url: ev.htmlLink || ev.url || undefined,
+          backgroundColor: 'var(--accent)',
+          borderColor: 'var(--accent)'
+        };
+      }).filter(ev => ev.start);
+    }
+
+    function calNavWeek(delta) {
+      if (!ensureGoogleCalendar()) return;
+      if (delta < 0) _fcCalendar.prev();
+      else _fcCalendar.next();
+    }
+
+    async function loadCalendarEvents() {
+      if (!ensureGoogleCalendar()) return;
+      const view = _fcCalendar.view;
+      const from = view.activeStart.toISOString();
+      const to = view.activeEnd.toISOString();
+      const rangeKey = from + '|' + to;
+      if (_fcLoadingKey === rangeKey) return;
+      _fcLoadingKey = rangeKey;
+      const reqId = ++_fcRequestId;
+      const empty = document.getElementById('cal-empty');
+      if (empty) empty.style.display = 'none';
+      try {
+        const data = await window.claw.googleCalendarEvents({ from, to });
+        if (data.error) throw new Error(data.error);
+        if (reqId !== _fcRequestId) return;
+        const events = data.events || data.items || data.data || [];
+        _fcCalendar.removeAllEvents();
+        _fcCalendar.addEventSource(normalizeCalendarEvents(events));
+        if (empty) {
+          empty.style.color = 'var(--text-muted)';
+          empty.textContent = 'Không có sự kiện trong khung thời gian này.';
+          empty.style.display = events.length ? 'none' : '';
+        }
+      } catch (e) {
+        if (empty) {
+          empty.style.display = '';
+          empty.style.color = 'var(--danger)';
+          empty.textContent = e.message || 'Lỗi tải lịch';
+        }
+      } finally {
+        if (_fcLoadingKey === rangeKey) _fcLoadingKey = '';
+      }
+    }
+
     function showCalCreateModal() {
       const m = document.getElementById('cal-create-modal');
       m.style.display = 'flex';
@@ -7811,12 +8018,12 @@
           const subject = e.subject || 'Không có tiêu đề';
           const date = e.date || e.receivedAt || '';
           const dateStr = date ? new Date(date).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
-          const safeId = esc(e.id || '').replace(/'/g, '&#39;');
-          return '<div onclick="openGmailDetail(\'' + safeId + '\')" style="padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .1s" onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'var(--surface)\'">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
-            '<span style="font-size:13px;font-weight:500;color:var(--text)">' + esc(from) + '</span>' +
-            '<span style="font-size:11px;color:var(--text-muted)">' + esc(dateStr) + '</span></div>' +
-            '<div style="font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(subject) + '</div></div>';
+          const safeId = escAttr(JSON.stringify(String(e.id || '')));
+          return '<div class="gw-list-row" onclick="openGmailDetail(' + safeId + ')" style="cursor:pointer">' +
+            '<div class="gw-list-main">' +
+            '<div class="gw-list-title">' + esc(from || subject) + '</div>' +
+            '<div class="gw-list-meta">' + esc(subject) + '</div></div>' +
+            '<span class="row-date">' + esc(dateStr) + '</span></div>';
         }).join('');
       } catch (e) {
         list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải email') + '</div>';
@@ -7897,10 +8104,10 @@
           const modified = f.modifiedTime || f.modifiedDate || '';
           const modStr = modified ? new Date(modified).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' }) : '';
           const link = f.webViewLink || f.url || f.alternateLink || '';
-          return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between">' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(name) + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted)">' + esc([size, modStr].filter(Boolean).join(' · ')) + '</div></div>' +
-            (link ? '<button class="btn btn-secondary btn-small" onclick="window.claw.openExternal(\'' + escAttr(link) + '\')">Mở</button>' : '') +
+          return '<div class="gw-list-row">' +
+            '<div class="gw-list-main"><div class="gw-list-title">' + esc(name) + '</div>' +
+            '<div class="gw-list-meta">' + esc([size, modStr].filter(Boolean).join(' · ')) + '</div></div>' +
+            (link ? '<button class="btn btn-secondary btn-small row-action" onclick="window.claw.openExternal(' + escAttr(JSON.stringify(link)) + ')">Mở</button>' : '') +
             '</div>';
         }).join('');
       } catch (e) {
@@ -7918,8 +8125,28 @@
       const result = document.getElementById('sheets-result');
       if (result && !result.textContent.trim()) result.textContent = 'Chưa có dữ liệu.';
     }
+    function extractSpreadsheetId(raw) {
+      const value = String(raw || '').trim();
+      const match = value.match(/\/spreadsheets\/d\/([^/?#]+)/);
+      if (match) return decodeURIComponent(match[1]);
+      return value.replace(/[?#].*$/, '');
+    }
+    function quoteSheetName(name) {
+      const clean = String(name || '').trim();
+      if (!clean) return 'Sheet1';
+      return /^[A-Za-z0-9_]+$/.test(clean) ? clean : "'" + clean.replace(/'/g, "''") + "'";
+    }
+    function normalizeSheetFiles(data) {
+      if (Array.isArray(data)) return data;
+      return data.files || data.items || data.data || data.result || [];
+    }
+    function normalizeSheetTabs(data) {
+      if (Array.isArray(data)) return [];
+      const sheets = data.sheets || data.data?.sheets || data.spreadsheet?.sheets || [];
+      return sheets.map(s => s.properties?.title || s.title || s.name).filter(Boolean);
+    }
     function getSheetForm() {
-      const spreadsheetId = document.getElementById('sheets-id').value.trim();
+      const spreadsheetId = extractSpreadsheetId(document.getElementById('sheets-id').value);
       const range = document.getElementById('sheets-range').value.trim();
       const rawValues = document.getElementById('sheets-values').value.trim();
       let values = rawValues;
@@ -7931,6 +8158,62 @@
     }
     function showSheetResult(data) {
       document.getElementById('sheets-result').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
+    function selectSheet(id, name) {
+      document.getElementById('sheets-id').value = id;
+      showSheetResult('Đã chọn: ' + (name || id) + '\nĐang đọc danh sách tab...');
+      loadSheetMetadata();
+    }
+    async function loadRecentSheets(showLoading = true) {
+      const box = document.getElementById('sheets-recent-list');
+      if (!box || !window.claw.googleSheetsList) return;
+      if (box.dataset.loaded === '1' && !showLoading) return;
+      if (showLoading) box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Đang tải danh sách...</div>';
+      try {
+        const data = await window.claw.googleSheetsList({ max: 20 });
+        if (data.error) throw new Error(data.error);
+        const files = normalizeSheetFiles(data);
+        box.dataset.loaded = '1';
+        if (!files.length) {
+          box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Chưa tìm thấy Google Sheet nào trong Drive.</div>';
+          return;
+        }
+        box.innerHTML = files.map(file => {
+          const idRaw = String(file.id || file.fileId || '');
+          const name = file.name || file.title || 'Không có tên';
+          const modified = file.modifiedTime || file.modifiedDate || file.modified || '';
+          const modStr = modified ? new Date(modified).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+          return '<button class="gw-sheet-row" type="button" onclick="selectSheet(' + escAttr(JSON.stringify(idRaw)) + ', ' + escAttr(JSON.stringify(name)) + ')">' +
+            '<div class="gw-sheet-row-title">' + esc(name) + '</div>' +
+            '<div class="gw-sheet-row-meta">' + esc([idRaw, modStr].filter(Boolean).join(' · ')) + '</div>' +
+            '</button>';
+        }).join('');
+      } catch (e) {
+        box.dataset.loaded = '';
+        box.innerHTML = '<div style="padding:10px;color:var(--danger);font-size:12px">' + esc(e.message || 'Lỗi tải danh sách Sheet') + '</div>';
+      }
+    }
+    async function loadSheetMetadata() {
+      try {
+        const spreadsheetId = extractSpreadsheetId(document.getElementById('sheets-id').value);
+        if (!spreadsheetId) throw new Error('Cần nhập link hoặc Spreadsheet ID');
+        document.getElementById('sheets-id').value = spreadsheetId;
+        showSheetResult('Đang đọc danh sách tab...');
+        const data = await window.claw.googleSheetsMetadata({ spreadsheetId });
+        if (data.error) throw new Error(data.error);
+        const tabs = normalizeSheetTabs(data);
+        const rangeInput = document.getElementById('sheets-range');
+        if (tabs.length && /^Sheet1!/i.test(rangeInput.value.trim())) {
+          rangeInput.value = quoteSheetName(tabs[0]) + '!A1:Z50';
+        }
+        showSheetResult({
+          spreadsheetId,
+          tabs,
+          hint: tabs.length ? 'Chọn range theo tên tab bên trên, hoặc bấm Đọc range để xem dữ liệu.' : 'Không đọc được tên tab từ metadata.'
+        });
+      } catch (e) {
+        showSheetResult('Lỗi: ' + (e.message || e));
+      }
     }
     async function loadSheetRange() {
       try {
@@ -7977,10 +8260,10 @@
           const name = c.name || c.displayName || '';
           const phone = c.phone || (c.phoneNumbers && c.phoneNumbers[0]?.value) || '';
           const email = c.email || (c.emailAddresses && c.emailAddresses[0]?.value) || '';
-          return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px">' +
+          return '<div class="gw-list-row" style="justify-content:flex-start">' +
             '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text)">' + esc(name.charAt(0) || '?') + '</div>' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text)">' + esc(name) + '</div>' +
-            '<div style="font-size:12px;color:var(--text-muted)">' + esc([phone, email].filter(Boolean).join(' · ')) + '</div></div></div>';
+            '<div class="gw-list-main"><div class="gw-list-title">' + esc(name) + '</div>' +
+            '<div class="gw-list-meta">' + esc([phone, email].filter(Boolean).join(' · ')) + '</div></div></div>';
         }).join('');
       } catch (e) {
         list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải liên hệ') + '</div>';
@@ -8023,11 +8306,11 @@
           const due = t.due || t.dueDate || '';
           const dueStr = due ? new Date(due).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' }) : '';
           const done = t.status === 'completed' || t.completed;
-          const safeTaskId = esc(t.id || '').replace(/'/g, '&#39;');
-          return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">' +
-            '<input type="checkbox" ' + (done ? 'checked disabled' : '') + ' onchange="completeTaskItem(\'' + safeTaskId + '\')" style="width:16px;height:16px;cursor:pointer" />' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);' + (done ? 'text-decoration:line-through;opacity:.5' : '') + '">' + esc(title) + '</div>' +
-            (dueStr ? '<div style="font-size:11px;color:var(--text-muted)">Hạn: ' + esc(dueStr) + '</div>' : '') +
+          const safeTaskId = escAttr(JSON.stringify(String(t.id || '')));
+          return '<div class="gw-list-row" style="justify-content:flex-start">' +
+            '<input type="checkbox" ' + (done ? 'checked disabled' : '') + ' onchange="completeTaskItem(' + safeTaskId + ')" style="width:16px;height:16px;cursor:pointer;flex:0 0 auto" />' +
+            '<div class="gw-list-main"><div class="gw-list-title" style="' + (done ? 'text-decoration:line-through;opacity:.5' : '') + '">' + esc(title) + '</div>' +
+            (dueStr ? '<div class="gw-list-meta">Hạn: ' + esc(dueStr) + '</div>' : '') +
             '</div></div>';
         }).join('');
       } catch (e) {

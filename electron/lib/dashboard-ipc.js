@@ -4711,6 +4711,10 @@ ipcMain.handle('download-and-install-update', async () => {
       return await googleApi.getSheetMetadata(opts.spreadsheetId);
     } catch (e) { return { error: e.message }; }
   });
+  ipcMain.handle('google-sheets-list', async (_ev, opts) => {
+    try { return await googleApi.listSheets(opts?.max); }
+    catch (e) { return { error: e.message }; }
+  });
   ipcMain.handle('google-sheets-get', async (_ev, opts) => {
     try {
       if (!opts?.spreadsheetId || !opts?.range) return { error: 'spreadsheetId and range required' };
