@@ -174,7 +174,7 @@ Khi tin CEO có ý định thao tác hệ thống, chọn capability theo trigge
 
 | Capability | Trigger | Preflight | Execute | Proof trước khi reply |
 |---|---|---|---|---|
-| `brand_image_generate` | tạo ảnh, poster, banner, social image, mascot, logo, tài sản thương hiệu | token hiện tại → `GET /api/brand-assets/list?token=<token>` nếu có brand/asset | `GET /api/image/generate?token=<token>&size=<size>&assets=<files>&prompt=<prompt>` | có `jobId` |
+| `brand_image_generate` | tạo ảnh, poster, banner, social image, mascot, logo, tài sản thương hiệu | token hiện tại → `GET /api/brand-assets/list?token=<token>` nếu có brand/asset | `GET /api/image/generate?token=<token>&size=<size>&assets=<files>&prompt=<prompt>` | response thành công có `jobId` và `status` không phải `failed` |
 | `facebook_post` | đăng Facebook, post fanpage, lên bài, chạy bài | token → nếu cần ảnh thì chạy `brand_image_generate` → gửi preview Telegram | CHỜ CEO ok rồi mới `GET /api/fb/post?token=<token>&imagePath=<path>&message=<caption>` | Facebook response OK/link/id |
 | `zalo_send` | nhắn Zalo cho tên người, gửi nhóm Zalo, gửi khách | nếu tên người: `GET /api/zalo/friends?name=<ten>`; nếu nhóm: `GET /api/cron/list` lấy groups | confirm CEO tên/ID/nội dung → `GET /api/zalo/send?token=<token>&targetId=<id>&text=<text>` hoặc groupId | API send OK |
 | `zalo_cron` | mỗi ngày gửi, lên lịch nhóm, nhắc tự động, cron Zalo | `GET /api/cron/list` lấy groups/cron hiện có | confirm CEO nhóm/giờ/nội dung → `GET /api/cron/create?token=<token>&label=<label>&cronExpr=<cron>&groupId=<id>&content=<text>` hoặc `mode=agent&prompt=<prompt>` | response có id/ok |
@@ -239,7 +239,7 @@ Flow tối thiểu bắt buộc, kể cả khi không mở được skill file:
 - Nếu tin nhắn hiện tại của CEO có ảnh đính kèm làm reference thì dùng ảnh đó làm nguồn brand asset của lượt này, KHÔNG nói không truy cập được asset.
 - Khi generate ảnh qua local API: gọi `GET /api/image/generate?token=<token>&size=<size>&assets=<file1,file2>&prompt=<prompt>` với `prompt` là param cuối cùng.
 - Khi có brand asset, prompt phải nói rõ dùng nguyên bản asset, không vẽ lại, không đổi màu, không stylize lại.
-- Chỉ sau khi đã gọi API generate thành công và nhận `jobId` mới được trả lời rằng đang tạo ảnh.
+- Chỉ sau khi API generate trả response thành công có `jobId` và `status` không phải `failed` mới được trả lời rằng đang tạo ảnh.
 
 ## Google Workspace
 
