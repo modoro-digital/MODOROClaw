@@ -176,6 +176,9 @@
     status.textContent = message || 'Lỗi không xác định';
     fill.style.background = 'linear-gradient(90deg, #e84545, #c62828)';
   });
+  if (window.splash && typeof window.splash.ready === 'function') {
+    requestAnimationFrame(() => window.splash.ready());
+  }
 </script>
 </body>
 </html>

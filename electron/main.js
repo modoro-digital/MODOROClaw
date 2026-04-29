@@ -17753,6 +17753,49 @@ function installEmbedHeaderStripper() {
 // on first launch (or after update). Returns when extraction is done OR immediately
 // on Mac / dev / already-extracted cases.
 let splashWindow = null;
+function waitForSplashReady(win, timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { clearTimeout(timer); } catch {}
+      resolve();
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    ipcMain.once('splash-ready', (event) => {
+      if (!win || win.isDestroyed() || event.sender === win.webContents) finish();
+      else finish();
+    });
+  });
+}
+
+function startSplashProgressHeartbeat(sendSyntheticProgress, getRealPercent) {
+  let lastSyntheticPercent = 0;
+  const startedAt = Date.now();
+  const timer = setInterval(() => {
+    const realPercent = Math.max(0, Math.min(100, Number(getRealPercent()) || 0));
+    if (realPercent >= 100) return;
+
+    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+    const cap = realPercent >= 5 ? 94 : 4;
+    const estimated = realPercent >= 5
+      ? Math.min(cap, Math.max(realPercent, 5 + Math.floor(elapsedSeconds / 2)))
+      : Math.min(cap, 1 + Math.floor(elapsedSeconds / 2));
+
+    if (estimated > realPercent && estimated > lastSyntheticPercent) {
+      lastSyntheticPercent = estimated;
+      sendSyntheticProgress({
+        percent: estimated,
+        message: realPercent >= 5 ? 'Đang giải nén...' : 'Đang chuẩn bị...',
+      });
+    }
+  }, 1000);
+  return () => {
+    try { clearInterval(timer); } catch {}
+  };
+}
+
 async function runSplashAndExtractVendor() {
   if (process.platform !== 'win32' || !app.isPackaged) return;
 
@@ -17792,16 +17835,40 @@ async function runSplashAndExtractVendor() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
   splashWindow.setMenuBarVisibility(false);
   await splashWindow.loadFile(path.join(__dirname, 'ui', 'splash.html'));
   splashWindow.show();
   splashWindow.focus();
+  await waitForSplashReady(splashWindow);
 
+  let lastRealProgress = 0;
+  let lastDisplayedProgress = 0;
   const sendProgress = (data) => {
     if (splashWindow && !splashWindow.isDestroyed()) {
-      try { splashWindow.webContents.send('splash-progress', data); } catch {}
+      try {
+        const payload = { ...(data || {}) };
+        if (typeof payload.percent === 'number') {
+          lastRealProgress = Math.max(lastRealProgress, payload.percent);
+          payload.percent = Math.max(lastDisplayedProgress, payload.percent);
+          lastDisplayedProgress = payload.percent;
+        }
+        splashWindow.webContents.send('splash-progress', payload);
+      } catch {}
+    }
+  };
+  const sendSyntheticProgress = (data) => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      try {
+        const payload = { ...(data || {}) };
+        if (typeof payload.percent === 'number') {
+          payload.percent = Math.max(lastDisplayedProgress, payload.percent);
+          lastDisplayedProgress = payload.percent;
+        }
+        splashWindow.webContents.send('splash-progress', payload);
+      } catch {}
     }
   };
   const sendError = (message) => {
@@ -17810,11 +17877,14 @@ async function runSplashAndExtractVendor() {
     }
   };
 
+  const stopProgressHeartbeat = startSplashProgressHeartbeat(sendSyntheticProgress, () => lastRealProgress);
   try {
+    sendProgress({ percent: 0, message: 'Khởi tạo...' });
     await ensureVendorExtracted({ onProgress: sendProgress });
     // Small grace period so user sees "100% Hoàn tất!"
     await new Promise(r => setTimeout(r, 500));
   } catch (e) {
+    stopProgressHeartbeat();
     console.error('[splash] vendor extract failed:', e);
     sendError('Lỗi: ' + (e.message || 'không rõ nguyên nhân') + '. Vui lòng cài lại 9BizClaw.');
     // Keep splash open 5s so user can read the error, then quit
@@ -17824,6 +17894,8 @@ async function runSplashAndExtractVendor() {
     dialog.showErrorBox('Lỗi khởi tạo 9BizClaw', 'Không thể giải nén thành phần cần thiết:\n\n' + (e.message || '?') + '\n\nVui lòng gỡ cài đặt và cài lại 9BizClaw.');
     app.exit(1);
     return;
+  } finally {
+    stopProgressHeartbeat();
   }
 
   try { splashWindow.close(); } catch {}
