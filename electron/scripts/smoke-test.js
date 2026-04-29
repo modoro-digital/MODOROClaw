@@ -917,6 +917,37 @@ try {
   }
 } catch (e) { fail('Google Workspace API coverage', 'source read failed: ' + e.message); }
 
+section('Action capability router');
+try {
+  const agentsSrc = fs.readFileSync(path.join(templateRoot, 'AGENTS.md'), 'utf-8');
+  const requiredRouterBits = [
+    'Capability Router',
+    'brand_image_generate',
+    'facebook_post',
+    'zalo_send',
+    'zalo_cron',
+    'google_workspace',
+    'setup_google',
+    'diagnostic_recovery',
+    '/api/brand-assets/list',
+    '/api/image/generate',
+    '/api/fb/post',
+    '/api/zalo/friends',
+    '/api/zalo/send',
+    '/api/cron/list',
+    '/api/cron/create',
+    '/api/google/health',
+    'jobId',
+    'accessNotConfigured',
+  ];
+  const missingRouterBits = requiredRouterBits.filter(s => !agentsSrc.includes(s));
+  if (missingRouterBits.length > 0) {
+    fail('action capability router', `AGENTS.md missing router entries: [${missingRouterBits.join(', ')}]`);
+  } else {
+    pass(`action capability router: ${requiredRouterBits.length} trigger/API/proof entries verified`);
+  }
+} catch (e) { fail('action capability router', 'source read failed: ' + e.message); }
+
 section('Module contracts');
 function checkModuleContracts() {
   const errors = [];

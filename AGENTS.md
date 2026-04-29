@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 83 -->
+<!-- modoroclaw-agents-version: 84 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## ĐỊNH NGHĨA
@@ -167,6 +167,28 @@ Context hygiene: mỗi tin đánh giá độc lập. `/reset` → greet.
 
 ## Telegram (kênh CEO)
 Đọc `skills/operations/telegram-ceo.md` — tư duy cố vấn, gửi Zalo từ Telegram qua API, quản lý Zalo.
+
+## Capability Router — BẮT BUỘC trước khi trả lời
+
+Khi tin CEO có ý định thao tác hệ thống, chọn capability theo trigger, chạy preflight/API trước, rồi mới trả lời. Nếu chưa gọi API thì chưa được nói đã làm hoặc nói không có quyền.
+
+| Capability | Trigger | Preflight | Execute | Proof trước khi reply |
+|---|---|---|---|---|
+| `brand_image_generate` | tạo ảnh, poster, banner, social image, mascot, logo, tài sản thương hiệu | token hiện tại → `GET /api/brand-assets/list?token=<token>` nếu có brand/asset | `GET /api/image/generate?token=<token>&size=<size>&assets=<files>&prompt=<prompt>` | có `jobId` |
+| `facebook_post` | đăng Facebook, post fanpage, lên bài, chạy bài | token → nếu cần ảnh thì chạy `brand_image_generate` → gửi preview Telegram | CHỜ CEO ok rồi mới `GET /api/fb/post?token=<token>&imagePath=<path>&message=<caption>` | Facebook response OK/link/id |
+| `zalo_send` | nhắn Zalo cho tên người, gửi nhóm Zalo, gửi khách | nếu tên người: `GET /api/zalo/friends?name=<ten>`; nếu nhóm: `GET /api/cron/list` lấy groups | confirm CEO tên/ID/nội dung → `GET /api/zalo/send?token=<token>&targetId=<id>&text=<text>` hoặc groupId | API send OK |
+| `zalo_cron` | mỗi ngày gửi, lên lịch nhóm, nhắc tự động, cron Zalo | `GET /api/cron/list` lấy groups/cron hiện có | confirm CEO nhóm/giờ/nội dung → `GET /api/cron/create?token=<token>&label=<label>&cronExpr=<cron>&groupId=<id>&content=<text>` hoặc `mode=agent&prompt=<prompt>` | response có id/ok |
+| `google_workspace` | đọc/sửa Sheet, Doc, Drive, Gmail, Calendar, Contacts, Tasks, AppSheet | token → `GET /api/google/status?token=<token>`; khi debug dùng `/api/google/health` | gọi route cụ thể `/api/google/sheets/*`, `/docs/*`, `/gmail/*`, `/calendar/*`, `/drive/*`, `/contacts/*`, `/tasks/*` | data thật hoặc lỗi Google API thật |
+| `setup_google` | hỏi file JSON, client_secret, OAuth, Google không kết nối | kiểm tra `/api/google/status` và `/api/google/health` nếu đã có token | hướng dẫn OAuth Client ID loại Desktop app; bật Calendar/Gmail/Drive/People/Tasks/Sheets/Docs/Apps Script API | không yêu cầu public link nếu Workspace connected |
+| `diagnostic_recovery` | bot định nói không kéo được, không có quyền, chưa kết nối, chưa thấy dữ liệu | gọi status/list/health route tương ứng trước | báo lỗi theo response thật: `files=[]`, `accessNotConfigured`, token lỗi, route lỗi | không dùng câu chung chung |
+
+Quy tắc chọn nhanh:
+- Có chữ "tạo ảnh"/"banner"/"poster"/"mascot"/"logo" → `brand_image_generate`.
+- Có chữ "đăng Facebook"/"fanpage" → `facebook_post`.
+- Có chữ "nhắn Zalo"/"gửi nhóm"/"gửi khách" → `zalo_send`.
+- Có chữ "mỗi ngày"/"tự động gửi"/"cron"/"nhắc nhóm" → `zalo_cron`.
+- Có Google Sheet/Doc/Drive/Gmail/Calendar/AppSheet → `google_workspace`.
+- Có `.json`, `client_secret`, OAuth, quyền API Google → `setup_google`.
 
 ## Lịch tự động — CHỈ CEO qua Telegram
 

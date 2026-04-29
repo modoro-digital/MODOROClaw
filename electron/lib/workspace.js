@@ -32,7 +32,7 @@ const DEFAULT_SCHEDULES_JSON = [
 ];
 
 // --- AGENTS.md versioning (private) ---
-const CURRENT_AGENTS_MD_VERSION = 83;
+const CURRENT_AGENTS_MD_VERSION = 84;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 // ─── Core workspace path ─────────────────────────────────────────
