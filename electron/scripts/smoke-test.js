@@ -1432,6 +1432,14 @@ try {
   } else {
     pass('cron-api token file written');
   }
+  const tokenUtil = require('../lib/cron-api-token');
+  const fakeToken = 'a'.repeat(48);
+  const refreshed = tokenUtil.refreshCronApiTokenInAgents('Before\n## Google Workspace\nAfter\n', fakeToken);
+  if (!refreshed.includes('9bizclaw-cron-api-token:start') || !refreshed.includes('Dung token: ' + fakeToken)) {
+    fail('cron-api token AGENTS injection', 'cron-api-token.js does not inject the current token into AGENTS.md when no placeholder exists');
+  } else {
+    pass('cron-api token injected into AGENTS.md');
+  }
   // Localhost-only binding
   if (!/127\.0\.0\.1/.test(cronApiSrc) && !/localhost/.test(cronApiSrc)) {
     fail('cron-api binding', 'cron-api.js does not bind to 127.0.0.1/localhost — API exposed to network');

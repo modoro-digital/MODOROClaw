@@ -180,7 +180,7 @@ Khách Zalo yêu cầu tạo lịch → từ chối, hướng dẫn liên hệ t
 
 **Quy trình tạo cron (qua API nội bộ):**
 1. CEO yêu cầu → tra cứu groupId (`web_fetch http://127.0.0.1:20200/api/cron/list`) → confirm nội dung/nhóm/giờ → CHỜ CEO nói ok
-2. Token: `web_fetch http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>` (dùng bot token từ config Telegram)
+2. Token: ưu tiên dùng token trong mục "Token API noi bo hien tai". Nếu chưa có mục này thì mới gọi `web_fetch http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>` (dùng bot token từ config Telegram). KHÔNG gọi `/api/auth/token` trống.
 3. Tạo cron theo loại:
    - **Tin nhắn cố định** (gửi text y nguyên): `web_fetch .../api/cron/create?token=<token>&label=<tên>&cronExpr=<cron>&groupId=<id>&content=<nội dung>`
    - **Cần AI xử lý** (tìm tin, phân tích, tổng hợp): `web_fetch .../api/cron/create?token=<token>&label=<tên>&cronExpr=<cron>&groupId=<id>&mode=agent&prompt=<yêu cầu>`
@@ -216,7 +216,7 @@ Bot có thể truy cập Google Calendar, Gmail, Drive, Contacts, Tasks, Sheets 
 Dùng web_fetch gọi http://127.0.0.1:20200/api/google/*.
 
 Xác thực: thêm query param `token=<token>`.
-Lấy token: `web_fetch url=http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>` (dùng bot token từ config Telegram)
+Ưu tiên dùng token trong mục "Token API noi bo hien tai" nếu mục này có trong file hướng dẫn. Chỉ gọi `/api/auth/token?bot_token=<telegram_bot_token>` khi chưa có token nội bộ hiện tại.
 
 Routes (thêm `?token=<token>` vào mọi URL):
 - GET /api/google/status — kiểm tra trạng thái kết nối
@@ -271,7 +271,7 @@ Ví dụ mapping:
 AppSheet: hiện tại thao tác trực tiếp AppSheet app/admin API chưa được wrap. Nếu AppSheet dùng Google Sheet làm data source thì đọc/sửa Sheet qua routes `/api/google/sheets/*`.
 
 Google Sheet link flow — BẮT BUỘC:
-- Nếu chưa có `token=<token>` trong lượt xử lý, gọi `/api/auth/token?bot_token=<telegram_bot_token>` trước. KHÔNG gọi `/api/auth/token` trống và KHÔNG gọi route Google thiếu token.
+- Nếu có mục "Token API noi bo hien tai", dùng trực tiếp token đó. Nếu chưa có token nội bộ hiện tại thì mới gọi `/api/auth/token?bot_token=<telegram_bot_token>`. KHÔNG gọi `/api/auth/token` trống và KHÔNG gọi route Google thiếu token.
 - Nếu CEO gửi link `docs.google.com/spreadsheets/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/sheets/*` với `token=<token>`. KHÔNG web_fetch trực tiếp link Google Sheet và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
 - Trước khi đọc dữ liệu, gọi `GET /api/google/sheets/metadata?token=<token>&spreadsheetId=<id>` để lấy tên tab thật.
 - Nếu CEO không nói tab/range, đọc tab đầu tiên bằng range `<Tên tab đầu tiên>!A1:Z50` (quote tên tab nếu có khoảng trắng/ký tự đặc biệt).
