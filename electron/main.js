@@ -5,6 +5,7 @@ const { spawn, execFile } = require('child_process');
 const { promisify } = require('util');
 const execFilePromise = promisify(execFile);
 const { normalizeZaloBlocklist, resolveZaloBlocklistSave } = require('./lib/zalo-settings');
+const { refreshCronApiTokenInAgents } = require('./lib/cron-api-token');
 
 // ============================================
 //  GPU ACCELERATION — disable for Quadro/legacy GPU compatibility
@@ -12354,9 +12355,10 @@ function startCronApi() {
       const agentsPath = path.join(ws, 'AGENTS.md');
       if (fs.existsSync(agentsPath)) {
         const content = fs.readFileSync(agentsPath, 'utf-8');
-        if (content.includes('{{CRON_API_TOKEN}}')) {
-          fs.writeFileSync(agentsPath, content.replace(/\{\{CRON_API_TOKEN\}\}/g, _cronApiToken), 'utf-8');
-          console.log('[cron-api] injected token into AGENTS.md');
+        const nextContent = refreshCronApiTokenInAgents(content, _cronApiToken);
+        if (nextContent !== content) {
+          fs.writeFileSync(agentsPath, nextContent, 'utf-8');
+          console.log('[cron-api] refreshed token in AGENTS.md');
         }
       }
     }
@@ -12389,13 +12391,21 @@ function startCronApi() {
         const u = new URL(req.url, 'http://127.0.0.1');
         const obj = {};
         for (const [k, v] of u.searchParams) obj[k] = v;
-        // content may contain & which breaks URL parsing — extract from raw query as last param
+        // Long free-text fields may contain & which breaks URL parsing when an
+        // agent does a literal web_fetch URL. AGENTS.md keeps these as the last
+        // query param; preserve that behavior defensively for prompt-driven
+        // Telegram commands.
         const raw = req.url;
-        const contentIdx = raw.indexOf('content=');
-        if (contentIdx !== -1 && (!obj.content || obj.content.length < 5)) {
-          const rawContent = raw.slice(contentIdx + 8);
-          try { obj.content = decodeURIComponent(rawContent.replace(/\+/g, ' ')); }
-          catch { obj.content = rawContent.replace(/\+/g, ' '); }
+        const extractTrailingField = (key) => {
+          const marker = key + '=';
+          const idx = raw.indexOf(marker);
+          if (idx === -1 || (obj[key] && obj[key].length >= 5)) return;
+          const rawValue = raw.slice(idx + marker.length);
+          try { obj[key] = decodeURIComponent(rawValue.replace(/\+/g, ' ')); }
+          catch { obj[key] = rawValue.replace(/\+/g, ' '); }
+        };
+        for (const key of ['content', 'text', 'prompt']) {
+          extractTrailingField(key);
         }
         resolve(obj);
         return;
