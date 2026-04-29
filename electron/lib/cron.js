@@ -81,6 +81,8 @@ async function selfTestOpenClawAgent() {
         code: res.code,
         stdoutLen: stdout.length,
       });
+      // Allow re-test after 30min so mid-session breakage is detected
+      setTimeout(() => { _selfTestPromise = null; }, 30 * 60 * 1000);
     } else {
       console.warn(`[cron-agent self-test] FAIL — code=${res.code} stdoutLen=${stdout.length} stderrLen=${stderr.length} viaCmdShell=${res.viaCmdShell}`);
       if (stdout) console.warn(`[cron-agent self-test] stdout: ${stdout.slice(0, 300)}`);
@@ -1058,19 +1060,24 @@ function loadCustomCrons() {
         const cleaned = parsed.filter(c => !c || c.source !== 'openclaw');
         const ocStripped = beforeLen - cleaned.length;
         if (ocStripped > 0) {
-          try {
-            writeJsonAtomic(customCronsPath, cleaned);
-            console.log(`[custom-crons] upgrade migration: stripped ${ocStripped} OpenClaw-merged entries`);
-          } catch (e) { console.warn('[custom-crons] migration writeback failed:', e.message); }
           parsed.length = 0;
           Array.prototype.push.apply(parsed, cleaned);
+          _withCustomCronLock(async () => {
+            try {
+              writeJsonAtomic(customCronsPath, cleaned);
+              console.log(`[custom-crons] upgrade migration: stripped ${ocStripped} OpenClaw-merged entries`);
+            } catch (e) { console.warn('[custom-crons] migration writeback failed:', e.message); }
+          }).catch(() => {});
         }
         const wasHealed = healCustomCronEntries(parsed);
         if (wasHealed) {
-          try {
-            writeJsonAtomic(customCronsPath, parsed);
-            console.log('[custom-crons] healed entries (alias/defaults) and rewrote file');
-          } catch (e) { console.warn('[custom-crons] heal-writeback failed:', e.message); }
+          const snapshot = JSON.parse(JSON.stringify(parsed));
+          _withCustomCronLock(async () => {
+            try {
+              writeJsonAtomic(customCronsPath, snapshot);
+              console.log('[custom-crons] healed entries (alias/defaults) and rewrote file');
+            } catch (e) { console.warn('[custom-crons] heal-writeback failed:', e.message); }
+          }).catch(() => {});
         }
         modoroEntries = parsed;
       } catch (parseErr) {

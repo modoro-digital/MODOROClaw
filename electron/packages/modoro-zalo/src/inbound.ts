@@ -724,7 +724,7 @@ export async function handleModoroZaloInbound(params: {
       /(?:tải|tai|download|upload)\s+(?:file|tệp|tep)/i,
       // --- Google Workspace lockdown (gogcli, gmail, drive) ---
       /\bgog\b/i,
-      /\bgoogle\b.*\b(?:calendar|gmail|drive|contacts|tasks|workspace)\b/i,
+      /\bgoogle\b.*\b(?:calendar|gmail|drive|contacts|tasks|workspace)\b.*\b(?:send|gui|tao|dat|xoa|delete|upload|share|book|forward|reply|draft|remove|add|create)\b/i,
       /\bgmail\b.*\b(?:send|gui|forward|reply|draft)\b/i,
       /\bdrive\b.*\b(?:upload|download|share|delete|xoa)\b/i,
       /\b(?:gui|send)\s+email\b/i,

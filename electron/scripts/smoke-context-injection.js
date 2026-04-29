@@ -126,29 +126,31 @@ async function run() {
   // Regexes MUST match the ASSIGNMENT literal, not comments — reviewer caught
   // prior version matching block comments, which meant deleting the code and
   // keeping the comment would silently pass the smoke.
-  const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf-8');
+  const configJs = fs.readFileSync(path.join(root, 'lib', 'config.js'), 'utf-8');
 
   // Strip block comments + line comments before matching so we assert against
   // executable code only. Quick/dirty but good enough for fingerprint checks.
-  const stripped = mainJs
+  const stripped = configJs
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:\/])\/\/[^\n]*/g, '$1');
 
   if (!/config\.agents\.defaults\.contextInjection\s*!==?\s*['"]always['"]/.test(stripped)) {
-    fail('main.js no longer ASSIGNS contextInjection="always" in code — fix reverted?');
+    fail('config.js no longer ASSIGNS contextInjection="always" in code — fix reverted?');
   }
-  ok('main.js ensureDefaultConfig writes contextInjection="always"');
+  ok('config.js ensureDefaultConfig writes contextInjection="always"');
 
   // tools.allow allowlist replaces the old deny approach — verify it exists
-  if (!/ALLOW_TOOLS\s*=\s*\[[\s\S]*?['"]message['"][\s\S]*?['"]web_search['"][\s\S]*?\]/.test(stripped)) {
-    fail('main.js no longer defines ALLOW_TOOLS array with message + web_search — tools.allow reverted?');
+  // config.js renamed ALLOW_TOOLS → REQUIRED_TOOLS in modularization
+  if (!/REQUIRED_TOOLS\s*=\s*\[[\s\S]*?['"]message['"][\s\S]*?['"]web_search['"][\s\S]*?\]/.test(stripped) &&
+      !/ALLOW_TOOLS\s*=\s*\[[\s\S]*?['"]message['"][\s\S]*?['"]web_search['"][\s\S]*?\]/.test(stripped)) {
+    fail('config.js no longer defines REQUIRED_TOOLS/ALLOW_TOOLS array with message + web_search — tools.allow reverted?');
   }
-  ok('main.js ensureDefaultConfig sets tools.allow allowlist');
+  ok('config.js ensureDefaultConfig sets tools.allow allowlist');
 
   if (!/config\.tools\.loopDetection\.enabled\s*=\s*true\s*;/.test(stripped)) {
-    fail('main.js no longer ASSIGNS tools.loopDetection.enabled = true — safety net reverted?');
+    fail('config.js no longer ASSIGNS tools.loopDetection.enabled = true — safety net reverted?');
   }
-  ok('main.js ensureDefaultConfig enables tools.loopDetection.enabled');
+  ok('config.js ensureDefaultConfig enables tools.loopDetection.enabled');
 
   // Layer 5 vision: ensureDefaultConfig must declare input:["image"] on
   // ninerouter models or pi-ai will strip image_url parts at final
@@ -156,15 +158,13 @@ async function run() {
   // survives refactors.
   if (!/m\.input\s*=\s*Array\.isArray\(m\.input\)[\s\S]{0,100}?['"]image['"]/.test(stripped) &&
       !/m\.input\s*=\s*\[[^\]]*['"]image['"]/.test(stripped)) {
-    fail('main.js no longer assigns input:["image"] on ninerouter models — pi-ai will strip every image_url → bot hallucinates images.');
+    fail('config.js no longer assigns input:["image"] on ninerouter models — pi-ai will strip every image_url → bot hallucinates images.');
   }
-  ok('main.js ensureDefaultConfig sets model.input includes "image"');
+  ok('config.js ensureDefaultConfig sets model.input includes "image"');
 
   // --- Test 8: cross-binding — continuation-skip + tools.allow must coexist ---
-  // exec is in ALLOW_TOOLS (needed for Telegram cron pipeline). Safety on Zalo
-  // tin 2+ is enforced by AGENTS.md rules + output filter, not by tool deny.
   const hasContInjSkip = /config\.agents\.defaults\.contextInjection\s*=\s*['"]continuation-skip['"]/.test(stripped);
-  const hasAllowList = /ALLOW_TOOLS\s*=\s*\[/.test(stripped);
+  const hasAllowList = /(?:ALLOW_TOOLS|REQUIRED_TOOLS)\s*=\s*\[/.test(stripped);
   if (hasContInjSkip && !hasAllowList) {
     fail('contextInjection="continuation-skip" is set but tools.allow is missing — unbounded tool surface');
   }

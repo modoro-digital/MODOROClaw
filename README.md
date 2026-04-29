@@ -25,6 +25,10 @@ Desktop app bundle sẵn mọi thứ. Tải file cài, chạy wizard, có ngay t
 
 Cả hai platform bundle sẵn Node.js, OpenClaw, 9Router, OpenZCA, OpenZalo. Không cần Internet trừ khi gọi AI.
 
+### Google Workspace
+
+Nếu cần kết nối Calendar, Gmail, Drive, Contacts, Tasks hoặc Google Sheets, xem hướng dẫn lấy file OAuth Client JSON tại [docs/GOOGLE-WORKSPACE-SETUP.md](docs/GOOGLE-WORKSPACE-SETUP.md). File cần upload là OAuth Client ID loại Desktop app từ Google Cloud Console, không phải Service Account JSON.
+
 ---
 
 ## Tính năng

@@ -5,6 +5,19 @@ const ctx = require('./context');
 const { getWorkspace, auditLog } = require('./workspace');
 const { call9Router } = require('./nine-router');
 
+// Strip prompt-injection patterns from LLM-generated memory summaries.
+// Customers can send adversarial text that the summarizer LLM might echo
+// verbatim — those strings then persist in memory files and get fed to
+// the agent as "prior context", effectively injecting instructions.
+function sanitizeMemorySummary(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/^(SYSTEM|ASSISTANT|HUMAN|USER|INSTRUCTION|PROMPT|RULE|BẮT BUỘC)\s*:/gim, '[khách nói]: ')
+    .replace(/(?:127\.0\.0\.1|localhost|0\.0\.0\.0):\d{4,5}/g, '[local-api]')
+    .replace(/(?:api[_-]?(?:key|token|secret)|bot[_-]?token|password|credentials?)\s*[:=]\s*\S+/gi, '[credential-removed]')
+    .replace(/```(?:bash|sh|cmd|powershell|ps1)[\s\S]*?```/gi, '[code-block-removed]');
+}
+
 // =====================================================================
 // Conversation history extractor for cron prompts
 // =====================================================================
@@ -382,9 +395,10 @@ async function appendPerCustomerSummaries(ws, dateStr, sinceMs) {
         );
       } catch {}
 
-      const appendContent = summary
-        ? `\n\n## ${dateStr}\n${summary}\n`
-        : `\n\n## ${dateStr}\n_(LLM summary không khả dụng — raw transcript)_\n${customerHistory}\n`;
+      const safeSummary = summary ? sanitizeMemorySummary(summary) : null;
+      const appendContent = safeSummary
+        ? `\n\n## ${dateStr}\n${safeSummary}\n`
+        : `\n\n## ${dateStr}\n_(LLM summary không khả dụng — raw transcript)_\n${sanitizeMemorySummary(customerHistory)}\n`;
 
       try {
         await _withMemoryFileLock(profilePath, () => {

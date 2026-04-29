@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const ctx = require('./context');
 const { getWorkspace, seedWorkspace, auditLog } = require('./workspace');
+const { normalizeZaloBlocklist } = require('./zalo-settings');
 
 // Late-binding for journalCronRun (still lives in main.js; will move to cron.js later)
 let _journalCronRunFn = null;
@@ -91,9 +92,12 @@ function parseUnrecognizedKeyErrors(stderr) {
 //     deprecated keys we don't yet know about heal themselves on first failure.
 //
 // Returns true if a write happened.
-// Intentionally bypasses withOpenClawConfigLock — called synchronously in the
-// cron pre-spawn hot path where the lock may already be held by ensureDefaultConfig.
-// Safe because writeOpenClawConfigIfChanged is byte-equal-guarded (no-op if unchanged).
+// Intentionally synchronous and lock-free — called in the cron pre-spawn hot
+// path where the async config lock may already be held by ensureDefaultConfig.
+// Safe because: (1) writeOpenClawConfigIfChanged is byte-equal-guarded, and
+// (2) this function only DELETES keys — concurrent writers adding other keys
+// won't conflict, and if our delete is lost to a concurrent write the bad key
+// will trigger another heal on next cron attempt (self-correcting).
 function healOpenClawConfigInline(errStderr) {
   try {
     const configPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
@@ -479,6 +483,11 @@ async function ensureDefaultConfig() {
       // dashboard survives restarts. Previously this forced true every boot,
       // which overrode the CEO's explicit disable.
       if (oz.enabled === undefined) { oz.enabled = false; changed = true; }
+      if (config.plugins?.entries?.['modoro-zalo']
+          && config.plugins.entries['modoro-zalo'].enabled !== (oz.enabled !== false)) {
+        config.plugins.entries['modoro-zalo'].enabled = oz.enabled !== false;
+        changed = true;
+      }
       // U2: purge legacy channels['modoro-zalo'].groups on upgrade. v2.58 stored
       // per-group requireMention/enabled here, creating a dual source of
       // truth with zalo-group-settings.json (CRIT #5). We're now
@@ -659,23 +668,22 @@ async function ensureDefaultConfig() {
       config.agents.defaults.bootstrapMaxChars = 40000;
       changed = true;
     }
-    // TOOL-BLOAT FIX: deny media-generation tools (unused in support flow).
-    // exec + process ALLOWED — needed for CEO "gửi Zalo từ Telegram" flow
-    // (agent runs send-zalo-safe.js). AGENTS.md restricts exec to only
-    // send-zalo-safe.js + forbids config/blocklist writes.
+    // TOOL-BLOAT FIX: use a small exact allowlist. Admin actions now go through
+    // local authenticated APIs instead of giving the agent filesystem/process
+    // tools globally.
     //
     // tools.allow verified in openclaw 2026.4.x runtime-schema at "tools.allow".
     if (!config.tools) config.tools = {};
     // tools.allow = absolute allowlist. Only these tools are available to the agent.
-    // SECURITY: exec, process, cron ALWAYS STRIPPED — gateway agent serves both
-    // Telegram (trusted CEO) AND Zalo (untrusted strangers) with ONE config.
-    // exec/process = RCE via strangers. cron = strangers create scheduled jobs.
-    // Merge strategy: ensure required tools present + strip dangerous ones,
-    // but preserve any custom safe tools the CEO/bot added.
+    // Zalo stranger protection is CODE-LEVEL:
+    //   Layer 1: COMMAND-BLOCK patch in inbound.ts (43 regex, rewrite rawBody)
+    //   Layer 2: AGENTS.md rules (exec/cron forbidden from Zalo context)
+    //   Layer 3: Cron API token requires Telegram bot_token to acquire
+    // cron tool still banned — cron management via web_fetch to local API only.
     const REQUIRED_TOOLS = ['message', 'web_search', 'web_fetch', 'update_plan'];
-    const BANNED_TOOLS = ['exec', 'process', 'cron'];
+    const BANNED_TOOLS = ['cron', 'exec', 'process', 'read', 'write', 'apply_patch', 'memory', 'read_file', 'write_file', 'list_files', 'search_files'];
     const existingAllow = Array.isArray(config.tools.allow) ? config.tools.allow : [];
-    const merged = [...new Set([...existingAllow, ...REQUIRED_TOOLS])].filter(t => !BANNED_TOOLS.includes(t));
+    const merged = REQUIRED_TOOLS.filter(t => !BANNED_TOOLS.includes(t));
     if (JSON.stringify(existingAllow.slice().sort()) !== JSON.stringify(merged.slice().sort())) {
       config.tools.allow = merged;
       changed = true;
@@ -751,17 +759,24 @@ async function ensureDefaultConfig() {
     // Seed writable workspace (first run) — copies templates from read-only bundle if packaged
     const ws = seedWorkspace();
 
-    // CAP blocklist at 200 entries — unbounded list = memory/perf risk + abuse vector
+    // Preserve large per-friend deny lists. Customers can legitimately have
+    // thousands of Zalo friends and "Tat tat ca" writes all IDs here.
     const blPath = path.join(ws, 'zalo-blocklist.json');
     if (fs.existsSync(blPath)) {
       try {
         const bl = JSON.parse(fs.readFileSync(blPath, 'utf-8'));
-        if (Array.isArray(bl) && bl.length > 200) {
-          console.warn(`[config] zalo-blocklist.json has ${bl.length} entries — trimming to 200`);
-          fs.writeFileSync(blPath, JSON.stringify(bl.slice(0, 200), null, 2) + '\n');
-          try { auditLog('blocklist_trimmed', { was: bl.length, now: 200 }); } catch {}
+        if (Array.isArray(bl)) {
+          const normalized = normalizeZaloBlocklist(bl);
+          const changedLen = normalized.length !== bl.length;
+          const changedValue = !changedLen && normalized.some((id, idx) => id !== String(bl[idx] ?? '').trim());
+          if (changedLen || changedValue) {
+            fs.writeFileSync(blPath, JSON.stringify(normalized, null, 2) + '\n');
+            try { auditLog('blocklist_normalized', { was: bl.length, now: normalized.length }); } catch {}
+          }
+        } else {
+          console.warn('[config] zalo-blocklist.json is not an array — preserving file for manual review');
         }
-      } catch (blErr) { console.warn('[config] blocklist cap check failed:', blErr?.message); }
+      } catch (blErr) { console.warn('[config] blocklist normalize check failed:', blErr?.message); }
     }
 
     // Set workspace to the writable dir so gateway reads our AGENTS.md, SOUL.md etc

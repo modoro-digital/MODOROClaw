@@ -75,16 +75,78 @@ const hasVendorDir = fs.existsSync(VENDOR_NM);
 const hasVendorTar = fs.existsSync(VENDOR_TAR) && fs.existsSync(VENDOR_META);
 const isBundledBuild = hasVendorDir || hasVendorTar;
 
+function listTarEntriesWithNode(tarPath) {
+  const entries = new Set();
+  const fd = fs.openSync(tarPath, 'r');
+  const header = Buffer.alloc(512);
+  let offset = 0;
+  let pendingLongName = null;
+  let pendingPaxPath = null;
+  try {
+    while (true) {
+      const bytes = fs.readSync(fd, header, 0, 512, offset);
+      if (bytes < 512) break;
+      offset += 512;
+      let empty = true;
+      for (let i = 0; i < 512; i++) {
+        if (header[i] !== 0) { empty = false; break; }
+      }
+      if (empty) break;
+
+      const readString = (start, len) => header.toString('utf8', start, start + len).replace(/\0.*$/, '').trim();
+      let name = readString(0, 100);
+      const sizeRaw = readString(124, 12);
+      const size = parseInt(sizeRaw || '0', 8) || 0;
+      const typeflag = String.fromCharCode(header[156] || 48);
+      const prefix = readString(345, 155);
+      if (prefix) name = prefix + '/' + name;
+
+      const payloadOffset = offset;
+      const paddedSize = Math.ceil(size / 512) * 512;
+
+      if (typeflag === 'L' || typeflag === 'x' || typeflag === 'g') {
+        const payload = Buffer.alloc(size);
+        if (size > 0) fs.readSync(fd, payload, 0, size, payloadOffset);
+        const text = payload.toString('utf8').replace(/\0+$/, '');
+        if (typeflag === 'L') {
+          pendingLongName = text;
+        } else if (typeflag === 'x') {
+          for (const line of text.split('\n')) {
+            const m = line.match(/^\d+\s+path=(.*)$/);
+            if (m) { pendingPaxPath = m[1]; break; }
+          }
+        }
+      } else {
+        if (pendingPaxPath) {
+          name = pendingPaxPath;
+          pendingPaxPath = null;
+          pendingLongName = null;
+        } else if (pendingLongName) {
+          name = pendingLongName;
+          pendingLongName = null;
+        }
+        if (name) entries.add(name.replace(/\\/g, '/'));
+      }
+
+      offset = payloadOffset + paddedSize;
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  return entries;
+}
+
 // If only the Windows tar is present, peek inside it to verify pinned versions.
 // Uses `tar -tvf` to list contents without extracting — fast.
 let tarContents = null;
+let tarListFailed = false;
 if (hasVendorTar && !hasVendorDir) {
   try {
     const tarBin = process.platform === 'win32'
       ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
       : 'tar';
     const res = spawnSync(tarBin, ['-tf', VENDOR_TAR], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: false, maxBuffer: 20 * 1024 * 1024,
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: false, maxBuffer: 128 * 1024 * 1024,
     });
     if (res.status === 0) {
       tarContents = new Set(res.stdout.split('\n').map(s => s.trim()).filter(Boolean));
@@ -94,10 +156,19 @@ if (hasVendorTar && !hasVendorDir) {
         pass(`vendor-meta.json bundle_version=${meta.bundle_version}`);
       } catch {}
     } else {
-      warn('vendor-bundle.tar', `tar -tf failed exit ${res.status}`);
+      warn('vendor-bundle.tar', `system tar -tf failed exit ${res.status}: ${res.error?.message || (res.stderr || '').slice(0, 200) || 'no stderr'}; using JS tar scanner`);
+      tarContents = listTarEntriesWithNode(VENDOR_TAR);
+      pass(`vendor-bundle.tar contains ${tarContents.size} entries (JS scanner)`);
     }
   } catch (e) {
-    warn('vendor-bundle.tar', `could not inspect: ${e.message}`);
+    try {
+      warn('vendor-bundle.tar', `system tar inspect failed: ${e.message}; using JS tar scanner`);
+      tarContents = listTarEntriesWithNode(VENDOR_TAR);
+      pass(`vendor-bundle.tar contains ${tarContents.size} entries (JS scanner)`);
+    } catch (fallbackErr) {
+      tarListFailed = true;
+      fail('vendor-bundle.tar', `could not inspect: ${fallbackErr.message}`);
+    }
   }
 }
 
@@ -116,6 +187,9 @@ function checkVendorVersion(pkgName, expected) {
       fail(`vendor tar ${pkgName}`, `${pkgName} not found in vendor-bundle.tar. Run: rm vendor-bundle.tar vendor-meta.json && npm run prebuild:vendor`);
     }
     return;
+  }
+  if (hasVendorTar && !hasVendorDir && tarListFailed) {
+    return; // Avoid cascading false "vendor missing" failures after tar inspect failed.
   }
   const pkgJsonPath = pkgName.startsWith('@')
     ? path.join(VENDOR_NM, ...pkgName.split('/'), 'package.json')
@@ -160,21 +234,30 @@ if (hasVendorDir) {
   }
 }
 
-// gog (gogcli) binary
+// gog (gogcli) binary — mandatory check
 const gogBin = process.platform === 'win32'
   ? path.join(VENDOR, 'gog', 'gog.exe')
   : path.join(VENDOR, 'gog', 'gog');
-if (fs.existsSync(path.join(VENDOR, 'gog'))) {
-  if (!fs.existsSync(gogBin)) {
-    fail('vendor/gog/ directory exists but gog binary is missing');
+if (tarContents && !hasVendorDir) {
+  const gogEntry = process.platform === 'win32' ? 'vendor/gog/gog.exe' : 'vendor/gog/gog';
+  if (tarContents.has(gogEntry)) {
+    pass('vendor tar: gog binary present');
   } else {
-    const gogRes = spawnSync(gogBin, ['version'], { encoding: 'utf-8', timeout: 10000 });
-    if (gogRes.status !== 0) {
-      fail('gog binary', 'gog binary failed to run: ' + (gogRes.stderr || '').slice(0, 200));
-    } else {
-      pass('gog binary: ' + (gogRes.stdout || '').trim());
-    }
+    fail('gog binary', `${gogEntry} not found in vendor-bundle.tar — rebuild vendor archive`);
   }
+} else if (hasVendorTar && !hasVendorDir && tarListFailed) {
+  // Tar inspect already failed above; avoid a misleading missing-binary cascade.
+} else if (!fs.existsSync(gogBin)) {
+  fail('gog binary', 'vendor/gog/gog binary not found — run prebuild-vendor first');
+} else if (process.platform === (gogBin.endsWith('.exe') ? 'win32' : process.platform)) {
+  const gogRes = spawnSync(gogBin, ['version'], { encoding: 'utf-8', timeout: 10000 });
+  if (gogRes.status !== 0) {
+    fail('gog binary', 'gog binary failed to run: ' + (gogRes.stderr || '').slice(0, 200));
+  } else {
+    pass('gog binary: ' + (gogRes.stdout || '').trim());
+  }
+} else {
+  pass('gog binary present (cross-build, skipping execution check)');
 }
 
 // =========================================================================
@@ -765,6 +848,48 @@ section('guide-overlay-no-emoji');
 // =========================================================================
 // TEST 10: Module contracts — extracted lib/ modules export expected functions
 // =========================================================================
+section('Google Workspace setup guide');
+{
+  const dashHtml = fs.readFileSync(path.join(__dirname, '..', 'ui', 'dashboard.html'), 'utf-8');
+  const ipcSrc = fs.readFileSync(path.join(__dirname, '..', 'lib', 'dashboard-ipc.js'), 'utf-8');
+  const requiredText = [
+    'OAuth Client ID loại Desktop app',
+    'Không dùng Service Account JSON',
+    'Application type: Desktop app',
+    'Desktop app không cần tự nhập Redirect URI',
+    'client_secret_...apps.googleusercontent.com.json',
+  ];
+  const requiredUrls = [
+    'https://console.cloud.google.com/projectcreate',
+    'https://console.cloud.google.com/apis/credentials',
+    'https://console.cloud.google.com/apis/api/calendar-json.googleapis.com',
+    'https://console.cloud.google.com/apis/api/gmail.googleapis.com',
+    'https://console.cloud.google.com/apis/api/drive.googleapis.com',
+    'https://console.cloud.google.com/apis/api/people.googleapis.com',
+    'https://console.cloud.google.com/apis/api/tasks.googleapis.com',
+    'https://console.cloud.google.com/auth/branding',
+    'https://console.cloud.google.com/auth/audience',
+    'https://console.cloud.google.com/auth/clients',
+    'https://developers.google.com/workspace/guides/create-credentials',
+    'https://github.com/steipete/gogcli#quick-start',
+  ];
+  const missingText = requiredText.filter(s => !dashHtml.includes(s));
+  const missingUrls = requiredUrls.filter(s => !dashHtml.includes(s));
+  const requiredOrigins = [
+    'https://console.cloud.google.com',
+    'https://developers.google.com',
+    'https://github.com',
+  ];
+  const missingOrigins = requiredOrigins.filter(s => !ipcSrc.includes(s));
+  if (missingText.length || missingUrls.length || missingOrigins.length) {
+    if (missingText.length) fail('google setup guide', `dashboard.html missing setup copy: [${missingText.join(', ')}]`);
+    if (missingUrls.length) fail('google setup guide', `dashboard.html missing setup links: [${missingUrls.join(', ')}]`);
+    if (missingOrigins.length) fail('google setup guide', `open-external allowlist missing origins: [${missingOrigins.join(', ')}]`);
+  } else {
+    pass('Google Workspace setup guide: copy, links, and openExternal allowlist verified');
+  }
+}
+
 section('Module contracts');
 function checkModuleContracts() {
   const errors = [];
@@ -1152,7 +1277,7 @@ try {
 section('Embed header stripper partition coverage');
 try {
   const mainSrc = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf-8');
-  const requiredPartitions = ['persist:embed-openclaw', 'persist:embed-9router', 'persist:embed-gcal'];
+  const requiredPartitions = ['persist:embed-openclaw', 'persist:embed-9router'];
   const missing = requiredPartitions.filter(p => !mainSrc.includes(`fromPartition('${p}')`));
   if (missing.length > 0) {
     fail('embed-header-stripper partitions', `main.js missing fromPartition registration for: [${missing.join(', ')}] — embedded webviews will show blank due to X-Frame-Options`);
@@ -1472,6 +1597,49 @@ try {
     else pass(`boot order: ${c.name}`);
   }
 } catch (e) { fail('boot order', 'main.js read failed: ' + e.message); }
+
+// =========================================================================
+// TEST 27B: Manual bot start also starts runtime sidecars
+// License activation can route straight from license.html to dashboard.html.
+// In that path the user starts the bot through IPC "toggle-bot", bypassing
+// createWindow()'s normal post-gateway startup chain. The manual start path
+// must therefore start cron-api too, otherwise CEO Telegram web_fetch calls to
+// http://127.0.0.1:20200/api/* fail even while Telegram/Zalo are connected.
+// =========================================================================
+section('Manual bot start sidecars');
+try {
+  const ipcSrc = fs.readFileSync(path.join(__dirname, '..', 'lib', 'dashboard-ipc.js'), 'utf-8');
+  const hasHelper = /function\s+startRuntimeSidecars\s*\(/.test(ipcSrc);
+  const helperBody = (ipcSrc.match(/function\s+startRuntimeSidecars\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || '';
+  const toggleBody = (ipcSrc.match(/ipcMain\.handle\('toggle-bot'[\s\S]*?await\s+startOpenClaw\(\);([\s\S]*?)\n\s*\}\n\s*return\s+\{\s*running:\s*ctx\.botRunning\s*\};/) || [])[1] || '';
+  const requiredSidecars = [
+    'startCronJobs',
+    'startFollowUpChecker',
+    'startEscalationChecker',
+    'startCronApi',
+    'watchCustomCrons',
+    'startZaloCacheAutoRefresh',
+    'startAppointmentDispatcher',
+  ];
+  if (!hasHelper) {
+    fail('manual bot start sidecars', 'dashboard-ipc.js missing startRuntimeSidecars helper');
+  } else {
+    pass('manual bot start sidecars: helper present');
+  }
+  for (const fn of requiredSidecars) {
+    if (!helperBody.includes(fn + '(')) {
+      fail('manual bot start sidecars', `startRuntimeSidecars missing ${fn}()`);
+    }
+  }
+  if (requiredSidecars.every(fn => helperBody.includes(fn + '('))) {
+    pass('manual bot start sidecars: helper starts all sidecars');
+  }
+  if (!toggleBody.includes("startRuntimeSidecars('toggle-bot')")) {
+    fail('manual bot start sidecars', 'toggle-bot handler does not call startRuntimeSidecars after startOpenClaw');
+  } else {
+    pass('manual bot start sidecars: toggle-bot starts sidecars after gateway');
+  }
+} catch (e) { fail('manual bot start sidecars', 'dashboard-ipc.js read failed: ' + e.message); }
 
 // =========================================================================
 // TEST 28: BrowserWindow security settings

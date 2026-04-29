@@ -1,6 +1,6 @@
 {
   "name": "9bizclaw",
-  "version": "2.3.49",
+  "version": "2.4.0",
   "membership": true,
   "description": "9BizClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
   "author": "MODORO Tech Corp",
@@ -33,10 +33,10 @@
     "files": [
       "main.js",
       "preload.js",
+      "splash-preload.js",
       "lib/**/*",
       "ui/**/*",
       "scripts/**/*",
-      "gcal/**/*",
       "patches/**/*",
       "data/**/*",
       "node_modules/**/*",
@@ -251,6 +251,7 @@
     }
   },
   "devDependencies": {
+    "docx": "9.6.1",
     "electron": "28.3.3",
     "electron-builder": "25.0.0"
   },

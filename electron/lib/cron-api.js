@@ -6,6 +6,7 @@ const { getWorkspace, getBrandAssetsDir, readFbConfig, purgeAgentSessions, audit
 const { _withCustomCronLock, loadCustomCrons, getCustomCronsPath, restartCronJobs } = require('./cron');
 const { sendCeoAlert, sendZaloTo, sendTelegram, sendTelegramPhoto } = require('./channels');
 const { getZcaCacheDir } = require('./zalo-memory');
+const { refreshCronApiTokenInAgents } = require('./cron-api-token');
 
 let shell;
 try { shell = require('electron').shell; } catch {}
@@ -26,6 +27,18 @@ function startCronApi() {
     const tokenPath = path.join(getWorkspace(), 'cron-api-token.txt');
     fs.writeFileSync(tokenPath, _cronApiToken, 'utf-8');
   } catch (e) { console.error('[cron-api] failed to write token file:', e.message); }
+  try {
+    const ws = getWorkspace();
+    const agentsPath = ws && path.join(ws, 'AGENTS.md');
+    if (agentsPath && fs.existsSync(agentsPath)) {
+      const content = fs.readFileSync(agentsPath, 'utf-8');
+      const nextContent = refreshCronApiTokenInAgents(content, _cronApiToken);
+      if (nextContent !== content) {
+        fs.writeFileSync(agentsPath, nextContent, 'utf-8');
+        console.log('[cron-api] refreshed token in AGENTS.md');
+      }
+    }
+  } catch (e) { console.error('[cron-api] AGENTS.md token refresh failed:', e.message); }
 
   function loadFriendsList() {
     try {
@@ -48,7 +61,8 @@ function startCronApi() {
       if (!fs.existsSync(p)) return { byId: {}, byName: {} };
       const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
       const byId = {}, byName = {};
-      for (const g of (Array.isArray(data) ? data : [])) {
+      const groups = Array.isArray(data) ? data : (Array.isArray(data?.groups) ? data.groups : []);
+      for (const g of groups) {
         const id = String(g.groupId || g.id || '');
         const name = g.name || g.groupName || '';
         if (id) { byId[id] = name; if (name) byName[name.toLowerCase()] = id; }
@@ -72,7 +86,7 @@ function startCronApi() {
         // Long text params may contain & which breaks URL parsing.
         // Extract the LAST known text param from raw query as a fallback.
         const raw = req.url;
-        for (const key of ['content', 'message', 'prompt']) {
+        for (const key of ['content', 'message', 'text', 'prompt']) {
           const marker = key + '=';
           const idx = raw.indexOf(marker);
           if (idx !== -1 && (!obj[key] || obj[key].length < 5)) {
@@ -88,12 +102,29 @@ function startCronApi() {
       const u = new URL(req.url, 'http://127.0.0.1');
       for (const [k, v] of u.searchParams) urlParams[k] = v;
       let chunks = [];
-      req.on('data', c => chunks.push(c));
-      req.on('end', () => {
-        try { resolve({ ...urlParams, ...JSON.parse(Buffer.concat(chunks).toString()) }); }
-        catch { resolve(urlParams); }
+      let totalLen = 0;
+      let resolved = false;
+      const finish = (obj) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(obj);
+      };
+      const MAX_BODY = 1024 * 1024;
+      req.on('data', c => {
+        totalLen += c.length;
+        if (totalLen > MAX_BODY) {
+          try { req.destroy(); } catch {}
+          finish(urlParams);
+          return;
+        }
+        chunks.push(c);
       });
-      req.setTimeout(5000, () => resolve(urlParams));
+      req.on('end', () => {
+        try { finish({ ...urlParams, ...JSON.parse(Buffer.concat(chunks).toString()) }); }
+        catch { finish(urlParams); }
+      });
+      req.on('error', () => finish(urlParams));
+      req.setTimeout(5000, () => finish(urlParams));
     });
   }
 
@@ -124,7 +155,7 @@ function startCronApi() {
       const botToken = String(params.bot_token || '').trim();
       if (!botToken) return jsonResp(res, 400, { error: 'bot_token required' });
       try {
-        const configPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
+        const configPath = path.join(require('os').homedir(), '.openclaw', 'openclaw.json');
         const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         const realToken = config?.channels?.telegram?.botToken;
         if (!realToken) return jsonResp(res, 500, { error: 'Telegram bot token not configured' });
@@ -212,9 +243,8 @@ function startCronApi() {
           if (!resolvedGroupName) {
             return jsonResp(res, 400, { error: 'unknown groupId: ' + groupId + '. Check /api/cron/list for available groups.' });
           }
-          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào nhóm Zalo bằng cách gọi 2 API:\n'
-            + '1. Đọc token: web_fetch url=http://127.0.0.1:20200/api/workspace/read?path=cron-api-token.txt\n'
-            + '2. Gửi tin: web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=TOKEN_VỪA_ĐỌC&groupId=' + resolvedGroupId + '&text=KẾT_QUẢ\n'
+          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào nhóm Zalo:\n'
+            + 'web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=' + _cronApiToken + '&groupId=' + resolvedGroupId + '&text=KẾT_QUẢ\n'
             + 'QUY TẮC VIẾT:\n'
             + '- Viết tiếng Việt CÓ DẤU đầy đủ (ví dụ: "trí tuệ nhân tạo" chứ KHÔNG "tri tue nhan tao")\n'
             + '- Viết dạng đoạn văn tự nhiên như đang chat, KHÔNG dùng danh sách số (1. 2. 3.), KHÔNG dùng bullet points\n'

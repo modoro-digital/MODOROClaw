@@ -200,7 +200,9 @@ function testSaveHandlerWhitelist() {
 function testProductionCallSitesExist() {
   const fs = require('node:fs');
   const path = require('node:path');
-  const mainJs = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf-8');
+  const knowledgeJs = fs.readFileSync(path.join(__dirname, '..', 'lib', 'knowledge.js'), 'utf-8');
+  const dashboardIpcJs = fs.readFileSync(path.join(__dirname, '..', 'lib', 'dashboard-ipc.js'), 'utf-8');
+  const combined = knowledgeJs + '\n' + dashboardIpcJs;
   const assertions = [
     { name: 'visibility column in CREATE TABLE',
       re: /visibility\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'public'/ },
@@ -218,7 +220,7 @@ function testProductionCallSitesExist() {
       re: /d\.visibility\s+IN\s*\(/ },
   ];
   for (const a of assertions) {
-    if (!a.re.test(mainJs)) fail(`production call site missing: ${a.name}`);
+    if (!a.re.test(combined)) fail(`production call site missing: ${a.name}`);
     ok(`prod call site: ${a.name}`);
   }
 }

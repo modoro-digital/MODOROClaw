@@ -517,12 +517,15 @@ If smoke fails, build is BLOCKED. Fix the failure before shipping.
 **Verify:** On Mac arm64 with x64 vendor binary → wizard "Thiết lập AI" → spinner shows ~30-60s → auto-fix log `[9router-autofix] ✓ rebuilt via prebuild-install` in `main.log` → wizard completes successfully. If auto-fix fails: error shows "Mở thư mục log" link.
 
 ### Zalo escalation auto-forward to CEO
-**Bug:** AGENTS.md instructs bot to "ESCALATE Telegram" for complaints/out-of-scope, but bot has NO tool to write `follow-up-queue.json` or call `sendCeoAlert()`. Bot says "em đã chuyển cho sếp" to the customer, but CEO receives NOTHING — pure theater.
-**Fix (code-level detection, 2 parts):**
-1. **send.ts injection (v7):** Added escalation keyword scanner to the existing output filter patch. Scans bot's outbound Zalo reply for 7 escalation patterns (e.g. "chuyển sếp", "ghi nhận khiếu nại", "ngoài khả năng", "em đã chuyển"). When matched, appends entry to `logs/escalation-queue.jsonl` with timestamp, target threadId, trigger phrase, and bot reply preview. Does NOT block the message — customer still gets the reply.
-2. **main.js poller:** `processEscalationQueue()` checks `escalation-queue.jsonl` every 30s. For each entry: looks up customer name from `memory/zalo-users/<id>.md`, calls `sendCeoAlert()` (dual Telegram + Zalo), logs to audit. Truncates file after processing.
-**Auto-apply:** Output filter v7 re-injects on every `ensureZaloOutputFilterFix()` (startup). Poller starts in boot sequence via `startEscalationChecker()`.
-**Verify:** Nhắn Zalo hỏi gì đó ngoài phạm vi → bot nói "em xin chuyển cho sếp" → CEO nhận alert trên Telegram + Zalo trong 30s với trigger keyword + bot reply + customer ID.
+**Bug (original v1):** AGENTS.md instructs bot to "ESCALATE Telegram" for complaints/out-of-scope, but bot has NO tool to write `follow-up-queue.json` or call `sendCeoAlert()`. Bot says "em đã chuyển cho sếp" to the customer, but CEO receives NOTHING — pure theater.
+**Bug (v1 never fired):** Escalation scanner baked into modoro-zalo fork's `send.ts` but `escalation-queue.jsonl` was never created. Two root causes: (1) 7 keyword patterns too narrow — missed common LLM phrasings like "để em báo sếp", "em sẽ hỏi sếp", "em sẽ báo sếp"; (2) AGENTS.md didn't instruct the bot to use specific detectable phrases, so bot used varied natural language that bypassed the scanner; (3) empty `catch {}` silently swallowed any runtime errors.
+**Fix (v2, 3 parts):**
+1. **send.ts ESCALATION-DETECT PATCH v2** (`electron/packages/modoro-zalo/src/send.ts`): Expanded from 7 to 9 patterns covering wider Vietnamese escalation phrasings. Key additions: "để em báo/hỏi/nhờ sếp", "em sẽ báo/hỏi/nhờ sếp", "sếp sẽ xử lý/hỗ trợ". Added `logOutbound` diagnostic on EVERY outbound Zalo message (logs `escalation-scanner-check` with body preview and match result). Replaced empty `catch {}` with error-logging catch blocks.
+2. **AGENTS.md v82**: Added mandatory keyword list in Follow-up/Escalate section — bot MUST include one of: "em đã chuyển sếp", "để em báo sếp", "cần sếp xử lý", "ngoài khả năng" in every escalation reply.
+3. **zalo-reply-rules.md**: Added BẮT BUỘC note linking escalation response to keyword detection.
+**main.js poller** (unchanged): `processEscalationQueue()` checks `escalation-queue.jsonl` every 30s. For each entry: looks up customer name from `memory/zalo-users/<id>.md`, calls `sendCeoAlert()` (Telegram), logs to audit. Truncates file after processing. Poller starts via `startEscalationChecker()`.
+**Auto-apply:** Plugin copied from `packages/modoro-zalo/` to `~/.openclaw/extensions/modoro-zalo/` on every boot by `_ensureZaloPluginImpl()`. Poller starts in boot sequence.
+**Verify:** Nhắn Zalo hỏi gì đó ngoài phạm vi → bot nói "để em báo sếp" → gateway log shows `escalation-scanner-check` with `matched: "để em báo sếp"` → `escalation-queue.jsonl` created → CEO nhận alert trên Telegram trong 30s. Nếu không nhận: check `logs/ceo-alerts-missed.log`.
 
 ### SECURITY: Zalo channel admin command isolation (v2.3.47.3)
 **Vulnerability:** Gateway agent shares ONE tools.allow config for ALL channels (Telegram + Zalo). Any tool available = available to ALL users. Previously `exec`, `process`, `cron` were in tools.allow → ANY Zalo stranger could execute shell commands, create crons, spawn processes.

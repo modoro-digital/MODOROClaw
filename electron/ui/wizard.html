@@ -57,12 +57,11 @@
       position: relative;
     }
     .wz-brand-logo-img {
-      width: 240px;
-      height: 240px;
-      border-radius: 36px;
+      width: 200px;
+      height: 200px;
       flex-shrink: 0;
       object-fit: contain;
-      box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.28), 0 2px 6px -2px rgba(0, 0, 0, 0.12);
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.18));
     }
     .wz-brand-name {
       font-size: 24px;
@@ -916,7 +915,7 @@
       </button>
 
       <div class="wz-brand-mark">
-        <img src="modoro-mascot.jpg" alt="9BizClaw" class="wz-brand-logo-img" onerror="this.style.display='none'">
+        <img src="mascot-removebg.png" alt="9BizClaw" class="wz-brand-logo-img" onerror="this.style.display='none'">
         <div>
           <div class="wz-brand-name">9BizClaw</div>
           <div class="wz-brand-tag">Trợ Lý AI Cho Doanh Nghiệp</div>
@@ -1455,15 +1454,7 @@
       if (currentStep === 1) {
         const name = document.getElementById('ceo-name').value.trim();
         if (!name) { markFieldError('ceo-name'); return showError('Vui lòng nhập họ tên của anh/chị.'); }
-        const hasViDiacritics = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/.test(name);
-        if (!hasViDiacritics && /^[a-zA-Z\s]+$/.test(name)) {
-          if (!confirm('Tên "' + name + '" chưa có dấu tiếng Việt.\n\nBot sẽ dùng tên này để xưng hô với khách hàng. Anh/chị có muốn sửa lại cho đúng dấu không?\n\nBấm OK để quay lại sửa, Cancel để giữ nguyên.')) {
-            // user chose to keep as-is
-          } else {
-            markFieldError('ceo-name');
-            return;
-          }
-        }
+        // Diacritics popup removed — user enters name however they want
       }
       if (currentStep === '1b') {
         if (!document.getElementById('industry').value) { markFieldError('industry'); return showError('Vui lòng chọn lĩnh vực kinh doanh.'); }
@@ -1541,7 +1532,7 @@
     }
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     function withTimeout(promise, ms = 10000) {
-      return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]).catch(() => ({ success: false }));
+      return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
     }
 
     // ===== Choice card visual state binding =====

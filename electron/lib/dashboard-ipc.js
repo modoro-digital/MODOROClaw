@@ -76,6 +76,7 @@ const {
   getZaloUsersDir, ensureZaloUsersDir, sanitizeZaloUserId, parseZaloUserMemoryMeta,
   getZaloGroupsDir, getZaloBlocklistPath, cleanBlocklist,
 } = require('./zalo-memory');
+const { normalizeZaloBlocklist, resolveZaloBlocklistSave } = require('./zalo-settings');
 const {
   cleanupOrphanZaloListener, ensureModoroZaloNodeModulesLink,
   ensureZaloPlugin, seedZaloCustomersFromCache,
@@ -146,6 +147,17 @@ let _saveZaloManagerInFlight = false;
 
 // Wire _saveZaloManagerInFlight getter into cron.js
 setSaveZaloManagerInFlightGetter(() => _saveZaloManagerInFlight);
+
+function startRuntimeSidecars(source) {
+  const prefix = source ? `[${source}]` : '[runtime-sidecars]';
+  try { startCronApi(); } catch (e) { console.error(prefix, 'startCronApi error:', e?.message || e); }
+  try { startCronJobs(); } catch (e) { console.error(prefix, 'startCronJobs error:', e?.message || e); }
+  try { startFollowUpChecker(); } catch (e) { console.error(prefix, 'startFollowUpChecker error:', e?.message || e); }
+  try { startEscalationChecker(); } catch (e) { console.error(prefix, 'startEscalationChecker error:', e?.message || e); }
+  try { watchCustomCrons(); } catch (e) { console.error(prefix, 'watchCustomCrons error:', e?.message || e); }
+  try { startZaloCacheAutoRefresh(); } catch (e) { console.error(prefix, 'startZaloCacheAutoRefresh error:', e?.message || e); }
+  try { startAppointmentDispatcher(); } catch (e) { console.error(prefix, 'startAppointmentDispatcher error:', e?.message || e); }
+}
 
 function registerAllIpcHandlers() {
 
@@ -1189,7 +1201,7 @@ ipcMain.handle('get-zalo-manager-config', async () => {
       groupPolicy: zalo.groupPolicy || 'open',
       groupAllowFrom: Array.isArray(zalo.groupAllowFrom) ? zalo.groupAllowFrom.filter(x => x !== '*') : [],
       dmPolicy: zalo.dmPolicy || 'open',
-      userBlocklist: Array.isArray(blocklist) ? blocklist : [],
+      userBlocklist: normalizeZaloBlocklist(blocklist),
       groupSettings,
       strangerPolicy,
     };
@@ -1198,10 +1210,145 @@ ipcMain.handle('get-zalo-manager-config', async () => {
   }
 });
 
-ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy, groupAllowFrom, userBlocklist, groupSettings, strangerPolicy }) => {
+function saveZaloRealtimeManagerFiles({ userBlocklist, userBlocklistTouched, groupSettings, strangerPolicy }) {
+  const bp = getZaloBlocklistPath();
+  let existingBl = [];
+  try {
+    if (bp && fs.existsSync(bp)) existingBl = JSON.parse(fs.readFileSync(bp, 'utf-8'));
+  } catch {}
+
+  const blocklistSave = resolveZaloBlocklistSave({
+    existingBlocklist: existingBl,
+    incomingBlocklist: userBlocklist,
+    userBlocklistTouched: userBlocklistTouched === true,
+  });
+
+  if (bp && blocklistSave.preservedExisting) {
+    console.warn(`[save-zalo-manager] incoming blocklist empty while file has ${blocklistSave.blocklist.length} entries; preserving existing friend settings`);
+    try { fs.copyFileSync(bp, bp + '.bak'); } catch {}
+  } else if (bp && (blocklistSave.shouldWrite || !fs.existsSync(bp))) {
+    writeJsonAtomic(bp, blocklistSave.blocklist);
+  }
+
+  if (groupSettings && typeof groupSettings === 'object') {
+    const gsPath = path.join(getWorkspace(), 'zalo-group-settings.json');
+    let existing = {};
+    try {
+      if (fs.existsSync(gsPath)) existing = JSON.parse(fs.readFileSync(gsPath, 'utf-8')) || {};
+      if (typeof existing !== 'object' || Array.isArray(existing)) existing = {};
+    } catch {}
+    let oldExisting = {};
+    try { oldExisting = JSON.parse(JSON.stringify(existing)); } catch {}
+    for (const [gid, gs] of Object.entries(groupSettings)) {
+      if (!gs || !gs.mode) continue;
+      if (!['off', 'mention', 'all'].includes(gs.mode)) continue;
+      const sanitized = { mode: gs.mode };
+      if (gs.internal === true) sanitized.internal = true;
+      existing[gid] = sanitized;
+    }
+    try {
+      for (const gid of Object.keys(existing)) {
+        const wasInternal = oldExisting[gid]?.internal === true;
+        const isInternal = existing[gid]?.internal === true;
+        if (wasInternal !== isInternal) {
+          auditLog('group-internal-change', { groupId: gid, internal: isInternal, ts: Date.now() });
+        }
+      }
+    } catch {}
+    if (Object.keys(existing).length > 0) {
+      writeJsonAtomic(gsPath, existing);
+    }
+  }
+
+  if (strangerPolicy !== undefined) {
+    const spPath = path.join(getWorkspace(), 'zalo-stranger-policy.json');
+    if (strangerPolicy) {
+      writeJsonAtomic(spPath, { mode: strangerPolicy });
+    } else if (fs.existsSync(spPath)) {
+      try { fs.unlinkSync(spPath); } catch {}
+    }
+  }
+
+  return { blocklistLength: blocklistSave.blocklist.length };
+}
+
+async function forceDisableZaloFailClosed(source = 'manager-disabled') {
+  const pauseOk = setChannelPermanentPause('zalo', source);
+  let configOk = false;
+  let stickyOk = false;
+  try {
+    await withOpenClawConfigLock(async () => {
+      const openclawDir = path.join(ctx.HOME, '.openclaw');
+      try { fs.mkdirSync(openclawDir, { recursive: true }); } catch {}
+      try {
+        writeJsonAtomic(path.join(openclawDir, 'modoroclaw-sticky-zalo-enabled.json'), {
+          enabled: false,
+          ts: Date.now(),
+          source,
+        });
+        stickyOk = true;
+      } catch (e) {
+        console.warn('[zalo] fail-closed sticky write error:', e?.message);
+      }
+
+      const configPath = path.join(openclawDir, 'openclaw.json');
+      if (!fs.existsSync(configPath)) return;
+      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (!cfg.channels) cfg.channels = {};
+      if (!cfg.channels['modoro-zalo'] || typeof cfg.channels['modoro-zalo'] !== 'object') cfg.channels['modoro-zalo'] = {};
+      cfg.channels['modoro-zalo'].enabled = false;
+      if (!cfg.plugins) cfg.plugins = {};
+      if (!cfg.plugins.entries) cfg.plugins.entries = {};
+      if (!cfg.plugins.entries['modoro-zalo'] || typeof cfg.plugins.entries['modoro-zalo'] !== 'object') cfg.plugins.entries['modoro-zalo'] = {};
+      cfg.plugins.entries['modoro-zalo'].enabled = false;
+      writeOpenClawConfigIfChanged(configPath, cfg);
+      configOk = true;
+    });
+  } catch (e) {
+    console.error('[zalo] fail-closed disable error:', e?.message || e);
+  }
+  try { auditLog('zalo_fail_closed_disabled', { source, pauseOk, configOk, stickyOk }); } catch {}
+  return { pauseOk, configOk, stickyOk };
+}
+
+ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy, groupAllowFrom, userBlocklist, userBlocklistTouched, groupSettings, strangerPolicy }) => {
   invalidateZaloFriendsCache(); // PERF: bust friends cache on config save
   const booting = rejectIfBooting('save-zalo-manager-config');
-  if (booting) return booting;
+  if (booting) {
+    if (enabled === false) {
+      ctx.ipcInFlightCount++;
+      try {
+        const realtime = saveZaloRealtimeManagerFiles({ userBlocklist, userBlocklistTouched, groupSettings, strangerPolicy });
+        const off = await forceDisableZaloFailClosed('manager-disabled-while-booting');
+        return {
+          success: off.pauseOk || off.configOk || off.stickyOk,
+          booting: true,
+          pendingRestart: true,
+          blocklistLength: realtime.blocklistLength,
+          message: 'Đã tắt Zalo ngay. App đang khởi động nên gateway sẽ áp dụng đầy đủ sau khi xong.',
+        };
+      } finally {
+        ctx.ipcInFlightCount--;
+      }
+    }
+    if (userBlocklistTouched === true || groupSettings || strangerPolicy !== undefined) {
+      if (enabled !== false && isZaloChannelEnabled() === false) return booting;
+      ctx.ipcInFlightCount++;
+      try {
+        const realtime = saveZaloRealtimeManagerFiles({ userBlocklist, userBlocklistTouched, groupSettings, strangerPolicy });
+        return {
+          success: true,
+          booting: true,
+          realtimeOnly: true,
+          blocklistLength: realtime.blocklistLength,
+          message: 'Đã lưu danh sách Zalo. Bot đang khởi động nên phần bật/tắt kênh sẽ áp dụng sau.',
+        };
+      } finally {
+        ctx.ipcInFlightCount--;
+      }
+    }
+    return booting;
+  }
   // Double-click guard: a rapid 2nd save before the 1st completes would
   // read the same prev snapshot, both compute identical diffs, both try
   // to restart gateway → two concurrent stopOpenClaw calls racing.
@@ -1261,9 +1408,12 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
       // so "Tắt Zalo" is a real hard-off (gateway won't even load plugin
       // on next boot). ensureDefaultConfig syncs this too but doing it here
       // ensures the in-memory flip propagates immediately.
-      if (cfg.plugins?.entries?.['modoro-zalo']) {
-        cfg.plugins.entries['modoro-zalo'].enabled = newEnabled;
+      if (!cfg.plugins) cfg.plugins = {};
+      if (!cfg.plugins.entries) cfg.plugins.entries = {};
+      if (!cfg.plugins.entries['modoro-zalo'] || typeof cfg.plugins.entries['modoro-zalo'] !== 'object') {
+        cfg.plugins.entries['modoro-zalo'] = {};
       }
+      cfg.plugins.entries['modoro-zalo'].enabled = newEnabled;
       writeOpenClawConfigIfChanged(configPath, cfg);
     }
     let gateOk = true;
@@ -1272,9 +1422,9 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
       gateOk = clearChannelPermanentPause('zalo');
       markOnboardingComplete('zalo-manager-enable');
     }
-    // 2. Write user blocklist to workspace (bot reads this per AGENTS.md rule)
-    const bp = getZaloBlocklistPath();
-    writeJsonAtomic(bp, userBlocklist || []);
+    // 2. Workspace files are read realtime by inbound.ts patches. The helper
+    // preserves an existing friend blocklist when autosave sends an untouched [].
+    saveZaloRealtimeManagerFiles({ userBlocklist, userBlocklistTouched, groupSettings, strangerPolicy });
     // 3. CRIT #5: Persist ALL explicit modes (off/mention/all) — zalo-group-settings.json
     // is the single source of truth used by GROUP-SETTINGS PATCH v2. If user
     // sets 'mention' in Dashboard we must persist it so the patch enforces
@@ -1324,7 +1474,7 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
     // if no explicit strangerPolicy provided, REMOVE file so patch falls back
     // to plugin default (prevents stale policy file leaking after CEO clears
     // the field in Dashboard).
-    {
+    if (strangerPolicy !== undefined) {
       const spPath = path.join(getWorkspace(), 'zalo-stranger-policy.json');
       if (strangerPolicy) {
         writeJsonAtomic(spPath, { mode: strangerPolicy });
@@ -1368,7 +1518,7 @@ ipcMain.handle('save-zalo-manager-config', async (_event, { enabled, groupPolicy
             console.log('[restart-guard] save-zalo-manager: hard-restart begin');
             try { await stopOpenClaw(); } catch (e1) { console.warn('[save-zalo-manager] stop failed:', e1?.message); }
             await new Promise(r => setTimeout(r, 2000));
-            try { await startOpenClaw(); } catch (e2) { console.warn('[save-zalo-manager] start failed:', e2?.message); }
+            try { await startOpenClaw({ ignoreCooldown: true }); } catch (e2) { console.warn('[save-zalo-manager] start failed:', e2?.message); }
             global._zaloListenerMissStreak = 0;
             console.log('[restart-guard] save-zalo-manager: hard-restart end');
           } finally {
@@ -1867,15 +2017,6 @@ ipcMain.handle('save-business-profile', async (_event, payload) => {
 // instead of throwing. The Dashboard's "Google" channel chip stays at
 // `not_configured` (handled by check-all-channels which only looks for
 // ~/.gog/token.json — won't exist).
-ipcMain.handle('setup-google', async () => {
-  return {
-    success: false,
-    error: 'Google integration chưa sẵn sàng (gog-cli chưa publish). ' +
-           'Tích hợp Calendar/Gmail sẽ có trong bản cập nhật sau.',
-    notImplemented: true,
-  };
-});
-
 // Batch config set (for complex nested objects like model providers)
 // Batch config set — write JSON directly
 ipcMain.handle('set-batch-config', async (_event, ops) => {
@@ -2339,11 +2480,13 @@ ipcMain.handle('get-telegram-config', async () => {
     const configPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const tg = config.channels?.telegram || {};
+    const token = tg.botToken || '';
     return {
-      botToken: tg.botToken || '',
+      botToken: token ? token.slice(0, 6) + '…' + token.slice(-4) : '',
+      botTokenSet: !!token,
       allowFrom: tg.allowFrom || [],
     };
-  } catch { return { botToken: '', allowFrom: [] }; }
+  } catch { return { botToken: '', botTokenSet: false, allowFrom: [] }; }
 });
 
 ipcMain.handle('save-telegram-config', async (_e, { botToken, userId }) => {
@@ -2532,6 +2675,12 @@ ipcMain.handle('resume-zalo', async () => {
             cfg.channels['modoro-zalo'] = {};
           }
           cfg.channels['modoro-zalo'].enabled = true;
+          if (!cfg.plugins) cfg.plugins = {};
+          if (!cfg.plugins.entries) cfg.plugins.entries = {};
+          if (!cfg.plugins.entries['modoro-zalo'] || typeof cfg.plugins.entries['modoro-zalo'] !== 'object') {
+            cfg.plugins.entries['modoro-zalo'] = {};
+          }
+          cfg.plugins.entries['modoro-zalo'].enabled = true;
           writeOpenClawConfigIfChanged(cfgPath, cfg);
           enabled = true;
         }
@@ -2558,7 +2707,7 @@ ipcMain.handle('resume-zalo', async () => {
               console.log('[restart-guard] resume-zalo: hard-restart begin');
               try { await stopOpenClaw(); } catch (e1) { console.warn('[resume-zalo] stop failed:', e1?.message); }
               await new Promise(r => setTimeout(r, 5000));
-              try { await startOpenClaw(); } catch (e2) { console.warn('[resume-zalo] start failed:', e2?.message); }
+              try { await startOpenClaw({ ignoreCooldown: true }); } catch (e2) { console.warn('[resume-zalo] start failed:', e2?.message); }
               // [zalo-watchdog rearm] Post-restart: wipe any pre-restart miss
               // streak so next heartbeat miss doesn't immediately re-trip cap.
               global._zaloListenerMissStreak = 0;
@@ -3363,7 +3512,7 @@ ipcMain.handle('check-all-channels', async () => {
   // 4. Google Workspace — check via gogcli
   try {
     const googleApi = require('./google-api');
-    const gs = googleApi.authStatus();
+    const gs = await googleApi.authStatus();
     if (gs.connected) r.google = ctx.botRunning ? 'ok' : 'configured';
   } catch {}
 
@@ -3727,6 +3876,7 @@ ipcMain.handle('wizard-complete', async () => {
     if (ctx.appIsQuitting) { console.log('[wizard-iife] aborting — app quitting (pre-seedZaloCustomers)'); return; }
     try { seedZaloCustomersFromCache(); } catch (e) { console.error('[wizard-complete seedZaloCustomers] error:', e?.message || e); }
     if (ctx.appIsQuitting) { console.log('[wizard-iife] aborting — app quitting (pre-startOpenClaw)'); return; }
+    try { startCronApi(); } catch (e) { console.error('[wizard-complete startCronApi preflight] error:', e?.message || e); }
     try { await startOpenClaw(); } catch (e) { console.error('[wizard-complete startOpenClaw] error:', e?.message || e); }
     if (ctx.appIsQuitting) { console.log('[wizard-iife] aborting — app quitting (pre-startCronJobs)'); return; }
     try { startCronJobs(); } catch (e) { console.error('[wizard-complete startCronJobs] error:', e?.message || e); }
@@ -4226,7 +4376,31 @@ ipcMain.handle('open-log-folder', async () => {
 ipcMain.handle('open-external', async (_event, url) => {
   try {
     const parsed = new URL(url);
-    const allowedOrigins = ['https://ollama.com', 'https://t.me', 'https://youtube.com', 'https://www.youtube.com', 'https://business.facebook.com', 'https://developers.facebook.com', 'https://www.facebook.com', 'https://facebook.com', 'http://localhost:20128', 'http://127.0.0.1:20128', 'http://127.0.0.1:18789', 'http://localhost:18789', 'http://127.0.0.1:18791', 'http://localhost:18791'];
+    const allowedOrigins = [
+      'https://ollama.com',
+      'https://t.me',
+      'https://youtube.com',
+      'https://www.youtube.com',
+      'https://business.facebook.com',
+      'https://developers.facebook.com',
+      'https://www.facebook.com',
+      'https://facebook.com',
+      'https://console.cloud.google.com',
+      'https://console.developers.google.com',
+      'https://cloud.google.com',
+      'https://developers.google.com',
+      'https://support.google.com',
+      'https://github.com',
+      'https://drive.google.com',
+      'https://docs.google.com',
+      'https://mail.google.com',
+      'http://localhost:20128',
+      'http://127.0.0.1:20128',
+      'http://127.0.0.1:18789',
+      'http://localhost:18789',
+      'http://127.0.0.1:18791',
+      'http://localhost:18791',
+    ];
     // Telegram deep-link: tg://resolve?domain=<bot> opens native app directly.
     // Allow ONLY the resolve action (no msg_url, no join) to keep the surface
     // tight. Non-resolve tg:// URLs are rejected.
@@ -4293,7 +4467,9 @@ ipcMain.handle('toggle-bot', async () => {
     if (ctx.startOpenClawInFlight || ctx.gatewayRestartInFlight) {
       return { running: false, pending: true };
     }
+    try { startCronApi(); } catch (e) { console.error('[toggle-bot] startCronApi preflight error:', e?.message || e); }
     await startOpenClaw();
+    startRuntimeSidecars('toggle-bot');
   }
   return { running: ctx.botRunning };
 });
@@ -4377,17 +4553,18 @@ ipcMain.handle('download-and-install-update', async () => {
   const googleApi = require('./google-api');
 
   ipcMain.handle('google-auth-status', async () => {
-    try { return googleApi.authStatus(); }
+    try { return await googleApi.authStatus(); }
     catch (e) { return { connected: false, error: e.message }; }
   });
 
   ipcMain.handle('google-upload-credentials', async (_ev, filePath) => {
     try {
+      googleApi.validateOAuthClientSecret(filePath);
       const configDir = googleApi.getGogConfigDir();
       fs.mkdirSync(configDir, { recursive: true });
       const dest = path.join(configDir, 'client_secret.json');
       fs.copyFileSync(filePath, dest);
-      googleApi.registerCredentials(dest);
+      await googleApi.registerCredentials(dest);
       return { ok: true };
     } catch (e) { return { error: e.message }; }
   });
@@ -4400,21 +4577,29 @@ ipcMain.handle('download-and-install-update', async () => {
   });
 
   ipcMain.handle('google-disconnect', async () => {
-    try { return googleApi.disconnectAccount(); }
+    try { return await googleApi.disconnectAccount(); }
     catch (e) { return { error: e.message }; }
   });
 
   ipcMain.handle('google-calendar-events', async (_ev, opts) => {
-    try { return await googleApi.listEvents(opts?.from, opts?.to); }
+    try { return await googleApi.listEvents(opts?.from, opts?.to, opts?.calendarId); }
     catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-calendar-create', async (_ev, opts) => {
-    try { return await googleApi.createEvent(opts.summary, opts.start, opts.end, opts.attendees); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.summary || !opts?.start || !opts?.end) return { error: 'summary, start, end required' };
+      const r = await googleApi.createEvent(opts.summary, opts.start, opts.end, opts.attendees, opts.calendarId);
+      try { auditLog('google_calendar_create', { summary: opts.summary }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-calendar-delete', async (_ev, opts) => {
-    try { return await googleApi.deleteEvent(opts.eventId); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.eventId) return { error: 'eventId required' };
+      const r = await googleApi.deleteEvent(opts.eventId, opts.calendarId);
+      try { auditLog('google_calendar_delete', { eventId: opts.eventId }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-calendar-freebusy', async (_ev, opts) => {
     try { return await googleApi.getFreeBusy(opts?.from, opts?.to); }
@@ -4434,12 +4619,20 @@ ipcMain.handle('download-and-install-update', async () => {
     catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-gmail-send', async (_ev, opts) => {
-    try { return await googleApi.sendEmail(opts.to, opts.subject, opts.body); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.to || !opts?.subject || !opts?.body) return { error: 'to, subject, body required' };
+      const r = await googleApi.sendEmail(opts.to, opts.subject, opts.body);
+      try { auditLog('google_gmail_send', { to: opts.to, subject: opts.subject }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-gmail-reply', async (_ev, opts) => {
-    try { return await googleApi.replyEmail(opts.id, opts.body); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.id || !opts?.body) return { error: 'id, body required' };
+      const r = await googleApi.replyEmail(opts.id, opts.body);
+      try { auditLog('google_gmail_reply', { id: opts.id }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
 
   ipcMain.handle('google-drive-list', async (_ev, opts) => {
@@ -4447,16 +4640,32 @@ ipcMain.handle('download-and-install-update', async () => {
     catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-drive-upload', async (_ev, opts) => {
-    try { return await googleApi.uploadFile(opts.filePath, opts.folderId); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.filePath) return { error: 'filePath required' };
+      const googleRoutes = require('./google-routes');
+      if (googleRoutes.isHomedirPathSafe && !googleRoutes.isHomedirPathSafe(opts.filePath)) return { error: 'filePath blocked by path validation' };
+      const r = await googleApi.uploadFile(opts.filePath, opts.folderId);
+      try { auditLog('google_drive_upload', { filePath: opts.filePath }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-drive-download', async (_ev, opts) => {
-    try { return await googleApi.downloadFile(opts.fileId, opts.destPath); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.fileId || !opts?.destPath) return { error: 'fileId, destPath required' };
+      const googleRoutes = require('./google-routes');
+      if (googleRoutes.isHomedirPathSafe && !googleRoutes.isHomedirPathSafe(opts.destPath)) return { error: 'destPath blocked by path validation' };
+      const r = await googleApi.downloadFile(opts.fileId, opts.destPath, opts.format);
+      try { auditLog('google_drive_download', { fileId: opts.fileId }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-drive-share', async (_ev, opts) => {
-    try { return await googleApi.shareFile(opts.fileId, opts.email, opts.role); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.fileId || !opts?.email) return { error: 'fileId, email required' };
+      const r = await googleApi.shareFile(opts.fileId, opts.email, opts.role);
+      try { auditLog('google_drive_share', { fileId: opts.fileId, email: opts.email }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
 
   ipcMain.handle('google-contacts-list', async (_ev, opts) => {
@@ -4464,20 +4673,73 @@ ipcMain.handle('download-and-install-update', async () => {
     catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-contacts-create', async (_ev, opts) => {
-    try { return await googleApi.createContact(opts.name, opts.phone, opts.email); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.name) return { error: 'name required' };
+      const r = await googleApi.createContact(opts.name, opts.phone, opts.email);
+      try { auditLog('google_contacts_create', { name: opts.name }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
   ipcMain.handle('google-tasks-list', async (_ev, opts) => {
     try { return await googleApi.listTasks(opts?.listId); }
     catch (e) { return { error: e.message }; }
   });
-  ipcMain.handle('google-tasks-create', async (_ev, opts) => {
-    try { return await googleApi.createTask(opts.title, opts.due, opts.listId); }
+  ipcMain.handle('google-tasks-lists', async (_ev, opts) => {
+    try { return await googleApi.listTaskLists(opts?.max); }
     catch (e) { return { error: e.message }; }
   });
+  ipcMain.handle('google-tasks-create', async (_ev, opts) => {
+    try {
+      if (!opts?.title) return { error: 'title required' };
+      const r = await googleApi.createTask(opts.title, opts.due, opts.listId);
+      try { auditLog('google_tasks_create', { title: opts.title }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
+  });
   ipcMain.handle('google-tasks-complete', async (_ev, opts) => {
-    try { return await googleApi.completeTask(opts.taskId); }
-    catch (e) { return { error: e.message }; }
+    try {
+      if (!opts?.taskId) return { error: 'taskId required' };
+      const r = await googleApi.completeTask(opts.taskId, opts.listId);
+      try { auditLog('google_tasks_complete', { taskId: opts.taskId }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
+  });
+
+  ipcMain.handle('google-sheets-metadata', async (_ev, opts) => {
+    try {
+      if (!opts?.spreadsheetId) return { error: 'spreadsheetId required' };
+      return await googleApi.getSheetMetadata(opts.spreadsheetId);
+    } catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-sheets-get', async (_ev, opts) => {
+    try {
+      if (!opts?.spreadsheetId || !opts?.range) return { error: 'spreadsheetId and range required' };
+      return await googleApi.getSheet(opts.spreadsheetId, opts.range, opts);
+    } catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-sheets-update', async (_ev, opts) => {
+    try {
+      if (!opts?.spreadsheetId || !opts?.range) return { error: 'spreadsheetId and range required' };
+      const r = await googleApi.updateSheet(opts.spreadsheetId, opts.range, opts.values, opts);
+      try { auditLog('google_sheets_update', { spreadsheetId: opts.spreadsheetId, range: opts.range }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-sheets-append', async (_ev, opts) => {
+    try {
+      if (!opts?.spreadsheetId || !opts?.range) return { error: 'spreadsheetId and range required' };
+      const r = await googleApi.appendSheet(opts.spreadsheetId, opts.range, opts.values, opts);
+      try { auditLog('google_sheets_append', { spreadsheetId: opts.spreadsheetId, range: opts.range }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-appscript-run', async (_ev, opts) => {
+    try {
+      if (!opts?.scriptId || !opts?.functionName) return { error: 'scriptId and functionName required' };
+      const r = await googleApi.runAppScript(opts.scriptId, opts.functionName, opts.params, opts.devMode);
+      try { auditLog('google_appscript_run', { scriptId: opts.scriptId, functionName: opts.functionName }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
   });
 
 } // end registerAllIpcHandlers

@@ -1,10 +1,14 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { execFileSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 
 let app;
 try { app = require('electron').app; } catch {}
+
+const _activeChildren = new Set();
+let _connectInFlight = null;
+const GOOGLE_SERVICES = 'calendar,gmail,drive,contacts,tasks,sheets,docs,appscript';
 
 function getGogConfigDir() {
   if (app) return path.join(app.getPath('userData'), 'gog');
@@ -15,10 +19,12 @@ function getGogConfigDir() {
 }
 
 function getGogBinaryPath() {
-  const vendorDir = (() => {
-    if (!app || !app.isPackaged) return path.join(__dirname, '..', 'vendor');
-    return path.join(process.resourcesPath, 'vendor');
-  })();
+  let vendorDir;
+  try {
+    const { getBundledVendorDir } = require('./boot');
+    vendorDir = getBundledVendorDir();
+  } catch {}
+  if (!vendorDir) vendorDir = path.join(__dirname, '..', 'vendor');
   const bin = process.platform === 'win32'
     ? path.join(vendorDir, 'gog', 'gog.exe')
     : path.join(vendorDir, 'gog', 'gog');
@@ -49,86 +55,137 @@ function saveGogAccount(email) {
 }
 
 function gogEnv() {
+  const configDir = getGogConfigDir();
+  try { fs.mkdirSync(configDir, { recursive: true }); } catch {}
   return {
     ...process.env,
-    GOG_CONFIG_DIR: getGogConfigDir(),
+    GOG_CONFIG_DIR: configDir,
     GOG_JSON: '1',
     GOG_TIMEZONE: 'Asia/Ho_Chi_Minh',
     GOG_ACCOUNT: getGogAccount(),
   };
 }
 
-function gogExecSync(args, timeoutMs = 15000) {
-  const bin = getGogBinaryPath();
-  if (!bin) throw new Error('gog binary not found');
-  const stdout = execFileSync(bin, args, {
-    env: gogEnv(),
-    timeout: timeoutMs,
-    encoding: 'utf-8',
-    maxBuffer: 10 * 1024 * 1024,
-    windowsHide: true,
-  });
-  try { return JSON.parse(stdout); } catch {
-    return { error: 'Unexpected output', raw: stdout.slice(0, 2000) };
-  }
-}
-
 async function gogExec(args, timeoutMs = 15000) {
   return gogSpawnAsync(args, timeoutMs);
+}
+
+function normalizeGogArgs(args) {
+  const normalized = Array.isArray(args) ? args.slice() : [];
+  if (!normalized.includes('--json') && !normalized.includes('-j')) {
+    normalized.unshift('--json');
+  }
+  return normalized;
 }
 
 function gogSpawnAsync(args, timeoutMs = 120000) {
   return new Promise((resolve, reject) => {
     const bin = getGogBinaryPath();
     if (!bin) return reject(new Error('gog binary not found'));
-    const child = spawn(bin, args, { env: gogEnv(), windowsHide: true });
+    const child = spawn(bin, normalizeGogArgs(args), { env: gogEnv(), windowsHide: true });
+    _activeChildren.add(child);
     let stdout = '', stderr = '';
+    let settled = false;
     child.stdout?.on('data', d => stdout += d);
     child.stderr?.on('data', d => stderr += d);
     const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
       child.kill();
+      try { child.stdout?.destroy(); } catch {}
+      try { child.stderr?.destroy(); } catch {}
+      _activeChildren.delete(child);
       reject(new Error('Timeout after ' + (timeoutMs / 1000) + 's'));
     }, timeoutMs);
     child.on('close', code => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
+      _activeChildren.delete(child);
       if (code !== 0) return reject(new Error(stderr || `exit code ${code}`));
       try { resolve(JSON.parse(stdout)); } catch {
         resolve({ ok: true, raw: stdout.slice(0, 2000) });
       }
     });
-    child.on('error', e => { clearTimeout(timer); reject(e); });
+    child.on('error', e => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      _activeChildren.delete(child);
+      reject(e);
+    });
   });
+}
+
+function cleanupGogProcesses() {
+  for (const child of _activeChildren) {
+    try { child.kill(); } catch {}
+  }
+  _activeChildren.clear();
 }
 
 // --- Auth ---
 
-function authStatus() {
+async function authStatus() {
   try {
-    const result = gogExecSync(['auth', 'status'], 10000);
+    const result = await gogExec(['auth', 'status'], 10000);
     const email = getGogAccount();
-    return { connected: !!email, email, services: ['calendar', 'gmail', 'drive', 'contacts', 'tasks'], raw: result };
+    return { connected: !!email, email, services: GOOGLE_SERVICES.split(','), raw: result };
   } catch {
     return { connected: false, email: '', services: [] };
   }
 }
 
-function registerCredentials(clientSecretPath) {
-  return gogExecSync(['auth', 'credentials', clientSecretPath], 10000);
+function validateOAuthClientSecret(clientSecretPath) {
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(clientSecretPath, 'utf-8'));
+  } catch {
+    throw new Error('File JSON không đọc được. Hãy tải lại OAuth Client JSON từ Google Cloud Console.');
+  }
+
+  if (parsed?.type === 'service_account' || parsed?.private_key || parsed?.client_email) {
+    throw new Error('File này là Service Account JSON. Google Workspace cần OAuth Client ID loại Desktop app.');
+  }
+
+  const desktopClient = parsed?.installed || parsed?.native;
+  if (!desktopClient || typeof desktopClient !== 'object') {
+    throw new Error('File JSON không đúng loại. Hãy tạo OAuth Client ID với Application type là Desktop app.');
+  }
+
+  if (!desktopClient.client_id || !desktopClient.client_secret) {
+    throw new Error('File OAuth Client thiếu client_id hoặc client_secret. Hãy tải lại file JSON từ OAuth Client Desktop app.');
+  }
+
+  return { ok: true, clientId: desktopClient.client_id };
+}
+
+async function registerCredentials(clientSecretPath) {
+  validateOAuthClientSecret(clientSecretPath);
+  return gogExec(['auth', 'credentials', clientSecretPath], 10000);
 }
 
 async function connectAccount(email) {
-  const result = await gogSpawnAsync(
-    ['auth', 'add', email, '--services', 'calendar,gmail,drive,contacts,tasks'],
-    120000
-  );
-  saveGogAccount(email);
-  return result;
+  if (_connectInFlight) return _connectInFlight;
+  _connectInFlight = (async () => {
+    try {
+      const result = await gogSpawnAsync(
+        ['auth', 'add', email, '--services', GOOGLE_SERVICES],
+        120000
+      );
+      saveGogAccount(email);
+      return result;
+    } finally {
+      _connectInFlight = null;
+    }
+  })();
+  return _connectInFlight;
 }
 
-function disconnectAccount() {
+async function disconnectAccount() {
   const email = getGogAccount();
   if (email) {
-    try { gogExecSync(['auth', 'remove', email], 10000); } catch {}
+    try { await gogExec(['auth', 'remove', email], 10000); } catch {}
   }
   const accountFile = path.join(getGogConfigDir(), 'account.json');
   try { fs.unlinkSync(accountFile); } catch {}
@@ -137,15 +194,15 @@ function disconnectAccount() {
 
 // --- Calendar ---
 
-async function listEvents(from, to) {
-  const args = ['calendar', 'events', 'list'];
+async function listEvents(from, to, calendarId) {
+  const args = ['calendar', 'events', calendarId || 'primary'];
   if (from) args.push('--from', from);
   if (to) args.push('--to', to);
   return gogExec(args);
 }
 
-async function createEvent(summary, start, end, attendees) {
-  const args = ['calendar', 'events', 'create', '--summary', summary, '--start', start, '--end', end];
+async function createEvent(summary, start, end, attendees, calendarId) {
+  const args = ['calendar', 'create', calendarId || 'primary', '--summary', summary, '--from', start, '--to', end];
   if (attendees) {
     const list = Array.isArray(attendees) ? attendees.join(',') : attendees;
     args.push('--attendees', list);
@@ -153,8 +210,8 @@ async function createEvent(summary, start, end, attendees) {
   return gogExec(args);
 }
 
-async function deleteEvent(eventId) {
-  return gogExec(['calendar', 'events', 'delete', eventId]);
+async function deleteEvent(eventId, calendarId) {
+  return gogExec(['calendar', 'delete', calendarId || 'primary', eventId]);
 }
 
 async function getFreeBusy(from, to) {
@@ -164,7 +221,7 @@ async function getFreeBusy(from, to) {
 async function getFreeSlots(date, workStart, workEnd, slotMinutes) {
   workStart = workStart || '08:00';
   workEnd = workEnd || '18:00';
-  slotMinutes = parseInt(slotMinutes) || 30;
+  slotMinutes = Math.max(1, parseInt(slotMinutes) || 30);
   const from = date + 'T' + workStart + ':00';
   const to = date + 'T' + workEnd + ':00';
   const busy = await getFreeBusy(from, to);
@@ -217,12 +274,14 @@ async function uploadFile(filePath, folderId) {
   return gogExec(args, 60000);
 }
 
-async function downloadFile(fileId, destPath) {
-  return gogExec(['drive', 'download', fileId, destPath], 60000);
+async function downloadFile(fileId, destPath, format) {
+  const args = ['drive', 'download', fileId, '--out', destPath];
+  if (format) args.push('--format', format);
+  return gogExec(args, 60000);
 }
 
 async function shareFile(fileId, email, role) {
-  return gogExec(['drive', 'share', fileId, '--email', email, '--role', role || 'reader']);
+  return gogExec(['drive', 'share', fileId, '--to', 'user', '--email', email, '--role', role || 'reader']);
 }
 
 // --- Contacts ---
@@ -232,7 +291,11 @@ async function listContacts(query) {
 }
 
 async function createContact(name, phone, email) {
-  const args = ['contacts', 'create', '--name', name];
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const given = parts.shift() || name;
+  const family = parts.join(' ');
+  const args = ['contacts', 'create', '--given', given];
+  if (family) args.push('--family', family);
   if (phone) args.push('--phone', phone);
   if (email) args.push('--email', email);
   return gogExec(args);
@@ -240,29 +303,94 @@ async function createContact(name, phone, email) {
 
 // --- Tasks ---
 
+function firstArrayFromResult(result, keys) {
+  for (const key of keys) {
+    if (Array.isArray(result?.[key])) return result[key];
+  }
+  if (Array.isArray(result?.data)) return result.data;
+  if (Array.isArray(result?.items)) return result.items;
+  if (Array.isArray(result)) return result;
+  return [];
+}
+
+async function listTaskLists(max) {
+  return gogExec(['tasks', 'lists', 'list', '--max', String(max || 100)]);
+}
+
+async function resolveTaskListId(listId) {
+  if (listId) return listId;
+  const result = await listTaskLists(1);
+  const lists = firstArrayFromResult(result, ['taskLists', 'tasklists', 'lists']);
+  const first = lists[0];
+  const resolved = first?.id || first?.tasklistId || first?.taskListId;
+  if (!resolved) throw new Error('Không tìm thấy Google Task list nào để thao tác.');
+  return resolved;
+}
+
 async function listTasks(listId) {
-  const args = ['tasks', 'list'];
-  if (listId) args.push('--list', listId);
-  return gogExec(args);
+  const taskListId = await resolveTaskListId(listId);
+  return gogExec(['tasks', 'list', taskListId]);
 }
 
 async function createTask(title, due, listId) {
-  const args = ['tasks', 'add', title];
+  const taskListId = await resolveTaskListId(listId);
+  const args = ['tasks', 'add', taskListId, '--title', title];
   if (due) args.push('--due', due);
-  if (listId) args.push('--list', listId);
   return gogExec(args);
 }
 
-async function completeTask(taskId) {
-  return gogExec(['tasks', 'done', taskId]);
+async function completeTask(taskId, listId) {
+  const taskListId = await resolveTaskListId(listId);
+  return gogExec(['tasks', 'done', taskListId, taskId]);
+}
+
+// --- Sheets ---
+
+async function getSheet(spreadsheetId, range, opts) {
+  const args = ['sheets', 'get', spreadsheetId, range];
+  if (opts?.render) args.push('--render', opts.render);
+  if (opts?.dimension) args.push('--dimension', opts.dimension);
+  return gogExec(args);
+}
+
+async function updateSheet(spreadsheetId, range, values, opts) {
+  const args = ['sheets', 'update', spreadsheetId, range];
+  if (Array.isArray(values)) args.push('--values-json', JSON.stringify(values));
+  else if (values) args.push(String(values));
+  if (opts?.input) args.push('--input', opts.input);
+  if (opts?.copyValidationFrom) args.push('--copy-validation-from', opts.copyValidationFrom);
+  return gogExec(args, 30000);
+}
+
+async function appendSheet(spreadsheetId, range, values, opts) {
+  const args = ['sheets', 'append', spreadsheetId, range];
+  if (Array.isArray(values)) args.push('--values-json', JSON.stringify(values));
+  else if (values) args.push(String(values));
+  if (opts?.input) args.push('--input', opts.input);
+  if (opts?.insert) args.push('--insert', opts.insert);
+  if (opts?.copyValidationFrom) args.push('--copy-validation-from', opts.copyValidationFrom);
+  return gogExec(args, 30000);
+}
+
+async function getSheetMetadata(spreadsheetId) {
+  return gogExec(['sheets', 'metadata', spreadsheetId]);
+}
+
+async function runAppScript(scriptId, functionName, params, devMode) {
+  const args = ['appscript', 'run', scriptId, functionName];
+  if (params !== undefined) args.push('--params', typeof params === 'string' ? params : JSON.stringify(params));
+  if (devMode) args.push('--dev-mode');
+  return gogExec(args, 60000);
 }
 
 module.exports = {
   getGogBinaryPath, getGogConfigDir, getGogAccount,
-  gogExec, gogExecSync, gogSpawnAsync, gogEnv,
-  authStatus, registerCredentials, connectAccount, disconnectAccount,
+  gogExec, gogSpawnAsync, gogEnv, cleanupGogProcesses,
+  authStatus, validateOAuthClientSecret, registerCredentials, connectAccount, disconnectAccount,
   listEvents, createEvent, deleteEvent, getFreeBusy, getFreeSlots,
   listInbox, readEmail, sendEmail, replyEmail,
   listFiles, uploadFile, downloadFile, shareFile,
-  listContacts, createContact, listTasks, createTask, completeTask,
+  listContacts, createContact,
+  listTaskLists, listTasks, createTask, completeTask,
+  getSheet, updateSheet, appendSheet, getSheetMetadata, runAppScript,
 };

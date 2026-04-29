@@ -17,6 +17,12 @@ Bot TU DONG doc INDEX nay va chon skill phu hop MOI KHI CEO yeu cau.
 | Tra cuu kien thuc | `knowledge-base.md` | Tra cuu tai lieu de tra loi khach |
 | Theo doi khach hang | `follow-up.md` | Follow-up khach chua phan hoi |
 | Quan ly kenh | `channel-control.md` | Tam dung/tiep tuc kenh, blocklist |
+| Phong thu + Format Zalo | `zalo-reply-rules.md` | 19 trigger/action, format, checklist reply |
+| Hanh vi veteran | `veteran-behavior.md` | Persona, tier, cultural, tone match |
+| Kenh CEO Telegram | `telegram-ceo.md` | Tu duy co van, gui Zalo tu Telegram |
+| Workspace API | `workspace-api.md` | Doc/ghi/list file noi bo port 20200 |
+| CEO File API | `ceo-file-api.md` | Doc/ghi/list/exec file tren may CEO |
+| Facebook + Tao anh | `facebook-image.md` | Tao anh AI, dang Facebook, brand assets |
 | Doc Google Sheet | `google-sheet.md` | Doc du lieu tu Google Sheet cong khai |
 
 ## Noi dung & Thuong hieu (3 skills) — `skills/content/`
@@ -50,5 +56,5 @@ Bot TU DONG doc INDEX nay va chon skill phu hop MOI KHI CEO yeu cau.
 | Quan ly dong tien | `finance-lead.md` | Runway, burn rate, P&L co ban |
 
 ---
-**Tong: 22 skills thuc te** cho chu shop Viet Nam.
+**Tong: 28 skills thuc te** cho chu shop Viet Nam.
 Skills cu (advisory, board, SOC2, Twitter, v.v.) da chuyen vao `skills/_archived/` — van truy cap duoc neu can.

@@ -8,7 +8,7 @@ const execFilePromise = promisify(execFile);
 const ctx = require('./context');
 const { writeJsonAtomic } = require('./util');
 const {
-  getWorkspace, auditLog, backupWorkspace, purgeAgentSessions,
+  getWorkspace, seedWorkspace, auditLog, backupWorkspace, purgeAgentSessions,
 } = require('./workspace');
 const {
   getBundledVendorDir, findNodeBin, findOpenClawBin,
@@ -19,7 +19,7 @@ const {
   broadcastChannelStatusOnce, sendCeoAlert, sendTelegram,
   findOpenzcaListenerPid, registerTelegramCommands,
 } = require('./channels');
-const { start9Router, getRouterProcess } = require('./nine-router');
+const { start9Router, stop9Router, getRouterProcess } = require('./nine-router');
 const {
   cleanupOrphanZaloListener,
   seedAllGroupHistories,
@@ -56,6 +56,8 @@ const FW_RECHECK_MS = 3000;
 const FW_MAX_RESTARTS_PER_HOUR = 5;
 let _fwRestartTimestamps = []; // track restart times for rate limiting
 let _fwKnowledgeHttpDead = 0;
+let _fwRouterProbeCount = 0;
+let _fwRouterHealthFails = 0;
 
 // ============================================
 //  KILL HELPERS
@@ -187,6 +189,7 @@ function rejectIfBooting(handlerName) {
 // ============================================
 
 let _startOpenClawPromise = null;
+let _gatewayIntentionalStopDepth = 0;
 async function startOpenClaw(opts = {}) {
   if (ctx.botRunning) return;
   // Prevent re-entrant start while a previous start is still spawning. Without
@@ -203,12 +206,17 @@ async function startOpenClaw(opts = {}) {
   const bonjourUntil = global._bonjourCooldownUntil || 0;
   const networkUntil = global._networkCooldownUntil || 0;
   const cooldownUntil = Math.max(bonjourUntil, networkUntil);
-  if (cooldownUntil > now) {
+  if (cooldownUntil > now && !opts.ignoreCooldown) {
     const remaining = Math.ceil((cooldownUntil - now) / 1000);
     const reason = bonjourUntil >= networkUntil ? 'bonjour' : 'network';
     console.log(`[startOpenClaw] ${reason} cooldown active — skipping (${remaining}s remaining)`);
     return;
   }
+  if (cooldownUntil > now && opts.ignoreCooldown) {
+    console.log('[startOpenClaw] cooldown ignored for explicit gateway restart');
+  }
+  try { seedWorkspace(); } catch (e) { console.error('[startOpenClaw] seedWorkspace preflight error:', e?.message || e); }
+  try { require('./cron-api').startCronApi(); } catch (e) { console.error('[startOpenClaw] startCronApi preflight error:', e?.message || e); }
   ctx.startOpenClawInFlight = true;
   _startOpenClawPromise = (async () => {
   try {
@@ -702,25 +710,20 @@ async function _startOpenClawImpl(opts = {}) {
     })();
   }
 
-  // Surface any missed CEO alerts from previous boot/session
-  setTimeout(async () => {
+  // Missed CEO alerts: silently clear on boot. Crons that missed while app
+  // was off are expected — don't spam CEO with stale alerts on restart.
+  // Dashboard overview still shows the count if file existed before clear.
+  setTimeout(() => {
     try {
       const missedFile = path.join(getWorkspace(), 'logs', 'ceo-alerts-missed.log');
       if (fs.existsSync(missedFile)) {
         const content = fs.readFileSync(missedFile, 'utf-8').trim();
         if (content.length > 0) {
-          const lines = content.split('\n');
-          const summary = lines.length <= 3
-            ? content
-            : lines.slice(-3).join('\n') + `\n(+${lines.length - 3} more)`;
-          const ok = await sendCeoAlert(`[Thong bao] Co ${lines.length} alert bi miss lan truoc:\n${summary}`);
-          if (ok) {
-            fs.writeFileSync(missedFile, '', 'utf-8');
-            console.log(`[boot] surfaced ${lines.length} missed alerts to CEO and cleared log`);
-          }
+          console.log(`[boot] clearing ${content.split('\n').length} stale missed alerts (app was off)`);
+          fs.writeFileSync(missedFile, '', 'utf-8');
         }
       }
-    } catch (e) { console.warn('[boot] missed-alerts surface failed:', e?.message); }
+    } catch (e) { console.warn('[boot] missed-alerts clear failed:', e?.message); }
   }, 20000);
 
   // Register Telegram slash commands. DELAYED 15s so it runs AFTER OpenClaw
@@ -947,6 +950,10 @@ async function _startOpenClawImpl(opts = {}) {
     // Don't auto-restart if app is quitting
     const { app: _app } = require('electron');
     if (_app.isQuitting) return;
+    if (_gatewayIntentionalStopDepth > 0 || ctx.gatewayRestartInFlight) {
+      console.log('[restart-guard] gateway exit is intentional — caller owns restart');
+      return;
+    }
 
     const isRestart = lastError?.includes('restart') || lastError?.includes('SIGUSR1');
     const isBonjourConflict = lastError?.includes('bonjour') && lastError?.includes('non-announced');
@@ -1075,6 +1082,8 @@ async function stopOpenClaw() {
   const proc = ctx.openclawProcess;
   ctx.openclawProcess = null;
   const startedAt = Date.now();
+  _gatewayIntentionalStopDepth++;
+  try {
   if (proc) {
     try {
       if (process.platform === 'win32') {
@@ -1110,6 +1119,9 @@ async function stopOpenClaw() {
     await new Promise(r => setTimeout(r, 500));
   }
   console.log(`[stopOpenClaw] exited in ${Date.now() - startedAt}ms`);
+  } finally {
+    _gatewayIntentionalStopDepth = Math.max(0, _gatewayIntentionalStopDepth - 1);
+  }
 }
 
 // ============================================
@@ -1139,8 +1151,16 @@ async function fastWatchdogTick() {
   _fwTickInFlight = true;
 
   try {
+    // Prune restart timestamps every tick (prevents unbounded growth when system is healthy)
+    if (_fwRestartTimestamps.length > 10) {
+      const now = Date.now();
+      _fwRestartTimestamps = _fwRestartTimestamps.filter(t => now - t < 3600000);
+    }
+
     // --- 9Router watchdog ---
-    if (!getRouterProcess()) {
+    _fwRouterProbeCount++;
+    const routerProc = getRouterProcess();
+    if (!routerProc) {
       const routerAlive = await new Promise(r => {
         const req = require('http').get('http://127.0.0.1:20128/v1/models', { timeout: 3000 }, (res) => {
           res.resume(); r(res.statusCode === 200);
@@ -1152,6 +1172,35 @@ async function fastWatchdogTick() {
         console.log('[fast-watchdog] 9Router dead — restarting');
         _fwRestartTimestamps.push(Date.now());
         try { start9Router(); } catch (e) { console.error('[fast-watchdog] 9Router restart error:', e.message); }
+      }
+    } else if (_fwRouterProbeCount % 5 === 0) {
+      // Every 5th tick (~100s): probe /v1/models even when process alive.
+      // Catches zombie state (process alive, models OK, completions 500).
+      const routerResponds = await new Promise(r => {
+        const req = require('http').get('http://127.0.0.1:20128/v1/models', { timeout: 5000 }, (res) => {
+          let buf = '';
+          res.on('data', c => buf += c);
+          res.on('end', () => {
+            if (res.statusCode !== 200) { r(false); return; }
+            try {
+              const parsed = JSON.parse(buf);
+              r(Array.isArray(parsed?.data) && parsed.data.length > 0);
+            } catch { r(false); }
+          });
+        });
+        req.on('error', () => r(false));
+        req.on('timeout', () => { req.destroy(); r(false); });
+      });
+      if (!routerResponds) {
+        _fwRouterHealthFails++;
+        if (_fwRouterHealthFails >= 3 && _fwCanRestart()) {
+          console.warn('[fast-watchdog] 9Router alive but unhealthy (' + _fwRouterHealthFails + ' probe fails) — restarting');
+          _fwRouterHealthFails = 0;
+          _fwRestartTimestamps.push(Date.now());
+          try { stop9Router(); await new Promise(r => setTimeout(r, 1000)); start9Router(); } catch (e) { console.error('[fast-watchdog] 9Router restart error:', e.message); }
+        }
+      } else {
+        _fwRouterHealthFails = 0;
       }
     }
 
@@ -1165,6 +1214,7 @@ async function fastWatchdogTick() {
     // Even with pricing-fix, leaving 6min grace for worst-case slow boots.
     if (global._gatewayStartedAt && (Date.now() - global._gatewayStartedAt) < 360000) {
       // Gateway still booting — skip watchdog this tick
+      _fwGatewayFailCount = 0;
       return;
     }
     const gwAlive = await isGatewayAlive(30000);
@@ -1182,7 +1232,7 @@ async function fastWatchdogTick() {
       // 5 consecutive fails — restart (was 3, but cloud model cold start
       // can hold gateway 30-60s, causing multiple probes to timeout in a
       // row without being dead).
-      if (_fwGatewayFailCount >= 5 && _fwCanRestart() && !(global._bonjourCooldownUntil > Date.now())) {
+      if (_fwGatewayFailCount >= 5 && _fwCanRestart() && !(global._bonjourCooldownUntil > Date.now()) && !(global._networkCooldownUntil > Date.now())) {
         console.log('[fast-watchdog] Gateway dead (' + _fwGatewayFailCount + ' fails) — restarting');
         _fwGatewayFailCount = 0;
         _fwRestartTimestamps.push(Date.now());

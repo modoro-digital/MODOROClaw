@@ -285,6 +285,7 @@ const _outputFilterPatterns = [
   { name: 'api-key-sk', re: /\bsk-[a-zA-Z0-9_\-]{16,}/i },
   { name: 'bearer-token', re: /\bBearer\s+[a-zA-Z0-9_\-.]{20,}/i },
   { name: 'hex-token-48', re: /\b[a-f0-9]{48}\b/i },
+  { name: 'hex-token-partial', re: /\b[a-f0-9]{16,47}\b/i },
   { name: 'botToken-field', re: /\bbotToken\b/i },
   { name: 'apiKey-field', re: /\bapiKey\b/i },
   // Layer A1.7: PII masking — bot MUST NOT echo sensitive customer data
@@ -463,8 +464,18 @@ async function setZaloChannelEnabled(enabled) {
         cfg.channels['modoro-zalo'] = {};
       }
       const next = enabled !== false;
-      if (cfg.channels['modoro-zalo'].enabled === next) return true;
+      if (!cfg.plugins) cfg.plugins = {};
+      if (!cfg.plugins.entries) cfg.plugins.entries = {};
+      if (!cfg.plugins.entries['modoro-zalo'] || typeof cfg.plugins.entries['modoro-zalo'] !== 'object') {
+        cfg.plugins.entries['modoro-zalo'] = {};
+      }
+      if (cfg.channels['modoro-zalo'].enabled === next && cfg.plugins.entries['modoro-zalo'].enabled === next) return true;
       cfg.channels['modoro-zalo'].enabled = next;
+      cfg.plugins.entries['modoro-zalo'].enabled = next;
+      try {
+        const stickyPath = path.join(ctx.HOME, '.openclaw', 'modoroclaw-sticky-zalo-enabled.json');
+        writeJsonAtomic(stickyPath, { enabled: next, ts: Date.now() });
+      } catch (e) { console.warn('[zalo] sticky write error:', e?.message); }
       return writeOpenClawConfigIfChanged(configPath, cfg);
     });
   } catch (e) {
@@ -1483,6 +1494,9 @@ async function registerTelegramCommands() {
 // ============================================
 
 function trackChannelBootTimer(t) {
+  if (_channelStatusBootTimers.length > 50) {
+    _channelStatusBootTimers = _channelStatusBootTimers.slice(-20);
+  }
   _channelStatusBootTimers.push(t);
 }
 

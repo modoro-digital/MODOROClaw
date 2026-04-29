@@ -29,7 +29,7 @@ function _sealSecret(machineId) {
 
 // ---- machine fingerprint ----
 
-function getMachineId() {
+function _computeMachineIdRaw() {
   const hostname = os.hostname();
   const ifaces = os.networkInterfaces();
   const names = Object.keys(ifaces).sort();
@@ -48,6 +48,24 @@ function getMachineId() {
   if (!mac) mac = 'no-mac';
   const raw = hostname + '|' + mac + '|' + os.platform();
   return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 32);
+}
+
+let _cachedMachineId = null;
+
+function getMachineId() {
+  if (_cachedMachineId) return _cachedMachineId;
+  const appData = process.env.APPDATA || (process.platform === 'darwin'
+    ? path.join(os.homedir(), 'Library', 'Application Support')
+    : path.join(os.homedir(), '.config'));
+  const midFile = path.join(appData, '9bizclaw', '.machine-id');
+  try {
+    const stored = fs.readFileSync(midFile, 'utf-8').trim();
+    if (stored && stored.length === 32) { _cachedMachineId = stored; return stored; }
+  } catch {}
+  const mid = _computeMachineIdRaw();
+  try { fs.mkdirSync(path.dirname(midFile), { recursive: true }); fs.writeFileSync(midFile, mid, 'utf-8'); } catch {}
+  _cachedMachineId = mid;
+  return mid;
 }
 
 // ---- HMAC seal ----

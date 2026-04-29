@@ -212,21 +212,61 @@ Quy trình: đọc INDEX → match keyword → đọc file skill → output theo
 
 ## Google Workspace
 
-Bot có thể truy cập Google Calendar của CEO qua local API.
+Bot có thể truy cập Google Calendar, Gmail, Drive, Contacts, Tasks, Sheets và Apps Script của CEO qua local API.
 Dùng web_fetch gọi http://127.0.0.1:20200/api/google/*.
 
-Header bắt buộc: Authorization: Bearer <token từ file cron-api-token.txt>
+Xác thực: thêm query param `token=<token>`.
+Lấy token: `web_fetch url=http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>` (dùng bot token từ config Telegram)
 
-Ví dụ:
-- "lịch tuần này" → GET /api/google/calendar/events?from=<today>&to=<+7d>
-- "đặt meeting 3pm thứ 5" → POST /api/google/calendar/create body: {summary, start, end}
-- "slot trống ngày mai" → POST /api/google/calendar/free-slots body: {date: "YYYY-MM-DD"}
-- "email mới" → GET /api/google/gmail/inbox
-- "gửi email cho X nội dung Y" → POST /api/google/gmail/send body: {to, subject, body}
-- "tìm file báo cáo" → GET /api/google/drive/list?query=báo+cáo
-- "số điện thoại Hùng" → GET /api/google/contacts/search?query=Hùng
-- "thêm task gọi khách" → POST /api/google/tasks/create body: {title: "gọi khách"}
-- "tasks hôm nay" → GET /api/google/tasks/list
+Routes (thêm `?token=<token>` vào mọi URL):
+- GET /api/google/status — kiểm tra trạng thái kết nối
+- GET /api/google/calendar/events?from=ISO&to=ISO — lịch theo khoảng thời gian
+- POST /api/google/calendar/create body: {summary, start, end, attendees?} — tạo sự kiện
+- POST /api/google/calendar/delete body: {eventId} — xóa sự kiện
+- POST /api/google/calendar/freebusy body: {from, to} — kiểm tra lịch bận
+- POST /api/google/calendar/free-slots body: {date: "YYYY-MM-DD"} — tìm slot trống
+- GET /api/google/gmail/inbox?max=20 — danh sách email
+- GET /api/google/gmail/read?id=<msgId> — đọc chi tiết 1 email
+- POST /api/google/gmail/send body: {to, subject, body} — gửi email mới
+- POST /api/google/gmail/reply body: {id, body} — trả lời email
+- GET /api/google/drive/list?query=<q>&max=20 — tìm file Drive
+- POST /api/google/drive/upload body: {filePath, folderId?} — upload file
+- POST /api/google/drive/download body: {fileId, destPath, format?} — download/export file
+- POST /api/google/drive/share body: {fileId, email, role?} — chia sẻ file
+- GET /api/google/contacts/search?query=<q> — tìm liên hệ
+- POST /api/google/contacts/create body: {name, phone?, email?} — tạo liên hệ
+- GET /api/google/tasks/lists — danh sách task lists
+- GET /api/google/tasks/list?listId=<id> — danh sách tasks
+- POST /api/google/tasks/create body: {title, due?, listId?} — tạo task
+- POST /api/google/tasks/complete body: {taskId, listId?} — hoàn thành task
+- GET /api/google/sheets/metadata?spreadsheetId=<id> — xem metadata Google Sheet
+- GET /api/google/sheets/get?spreadsheetId=<id>&range=Sheet1!A1:D20 — đọc dữ liệu Sheet
+- POST /api/google/sheets/update body: {spreadsheetId, range, values} — sửa vùng dữ liệu Sheet
+- POST /api/google/sheets/append body: {spreadsheetId, range, values} — thêm dòng vào Sheet
+- POST /api/google/appscript/run body: {scriptId, functionName, params?} — chạy Apps Script
+
+Cú pháp web_fetch chuẩn:
+```
+web_fetch url="http://127.0.0.1:20200/api/google/calendar/events?token=<token>&from=2026-04-28T00:00:00Z&to=2026-05-04T23:59:59Z" method=GET
+```
+```
+web_fetch url="http://127.0.0.1:20200/api/google/gmail/send?token=<token>" method=POST body="{\"to\":\"user@example.com\",\"subject\":\"Tiêu đề\",\"body\":\"Nội dung\"}" headers="{\"Content-Type\":\"application/json\"}"
+```
+
+Ví dụ mapping:
+- "lịch tuần này" → GET /api/google/calendar/events?token=<token>&from=<today>&to=<+7d>
+- "đặt meeting 3pm thứ 5" → POST /api/google/calendar/create
+- "slot trống ngày mai" → POST /api/google/calendar/free-slots
+- "email mới" → GET /api/google/gmail/inbox?token=<token>
+- "gửi email cho X nội dung Y" → POST /api/google/gmail/send
+- "tìm file báo cáo" → GET /api/google/drive/list?token=<token>&query=báo+cáo
+- "đọc sheet đơn hàng" → GET /api/google/sheets/get?token=<token>&spreadsheetId=<id>&range=Orders!A1:H50
+- "thêm dòng vào sheet" → POST /api/google/sheets/append
+- "số điện thoại Hùng" → GET /api/google/contacts/search?token=<token>&query=Hùng
+- "thêm task gọi khách" → POST /api/google/tasks/create
+- "tasks hôm nay" → GET /api/google/tasks/list?token=<token>
+
+AppSheet: hiện tại thao tác trực tiếp AppSheet app/admin API chưa được wrap. Nếu AppSheet dùng Google Sheet làm data source thì đọc/sửa Sheet qua routes `/api/google/sheets/*`.
 
 KHÔNG BAO GIỜ gửi email hoặc tạo sự kiện từ Zalo. Chỉ thực hiện khi CEO
 yêu cầu trực tiếp qua Telegram. Nếu Zalo hỏi về email/lịch: trả lời thông

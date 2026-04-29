@@ -647,6 +647,7 @@ function enforceRetentionPolicies() {
     const rotationTargets = [
       { name: 'openclaw.log', maxBytes: 10 * MB },
       { name: 'openzca.log', maxBytes: 10 * MB },
+      { name: '9router.log', maxBytes: 10 * MB },
       { name: 'main.log', maxBytes: 20 * MB },
       { name: 'audit.jsonl', maxBytes: 50 * MB },
       { name: 'cron-runs.jsonl', maxBytes: 10 * MB },
@@ -726,6 +727,37 @@ function enforceRetentionPolicies() {
         }
       }
     } catch {}
+
+    // 5. Purge agent session files older than 7 days
+    try {
+      const sessDir = path.join(ctx.HOME, '.openclaw', 'agents', 'main', 'sessions');
+      if (fs.existsSync(sessDir)) {
+        let purged = 0;
+        for (const sf of fs.readdirSync(sessDir)) {
+          if (!sf.endsWith('.jsonl')) continue;
+          try {
+            const p = path.join(sessDir, sf);
+            const stat = fs.statSync(p);
+            if (now - stat.mtimeMs > 7 * DAY) {
+              fs.unlinkSync(p);
+              purged++;
+            }
+          } catch {}
+        }
+        if (purged > 0) console.log(`[retention] purged ${purged} agent session files older than 7 days`);
+      }
+    } catch {}
+
+    // 6. SQLite WAL checkpoint (reclaim dead space from upload/delete cycles)
+    try {
+      const dbPath = path.join(workspace, 'memory.db');
+      if (fs.existsSync(dbPath)) {
+        const Database = require('better-sqlite3');
+        const db = new Database(dbPath);
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.close();
+      }
+    } catch (e) { console.warn('[retention] WAL checkpoint failed:', e?.message); }
 
     auditLog('retention_policies_enforced', {});
   } catch (e) {

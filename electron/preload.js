@@ -48,8 +48,6 @@ contextBridge.exposeInMainWorld('claw', {
   saveBusinessProfile: (opts) => ipcRenderer.invoke('save-business-profile', opts),
 
   // Google
-  setupGoogle: () => ipcRenderer.invoke('setup-google'),
-
   // OpenClaw installation
   installOpenClaw: (onProgress) => {
     ipcRenderer.removeAllListeners('install-progress');
@@ -156,9 +154,15 @@ contextBridge.exposeInMainWorld('claw', {
   googleDriveShare: (opts) => ipcRenderer.invoke('google-drive-share', opts),
   googleContactsList: (opts) => ipcRenderer.invoke('google-contacts-list', opts || {}),
   googleContactsCreate: (opts) => ipcRenderer.invoke('google-contacts-create', opts),
+  googleTaskLists: (opts) => ipcRenderer.invoke('google-tasks-lists', opts || {}),
   googleTasksList: (opts) => ipcRenderer.invoke('google-tasks-list', opts || {}),
   googleTasksCreate: (opts) => ipcRenderer.invoke('google-tasks-create', opts),
   googleTasksComplete: (opts) => ipcRenderer.invoke('google-tasks-complete', opts),
+  googleSheetsMetadata: (opts) => ipcRenderer.invoke('google-sheets-metadata', opts),
+  googleSheetsGet: (opts) => ipcRenderer.invoke('google-sheets-get', opts),
+  googleSheetsUpdate: (opts) => ipcRenderer.invoke('google-sheets-update', opts),
+  googleSheetsAppend: (opts) => ipcRenderer.invoke('google-sheets-append', opts),
+  googleAppScriptRun: (opts) => ipcRenderer.invoke('google-appscript-run', opts),
 
   // First-time channel guide
   checkGuideNeeded: (channel) => ipcRenderer.invoke('check-guide-needed', { channel }),

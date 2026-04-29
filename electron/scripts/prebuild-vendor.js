@@ -35,7 +35,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const crypto = require('crypto');
-const { execSync, spawnSync } = require('child_process');
+const { execSync, execFileSync, spawnSync } = require('child_process');
 const os = require('os');
 
 // openclaw requires Node >=22.14.0. We pin to v22.22.2 (latest 22.x
@@ -59,14 +59,13 @@ const NODE_CHECKSUMS = {
 };
 
 const GOG_VERSION = 'v0.13.0';
-// SHA256 from https://github.com/steipete/gogcli/releases/tag/v0.13.0
-// To regenerate: download each binary, run `sha256sum <file>`
+// SHA256 from https://github.com/steipete/gogcli/releases/tag/v0.13.0/checksums.txt
 const GOG_CHECKSUMS = {
   [GOG_VERSION]: {
-    'win32-x64':    '', // TODO: fill from release page
-    'win32-arm64':  '', // TODO: fill from release page
-    'darwin-arm64': '', // TODO: fill from release page
-    'darwin-x64':   '', // TODO: fill from release page
+    'win32-x64':    '30836d03f66769ef38a65dd4b81ae2864e2159941d9751b6fdec6ea86be8726f',
+    'win32-arm64':  '23c72facae6f2a8963a2a7dca87f3dadb1d9400912d832d263f611f3df15a9c3',
+    'darwin-arm64': '7c6f650f7516323ddd003e4ababf998fc1d2c73089a4662b8c79bf80ac4bdf56',
+    'darwin-x64':   '15c88798d25cb2e1870cafa5df232601f3a05472a134ca8c396be907f2b235f6',
   },
 };
 
@@ -105,8 +104,104 @@ function detectTargetPlatform() {
 
 function sha256File(filePath) {
   const hash = crypto.createHash('sha256');
-  hash.update(fs.readFileSync(filePath));
+  const fd = fs.openSync(filePath, 'r');
+  const buffer = Buffer.allocUnsafe(8 * 1024 * 1024);
+  try {
+    let bytesRead = 0;
+    do {
+      bytesRead = fs.readSync(fd, buffer, 0, buffer.length, null);
+      if (bytesRead > 0) hash.update(buffer.subarray(0, bytesRead));
+    } while (bytesRead > 0);
+  } finally {
+    fs.closeSync(fd);
+  }
   return hash.digest('hex');
+}
+
+function getVendorBundleVersion(platform, arch) {
+  return `${NODE_VERSION}_openclaw-2026.4.14_modoro-zalo_gog-${GOG_VERSION}_${platform}-${arch}`;
+}
+
+function tarHasEntryWithNode(tarPath, entryPath) {
+  const wanted = String(entryPath).replace(/\\/g, '/').replace(/^\.\//, '');
+  const fd = fs.openSync(tarPath, 'r');
+  const header = Buffer.alloc(512);
+  let offset = 0;
+  let pendingLongName = null;
+  let pendingPaxPath = null;
+  try {
+    while (true) {
+      const bytes = fs.readSync(fd, header, 0, 512, offset);
+      if (bytes < 512) return false;
+      offset += 512;
+      let empty = true;
+      for (let i = 0; i < 512; i++) {
+        if (header[i] !== 0) { empty = false; break; }
+      }
+      if (empty) return false;
+
+      const readString = (start, len) => header.toString('utf8', start, start + len).replace(/\0.*$/, '').trim();
+      let name = readString(0, 100);
+      const sizeRaw = readString(124, 12);
+      const size = parseInt(sizeRaw || '0', 8) || 0;
+      const typeflag = String.fromCharCode(header[156] || 48);
+      const prefix = readString(345, 155);
+      if (prefix) name = prefix + '/' + name;
+
+      const payloadOffset = offset;
+      const paddedSize = Math.ceil(size / 512) * 512;
+
+      if (typeflag === 'L' || typeflag === 'x' || typeflag === 'g') {
+        const payload = Buffer.alloc(size);
+        if (size > 0) fs.readSync(fd, payload, 0, size, payloadOffset);
+        const text = payload.toString('utf8').replace(/\0+$/, '');
+        if (typeflag === 'L') {
+          pendingLongName = text;
+        } else if (typeflag === 'x') {
+          for (const line of text.split('\n')) {
+            const m = line.match(/^\d+\s+path=(.*)$/);
+            if (m) { pendingPaxPath = m[1]; break; }
+          }
+        }
+      } else {
+        if (pendingPaxPath) {
+          name = pendingPaxPath;
+          pendingPaxPath = null;
+          pendingLongName = null;
+        } else if (pendingLongName) {
+          name = pendingLongName;
+          pendingLongName = null;
+        }
+        const normalized = String(name || '').replace(/\\/g, '/').replace(/^\.\//, '');
+        if (normalized === wanted) return true;
+      }
+
+      offset = payloadOffset + paddedSize;
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function tarHasEntry(tarPath, entryPath) {
+  try {
+    const tarBin = process.platform === 'win32'
+      ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+      : 'tar';
+    const res = spawnSync(tarBin, ['-tf', tarPath, entryPath], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+      timeout: 30000,
+      maxBuffer: 1024 * 1024,
+    });
+    if (res.status === 0) return true;
+    warn(`system tar could not inspect ${entryPath}; falling back to JS tar scanner`);
+  } catch (e) {
+    warn(`system tar could not inspect ${entryPath}: ${e.message}; falling back to JS tar scanner`);
+  }
+  try { return tarHasEntryWithNode(tarPath, entryPath); }
+  catch (e) { warn(`JS tar scanner failed for ${entryPath}: ${e.message}`); return false; }
 }
 
 function rmrf(p) {
@@ -286,8 +381,9 @@ async function downloadGogBinary(platform, arch) {
 
   const archMap = { x64: 'amd64', arm64: 'arm64' };
   const platMap = { win32: 'windows', darwin: 'darwin' };
-  const ext = platform === 'win32' ? '.exe' : '';
-  const assetName = `gog_${platMap[platform]}_${archMap[arch]}${ext}`;
+  const ver = GOG_VERSION.replace(/^v/, '');
+  const archiveExt = platform === 'win32' ? '.zip' : '.tar.gz';
+  const assetName = `gogcli_${ver}_${platMap[platform]}_${archMap[arch]}${archiveExt}`;
   const url = `https://github.com/steipete/gogcli/releases/download/${GOG_VERSION}/${assetName}`;
   const tmp = path.join(os.tmpdir(), assetName);
 
@@ -303,11 +399,25 @@ async function downloadGogBinary(platform, arch) {
     }
     log(`gog SHA256 verified for ${checksumKey}`);
   } else {
-    warn(`No SHA256 checksum for gog ${GOG_VERSION}/${checksumKey}. Fill GOG_CHECKSUMS.`);
+    fatal(`No SHA256 checksum for gog ${GOG_VERSION}/${checksumKey}. Fill GOG_CHECKSUMS before shipping.`);
   }
 
-  fs.copyFileSync(tmp, gogBin);
-  fs.unlinkSync(tmp);
+  let tarBin = 'tar';
+  if (process.platform === 'win32') {
+    const sysTar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+    if (fs.existsSync(sysTar)) tarBin = sysTar;
+  }
+  const tarArgs = platform === 'win32'
+    ? ['-xf', tmp, '-C', gogDir]
+    : ['-xzf', tmp, '-C', gogDir];
+  log('extracting gog archive:', tarBin, tarArgs.join(' '));
+  execFileSync(tarBin, tarArgs, { stdio: 'pipe', timeout: 30000 });
+  try { fs.unlinkSync(tmp); } catch {}
+
+  if (!fs.existsSync(gogBin)) {
+    const extracted = fs.readdirSync(gogDir);
+    fatal(`gog binary not found at expected path after extraction. Contents: ${extracted.join(', ')}`);
+  }
   if (platform !== 'win32') {
     try { fs.chmodSync(gogBin, 0o755); } catch {}
   }
@@ -721,7 +831,7 @@ function packVendorForWindows() {
   // Bundle version: deterministic fingerprint based on Node + openclaw version
   // + platform. NO Date.now() — otherwise every build forces a 2-minute
   // re-extract on customer machines even when vendor contents are identical.
-  const bundleVersion = `${NODE_VERSION}_openclaw-2026.4.14_modoro-zalo_${process.platform}-${process.arch}`;
+  const bundleVersion = getVendorBundleVersion(detectTargetPlatform(), detectTargetArch());
 
   // H7: per-model-file SHA so runtime can verify extracted .onnx wasn't
   // swapped (user-writable %APPDATA% on Windows). Read hashes from
@@ -750,6 +860,7 @@ function packVendorForWindows() {
     archive_bytes: tarSize,
     bundle_version: bundleVersion,
     sha256: tarSha256,
+    gog_version: GOG_VERSION,
     modelSha,
     created_at: new Date().toISOString(),
     node_version: NODE_VERSION,
@@ -781,10 +892,14 @@ async function main() {
   if (platform === 'win32') {
     const tarPath = path.join(ROOT, 'vendor-bundle.tar');
     const metaPath = path.join(ROOT, 'vendor-meta.json');
+    const expectedBundleVersion = getVendorBundleVersion(platform, arch);
     if (fs.existsSync(tarPath) && fs.existsSync(metaPath)) {
       try {
         const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-        if (meta.node_version === NODE_VERSION && meta.bundle_version && meta.sha256) {
+        if (meta.node_version === NODE_VERSION && meta.bundle_version === expectedBundleVersion && meta.sha256) {
+          if (!tarHasEntry(tarPath, 'vendor/gog/gog.exe')) {
+            warn('vendor-bundle.tar missing gog.exe — rebuilding');
+          } else {
           // Verify tar integrity hasn't been tampered with since meta was written
           const actualSha = sha256File(tarPath);
           if (actualSha === meta.sha256) {
@@ -795,6 +910,7 @@ async function main() {
             return;
           } else {
             warn('vendor-bundle.tar SHA mismatch vs meta — rebuilding');
+          }
           }
         }
       } catch (e) {

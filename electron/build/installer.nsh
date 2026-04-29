@@ -14,6 +14,11 @@
 ;   - Do NOT offer to wipe data. Ever.
 
 !macro customRemoveFiles
+  ; Always remove CLI shims + clean PATH entry (silent or not)
+  DetailPrint "Removing CLI shims..."
+  RMDir /r "$APPDATA\9bizclaw\cli"
+  nsExec::ExecToLog "powershell -NoProfile -Command $\"$$p = [Environment]::GetEnvironmentVariable('PATH','User'); if ($$p) { $$parts = $$p -split ';' | Where-Object { $$_ -notlike '*9bizclaw*cli*' }; [Environment]::SetEnvironmentVariable('PATH', ($$parts -join ';'), 'User') }$\""
+
   ${IfNot} ${Silent}
     ; Offer to remove extracted vendor (~1.8 GB) — disk space only, no user data
     MessageBox MB_YESNO|MB_ICONQUESTION \

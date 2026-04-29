@@ -142,7 +142,7 @@
 <body>
   <div class="wrap">
     <div class="logo">
-      <img src="modoro-mascot.jpg" alt="9BizClaw"
+      <img src="mascot-removebg.png" alt="9BizClaw"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
       <div class="logo-fallback"><span class="logo-fallback-text">M</span></div>
     </div>
@@ -159,11 +159,10 @@
   </div>
 <script>
   // Listen for progress updates from main process via IPC
-  const { ipcRenderer } = require('electron');
   const fill = document.getElementById('fill');
   const percent = document.getElementById('percent');
   const status = document.getElementById('status');
-  ipcRenderer.on('splash-progress', (_e, data) => {
+  window.splash.onProgress((data) => {
     if (!data) return;
     if (typeof data.percent === 'number') {
       // Hard clamp 0-100 — safety net even if main process sends wrong number
@@ -175,7 +174,7 @@
       status.textContent = data.message;
     }
   });
-  ipcRenderer.on('splash-error', (_e, message) => {
+  window.splash.onError((message) => {
     status.textContent = message || 'Lỗi không xác định';
     fill.style.background = 'linear-gradient(90deg, #e84545, #c62828)';
   });

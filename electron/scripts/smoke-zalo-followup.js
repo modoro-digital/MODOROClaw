@@ -174,15 +174,15 @@ ${body}
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
 
-  // Sync guard: main.js must keep this function's signature stable
-  const mainJs = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf-8');
-  if (!/function scanZaloFollowUpCandidates\(ws[^)]*\)/.test(mainJs)) {
-    fail('main.js no longer defines scanZaloFollowUpCandidates');
+  // Sync guard: cron.js must keep this function's signature stable
+  const cronJs = fs.readFileSync(path.join(__dirname, '..', 'lib', 'cron.js'), 'utf-8');
+  if (!/function scanZaloFollowUpCandidates\(ws[^)]*\)/.test(cronJs)) {
+    fail('cron.js no longer defines scanZaloFollowUpCandidates');
   }
-  if (!/buildZaloFollowUpPrompt\(candidates\)/.test(mainJs)) {
-    fail('main.js callers no longer pass candidates to buildZaloFollowUpPrompt');
+  if (!/buildZaloFollowUpPrompt\(candidates\)/.test(cronJs)) {
+    fail('cron.js callers no longer pass candidates to buildZaloFollowUpPrompt');
   }
-  ok('main.js keeps scanner + caller wiring in place');
+  ok('cron.js keeps scanner + caller wiring in place');
 }
 
 run().catch(e => { console.error('[zalo-followup smoke] threw:', e); process.exit(1); });

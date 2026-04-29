@@ -89,6 +89,83 @@
     .tip-card { background:rgba(76,175,80,0.03); border:1px solid rgba(76,175,80,0.2); border-radius:12px; padding:14px 16px; }
     .tip-card p { font-size:13px; margin:0; color:var(--text); }
 
+    /* Google Workspace setup guide */
+    .gw-setup-guide { display:flex; flex-direction:column; gap:14px; margin-bottom:22px; }
+    .gw-guide-hero {
+      padding:18px 20px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--surface);
+    }
+    .gw-guide-title { font-size:16px; font-weight:700; color:var(--text); margin:0 0 8px; }
+    .gw-guide-sub { font-size:13px; color:var(--text-muted); line-height:1.6; margin:0; max-width:760px; }
+    .gw-guide-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .gw-guide-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+    .gw-step {
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--surface);
+      padding:14px 16px;
+    }
+    .gw-step-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .gw-step-num {
+      width:24px; height:24px; border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center;
+      background:rgba(239,68,68,0.14); color:var(--accent);
+      font-size:12px; font-weight:700; flex-shrink:0;
+    }
+    .gw-step-title { font-size:13px; font-weight:700; color:var(--text); }
+    .gw-step p { font-size:12.5px; color:var(--text-muted); line-height:1.55; margin:0 0 10px; }
+    .gw-step ul { margin:0 0 10px 18px; padding:0; color:var(--text-muted); font-size:12.5px; line-height:1.55; }
+    .gw-link-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .gw-api-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; }
+    .gw-api-btn {
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:var(--bg);
+      color:var(--text);
+      font-size:12px;
+      font-weight:600;
+      padding:8px 10px;
+      cursor:pointer;
+      text-align:center;
+    }
+    .gw-api-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .gw-file-check {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+    }
+    .gw-check-box {
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--surface);
+      padding:12px 14px;
+      font-size:12.5px;
+      color:var(--text-muted);
+      line-height:1.55;
+    }
+    .gw-check-box strong { color:var(--text); display:block; margin-bottom:4px; }
+    .gw-warning-note {
+      border:1px solid rgba(255,167,38,0.28);
+      background:rgba(255,167,38,0.06);
+      border-radius:10px;
+      padding:12px 14px;
+      color:var(--text-muted);
+      font-size:12.5px;
+      line-height:1.55;
+    }
+    .gw-connect-card {
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--surface);
+      padding:18px 20px;
+    }
+    @media (max-width:1100px) {
+      .gw-guide-grid, .gw-file-check { grid-template-columns:1fr; }
+      .gw-api-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    }
+
     /* === Tooltip system (CSS-only) === */
     [data-tooltip] {
       position: relative;
@@ -2445,7 +2522,7 @@
                   <button class="btn btn-secondary btn-small" style="padding:4px 10px;font-size:11px" onclick="toggleAllFriends(false)">Tắt tất cả</button>
                 </div>
               </div>
-              <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên..." oninput="renderZaloFriends()" style="flex-shrink:0">
+              <input type="text" class="zalo-mgr-search" id="zalo-mgr-friend-search" placeholder="Tìm theo tên hoặc số điện thoại..." oninput="renderZaloFriends()" style="flex-shrink:0">
               <div class="zalo-list-container">
                 <div id="zalo-mgr-friends-list"></div>
               </div>
@@ -2980,11 +3057,12 @@
         </div>
         <!-- Internal tab bar -->
         <div class="gw-tabs" style="display:flex;gap:0;border-bottom:1.5px solid var(--border);margin:0 0 24px">
-          <button class="gw-tab active" data-gw="calendar" onclick="switchGwTab('calendar')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Calendar</button>
-          <button class="gw-tab" data-gw="gmail" onclick="switchGwTab('gmail')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Gmail</button>
-          <button class="gw-tab" data-gw="drive" onclick="switchGwTab('drive')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Drive</button>
-          <button class="gw-tab" data-gw="contacts" onclick="switchGwTab('contacts')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Contacts</button>
-          <button class="gw-tab" data-gw="tasks" onclick="switchGwTab('tasks')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Tasks</button>
+          <button class="gw-tab active" data-gw="calendar" onclick="switchGwTab('calendar')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Lịch</button>
+          <button class="gw-tab" data-gw="gmail" onclick="switchGwTab('gmail')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Email</button>
+          <button class="gw-tab" data-gw="drive" onclick="switchGwTab('drive')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Tài liệu</button>
+          <button class="gw-tab" data-gw="sheets" onclick="switchGwTab('sheets')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Sheets</button>
+          <button class="gw-tab" data-gw="contacts" onclick="switchGwTab('contacts')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Liên hệ</button>
+          <button class="gw-tab" data-gw="tasks" onclick="switchGwTab('tasks')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Công việc</button>
           <button class="gw-tab" data-gw="settings" onclick="switchGwTab('settings')" style="padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s">Cài đặt</button>
         </div>
         <!-- Tab contents -->
@@ -3097,6 +3175,26 @@
             <p style="margin:0;font-size:14px">Không có file nào</p>
           </div>
         </div>
+        <div class="gw-panel" id="gw-sheets" style="display:none">
+          <div style="display:grid;grid-template-columns:minmax(260px,420px) minmax(320px,1fr);gap:16px;align-items:start">
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px">
+              <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:var(--text)">Đọc và sửa Google Sheet</h3>
+              <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Spreadsheet ID</label>
+              <input type="text" id="sheets-id" placeholder="ID trong URL Google Sheet" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px" />
+              <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Range</label>
+              <input type="text" id="sheets-range" value="Sheet1!A1:D20" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:10px" />
+              <label style="font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Values để cập nhật / thêm dòng</label>
+              <textarea id="sheets-values" rows="5" placeholder='[["Tên","SĐT"],["An","090..."]]' style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;margin-bottom:12px"></textarea>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button class="btn btn-secondary btn-small" onclick="loadSheetRange()">Đọc range</button>
+                <button class="btn btn-secondary btn-small" onclick="submitSheetUpdate()">Cập nhật</button>
+                <button class="btn btn-primary btn-small" onclick="submitSheetAppend()">Thêm dòng</button>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:12px">Với AppSheet dùng Google Sheet làm data source, thao tác ở đây sẽ sửa dữ liệu nguồn của AppSheet.</div>
+            </div>
+            <pre id="sheets-result" style="margin:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:16px;color:var(--text);font-size:12px;line-height:1.5;white-space:pre-wrap;overflow:auto;max-height:520px">Chưa có dữ liệu.</pre>
+          </div>
+        </div>
         <div class="gw-panel" id="gw-contacts" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
@@ -3152,8 +3250,8 @@
             </div>
           </div>
         </div>
-        <div class="gw-panel" id="gw-settings">
-          <div style="max-width:520px">
+        <div class="gw-panel" id="gw-settings" style="display:none">
+          <div style="max-width:760px">
             <div id="gw-status-box" style="padding:16px;border-radius:10px;background:var(--surface);border:1.5px solid var(--border);margin-bottom:24px">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
                 <div id="gw-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-muted)"></div>
@@ -3162,18 +3260,103 @@
               <span id="gw-status-email" style="font-size:13px;color:var(--text-muted)"></span>
             </div>
             <div id="gw-setup-section">
-              <h3 style="font-size:15px;font-weight:600;color:var(--text);margin:0 0 6px">Kết nối Google Workspace</h3>
-              <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">Tải client_secret.json từ Google Cloud Console, sau đó nhập email Google để kết nối.</p>
-              <div style="margin-bottom:16px">
-                <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:6px">1. Upload credentials</label>
-                <button class="btn btn-secondary btn-small" onclick="uploadGoogleCredentials()" id="gw-upload-btn">Chọn file client_secret.json</button>
-                <span id="gw-upload-status" style="font-size:12px;color:var(--text-muted);margin-left:8px"></span>
+              <div class="gw-setup-guide">
+                <div class="gw-guide-hero">
+                  <div class="gw-guide-title">Lấy file client_secret.json ở Google Cloud</div>
+                  <p class="gw-guide-sub">
+                    9BizClaw dùng gogcli để đăng nhập bằng OAuth của chính tài khoản Google. File cần upload là OAuth Client ID loại Desktop app. Không dùng Service Account JSON, API key, hay file xuất từ Google Workspace Admin.
+                  </p>
+                  <div class="gw-guide-actions">
+                    <button class="btn btn-primary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/projectcreate')">Tạo project Google Cloud</button>
+                    <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/credentials')">Mở trang Credentials</button>
+                    <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://developers.google.com/workspace/guides/create-credentials')">Tài liệu Google</button>
+                    <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://github.com/steipete/gogcli#quick-start')">Tài liệu gogcli</button>
+                  </div>
+                </div>
+
+                <div class="gw-guide-grid">
+                  <div class="gw-step">
+                    <div class="gw-step-head"><span class="gw-step-num">1</span><span class="gw-step-title">Tạo hoặc chọn project</span></div>
+                    <p>Vào Google Cloud Console, chọn đúng project sẽ chứa OAuth client cho khách hàng hoặc công ty này.</p>
+                    <div class="gw-link-row">
+                      <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/projectcreate')">Tạo project</button>
+                      <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/credentials')">Chọn project hiện có</button>
+                    </div>
+                  </div>
+
+                  <div class="gw-step">
+                    <div class="gw-step-head"><span class="gw-step-num">2</span><span class="gw-step-title">Bật API cần dùng</span></div>
+                    <p>Mở từng API bên dưới, bấm Enable nếu Google Cloud báo chưa bật. Bật trong cùng project ở bước 1.</p>
+                    <div class="gw-api-grid">
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/calendar-json.googleapis.com')">Calendar</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/gmail.googleapis.com')">Gmail</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/drive.googleapis.com')">Drive</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/people.googleapis.com')">People</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/tasks.googleapis.com')">Tasks</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/sheets.googleapis.com')">Sheets</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/docs.googleapis.com')">Docs</button>
+                      <button class="gw-api-btn" onclick="window.claw.openExternal('https://console.cloud.google.com/apis/api/script.googleapis.com')">Apps Script</button>
+                    </div>
+                  </div>
+
+                  <div class="gw-step">
+                    <div class="gw-step-head"><span class="gw-step-num">3</span><span class="gw-step-title">Cấu hình OAuth consent</span></div>
+                    <ul>
+                      <li>Mở Branding, điền app name, support email và developer contact email.</li>
+                      <li>Nếu app ở Testing, mở Audience và thêm email Google sẽ kết nối vào Test users.</li>
+                      <li>Với tài khoản Workspace nội bộ, chọn Internal nếu tổ chức cho phép.</li>
+                    </ul>
+                    <div class="gw-link-row">
+                      <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/auth/branding')">Branding</button>
+                      <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/auth/audience')">Audience / Test users</button>
+                    </div>
+                  </div>
+
+                  <div class="gw-step">
+                    <div class="gw-step-head"><span class="gw-step-num">4</span><span class="gw-step-title">Tạo OAuth Client Desktop app</span></div>
+                    <ul>
+                      <li>Mở Clients, bấm Create Client.</li>
+                      <li>Application type: Desktop app.</li>
+                      <li>Name: 9BizClaw Desktop.</li>
+                      <li>Sau khi tạo xong, bấm Download JSON.</li>
+                    </ul>
+                    <div class="gw-link-row">
+                      <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('https://console.cloud.google.com/auth/clients')">Mở Clients</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="gw-file-check">
+                  <div class="gw-check-box">
+                    <strong>File đúng</strong>
+                    Tên thường là <code>client_secret_...apps.googleusercontent.com.json</code> và bên trong có khóa <code>installed.client_id</code>.
+                  </div>
+                  <div class="gw-check-box">
+                    <strong>File sai</strong>
+                    Không chọn file có <code>type: service_account</code>, <code>private_key</code>, <code>client_email</code>, hoặc API key.
+                  </div>
+                </div>
+
+                <div class="gw-warning-note">
+                  Nếu OAuth app để trạng thái Testing, Google có thể yêu cầu xác thực lại sau 7 ngày. Khi dùng lâu dài, nên chuyển app sang Production sau khi cấu hình xong. Desktop app không cần tự nhập Redirect URI trong Google Cloud.
+                </div>
               </div>
-              <div style="margin-bottom:16px">
-                <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:6px">2. Email Google</label>
-                <div style="display:flex;gap:8px">
-                  <input type="email" id="gw-email" placeholder="ceo@company.com" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" />
-                  <button class="btn btn-primary btn-small" onclick="connectGoogle()">Kết nối</button>
+
+              <div class="gw-connect-card">
+                <h3 style="font-size:15px;font-weight:600;color:var(--text);margin:0 0 6px">Kết nối Google Workspace</h3>
+                <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.5">Sau khi tải được file JSON ở bước 4, upload tại đây rồi nhập đúng email Google sẽ cấp quyền cho Calendar, Gmail, Drive, Contacts, Tasks, Sheets, Docs và Apps Script.</p>
+                <div style="margin-bottom:16px">
+                  <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:6px">1. Upload OAuth Client JSON</label>
+                  <button class="btn btn-secondary btn-small" onclick="uploadGoogleCredentials()" id="gw-upload-btn">Chọn file client_secret.json</button>
+                  <span id="gw-upload-status" style="font-size:12px;color:var(--text-muted);margin-left:8px"></span>
+                </div>
+                <div style="margin-bottom:4px">
+                  <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:6px">2. Email Google cần kết nối</label>
+                  <div style="display:flex;gap:8px">
+                    <input type="email" id="gw-email" placeholder="ceo@company.com" style="flex:1;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" />
+                    <button class="btn btn-primary btn-small" onclick="connectGoogle()">Kết nối</button>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px">Khi bấm Kết nối, trình duyệt sẽ mở trang đăng nhập Google. Chọn cùng email đã nhập, cho phép quyền truy cập, rồi quay lại app.</div>
                 </div>
               </div>
             </div>
@@ -4853,6 +5036,7 @@
     let zaloGroups = [];
     let zaloGroupSummaries = {};
     let zaloMgrConfig = { enabled: true, groupPolicy: 'open', groupAllowFrom: [], userBlocklist: [] };
+    let zaloUserBlocklistTouched = false;
     let _zaloConfigLoadOk = false;
 
     let _zaloRefreshTimer = null;
@@ -4915,6 +5099,7 @@
         enabled: enabledEl ? enabledEl.checked : (zaloMgrConfig.enabled !== false),
         groupAllowFrom: Array.isArray(zaloMgrConfig.groupAllowFrom) ? [...zaloMgrConfig.groupAllowFrom] : [],
         userBlocklist: Array.isArray(zaloMgrConfig.userBlocklist) ? [...zaloMgrConfig.userBlocklist] : [],
+        userBlocklistTouched: zaloUserBlocklistTouched === true,
         groupSettings: zaloMgrConfig.groupSettings || {},
         strangerPolicy: spEl ? spEl.value : (zaloMgrConfig.strangerPolicy || 'ignore'),
       };
@@ -4958,8 +5143,10 @@
             groupAllowFrom: Array.isArray(draft.groupAllowFrom) ? draft.groupAllowFrom : [],
             userBlocklist: Array.isArray(draft.userBlocklist) ? draft.userBlocklist : [],
           };
+          zaloUserBlocklistTouched = draft.userBlocklistTouched === true;
         } else if (config) {
           zaloMgrConfig = config;
+          zaloUserBlocklistTouched = false;
         }
         // Seed autoSave freshness cache with the just-fetched enabled flag so
         // autoSaveZaloManager can use it without an extra round-trip.
@@ -5159,10 +5346,12 @@
           const payload = { ...zaloMgrConfig, enabled: enabledToUse };
           payload.groupPolicy = 'open';
           payload.groupAllowFrom = ['*'];
+          payload.userBlocklistTouched = zaloUserBlocklistTouched === true;
           const r = await window.claw.saveZaloManagerConfig(payload);
           if (r?.success) {
             showToast('Đã áp dụng ngay', 'info');
             markZmFresh(enabledToUse);
+            if (payload.userBlocklistTouched) zaloUserBlocklistTouched = false;
           } else if (r?.error === 'BOOT_IN_PROGRESS') {
             showToast(r.message || 'Bot đang khởi động, vui lòng đợi vài giây rồi thử lại', 'info');
           } else {
@@ -5308,7 +5497,8 @@
       const list = document.getElementById('zalo-mgr-friends-list');
       const q = (document.getElementById('zalo-mgr-friend-search').value || '').toLowerCase();
       const filtered = zaloFriends.filter(f => !q ||
-        (f.displayName || '').toLowerCase().includes(q)
+        (f.displayName || '').toLowerCase().includes(q) ||
+        (f.phoneNumber || '').toLowerCase().includes(q)
       );
       if (filtered.length === 0) {
         list.innerHTML = '<div class="zalo-mgr-empty">Không tìm thấy user.</div>';
@@ -5337,11 +5527,13 @@
         if (!arr.includes(userId)) arr.push(userId);
       }
       zaloMgrConfig.userBlocklist = arr;
+      zaloUserBlocklistTouched = true;
       updateBlockedCount();
       autoSaveZaloManager();
     }
 
     function toggleAllFriends(checked) {
+      zaloUserBlocklistTouched = true;
       if (checked) {
         zaloMgrConfig.userBlocklist = []; // Empty blocklist = reply to all
       } else {
@@ -5349,7 +5541,7 @@
       }
       updateBlockedCount();
       renderZaloFriends();
-      autoSaveZaloManager();
+      saveZaloManager();
     }
 
     async function saveZaloManager() {
@@ -5361,12 +5553,14 @@
       zaloMgrConfig.groupPolicy = 'open';
       zaloMgrConfig.groupAllowFrom = ['*'];
       try {
-        const result = await window.claw.saveZaloManagerConfig(zaloMgrConfig);
+        const payload = { ...zaloMgrConfig, userBlocklistTouched: zaloUserBlocklistTouched === true };
+        const result = await window.claw.saveZaloManagerConfig(payload);
         if (result?.success) {
           addActivity('Đã lưu cấu hình Zalo');
           showToast('Đã lưu cấu hình Zalo');
           markZmFresh(zaloMgrConfig.enabled);
           _zaloEnabledSaved = zaloMgrConfig.enabled;
+          if (payload.userBlocklistTouched) zaloUserBlocklistTouched = false;
           try { await loadZaloManagerData(); } catch (e) { console.warn('reload zalo data failed', e); }
         } else if (result?.error === 'BOOT_IN_PROGRESS') {
           addActivity('Bot đang khởi động — chưa lưu được');
@@ -5702,9 +5896,9 @@
         const cfg = await window.claw.getTelegramConfig();
         _tgCfgCache = cfg;
         const parts = [];
-        if (cfg.botToken) {
+        if (cfg.botTokenSet || cfg.botToken) {
           const probe = await window.claw.checkTelegramReady().catch(() => null);
-          parts.push(probe?.username ? ('@' + probe.username) : ('Bot ....' + cfg.botToken.slice(-6)));
+          parts.push(probe?.username ? ('@' + probe.username) : ('Bot ' + (cfg.botToken || 'da luu')));
         }
         if (cfg.allowFrom?.length) parts.push('ID: ' + cfg.allowFrom[0]);
         el.textContent = parts.length ? parts.join('  ·  ') : 'Chưa cài đặt';
@@ -5719,7 +5913,10 @@
       const tokenEl = document.getElementById('tg-modal-token');
       const uidEl = document.getElementById('tg-modal-uid');
       const statusEl = document.getElementById('tg-modal-status');
-      if (tokenEl) tokenEl.value = _tgCfgCache.botToken || '';
+      if (tokenEl) {
+        tokenEl.value = '';
+        tokenEl.placeholder = _tgCfgCache.botTokenSet ? (_tgCfgCache.botToken || 'Nhập bot token mới') : 'Nhập Bot Token';
+      }
       if (uidEl) uidEl.value = _tgCfgCache.allowFrom?.length ? String(_tgCfgCache.allowFrom[0]) : '';
       if (statusEl) statusEl.textContent = '';
       modal.classList.add('show');
@@ -7036,7 +7233,10 @@
       }
 
       function anyModalOpen() {
-        return paletteOverlay.classList.contains('show') || helpOverlay.classList.contains('show');
+        if (paletteOverlay.classList.contains('show') || helpOverlay.classList.contains('show')) return true;
+        const googleModals = ['cal-create-modal', 'gmail-compose-modal', 'contact-add-modal', 'task-add-modal'];
+        if (googleModals.some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; })) return true;
+        return false;
       }
 
       function closeAllModals() {
@@ -7046,6 +7246,10 @@
           const fr = document.getElementById('factory-reset-backdrop');
           if (fr && fr.style.display !== 'none' && typeof hideFactoryResetModal === 'function') hideFactoryResetModal();
         } catch {}
+        try { if (typeof hideCalCreateModal === 'function') hideCalCreateModal(); } catch {}
+        try { if (typeof hideGmailComposeModal === 'function') hideGmailComposeModal(); } catch {}
+        try { if (typeof hideAddContactModal === 'function') hideAddContactModal(); } catch {}
+        try { if (typeof hideAddTaskModal === 'function') hideAddTaskModal(); } catch {}
       }
 
       document.addEventListener('keydown', (e) => {
@@ -7473,17 +7677,25 @@
       if (tab === 'calendar') loadCalendarEvents();
       if (tab === 'gmail') loadGmailInbox();
       if (tab === 'drive') loadDriveFiles();
+      if (tab === 'sheets') resetSheetResultIfEmpty();
       if (tab === 'contacts') loadContactsList();
       if (tab === 'tasks') loadTasksList();
       if (tab === 'settings') loadGoogleStatus();
     }
-    switchGwTab('settings');
+    (async function() {
+      try {
+        const s = await window.claw.googleAuthStatus();
+        switchGwTab(s.connected ? 'calendar' : 'settings');
+      } catch { switchGwTab('settings'); }
+    })();
 
     // --- Calendar tab ---
     let _calWeekOffset = 0;
+    let _calRequestId = 0;
     function calNavWeek(delta) { _calWeekOffset += delta; loadCalendarEvents(); }
 
     async function loadCalendarEvents() {
+      const reqId = ++_calRequestId;
       const now = new Date();
       const monday = new Date(now);
       monday.setDate(now.getDate() - now.getDay() + 1 + (_calWeekOffset * 7));
@@ -7505,6 +7717,8 @@
           from: monday.toISOString(),
           to: sunday.toISOString()
         });
+        if (data.error) throw new Error(data.error);
+        if (reqId !== _calRequestId) return;
         const events = data.events || data.items || data.data || [];
         if (!events.length) {
           view.innerHTML = '';
@@ -7521,7 +7735,9 @@
         }
         events.forEach(ev => {
           const start = ev.start?.dateTime || ev.start?.date || ev.start || '';
-          const key = new Date(start).toISOString().slice(0, 10);
+          const d = new Date(start);
+          if (isNaN(d.getTime())) return;
+          const key = d.toISOString().slice(0, 10);
           if (byDay[key]) byDay[key].events.push(ev);
         });
         let html = '';
@@ -7536,8 +7752,8 @@
               const timeStr = s ? new Date(s).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) + (e ? ' — ' + new Date(e).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '') : '';
               const title = ev.summary || ev.title || 'Không có tiêu đề';
               html += '<div style="padding:8px 12px;background:var(--surface);border-radius:8px;margin-bottom:4px;display:flex;align-items:center;gap:10px;border:1px solid var(--border)">';
-              html += '<span style="font-size:12px;color:var(--text-muted);min-width:100px">' + timeStr + '</span>';
-              html += '<span style="font-size:13px;color:var(--text);font-weight:500">' + title + '</span>';
+              html += '<span style="font-size:12px;color:var(--text-muted);min-width:100px">' + esc(timeStr) + '</span>';
+              html += '<span style="font-size:13px;color:var(--text);font-weight:500">' + esc(title) + '</span>';
               html += '</div>';
             });
           }
@@ -7546,7 +7762,7 @@
         view.innerHTML = html;
         empty.style.display = 'none';
       } catch (e) {
-        view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải lịch') + '</div>';
+        view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải lịch') + '</div>';
       }
     }
 
@@ -7585,9 +7801,9 @@
       const empty = document.getElementById('gmail-empty');
       list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
       empty.style.display = 'none';
-      document.getElementById('gmail-detail').style.display = 'none';
       try {
         const data = await window.claw.googleGmailInbox({});
+        if (data.error) throw new Error(data.error);
         const emails = data.messages || data.items || data.data || [];
         if (!emails.length) { list.innerHTML = ''; empty.style.display = ''; return; }
         list.innerHTML = emails.map(e => {
@@ -7595,14 +7811,15 @@
           const subject = e.subject || 'Không có tiêu đề';
           const date = e.date || e.receivedAt || '';
           const dateStr = date ? new Date(date).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
-          return '<div onclick="openGmailDetail(\'' + (e.id || '') + '\')" style="padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .1s" onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'var(--surface)\'">' +
+          const safeId = esc(e.id || '').replace(/'/g, '&#39;');
+          return '<div onclick="openGmailDetail(\'' + safeId + '\')" style="padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .1s" onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'var(--surface)\'">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
-            '<span style="font-size:13px;font-weight:500;color:var(--text)">' + from + '</span>' +
-            '<span style="font-size:11px;color:var(--text-muted)">' + dateStr + '</span></div>' +
-            '<div style="font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + subject + '</div></div>';
+            '<span style="font-size:13px;font-weight:500;color:var(--text)">' + esc(from) + '</span>' +
+            '<span style="font-size:11px;color:var(--text-muted)">' + esc(dateStr) + '</span></div>' +
+            '<div style="font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(subject) + '</div></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải email') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải email') + '</div>';
       }
     }
 
@@ -7641,7 +7858,12 @@
       } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
-    function showGmailComposeModal() { document.getElementById('gmail-compose-modal').style.display = 'flex'; }
+    function showGmailComposeModal() {
+      document.getElementById('gmail-compose-to').value = '';
+      document.getElementById('gmail-compose-subject').value = '';
+      document.getElementById('gmail-compose-body').value = '';
+      document.getElementById('gmail-compose-modal').style.display = 'flex';
+    }
     function hideGmailComposeModal() { document.getElementById('gmail-compose-modal').style.display = 'none'; }
 
     async function submitGmailCompose() {
@@ -7666,6 +7888,7 @@
       empty.style.display = 'none';
       try {
         const data = await window.claw.googleDriveList({ query });
+        if (data.error) throw new Error(data.error);
         const files = data.files || data.items || data.data || [];
         if (!files.length) { list.innerHTML = ''; empty.style.display = ''; return; }
         list.innerHTML = files.map(f => {
@@ -7673,19 +7896,70 @@
           const size = f.size ? (parseInt(f.size) / 1024).toFixed(0) + ' KB' : '';
           const modified = f.modifiedTime || f.modifiedDate || '';
           const modStr = modified ? new Date(modified).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' }) : '';
+          const link = f.webViewLink || f.url || f.alternateLink || '';
           return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between">' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + name + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted)">' + [size, modStr].filter(Boolean).join(' · ') + '</div></div>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(name) + '</div>' +
+            '<div style="font-size:11px;color:var(--text-muted)">' + esc([size, modStr].filter(Boolean).join(' · ')) + '</div></div>' +
+            (link ? '<button class="btn btn-secondary btn-small" onclick="window.claw.openExternal(\'' + escAttr(link) + '\')">Mở</button>' : '') +
             '</div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải file') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải file') + '</div>';
       }
     }
 
     function searchDriveFiles() {
       const q = document.getElementById('drive-search').value.trim();
       loadDriveFiles(q || undefined);
+    }
+
+    // --- Sheets tab ---
+    function resetSheetResultIfEmpty() {
+      const result = document.getElementById('sheets-result');
+      if (result && !result.textContent.trim()) result.textContent = 'Chưa có dữ liệu.';
+    }
+    function getSheetForm() {
+      const spreadsheetId = document.getElementById('sheets-id').value.trim();
+      const range = document.getElementById('sheets-range').value.trim();
+      const rawValues = document.getElementById('sheets-values').value.trim();
+      let values = rawValues;
+      if (rawValues && /^[\[{]/.test(rawValues)) {
+        try { values = JSON.parse(rawValues); } catch { throw new Error('Values JSON không hợp lệ'); }
+      }
+      if (!spreadsheetId || !range) throw new Error('Cần nhập Spreadsheet ID và range');
+      return { spreadsheetId, range, values };
+    }
+    function showSheetResult(data) {
+      document.getElementById('sheets-result').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
+    async function loadSheetRange() {
+      try {
+        const form = getSheetForm();
+        showSheetResult('Đang đọc...');
+        const data = await window.claw.googleSheetsGet({ spreadsheetId: form.spreadsheetId, range: form.range });
+        if (data.error) throw new Error(data.error);
+        showSheetResult(data);
+      } catch (e) { showSheetResult('Lỗi: ' + (e.message || e)); }
+    }
+    async function submitSheetUpdate() {
+      try {
+        const form = getSheetForm();
+        if (!form.values) throw new Error('Cần nhập values để cập nhật');
+        showSheetResult('Đang cập nhật...');
+        const data = await window.claw.googleSheetsUpdate({ spreadsheetId: form.spreadsheetId, range: form.range, values: form.values });
+        if (data.error) throw new Error(data.error);
+        showSheetResult(data);
+      } catch (e) { showSheetResult('Lỗi: ' + (e.message || e)); }
+    }
+    async function submitSheetAppend() {
+      try {
+        const form = getSheetForm();
+        if (!form.values) throw new Error('Cần nhập values để thêm dòng');
+        showSheetResult('Đang thêm dòng...');
+        const data = await window.claw.googleSheetsAppend({ spreadsheetId: form.spreadsheetId, range: form.range, values: form.values });
+        if (data.error) throw new Error(data.error);
+        showSheetResult(data);
+      } catch (e) { showSheetResult('Lỗi: ' + (e.message || e)); }
     }
 
     // --- Contacts tab ---
@@ -7696,6 +7970,7 @@
       empty.style.display = 'none';
       try {
         const data = await window.claw.googleContactsList({ query });
+        if (data.error) throw new Error(data.error);
         const contacts = data.contacts || data.connections || data.data || [];
         if (!contacts.length) { list.innerHTML = ''; empty.style.display = ''; return; }
         list.innerHTML = contacts.map(c => {
@@ -7703,16 +7978,21 @@
           const phone = c.phone || (c.phoneNumbers && c.phoneNumbers[0]?.value) || '';
           const email = c.email || (c.emailAddresses && c.emailAddresses[0]?.value) || '';
           return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px">' +
-            '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text)">' + (name.charAt(0) || '?') + '</div>' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text)">' + name + '</div>' +
-            '<div style="font-size:12px;color:var(--text-muted)">' + [phone, email].filter(Boolean).join(' · ') + '</div></div></div>';
+            '<div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text)">' + esc(name.charAt(0) || '?') + '</div>' +
+            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text)">' + esc(name) + '</div>' +
+            '<div style="font-size:12px;color:var(--text-muted)">' + esc([phone, email].filter(Boolean).join(' · ')) + '</div></div></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải liên hệ') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải liên hệ') + '</div>';
       }
     }
     function searchContacts() { loadContactsList(document.getElementById('contacts-search').value.trim() || undefined); }
-    function showAddContactModal() { document.getElementById('contact-add-modal').style.display = 'flex'; }
+    function showAddContactModal() {
+      document.getElementById('contact-new-name').value = '';
+      document.getElementById('contact-new-phone').value = '';
+      document.getElementById('contact-new-email').value = '';
+      document.getElementById('contact-add-modal').style.display = 'flex';
+    }
     function hideAddContactModal() { document.getElementById('contact-add-modal').style.display = 'none'; }
     async function submitAddContact() {
       const name = document.getElementById('contact-new-name').value.trim();
@@ -7735,6 +8015,7 @@
       empty.style.display = 'none';
       try {
         const data = await window.claw.googleTasksList({});
+        if (data.error) throw new Error(data.error);
         const tasks = data.tasks || data.items || data.data || [];
         if (!tasks.length) { list.innerHTML = ''; empty.style.display = ''; return; }
         list.innerHTML = tasks.map(t => {
@@ -7742,14 +8023,15 @@
           const due = t.due || t.dueDate || '';
           const dueStr = due ? new Date(due).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit' }) : '';
           const done = t.status === 'completed' || t.completed;
+          const safeTaskId = esc(t.id || '').replace(/'/g, '&#39;');
           return '<div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px">' +
-            '<input type="checkbox" ' + (done ? 'checked disabled' : '') + ' onchange="completeTaskItem(\'' + (t.id || '') + '\')" style="width:16px;height:16px;cursor:pointer" />' +
-            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);' + (done ? 'text-decoration:line-through;opacity:.5' : '') + '">' + title + '</div>' +
-            (dueStr ? '<div style="font-size:11px;color:var(--text-muted)">Hạn: ' + dueStr + '</div>' : '') +
+            '<input type="checkbox" ' + (done ? 'checked disabled' : '') + ' onchange="completeTaskItem(\'' + safeTaskId + '\')" style="width:16px;height:16px;cursor:pointer" />' +
+            '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:var(--text);' + (done ? 'text-decoration:line-through;opacity:.5' : '') + '">' + esc(title) + '</div>' +
+            (dueStr ? '<div style="font-size:11px;color:var(--text-muted)">Hạn: ' + esc(dueStr) + '</div>' : '') +
             '</div></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + (e.message || 'Lỗi tải danh sách') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải danh sách') + '</div>';
       }
     }
     async function completeTaskItem(id) {
@@ -7759,7 +8041,11 @@
         loadTasksList();
       } catch (e) { alert('Lỗi: ' + e.message); }
     }
-    function showAddTaskModal() { document.getElementById('task-add-modal').style.display = 'flex'; }
+    function showAddTaskModal() {
+      document.getElementById('task-new-title').value = '';
+      document.getElementById('task-new-due').value = '';
+      document.getElementById('task-add-modal').style.display = 'flex';
+    }
     function hideAddTaskModal() { document.getElementById('task-add-modal').style.display = 'none'; }
     async function submitAddTask() {
       const title = document.getElementById('task-new-title').value.trim();
@@ -7816,15 +8102,22 @@
       }
     }
 
+    let _connectingGoogle = false;
     async function connectGoogle() {
       const email = document.getElementById('gw-email').value.trim();
-      if (!email) return;
+      if (!email || _connectingGoogle) return;
+      const btn = document.querySelector('#gw-setup-section button[onclick*="connectGoogle"]');
+      _connectingGoogle = true;
+      if (btn) { btn.disabled = true; btn.textContent = 'Đang kết nối...'; }
       try {
         const result = await window.claw.googleConnect(email);
         if (result.error) throw new Error(result.error);
         loadGoogleStatus();
       } catch (e) {
         alert('Lỗi kết nối: ' + e.message);
+      } finally {
+        _connectingGoogle = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Kết nối'; }
       }
     }
 
@@ -7832,6 +8125,7 @@
       if (!confirm('Ngắt kết nối Google Workspace?')) return;
       try {
         await window.claw.googleDisconnect();
+        if (typeof switchGwTab === 'function') switchGwTab('settings');
         loadGoogleStatus();
       } catch (e) {
         alert('Lỗi: ' + e.message);

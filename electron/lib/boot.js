@@ -1162,8 +1162,10 @@ async function runSplashAndExtractVendor() {
     show: false,
     skipTaskbar: false,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: path.join(__dirname, '..', 'splash-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
     },
   });
   splashWindow.setMenuBarVisibility(false);
@@ -1202,6 +1204,79 @@ async function runSplashAndExtractVendor() {
   splashWindow = null;
 }
 
+// =====================================================================
+//  CLI SHIMS — make `openclaw` work from cmd.exe after install
+// =====================================================================
+// Windows packaged only. Creates .cmd shim files in userData/cli/ that
+// forward to the bundled node + openclaw.mjs. Adds that directory to the
+// user PATH (registry, not session) so new cmd windows can run `openclaw`
+// exactly like a global npm install.
+//
+// Idempotent: safe to call every boot. Overwrites shims (in case paths
+// changed after update) but only touches PATH if our dir isn't there yet.
+function ensureCliShims() {
+  if (process.platform !== 'win32') return;
+  if (!app || !app.isPackaged) return;
+
+  const vendorDir = getBundledVendorDir();
+  if (!vendorDir) return;
+
+  const userData = app.getPath('userData');
+  const cliDir = path.join(userData, 'cli');
+  try { fs.mkdirSync(cliDir, { recursive: true }); } catch {}
+
+  const shimTemplate = (mjs) => [
+    '@echo off',
+    'setlocal',
+    'set "VENDOR=%APPDATA%\\9bizclaw\\vendor"',
+    'if not exist "%VENDOR%\\node\\node.exe" (',
+    '  echo [9BizClaw] Vui long mo app 9BizClaw mot lan de giai nen truoc khi dung CLI.',
+    '  exit /b 1',
+    ')',
+    '"%VENDOR%\\node\\node.exe" "%VENDOR%\\node_modules\\' + mjs + '" %*',
+  ].join('\r\n') + '\r\n';
+
+  const shims = [
+    ['openclaw.cmd', 'openclaw\\openclaw.mjs'],
+    ['openzca.cmd',  'openzca\\dist\\cli.js'],
+  ];
+  for (const [name, mjs] of shims) {
+    try {
+      fs.writeFileSync(path.join(cliDir, name), shimTemplate(mjs));
+    } catch (e) {
+      console.warn('[cli-shims] failed to write ' + name + ':', e?.message);
+    }
+  }
+
+  // Add cliDir to user PATH via PowerShell -EncodedCommand.
+  // MUST use EncodedCommand (base64 UTF-16LE) to bypass cmd.exe expansion:
+  // if user PATH contains %JAVA_HOME%\bin, plain -Command would expand it
+  // and permanently replace the reference with the resolved value.
+  try {
+    const { execSync } = require('child_process');
+    const readScript = "$p = [Environment]::GetEnvironmentVariable('PATH','User'); Write-Output $p";
+    const readB64 = Buffer.from(readScript, 'utf16le').toString('base64');
+    const current = execSync(
+      'powershell -NoProfile -EncodedCommand ' + readB64,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 8000 }
+    ).trim();
+    if (current.toLowerCase().includes(cliDir.toLowerCase())) {
+      return; // already registered
+    }
+    const newPath = current ? (current + ';' + cliDir) : cliDir;
+    const writeScript = "[Environment]::SetEnvironmentVariable('PATH','" +
+      newPath.replace(/'/g, "''") + "','User')";
+    const writeB64 = Buffer.from(writeScript, 'utf16le').toString('base64');
+    execSync(
+      'powershell -NoProfile -EncodedCommand ' + writeB64,
+      { stdio: 'pipe', timeout: 8000 }
+    );
+    console.log('[cli-shims] registered in user PATH:', cliDir);
+  } catch (e) {
+    console.warn('[cli-shims] PATH registration failed (non-fatal):', e?.message);
+  }
+}
+
 module.exports = {
   getBundledVendorDir,
   ensureVendorExtracted,
@@ -1226,4 +1301,5 @@ module.exports = {
   npmGlobalModules,
   findGlobalPackageFile,
   runSplashAndExtractVendor,
+  ensureCliShims,
 };

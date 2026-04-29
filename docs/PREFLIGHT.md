@@ -24,16 +24,16 @@
 
 ### A. IPC handler mới
 
-- [ ] `ipcMain.handle('xxx', ...)` trong `main.js`
+- [ ] `ipcMain.handle('xxx', ...)` trong `electron/lib/dashboard-ipc.js` (bên trong `registerAllIpcHandlers()`)
 - [ ] Bridge tương ứng trong `preload.js`: `xxx: () => ipcRenderer.invoke('xxx')`
 - [ ] Nếu có callback/event: dùng `removeAllListeners` trước `on()` (tránh listener stack khi hot-reload)
 - [ ] Nếu đọc/ghi file: dùng `getWorkspace()` path, KHÔNG hardcode
 - [ ] Nếu ghi `openclaw.json`: dùng `writeOpenClawConfigIfChanged()`, KHÔNG `fs.writeFileSync` trực tiếp
-- [ ] Verify: so sánh `ipcMain.handle` count vs `ipcRenderer.invoke` count (hiện tại 106 vs 102, chênh 4 là internal-only handlers: `cron-diagnostic`, `queue-follow-up`, `seed-group-history-all`, `seed-group-history-now`)
+- [ ] Verify: so sánh `ipcMain.handle` count (trong `lib/dashboard-ipc.js`) vs `ipcRenderer.invoke` count (trong `preload.js`)
 
 ### B. Output filter pattern
 
-- [ ] Thêm vào `_outputFilterPatterns` array (~line 11566 main.js)
+- [ ] Thêm vào `_outputFilterPatterns` array trong `electron/lib/channels.js`
 - [ ] Test với câu tiếng Việt có chứa keyword (tránh false positive)
 - [ ] Test với tên sản phẩm/địa chỉ có chứa keyword
 - [ ] Regex KHÔNG quá rộng — phải có word boundary hoặc context
@@ -61,7 +61,7 @@
 - [ ] Nếu thêm defense row: cập nhật số thứ tự `#` liên tục
 - [ ] KHÔNG dùng emoji
 - [ ] Tiếng Việt có đầy đủ dấu (KHÔNG "khong" — phải "không")
-- [ ] Tăng `CURRENT_AGENTS_MD_VERSION` trong main.js (~line 640) nếu sửa AGENTS.md
+- [ ] Tăng `CURRENT_AGENTS_MD_VERSION` trong `electron/lib/workspace.js` nếu sửa AGENTS.md
 - [ ] Tăng version trong comment `<!-- modoroclaw-agents-version: XX -->` dòng 1
 
 ### E. Cron handler
@@ -118,11 +118,11 @@ cd electron && npm run smoke
 wc -c ../AGENTS.md ../SOUL.md ../TOOLS.md ../IDENTITY.md ../USER.md ../HEARTBEAT.md ../BOOTSTRAP.md ../MEMORY.md
 
 # 3. Kiểm tra IPC parity
-echo "main.js handlers:" && grep -c "ipcMain.handle(" main.js
+echo "dashboard-ipc.js handlers:" && grep -c "ipcMain.handle(" lib/dashboard-ipc.js
 echo "preload.js bridges:" && grep -c "ipcRenderer.invoke(" preload.js
 
 # 4. Kiểm tra AGENTS.md version match
-grep "CURRENT_AGENTS_MD_VERSION" main.js | head -1
+grep "CURRENT_AGENTS_MD_VERSION" lib/workspace.js | head -1
 head -1 ../AGENTS.md
 
 # 5. Kiểm tra modoro-zalo package exists
@@ -137,7 +137,7 @@ ls electron/packages/modoro-zalo/package.json && echo "OK" || echo "MISSING"
 |---------|-----|---------|
 | `openclaw.json` | Ghi bằng `fs.writeFileSync` thay vì `writeOpenClawConfigIfChanged()` | Gateway restart loop — CEO thấy "Gateway is restarting" |
 | `openclaw.json` | Ghi bằng `openclaw config set` CLI | Cùng restart loop — CLI subprocess bypass byte-equal guard |
-| `inbound.ts` | Sửa trực tiếp trong `~/.openclaw/extensions/` | Mất khi reboot — `applyOpenzaloFork()` overwrite |
+| `inbound.ts` | Sửa trực tiếp trong `~/.openclaw/extensions/` | Mất khi reboot — `_ensureZaloPluginImpl()` overwrites from `packages/modoro-zalo/` |
 | `ensureDefaultConfig` | Thêm key mà openclaw schema không chấp nhận | Mọi `openclaw` CLI exit 1 — cron chết |
 | `_outputFilterPatterns` | Regex quá rộng (VD: `/error/i`) | Block reply bình thường chứa từ "error" |
 | `schedules.json` | Hardcode cron expression thay vì đọc từ config | Heartbeat frequency drift |
@@ -167,9 +167,9 @@ Cron:
     → sendTelegram / sendCeoAlert
 
 Dashboard:
-  dashboard.html → preload.js bridge → ipcMain.handle → main.js function
+  dashboard.html → preload.js bridge → ipcMain.handle (dashboard-ipc.js) → lib/*.js module
 ```
 
 ---
 
-*Cập nhật lần cuối: 2026-04-22 | Version: v2.3.47.3*
+*Cập nhật lần cuối: 2026-04-27 | Version: v2.4 (post-modularization)*

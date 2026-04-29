@@ -552,6 +552,7 @@ export async function sendTextModoroZalo(options: SendTextOptions): Promise<Modo
       { name: "api-key-sk", re: /\bsk-[a-zA-Z0-9_\-]{16,}/i },
       { name: "bearer-token", re: /\bBearer\s+[a-zA-Z0-9_\-.]{20,}/i },
       { name: "hex-token-48", re: /\b[a-f0-9]{48}\b/i },
+      { name: "hex-token-partial", re: /\b[a-f0-9]{16,47}\b/i },
       { name: "botToken-field", re: /\bbotToken\b/i },
       { name: "apiKey-field", re: /\bapiKey\b/i },
       // --- Layer A1.5: bot "silent" tokens leaked as reply ---
