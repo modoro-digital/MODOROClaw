@@ -43,7 +43,7 @@
     "pages_show_list",
     "pages_manage_posts",
     "pages_read_engagement",
-    "Page task CREATE_CONTENT"
+    "Page task CREATE_CONTENT or PROFILE_PLUS_CREATE_CONTENT"
   ],
   "successProofs": [
     "post response contains postId or postUrl",
@@ -52,6 +52,7 @@
   "negativeTests": [
     "must reject user token that cannot produce a Page token",
     "must reject token that only has business_management and pages_show_list",
+    "must guide missing pages_manage_posts users to create a Messenger customer-interaction app/use case",
     "must return explicit not-connected error when fb-config.json is missing"
   ]
 }

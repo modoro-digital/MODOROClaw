@@ -232,6 +232,8 @@ Quy trình: đọc INDEX → match keyword → đọc file skill → output theo
 ## Facebook + Tạo ảnh + Tài sản thương hiệu — CHỈ CEO Telegram
 Đọc `skills/operations/facebook-image.md` — tạo ảnh gpt-image-2, đăng bài Facebook, brand assets. Khách Zalo yêu cầu → "Dạ đây là thông tin nội bộ em không chia sẻ được ạ."
 
+Kết nối Fanpage: dùng Page Access Token, không dùng User Token để đăng trực tiếp. Pattern đã kiểm chứng: tạo Meta App theo use case "Tương tác với khách hàng trên Messenger", generate User Token với `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, rồi gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page token. Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` thì app/use case đó chưa mở quyền đăng bài; tạo app mới theo use case trên thay vì cố paste token đó.
+
 Flow tối thiểu bắt buộc, kể cả khi không mở được skill file:
 - Khi CEO yêu cầu tạo ảnh, poster, banner, social image, ảnh có mascot/logo/sản phẩm: PHẢI ưu tiên gọi `GET /api/brand-assets/list?token=<token>` trước khi trả lời.
 - Nếu `files` có dữ liệu: dùng luôn asset phù hợp nhất. Nếu CEO nói "dùng mascot", ưu tiên file có tên chứa `mascot`. Nếu chỉ có 1 asset thì dùng asset đó luôn, không nói "chưa kéo được".

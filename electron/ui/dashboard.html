@@ -3033,7 +3033,8 @@
                 <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 1: Tạo Facebook App</div>
                 <div style="padding-left:8px;margin-bottom:14px">
                   Mở <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/creation/');return false" style="color:var(--accent)">developers.facebook.com/apps/creation</a><br>
-                  Chọn use case: <b>"Quản lý mọi thứ trên Trang"</b> (icon tòa nhà)<br>
+                  Chọn use case theo hướng dẫn đang hoạt động của ClawHub: <b>"Tương tác với khách hàng trên Messenger"</b><br>
+                  <span style="font-size:11px;color:var(--text-muted)">Không chọn app/use case chỉ hiện <code>business_management</code> + <code>pages_show_list</code>, vì app đó thường không mở được <code>pages_manage_posts</code>.</span><br>
                   Đặt tên app (VD: "MODOROClaw") &rarr; nhấn <b>"Tạo ứng dụng"</b><br>
                   <span style="font-size:11px;color:var(--text-muted)">Nếu đã có app rồi, bỏ qua bước này.</span>
                 </div>
@@ -3055,7 +3056,7 @@
 
                 <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 3: Lấy Page Access Token</div>
                 <div style="padding-left:8px;margin-bottom:14px">
-                  Quay lại Explorer, đổi URL thành <b>me/accounts</b> &rarr; nhấn <b>"Gửi"</b><br>
+                  Quay lại Explorer, đổi URL thành <b>me/accounts?fields=id,name,tasks,access_token</b> &rarr; nhấn <b>"Gửi"</b><br>
                   Kết quả trả về danh sách Fanpage kèm <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">access_token</code> cho mỗi trang<br>
                   Copy token của Fanpage cần kết nối
                 </div>
@@ -3081,7 +3082,7 @@
                   <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
                     <b>Nếu chỉ thấy</b> <code>business_management</code> và <code>pages_show_list</code> như Graph API Explorer mới:
                     token đó chỉ đủ để liệt kê Page, <b>chưa đủ để 9BizClaw đăng bài</b>. Đừng paste token đó vào app.
-                    Vào
+                    Cách chắc nhất: tạo app mới theo use case <b>"Tương tác với khách hàng trên Messenger"</b> như skill ClawHub, rồi lấy token lại. Hoặc vào
                     <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/');return false" style="color:var(--accent)">App Dashboard</a>
                     &rarr; app &rarr; <b>Use cases</b> hoặc <b>App Review &gt; Permissions and Features</b> &rarr; tìm và thêm
                     <code>pages_manage_posts</code> + <code>pages_read_engagement</code>. Sau đó quay lại Graph API Explorer,

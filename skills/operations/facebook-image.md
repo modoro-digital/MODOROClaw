@@ -44,6 +44,13 @@ Buoc lay token va generate la tool call bat buoc truoc khi reply text. Neu chua 
 
 KHI CEO yeu cau dang bai Facebook:
 
+Ket noi Fanpage dung pattern da kiem chung tu ClawHub facebook-fanpage-manager:
+- Tao Meta App theo use case "Tuong tac voi khach hang tren Messenger".
+- Generate User Token voi `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`.
+- Goi `me/accounts?fields=id,name,tasks,access_token` de lay Page Access Token.
+- Chi dung Page Access Token de post vao `/{page-id}/feed` hoac `/{page-id}/photos`.
+- Neu Graph API Explorer chi hien `business_management` + `pages_show_list` thi token do chua du dang bai; huong CEO tao app moi theo use case tren.
+
 1. Lay token.
 2. Tao anh neu can theo flow tren.
 3. Soan caption phu hop.

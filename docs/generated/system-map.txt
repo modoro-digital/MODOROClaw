@@ -98,7 +98,7 @@ Dashboard Pages
 - zalo
 
 Large Source Files
-- electron/ui/dashboard.html: 459908 bytes
+- electron/ui/dashboard.html: 460415 bytes
 - electron/lib/dashboard-ipc.js: 224066 bytes
 - electron/lib/cron.js: 92332 bytes
 - electron/ui/wizard.html: 91127 bytes

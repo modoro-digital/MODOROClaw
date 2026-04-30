@@ -96,6 +96,11 @@ function formatPostUrl(compoundId) {
   return `https://www.facebook.com/${compoundId}`;
 }
 
+function hasPageCreateContentTask(tasks) {
+  if (!Array.isArray(tasks)) return true;
+  return tasks.includes('CREATE_CONTENT') || tasks.includes('PROFILE_PLUS_CREATE_CONTENT');
+}
+
 async function verifyToken(token) {
   if (!token || !String(token).trim()) {
     return { valid: false, error: 'Token Facebook trống.' };
@@ -104,7 +109,7 @@ async function verifyToken(token) {
   try {
     const data = await graphRequest('GET', '/me/accounts?fields=id,name,access_token,tasks&limit=25', token);
     if (data.data && data.data.length > 0) {
-      const page = data.data.find(p => p && p.access_token && (!Array.isArray(p.tasks) || p.tasks.includes('CREATE_CONTENT')));
+      const page = data.data.find(p => p && p.access_token && hasPageCreateContentTask(p.tasks));
       if (!page) {
         return { valid: false, error: 'Không tìm thấy Fanpage có quyền tạo nội dung. ' + requiredMsg };
       }
@@ -141,4 +146,4 @@ async function getRecentPosts(pageId, token, limit = 5) {
   return data.data || [];
 }
 
-module.exports = { verifyToken, postText, postPhoto, getRecentPosts };
+module.exports = { verifyToken, postText, postPhoto, getRecentPosts, _test: { hasPageCreateContentTask } };
