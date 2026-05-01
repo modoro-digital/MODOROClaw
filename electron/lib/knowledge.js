@@ -19,6 +19,7 @@ const { getWorkspace, auditLog, purgeAgentSessions } = require('./workspace');
 const { getBundledVendorDir, getBundledNodeBin } = require('./boot');
 const { call9Router, call9RouterVision } = require('./nine-router');
 const { writeJsonAtomic } = require('./util');
+const mediaLibrary = require('./media-library');
 
 // ---------------------------------------------------------------------------
 //  Embedder — lazy init (requires app.getPath + getBundledVendorDir at runtime)
@@ -746,6 +747,37 @@ Trả lời bằng tiếng Việt, dạng paragraph mô tả tự nhiên (KHÔNG
   return `[Ảnh: ${filename}]\n\n${result}`;
 }
 
+function hasEnoughPdfText(text) {
+  if (!text || String(text).trim().length < 200) return false;
+  const s = String(text);
+  const printable = (s.match(/[\x20-\x7E\u00C0-\u024F\u1E00-\u1EFF]/g) || []).length;
+  return printable / Math.max(1, s.length) >= 0.30;
+}
+
+async function describePdfScanForKnowledge(pdfPath, filename, options = {}) {
+  let result;
+  try {
+    result = await mediaLibrary.renderPdfPagesToMedia(pdfPath, {
+      title: path.basename(filename, path.extname(filename)),
+      visibility: options.visibility || 'public',
+      describe: true,
+      maxPages: Infinity,
+    });
+  } catch (e) {
+    throw new Error(mediaLibrary.localizeMediaError ? mediaLibrary.localizeMediaError(e) : e.message);
+  }
+  const ready = (result.assets || []).filter(a => a.description && a.status === 'ready');
+  if (ready.length === 0) {
+    const firstError = (result.assets || []).find(a => a.error)?.error || 'no page description generated';
+    throw new Error(mediaLibrary.localizeMediaError ? mediaLibrary.localizeMediaError(firstError) : firstError);
+  }
+  const parts = ready.map(a => {
+    const page = a.metadata?.page || '?';
+    return `=== PDF scan page ${page}/${result.pages} - ${filename} ===\n${a.description}`;
+  });
+  return `[PDF scan: ${filename}]\n\n${parts.join('\n\n')}`;
+}
+
 // ---------------------------------------------------------------------------
 //  summarizeKnowledgeContent
 // ---------------------------------------------------------------------------
@@ -1078,6 +1110,40 @@ function extractChunkPrice(text) {
   return Number.isFinite(n) ? n : null;
 }
 
+function mergeMediaSearchResults(query, rows, { limit = 3, audience = 'customer' } = {}) {
+  const base = Array.isArray(rows) ? rows.slice(0, limit) : [];
+  try {
+    const mediaHits = mediaLibrary.searchMediaAssets(query, { audience, limit });
+    const existing = new Set(base.map(r => r.media?.id).filter(Boolean));
+    for (const asset of mediaHits) {
+      if (existing.has(asset.id)) continue;
+      base.push({
+        id: `media:${asset.id}`,
+        chunk_id: null,
+        document_id: null,
+        chunk_index: 0,
+        filename: asset.filename,
+        snippet: asset.description || asset.title || asset.filename,
+        score: asset.score || 0,
+        media: {
+          id: asset.id,
+          type: asset.type,
+          title: asset.title,
+          filename: asset.filename,
+          relPath: asset.relPath,
+          mime: asset.mime,
+          visibility: asset.visibility,
+          tags: asset.tags || [],
+        },
+      });
+      if (base.length >= limit) break;
+    }
+  } catch (e) {
+    console.warn('[knowledge-search] media merge skipped:', e.message);
+  }
+  return base.slice(0, limit);
+}
+
 // ---------------------------------------------------------------------------
 //  Tier 2 helpers
 // ---------------------------------------------------------------------------
@@ -1170,7 +1236,7 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
   limit = Math.min(Math.max(parseInt(limit, 10) || 3, 1), 10);
   if (typeof query !== 'string' || !query.trim()) return [];
   const db = getDocumentsDb();
-  if (!db) return [];
+  if (!db) return mergeMediaSearchResults(query, [], { limit, audience });
   const _ragSearchStart = Date.now();
   const _queryHash = require('crypto').createHash('sha1').update(String(query || '')).digest('hex').slice(0, 10);
   let _ragTier = 'unknown';
@@ -1179,7 +1245,10 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
   let _priceFilterDropAll = false;
 
   if (_backfillInProgress) {
-    try { return searchKnowledgeFTS5({ query, category, limit, audience }, db); }
+    try {
+      const fts = searchKnowledgeFTS5({ query, category, limit, audience }, db);
+      return mergeMediaSearchResults(query, fts, { limit, audience });
+    }
     finally { try { db.close(); } catch {} }
   }
 
@@ -1236,7 +1305,7 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
         }
         console.log('[knowledge-search] no embeddings — falling back to FTS5');
         _ragTier = 'fts5-no-embed';
-        return searchKnowledgeFTS5({ query, category, limit, audience }, db);
+        return mergeMediaSearchResults(query, searchKnowledgeFTS5({ query, category, limit, audience }, db), { limit, audience });
       }
       _ragTier = 'hybrid-rrf';
 
@@ -1291,7 +1360,7 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
     } catch (e) {
       console.warn('[knowledge-search] vector search error, falling back to FTS5:', e.message);
       _ragTier = 'fts5-error';
-      return searchKnowledgeFTS5({ query, category, limit, audience }, db);
+      return mergeMediaSearchResults(query, searchKnowledgeFTS5({ query, category, limit, audience }, db), { limit, audience });
     }
     _top1 = scored[0]?.score || 0;
     _top2 = scored[1]?.score || 0;
@@ -1355,7 +1424,9 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
                   };
                 } catch { return null; }
               }).filter(Boolean).sort((a, b) => b.score - a.score);
-              if (rescored.length > 0 && rescored[0].score > scored[0].score) return rescored.slice(0, limit);
+              if (rescored.length > 0 && rescored[0].score > scored[0].score) {
+                return mergeMediaSearchResults(query, rescored.slice(0, limit), { limit, audience });
+              }
             }
           } catch (e) {
             console.warn('[knowledge-search] tier2 rewrite skipped:', e.message);
@@ -1391,7 +1462,7 @@ async function searchKnowledge({ query, category, limit, audience = 'customer' }
       }
     }
 
-    return scored.slice(0, limit);
+    return mergeMediaSearchResults(query, scored.slice(0, limit), { limit, audience });
   } finally {
     try { db.close(); } catch {}
     try {
@@ -1573,7 +1644,7 @@ function cleanupKnowledgeServer() {
 // ---------------------------------------------------------------------------
 //  extractTextFromFile
 // ---------------------------------------------------------------------------
-async function extractTextFromFile(filepath, filename) {
+async function extractTextFromFile(filepath, filename, options = {}) {
   const ext = path.extname(filename).toLowerCase();
 
   if (ext === '.txt' || ext === '.md' || ext === '.csv') {
@@ -1585,8 +1656,12 @@ async function extractTextFromFile(filepath, filename) {
       const pdfParse = require('pdf-parse');
       const buf = fs.readFileSync(filepath);
       const data = await pdfParse(buf);
-      return data.text;
-    } catch (e) { return `[PDF extract failed: ${e.message}]`; }
+      if (hasEnoughPdfText(data.text)) return data.text;
+      return await describePdfScanForKnowledge(filepath, filename, options);
+    } catch (e) {
+      const msg = mediaLibrary.localizeMediaError ? mediaLibrary.localizeMediaError(e) : e.message;
+      return `[PDF extract failed: ${msg}]`;
+    }
   }
 
   if (ext === '.docx') {

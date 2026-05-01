@@ -110,6 +110,7 @@ graphify-out/
 .graphify_python
 .graphifyignore
 .playwright-mcp/
+.superpowers/
 
 # Root package.json (app is in electron/)
 /package.json

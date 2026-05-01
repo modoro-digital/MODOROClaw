@@ -19,9 +19,14 @@
     "guard:api-docs": "node scripts/check-api-doc-drift.js",
     "guard:bundle": "node scripts/check-bundle-size.js",
     "guard:google-sheets": "node scripts/check-google-sheets-route.js",
+    "guard:google-calendar": "node scripts/check-google-calendar-route.js",
+    "guard:gmail-inbox": "node scripts/check-gmail-inbox-normalizer.js",
+    "guard:openclaw-launchers": "node scripts/check-openclaw-launchers.js",
+    "guard:premium-theme": "node scripts/check-premium-theme-no-updates.js",
     "guard:facebook": "node scripts/check-facebook-publisher.js",
     "guard:image-generation": "node scripts/check-image-generation-route.js",
-    "guard:architecture": "npm run map:check && npm run guard:contracts && npm run guard:api-docs && npm run guard:google-sheets && npm run guard:facebook && npm run guard:image-generation && npm run guard:bundle",
+    "guard:media-library": "node scripts/check-media-library-contract.js",
+    "guard:architecture": "npm run map:check && npm run guard:contracts && npm run guard:api-docs && npm run guard:google-sheets && npm run guard:google-calendar && npm run guard:gmail-inbox && npm run guard:openclaw-launchers && npm run guard:premium-theme && npm run guard:facebook && npm run guard:image-generation && npm run guard:media-library && npm run guard:bundle",
     "prebuild:models": "node scripts/prebuild-models.js",
     "prebuild:vendor": "node scripts/prebuild-models.js && node scripts/prebuild-vendor.js",
     "build:win": "npm run prebuild:vendor && npm run smoke && electron-builder --win && node scripts/fix-artifact-name.js && node scripts/check-bundle-size.js --strict",
@@ -170,6 +175,7 @@
     "asarUnpack": [
       "**/*.node",
       "**/better-sqlite3/**",
+      "**/sharp/**",
       "**/pdf-parse/**",
       "**/mammoth/**",
       "scripts/**"

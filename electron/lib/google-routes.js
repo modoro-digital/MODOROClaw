@@ -95,11 +95,30 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/calendar/create') {
+      if (isZalo) return jsonResp(res, 403, { error: 'Google Calendar create not allowed from Zalo channel' });
       if (!params.summary || !params.start || !params.end) return jsonResp(res, 400, { error: 'summary, start, end required' });
       const r = await googleApi.createEvent(params.summary, params.start, params.end, params.attendees, params.calendarId);
       return jsonResp(res, 200, r);
     }
+    if (urlPath === '/calendar/update') {
+      if (isZalo) return jsonResp(res, 403, { error: 'Google Calendar update not allowed from Zalo channel' });
+      if (!params.eventId) return jsonResp(res, 400, { error: 'eventId required' });
+      const updates = {
+        summary: params.summary,
+        start: params.start,
+        end: params.end,
+        description: params.description,
+        location: params.location,
+        attendees: params.attendees,
+        sendUpdates: params.sendUpdates,
+      };
+      const hasUpdate = Object.entries(updates).some(([key, value]) => key !== 'sendUpdates' && value !== undefined);
+      if (!hasUpdate) return jsonResp(res, 400, { error: 'at least one update field required' });
+      const r = await googleApi.updateEvent(params.eventId, updates, params.calendarId);
+      return jsonResp(res, 200, r);
+    }
     if (urlPath === '/calendar/delete') {
+      if (isZalo) return jsonResp(res, 403, { error: 'Google Calendar delete not allowed from Zalo channel' });
       if (!params.eventId) return jsonResp(res, 400, { error: 'eventId required' });
       const r = await googleApi.deleteEvent(params.eventId, params.calendarId);
       return jsonResp(res, 200, r);

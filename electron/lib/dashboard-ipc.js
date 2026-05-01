@@ -68,6 +68,7 @@ const {
   substituteApptTemplate, defaultApptPushTemplate, buildApptReminderText,
   fireApptPushTarget, startAppointmentDispatcher, apptDispatcherTick,
 } = require('./appointments');
+const mediaLibrary = require('./media-library');
 const {
   getZcaProfile, getZcaCacheDir, getZcaCacheDirForProfile,
   readZaloChannelState, isZaloTargetAllowed, isKnownZaloTarget,
@@ -2811,15 +2812,12 @@ ipcMain.handle('set-app-prefs', async (_e, partial) => {
 // ─── Brand Assets IPC ────────────────────────────────────────────
 ipcMain.handle('list-brand-assets', async () => {
   try {
-    const dir = getBrandAssetsDir();
-    if (!fs.existsSync(dir)) return [];
-    return fs.readdirSync(dir).filter(f => {
-      const ext = path.extname(f).toLowerCase();
-      return BRAND_ASSET_FORMATS.includes(ext) && fs.statSync(path.join(dir, f)).isFile();
-    }).map(f => {
-      const filePath = path.join(dir, f);
+    mediaLibrary.backfillLegacyBrandAssets();
+    return mediaLibrary.listMediaAssets({ type: 'brand' }).map(asset => {
+      const filePath = asset.path;
+      if (!filePath || !fs.existsSync(filePath)) return null;
       const stat = fs.statSync(filePath);
-      const ext = path.extname(f).toLowerCase();
+      const ext = path.extname(filePath).toLowerCase();
       const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
       let thumbDataUrl = '';
       try {
@@ -2828,8 +2826,8 @@ ipcMain.handle('list-brand-assets', async () => {
           thumbDataUrl = `data:${mime};base64,${buf.toString('base64')}`;
         }
       } catch {}
-      return { name: f, size: stat.size, thumbDataUrl };
-    });
+      return { id: asset.id, name: asset.filename, title: asset.title, size: stat.size, thumbDataUrl };
+    }).filter(Boolean);
   } catch { return []; }
 });
 
@@ -2843,7 +2841,16 @@ ipcMain.handle('upload-brand-asset', async (_event, filePath, name) => {
     if (!BRAND_ASSET_FORMATS.includes(ext)) return { success: false, error: 'only png/jpg/webp allowed' };
     const buf = fs.readFileSync(filePath);
     if (buf.length > BRAND_ASSET_MAX_SIZE) return { success: false, error: 'file too large (max 10MB)' };
-    fs.writeFileSync(path.join(dir, safeName), buf);
+    const dst = path.join(dir, safeName);
+    fs.writeFileSync(dst, buf);
+    try {
+      mediaLibrary.registerExistingMediaFile(dst, {
+        type: 'brand',
+        visibility: 'internal',
+        source: 'dashboard-brand-upload',
+        status: 'indexed',
+      });
+    } catch (e) { console.warn('[media] brand upload register failed:', e.message); }
     return { success: true, name: safeName };
   } catch (e) { return { success: false, error: e.message }; }
 });
@@ -2851,6 +2858,8 @@ ipcMain.handle('upload-brand-asset', async (_event, filePath, name) => {
 ipcMain.handle('delete-brand-asset', async (_event, name) => {
   try {
     const dir = getBrandAssetsDir();
+    const asset = mediaLibrary.findMediaAsset(name);
+    if (asset) return mediaLibrary.deleteMediaAsset(asset.id);
     if (!isPathSafe(dir, name)) return { success: false };
     const fp = path.resolve(dir, name);
     if (fs.existsSync(fp)) fs.unlinkSync(fp);
@@ -2863,6 +2872,47 @@ ipcMain.handle('pick-brand-asset-file', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Chọn ảnh tài sản thương hiệu',
     filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    properties: ['openFile', 'multiSelections']
+  });
+  return result.canceled ? [] : result.filePaths;
+});
+
+ipcMain.handle('list-media-assets', async (_event, filters = {}) => {
+  try {
+    mediaLibrary.backfillLegacyBrandAssets();
+    return mediaLibrary.listMediaAssets(filters || {});
+  } catch { return []; }
+});
+
+ipcMain.handle('upload-media-asset', async (_event, { filePath, type = 'product', title = '', tags = '', visibility } = {}) => {
+  try {
+    const asset = mediaLibrary.importMediaFile(filePath, { type, title, tags, visibility });
+    if (!asset.description) {
+      mediaLibrary.describeMediaAsset(asset.id).catch(e => {
+        console.warn('[media] async describe failed:', e.message);
+      });
+    }
+    return { success: true, asset };
+  } catch (e) { return { success: false, error: mediaLibrary.localizeMediaError(e) }; }
+});
+
+ipcMain.handle('describe-media-asset', async (_event, id) => {
+  try {
+    const asset = await mediaLibrary.describeMediaAsset(id);
+    return { success: true, asset };
+  } catch (e) { return { success: false, error: mediaLibrary.localizeMediaError(e) }; }
+});
+
+ipcMain.handle('delete-media-asset', async (_event, id) => {
+  try { return mediaLibrary.deleteMediaAsset(id); }
+  catch (e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('pick-media-asset-file', async () => {
+  const { dialog } = require('electron');
+  const result = await dialog.showOpenDialog({
+    title: 'Chọn ảnh tài sản hình ảnh',
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
     properties: ['openFile', 'multiSelections']
   });
   return result.canceled ? [] : result.filePaths;
@@ -2946,7 +2996,7 @@ ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipie
 
 ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, originalName, visibility = 'public' }) => {
   if (!['public', 'internal', 'private'].includes(visibility)) {
-    return { success: false, error: 'Invalid visibility value' };
+    return { success: false, error: 'Chế độ hiển thị không hợp lệ. Vui lòng chọn Công khai, Nội bộ hoặc Chỉ CEO.' };
   }
   try {
     if (!KNOWLEDGE_CATEGORIES.includes(category)) {
@@ -2966,11 +3016,15 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
     const dst = path.join(filesDir, finalName);
     fs.copyFileSync(filepath, dst);
 
-    const content = await extractTextFromFile(dst, finalName);
+    const content = await extractTextFromFile(dst, finalName, { visibility });
     if (content && /^\[(PDF|DOCX|Excel) extract failed: /.test(content)) {
       try { fs.unlinkSync(dst); } catch {}
       const errMsg = content.replace(/^\[/, '').replace(/\]$/, '');
-      return { success: false, error: `Khong doc duoc file: ${errMsg}. Vui long kiem tra file va thu lai.` };
+      const prettyErr = errMsg.replace(/^(PDF|DOCX|Excel) extract failed:\s*/i, '').trim();
+      return {
+        success: false,
+        error: `Không đọc được file "${finalName}": ${prettyErr}. Vui lòng kiểm tra 9Router/model vision hoặc thử export lại PDF rồi upload lại.`,
+      };
     }
     // R3-F7: reject mostly-binary / OCR-garbage content. Scanned receipts
     // extracted by pdf-parse often return strings like "¶▶Ω≈∑ I p h O N e"
@@ -2996,6 +3050,22 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
     const wordCount = content ? content.split(/\s+/).length : 0;
     const filetype = path.extname(finalName).toLowerCase().replace('.', '');
     const summary = await summarizeKnowledgeContent(content, finalName);
+    const isKnowledgeImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(filetype);
+    let mediaAsset = null;
+    if (isKnowledgeImage) {
+      try {
+        mediaAsset = mediaLibrary.registerExistingMediaFile(dst, {
+          type: 'knowledge_image',
+          visibility,
+          title: path.basename(finalName, path.extname(finalName)),
+          description: content || '',
+          source: 'knowledge-upload',
+          status: content ? 'ready' : 'needs_vision',
+        });
+      } catch (e) {
+        console.warn('[knowledge] media register failed:', e.message);
+      }
+    }
 
     let dbWarning = null;
     const db = getDocumentsDb();
@@ -3059,7 +3129,7 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
 
     rewriteKnowledgeIndex(category);
     purgeAgentSessions('knowledge-upload');
-    return { success: true, filename: finalName, summary, wordCount, dbWarning };
+    return { success: true, filename: finalName, summary, wordCount, dbWarning, mediaAsset };
   } catch (e) {
     console.error('[knowledge] upload error:', e.message);
     return { success: false, error: e.message };
@@ -4594,6 +4664,17 @@ ipcMain.handle('download-and-install-update', async () => {
       if (!opts?.summary || !opts?.start || !opts?.end) return { error: 'summary, start, end required' };
       const r = await googleApi.createEvent(opts.summary, opts.start, opts.end, opts.attendees, opts.calendarId);
       try { auditLog('google_calendar_create', { summary: opts.summary }); } catch {}
+      return r;
+    } catch (e) { return { error: e.message }; }
+  });
+  ipcMain.handle('google-calendar-update', async (_ev, opts) => {
+    try {
+      if (!opts?.eventId) return { error: 'eventId required' };
+      const hasUpdate = ['summary', 'start', 'end', 'description', 'location', 'attendees']
+        .some(key => opts[key] !== undefined);
+      if (!hasUpdate) return { error: 'at least one update field required' };
+      const r = await googleApi.updateEvent(opts.eventId, opts, opts.calendarId);
+      try { auditLog('google_calendar_update', { eventId: opts.eventId, summary: opts.summary }); } catch {}
       return r;
     } catch (e) { return { error: e.message }; }
   });

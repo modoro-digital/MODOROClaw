@@ -609,16 +609,45 @@ async function call9Router(prompt, { maxTokens = 200, temperature = 0.3, timeout
   } catch { return null; }
 }
 
+function format9RouterVisionError(statusCode, responseBody) {
+  let providerMessage = String(responseBody || '').trim();
+  try {
+    const parsed = JSON.parse(providerMessage);
+    providerMessage = parsed?.error?.message || parsed?.message || providerMessage;
+  } catch {}
+  const msg = providerMessage || `HTTP ${statusCode}`;
+  if (/429|weekly usage limit|rate/i.test(msg)) {
+    return `9Router/model vision báo lỗi 429: tài khoản hoặc model đã hết hạn mức sử dụng. Chi tiết gốc: ${msg}`;
+  }
+  if (/401|invalidated|unauthor/i.test(msg)) {
+    return `9Router/model vision báo lỗi xác thực: token hoặc API key không còn hợp lệ. Chi tiết gốc: ${msg}`;
+  }
+  if (/tool choice|tool_choice/i.test(msg)) {
+    return `9Router/model vision báo lỗi cấu hình tool_choice. Chi tiết gốc: ${msg}`;
+  }
+  if (/does not represent a valid image|valid image/i.test(msg)) {
+    return `9Router/model vision báo lỗi ảnh không hợp lệ: dữ liệu ảnh gửi lên không đọc được. Chi tiết gốc: ${msg}`;
+  }
+  return `9Router/model vision trả lỗi HTTP ${statusCode}. Chi tiết gốc: ${msg}`;
+}
+
 // Vision-capable 9Router call: sends image as base64 alongside a text prompt.
-// Returns response text or null on failure.
-async function call9RouterVision(imagePath, prompt, { maxTokens = 1500, temperature = 0.2, timeoutMs = 30000 } = {}) {
+// Returns response text or null on failure. Set throwOnError to surface a
+// Vietnamese, provider-specific error to the Dashboard.
+async function call9RouterVision(imagePath, prompt, { maxTokens = 1500, temperature = 0.2, timeoutMs = 30000, throwOnError = false } = {}) {
   try {
     const stat = fs.statSync(imagePath);
-    if (stat.size > 20 * 1024 * 1024) return null; // skip images > 20MB
+    if (stat.size > 20 * 1024 * 1024) {
+      if (throwOnError) throw new Error('Ảnh quá lớn để gửi cho model vision. Giới hạn hiện tại là 20MB mỗi ảnh.');
+      return null;
+    }
 
     const config = JSON.parse(fs.readFileSync(path.join(ctx.HOME, '.openclaw', 'openclaw.json'), 'utf-8'));
     const provider = config?.models?.providers?.ninerouter;
-    if (!provider?.baseUrl || !provider?.apiKey) return null;
+    if (!provider?.baseUrl || !provider?.apiKey) {
+      if (throwOnError) throw new Error('Chưa cấu hình 9Router/API key cho model vision.');
+      return null;
+    }
     let modelName = 'auto';
     try {
       const def = config?.agents?.defaults?.model;
@@ -648,7 +677,7 @@ async function call9RouterVision(imagePath, prompt, { maxTokens = 1500, temperat
       temperature,
     });
     const url = new URL(provider.baseUrl + '/chat/completions');
-    return await new Promise((resolve) => {
+    return await new Promise((resolve, reject) => {
       const req = http.request({
         hostname: url.hostname,
         port: url.port || 80,
@@ -666,6 +695,10 @@ async function call9RouterVision(imagePath, prompt, { maxTokens = 1500, temperat
         res.on('end', () => {
           if (res.statusCode !== 200) {
             console.error('[call9RouterVision] HTTP ' + res.statusCode + ': ' + data.substring(0, 200));
+            if (throwOnError) {
+              reject(new Error(format9RouterVisionError(res.statusCode, data)));
+              return;
+            }
             resolve(null);
             return;
           }
@@ -676,12 +709,22 @@ async function call9RouterVision(imagePath, prompt, { maxTokens = 1500, temperat
           } catch { resolve(null); }
         });
       });
-      req.on('error', () => resolve(null));
-      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.on('error', (error) => {
+        if (throwOnError) reject(new Error(`Không kết nối được 9Router/model vision: ${error.message}`));
+        else resolve(null);
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        if (throwOnError) reject(new Error(`Model vision phản hồi quá lâu sau ${Math.round(timeoutMs / 1000)} giây.`));
+        else resolve(null);
+      });
       req.write(body);
       req.end();
     });
-  } catch { return null; }
+  } catch (error) {
+    if (throwOnError) throw error;
+    return null;
+  }
 }
 
 // Detect whether 9Router is configured with a ChatGPT Plus OAuth provider.
@@ -710,5 +753,6 @@ module.exports = {
   start9Router, stop9Router, nineRouterApi, autoFix9RouterSqlite,
   waitFor9RouterReady, validateOllamaKeyDirect,
   call9Router, call9RouterVision, detectChatgptPlusOAuth,
+  format9RouterVisionError,
   getRouterProcess, setKillPort,
 };

@@ -4,9 +4,10 @@ const path = require('path');
 const { isPathSafe, writeJsonAtomic } = require('./util');
 const { getWorkspace, getBrandAssetsDir, readFbConfig, purgeAgentSessions, auditLog, BRAND_ASSET_FORMATS, BRAND_ASSET_MAX_SIZE } = require('./workspace');
 const { _withCustomCronLock, loadCustomCrons, getCustomCronsPath, restartCronJobs } = require('./cron');
-const { sendCeoAlert, sendZaloTo, sendTelegram, sendTelegramPhoto } = require('./channels');
+const { sendCeoAlert, sendZaloTo, sendZaloMediaTo, sendTelegram, sendTelegramPhoto } = require('./channels');
 const { getZcaCacheDir } = require('./zalo-memory');
-const { refreshCronApiTokenInAgents } = require('./cron-api-token');
+const { stripCronApiTokenFromAgents } = require('./cron-api-token');
+const mediaLibrary = require('./media-library');
 
 let shell;
 try { shell = require('electron').shell; } catch {}
@@ -49,6 +50,30 @@ function refreshCronApiTokenInCustomCrons(token) {
   }
 }
 
+function redactSecrets(value) {
+  if (typeof value === 'string') {
+    return value
+      .replace(/(token=)[a-f0-9]{48}\b/gi, '$1<redacted>')
+      .replace(/((?:Dùng|Dung|Use)\s+token:\s*)[a-f0-9]{48}\b/giu, '$1<redacted>')
+      .replace(/(bot_token=)[^&\s"']+/gi, '$1<redacted>');
+  }
+  if (Array.isArray(value)) return value.map(redactSecrets);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [key, child] of Object.entries(value)) out[key] = redactSecrets(child);
+    return out;
+  }
+  return value;
+}
+
+function resolveZaloIsGroup({ groupId, groupName, friendName, isGroupParam }) {
+  if (friendName) return false;
+  if (groupId || groupName) return true;
+  if (isGroupParam === true || isGroupParam === 'true') return true;
+  if (isGroupParam === false || isGroupParam === 'false') return false;
+  return false;
+}
+
 function startCronApi() {
   if (_cronApiServer) return;
   const http = require('http');
@@ -67,13 +92,13 @@ function startCronApi() {
     const agentsPath = ws && path.join(ws, 'AGENTS.md');
     if (agentsPath && fs.existsSync(agentsPath)) {
       const content = fs.readFileSync(agentsPath, 'utf-8');
-      const nextContent = refreshCronApiTokenInAgents(content, _cronApiToken);
+      const nextContent = stripCronApiTokenFromAgents(content);
       if (nextContent !== content) {
         fs.writeFileSync(agentsPath, nextContent, 'utf-8');
-        console.log('[cron-api] refreshed token in AGENTS.md');
+        console.log('[cron-api] removed stale API token from AGENTS.md');
       }
     }
-  } catch (e) { console.error('[cron-api] AGENTS.md token refresh failed:', e.message); }
+  } catch (e) { console.error('[cron-api] AGENTS.md token cleanup failed:', e.message); }
 
   function loadFriendsList() {
     try {
@@ -175,10 +200,11 @@ function startCronApi() {
     const urlPath = (new URL(req.url, 'http://127.0.0.1')).pathname;
     const params = await parseBody(req);
 
-    // Token-free: read-only endpoints. Write/exec endpoints REQUIRE token.
+    // Token bootstrap is the only token-free endpoint. Read/list endpoints also
+    // require token because they can expose cron prompts, local IDs, or logs.
     // Token bootstrap: /api/auth/token requires Telegram bot token as proof
     // (prevents Zalo-originated prompt injection from acquiring the cron API token).
-    const tokenFreeEndpoints = ['/api/cron/list', '/api/workspace/read', '/api/workspace/list', '/api/auth/token', '/api/zalo/friends', '/api/google/status'];
+    const tokenFreeEndpoints = ['/api/auth/token'];
     const requiresToken = !tokenFreeEndpoints.includes(urlPath);
     if (requiresToken && params.token !== _cronApiToken) {
       return jsonResp(res, 403, { error: 'invalid or missing token. Call /api/auth/token with your telegram bot_token to get the cron-api token.' });
@@ -369,7 +395,7 @@ function startCronApi() {
 
     } else if (urlPath === '/api/cron/list') {
       try {
-        const crons = loadCustomCrons();
+        const crons = redactSecrets(loadCustomCrons());
         const { byId } = loadGroupsMap();
         const resp = { crons, groups: Object.entries(byId).map(([id, name]) => ({ id, name })) };
         return jsonResp(res, 200, resp);
@@ -431,7 +457,7 @@ function startCronApi() {
       try {
         const fullPath = path.join(ws, reqPath);
         if (!fs.existsSync(fullPath)) return jsonResp(res, 404, { error: 'file not found: ' + reqPath });
-        const content = fs.readFileSync(fullPath, 'utf-8');
+        const content = redactSecrets(fs.readFileSync(fullPath, 'utf-8'));
         return jsonResp(res, 200, { path: reqPath, content, size: Buffer.byteLength(content) });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
@@ -517,7 +543,7 @@ function startCronApi() {
       if (!tId) return jsonResp(res, 400, { error: 'groupId, targetId, groupName, or friendName required' });
       if (!text) return jsonResp(res, 400, { error: 'text required' });
       if (String(text).length > 5000) return jsonResp(res, 400, { error: 'text too long (max 5000 chars)' });
-      const isGroup = friendName ? false : (isGroupParam !== 'false' && isGroupParam !== false);
+      const isGroup = resolveZaloIsGroup({ groupId, groupName, friendName, isGroupParam });
       const { byId } = loadGroupsMap();
       if (isGroup && !byId[String(tId)]) {
         return jsonResp(res, 400, { error: 'unknown groupId: ' + tId + '. Check /api/cron/list for available groups.' });
@@ -530,6 +556,56 @@ function startCronApi() {
         } else {
           return jsonResp(res, 500, { success: false, error: 'sendZaloTo returned null — check listener status, target validity, or channel pause state' });
         }
+      } catch (e) {
+        return jsonResp(res, 500, { success: false, error: String(e?.message || e).slice(0, 300) });
+      }
+
+    } else if (urlPath === '/api/zalo/send-media') {
+      const { groupId, targetId: rawTargetId, groupName, friendName, mediaId, caption, isGroup: isGroupParam } = params;
+      let tId = groupId || rawTargetId;
+      if (!tId && groupName) {
+        const { byName } = loadGroupsMap();
+        tId = byName[String(groupName).toLowerCase()];
+        if (!tId) return jsonResp(res, 400, { error: 'unknown groupName: ' + groupName + '. Check /api/cron/list for available groups.' });
+      }
+      if (!tId && friendName) {
+        const q = String(friendName).trim().toLowerCase();
+        const friends = loadFriendsList();
+        const matches = friends.filter(f =>
+          f.displayName.toLowerCase().includes(q) || f.zaloName.toLowerCase().includes(q)
+        );
+        if (matches.length === 1) {
+          tId = matches[0].userId;
+        } else if (matches.length > 1) {
+          return jsonResp(res, 400, { error: 'Multiple friends match "' + friendName + '": ' + matches.map(f => f.displayName + ' (' + f.userId + ')').join(', ') + '. Use targetId to specify.' });
+        } else {
+          return jsonResp(res, 400, { error: 'No friend found matching "' + friendName + '". Call /api/zalo/friends to see all friends.' });
+        }
+      }
+      if (!tId) return jsonResp(res, 400, { error: 'groupId, targetId, groupName, or friendName required' });
+      const isGroup = resolveZaloIsGroup({ groupId, groupName, friendName, isGroupParam });
+      const { byId } = loadGroupsMap();
+      if (isGroup && !byId[String(tId)]) {
+        return jsonResp(res, 400, { error: 'unknown groupId: ' + tId + '. Check /api/cron/list for available groups.' });
+      }
+      let absPath = '';
+      let asset = null;
+      if (!mediaId) {
+        return jsonResp(res, 400, { error: 'send-media requires mediaId from Media Library. Raw filePath/imagePath is blocked.' });
+      }
+      asset = mediaLibrary.findMediaAsset(String(mediaId));
+      if (!asset) return jsonResp(res, 404, { error: 'media asset not found' });
+      if (asset.visibility !== 'public' && params.allowInternal !== 'true') {
+        return jsonResp(res, 403, { error: 'media asset is not public' });
+      }
+      absPath = asset.path;
+      try {
+        const ok = await sendZaloMediaTo({ id: String(tId), isGroup }, absPath, { caption: caption || asset?.title || '' });
+        if (ok) {
+          console.log(`[cron-api] /api/zalo/send-media OK → ${isGroup ? 'group' : 'user'} ${tId}`);
+          return jsonResp(res, 200, { success: true, targetId: String(tId), isGroup, mediaId: asset?.id || null, mode: ok.mode || null });
+        }
+        return jsonResp(res, 500, { success: false, error: 'sendZaloMediaTo returned null — check listener status, target validity, media path, or channel pause state' });
       } catch (e) {
         return jsonResp(res, 500, { success: false, error: String(e?.message || e).slice(0, 300) });
       }
@@ -842,12 +918,8 @@ function startCronApi() {
     // ─── Brand Assets API ──────────────────────────────────────────
     } else if (urlPath === '/api/brand-assets/list') {
       try {
-        const dir = getBrandAssetsDir();
-        if (!fs.existsSync(dir)) return jsonResp(res, 200, { files: [] });
-        const files = fs.readdirSync(dir).filter(f => {
-          const ext = path.extname(f).toLowerCase();
-          return BRAND_ASSET_FORMATS.includes(ext) && fs.statSync(path.join(dir, f)).isFile();
-        });
+        mediaLibrary.backfillLegacyBrandAssets();
+        const files = mediaLibrary.listBrandAssetNames();
         return jsonResp(res, 200, { files });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
@@ -864,11 +936,75 @@ function startCronApi() {
       try {
         const buf = Buffer.from(b64Data, 'base64');
         if (buf.length > BRAND_ASSET_MAX_SIZE) return jsonResp(res, 400, { error: 'file too large (max 10MB)' });
-        fs.writeFileSync(path.join(dir, safeName), buf);
+        const outPath = path.join(dir, safeName);
+        fs.writeFileSync(outPath, buf);
+        try {
+          mediaLibrary.registerExistingMediaFile(outPath, {
+            type: 'brand',
+            visibility: 'internal',
+            source: 'brand-assets-api',
+            status: 'indexed',
+          });
+        } catch (e) { console.warn('[media] brand asset register failed:', e.message); }
         return jsonResp(res, 200, { ok: true, name: safeName, sizeBytes: buf.length });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
     // ─── Image Generation API ────────────────────────────────────
+    } else if (urlPath === '/api/media/list') {
+      try {
+        mediaLibrary.backfillLegacyBrandAssets();
+        const files = mediaLibrary.listMediaAssets({
+          type: params.type || undefined,
+          visibility: params.visibility || undefined,
+          audience: params.audience || 'customer',
+        });
+        return jsonResp(res, 200, { files });
+      } catch (e) { return jsonResp(res, 500, { error: e.message }); }
+
+    } else if (urlPath === '/api/media/search') {
+      try {
+        const q = String(params.q || params.query || '').trim();
+        if (!q) return jsonResp(res, 400, { error: 'query required' });
+        const results = mediaLibrary.searchMediaAssets(q, {
+          type: params.type || undefined,
+          audience: params.audience || 'customer',
+          limit: params.limit || params.max || 5,
+        });
+        return jsonResp(res, 200, { query: q, results });
+      } catch (e) { return jsonResp(res, 500, { error: e.message }); }
+
+    } else if (urlPath === '/api/media/upload') {
+      if (req.method !== 'POST') return jsonResp(res, 405, { error: 'POST only' });
+      try {
+        const src = String(params.filePath || params.path || '').trim();
+        if (!src) return jsonResp(res, 400, { error: 'filePath required' });
+        const asset = mediaLibrary.importMediaFile(src, {
+          type: params.type || 'product',
+          visibility: params.visibility,
+          title: params.title,
+          tags: params.tags,
+          aliases: params.aliases,
+          sku: params.sku,
+          description: params.description,
+        });
+        const shouldDescribe = params.describe !== 'false' && !asset.description;
+        if (shouldDescribe) {
+          mediaLibrary.describeMediaAsset(asset.id).catch(e => {
+            console.error('[media] async describe failed:', e.message);
+          });
+        }
+        return jsonResp(res, 200, { success: true, asset, describing: shouldDescribe });
+      } catch (e) { return jsonResp(res, 500, { success: false, error: e.message }); }
+
+    } else if (urlPath === '/api/media/describe') {
+      if (req.method !== 'POST') return jsonResp(res, 405, { error: 'POST only' });
+      try {
+        const id = String(params.id || params.mediaId || '').trim();
+        if (!id) return jsonResp(res, 400, { error: 'id required' });
+        const asset = await mediaLibrary.describeMediaAsset(id);
+        return jsonResp(res, 200, { success: true, asset });
+      } catch (e) { return jsonResp(res, 500, { success: false, error: e.message }); }
+
     } else if (urlPath === '/api/image/generate') {
       const { prompt, assets, size } = params;
       if (!prompt) return jsonResp(res, 400, { error: 'prompt required' });
@@ -952,7 +1088,7 @@ function startCronApi() {
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
     } else {
-      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/image/generate', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent'] });
+      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/zalo/send-media', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/media/list', '/api/media/search', '/api/media/upload', '/api/media/describe', '/api/image/generate', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent'] });
     }
   });
 

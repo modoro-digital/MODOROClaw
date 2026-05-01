@@ -1492,12 +1492,31 @@ try {
   }
   const tokenUtil = require('../lib/cron-api-token');
   const fakeToken = 'a'.repeat(48);
-  const refreshed = tokenUtil.refreshCronApiTokenInAgents('Before\n## Google Workspace\nAfter\n', fakeToken);
-  if (!refreshed.includes('9bizclaw-cron-api-token:start') || !refreshed.includes('Dung token: ' + fakeToken)) {
-    fail('cron-api token AGENTS injection', 'cron-api-token.js does not inject the current token into AGENTS.md when no placeholder exists');
+  const staleAgents = [
+    'Before',
+    '<!-- 9bizclaw-cron-api-token:start -->',
+    'Dung token: ' + fakeToken,
+    '<!-- 9bizclaw-cron-api-token:end -->',
+    'After token=' + fakeToken,
+  ].join('\n');
+  const refreshed = tokenUtil.refreshCronApiTokenInAgents(staleAgents, fakeToken);
+  if (refreshed.includes(fakeToken) || refreshed.includes('9bizclaw-cron-api-token:start')) {
+    fail('cron-api token AGENTS sanitization', 'cron-api-token.js must remove stale live tokens from AGENTS.md, not inject or refresh them');
   } else {
-    pass('cron-api token injected into AGENTS.md');
+    pass('cron-api token is not injected into AGENTS.md');
   }
+  if (/refreshCronApiTokenInAgents/.test(cronApiSrc)) {
+    fail('cron-api token AGENTS write', 'cron-api.js still references refreshCronApiTokenInAgents');
+  } else {
+    pass('cron-api.js does not write live token into AGENTS.md');
+  }
+  for (const forbiddenOpenRoute of ['/api/cron/list', '/api/workspace/read', '/api/workspace/list', '/api/zalo/friends', '/api/google/status']) {
+    const routePattern = new RegExp(`tokenFreeEndpoints\\s*=\\s*\\[[^\\]]*['"]${forbiddenOpenRoute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`, 's');
+    if (routePattern.test(cronApiSrc)) {
+      fail('cron-api token-free endpoints', `${forbiddenOpenRoute} must require token`);
+    }
+  }
+  pass('cron-api sensitive read/list endpoints require token');
   // Localhost-only binding
   if (!/127\.0\.0\.1/.test(cronApiSrc) && !/localhost/.test(cronApiSrc)) {
     fail('cron-api binding', 'cron-api.js does not bind to 127.0.0.1/localhost — API exposed to network');

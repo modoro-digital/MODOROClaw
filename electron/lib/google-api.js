@@ -210,6 +210,35 @@ async function createEvent(summary, start, end, attendees, calendarId) {
   return gogExec(args);
 }
 
+const CALENDAR_UPDATE_FIELDS = ['summary', 'start', 'end', 'description', 'location', 'attendees'];
+
+function hasCalendarUpdateField(opts) {
+  return CALENDAR_UPDATE_FIELDS.some(key => opts && opts[key] !== undefined);
+}
+
+function buildUpdateEventArgs(eventId, updates, calendarId) {
+  if (!eventId) throw new Error('eventId required');
+  const opts = updates || {};
+  if (!hasCalendarUpdateField(opts)) throw new Error('at least one update field required');
+  const args = ['calendar', 'update', calendarId || 'primary', eventId];
+  if (opts.summary !== undefined) args.push('--summary', String(opts.summary));
+  if (opts.start !== undefined) args.push('--from', String(opts.start));
+  if (opts.end !== undefined) args.push('--to', String(opts.end));
+  if (opts.description !== undefined) args.push('--description', String(opts.description));
+  if (opts.location !== undefined) args.push('--location', String(opts.location));
+  if (opts.attendees !== undefined) {
+    const attendees = Array.isArray(opts.attendees) ? opts.attendees.join(',') : String(opts.attendees || '');
+    args.push('--attendees', attendees);
+  }
+  args.push('--send-updates', opts.sendUpdates || 'none');
+  return args;
+}
+
+async function updateEvent(eventId, updates, calendarId) {
+  const args = buildUpdateEventArgs(eventId, updates, calendarId);
+  return gogExec(args, 30000);
+}
+
 async function deleteEvent(eventId, calendarId) {
   return gogExec(['calendar', 'delete', calendarId || 'primary', eventId]);
 }
@@ -245,12 +274,188 @@ async function getFreeSlots(date, workStart, workEnd, slotMinutes) {
 
 // --- Gmail ---
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'string' && value.trim() === '') continue;
+    return value;
+  }
+  return '';
+}
+
+function normalizeHeaderValue(value) {
+  if (value === undefined || value === null) return '';
+  if (Array.isArray(value)) {
+    return value.map(normalizeHeaderValue).filter(Boolean).join(', ');
+  }
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'object') {
+    if (typeof value.value === 'string' || typeof value.value === 'number') return String(value.value).trim();
+    if (typeof value.text === 'string' || typeof value.text === 'number') return String(value.text).trim();
+    if (typeof value.content === 'string' || typeof value.content === 'number') return String(value.content).trim();
+    if (typeof value.email === 'string' || typeof value.email === 'number') return String(value.email).trim();
+  }
+  return String(value).trim();
+}
+
+function extractHeaderMap(headers) {
+  if (!headers) return [];
+  if (Array.isArray(headers)) return headers;
+  if (typeof headers === 'object') {
+    return Object.entries(headers).map(([name, value]) => ({ name, value }));
+  }
+  return [];
+}
+
+function getHeaderValue(headers, targetName) {
+  const target = String(targetName || '').toLowerCase();
+  if (!target) return '';
+  for (const header of extractHeaderMap(headers)) {
+    const name = String(header?.name || header?.key || '').toLowerCase();
+    if (name === target) return normalizeHeaderValue(header?.value ?? header?.text ?? header?.content ?? header);
+  }
+  return '';
+}
+
+function getPrimaryMessageSource(result) {
+  if (!result || typeof result !== 'object') return {};
+  if (result.message && typeof result.message === 'object') return result.message;
+  if (Array.isArray(result.messages) && result.messages[0] && typeof result.messages[0] === 'object') return result.messages[0];
+  if (Array.isArray(result.items) && result.items[0] && typeof result.items[0] === 'object') return result.items[0];
+  if (Array.isArray(result.data) && result.data[0] && typeof result.data[0] === 'object') return result.data[0];
+  return result;
+}
+
+function normalizeGmailReadResult(result) {
+  if (!result || typeof result !== 'object') return result;
+
+  const message = getPrimaryMessageSource(result);
+  const messageHeaders = message?.headers || message?.payload?.headers;
+  const headers = extractHeaderMap(result.headers).length ? result.headers : messageHeaders;
+
+  const subject = normalizeHeaderValue(firstNonEmpty(
+    result.subject,
+    message?.subject,
+    getHeaderValue(result.headers, 'Subject'),
+    getHeaderValue(messageHeaders, 'Subject'),
+    result.snippet,
+    message?.snippet
+  ));
+
+  const from = normalizeHeaderValue(firstNonEmpty(
+    result.from,
+    result.sender,
+    message?.from,
+    message?.sender,
+    getHeaderValue(result.headers, 'From'),
+    getHeaderValue(messageHeaders, 'From')
+  ));
+
+  const date = normalizeHeaderValue(firstNonEmpty(
+    result.date,
+    result.receivedAt,
+    message?.date,
+    message?.receivedAt,
+    getHeaderValue(result.headers, 'Date'),
+    getHeaderValue(result.headers, 'Internal-Date'),
+    getHeaderValue(messageHeaders, 'Date'),
+    getHeaderValue(messageHeaders, 'Internal-Date')
+  ));
+
+  return {
+    ...result,
+    headers,
+    subject,
+    from,
+    date,
+    message: message && typeof message === 'object'
+      ? {
+          ...message,
+          subject: message.subject || subject,
+          from: message.from || from,
+          date: message.date || date,
+        }
+      : message,
+  };
+}
+
+function normalizeGmailThread(thread) {
+  if (!thread || typeof thread !== 'object') return thread;
+
+  const source = getPrimaryMessageSource(thread);
+  const sourceHeaders = source?.headers || source?.payload?.headers;
+  const headers = extractHeaderMap(thread.headers).length ? thread.headers : sourceHeaders;
+  const subject = normalizeHeaderValue(firstNonEmpty(
+    thread.subject,
+    source?.subject,
+    getHeaderValue(thread.headers, 'Subject'),
+    getHeaderValue(sourceHeaders, 'Subject'),
+    thread.snippet,
+    source?.snippet
+  ));
+  const from = normalizeHeaderValue(firstNonEmpty(
+    thread.from,
+    thread.sender,
+    source?.from,
+    source?.sender,
+    getHeaderValue(thread.headers, 'From'),
+    getHeaderValue(sourceHeaders, 'From')
+  ));
+  const date = normalizeHeaderValue(firstNonEmpty(
+    thread.date,
+    thread.receivedAt,
+    source?.date,
+    source?.receivedAt,
+    getHeaderValue(thread.headers, 'Date'),
+    getHeaderValue(thread.headers, 'Internal-Date'),
+    getHeaderValue(sourceHeaders, 'Date'),
+    getHeaderValue(sourceHeaders, 'Internal-Date')
+  ));
+  const snippet = normalizeHeaderValue(firstNonEmpty(thread.snippet, source?.snippet));
+  const id = firstNonEmpty(thread.id, thread.threadId, source?.threadId, source?.id, thread.messageId, source?.messageId);
+  const threadId = firstNonEmpty(thread.threadId, source?.threadId, thread.id, source?.id, id);
+
+  return {
+    ...thread,
+    headers,
+    id,
+    threadId,
+    subject,
+    from,
+    date,
+    snippet,
+  };
+}
+
+function normalizeGmailInboxResult(result) {
+  if (!result || typeof result !== 'object') return result;
+  const rawThreads = Array.isArray(result.threads)
+    ? result.threads
+    : Array.isArray(result.messages)
+      ? result.messages
+      : Array.isArray(result.items)
+        ? result.items
+        : Array.isArray(result.data)
+          ? result.data
+          : [];
+  const threads = rawThreads.map(normalizeGmailThread);
+  return {
+    ...result,
+    threads: rawThreads,
+    messages: threads,
+    items: threads,
+    data: threads,
+  };
+}
+
 async function listInbox(max) {
-  return gogExec(['gmail', 'search', 'in:inbox', '--max', String(max || 20)]);
+  const result = await gogExec(['gmail', 'search', 'in:inbox', '--max', String(max || 20)]);
+  return normalizeGmailInboxResult(result);
 }
 
 async function readEmail(id) {
-  return gogExec(['gmail', 'get', id]);
+  const result = await gogExec(['gmail', 'get', id]);
+  return normalizeGmailReadResult(result);
 }
 
 async function sendEmail(to, subject, body) {
@@ -501,7 +706,7 @@ module.exports = {
   getGogBinaryPath, getGogConfigDir, getGogAccount,
   gogExec, gogSpawnAsync, gogEnv, cleanupGogProcesses,
   authStatus, validateOAuthClientSecret, registerCredentials, connectAccount, disconnectAccount,
-  listEvents, createEvent, deleteEvent, getFreeBusy, getFreeSlots,
+  listEvents, createEvent, updateEvent, deleteEvent, getFreeBusy, getFreeSlots,
   listInbox, readEmail, sendEmail, replyEmail,
   listFiles, listSheets, uploadFile, downloadFile, shareFile,
   listDocs, getDocInfo, readDoc, createDoc, writeDoc, insertDoc, findReplaceDoc, exportDoc,
@@ -509,4 +714,17 @@ module.exports = {
   listTaskLists, listTasks, createTask, completeTask,
   getSheet, updateSheet, appendSheet, getSheetMetadata, runAppScript,
   serviceHealth,
+};
+
+module.exports._test = {
+  buildUpdateEventArgs,
+  hasCalendarUpdateField,
+  firstNonEmpty,
+  normalizeHeaderValue,
+  extractHeaderMap,
+  getHeaderValue,
+  getPrimaryMessageSource,
+  normalizeGmailInboxResult,
+  normalizeGmailReadResult,
+  normalizeGmailThread,
 };

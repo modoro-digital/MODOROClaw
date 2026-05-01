@@ -10,6 +10,8 @@ const MAX_GENERATED = 20;
 const MAX_ASSET_B64_SIZE = 4 * 1024 * 1024;
 const JOB_TTL_MS = 30 * 60 * 1000;
 const MAX_JOBS = 50;
+const IMAGE_ASSET_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+const IMAGE_ASSET_TYPES = new Set(['brand', 'product', 'generated', 'knowledge_image', 'pdf_page']);
 
 const _jobs = new Map();
 
@@ -38,19 +40,38 @@ function isAssetPathSafe(baseDir, filename) {
   return resolved.startsWith(baseDir + path.sep) || resolved === baseDir;
 }
 
+function isSupportedAssetImage(filePath) {
+  return IMAGE_ASSET_EXTENSIONS.has(path.extname(filePath || '').toLowerCase());
+}
+
+function resolveAssetPath(brandAssetsDir, name) {
+  if (!name || typeof name !== 'string') return null;
+  if (isAssetPathSafe(brandAssetsDir, name)) {
+    const resolved = path.resolve(brandAssetsDir, name);
+    if (fs.existsSync(resolved) && isSupportedAssetImage(resolved)) return resolved;
+  }
+  try {
+    const media = require('./media-library');
+    const asset = media.findMediaAsset(name);
+    if (asset?.path && IMAGE_ASSET_TYPES.has(asset.type) && fs.existsSync(asset.path) && isSupportedAssetImage(asset.path)) {
+      return asset.path;
+    }
+  } catch {}
+  return null;
+}
+
 function loadAssets(brandAssetsDir, assetNames) {
   const loaded = [];
   for (const name of assetNames) {
-    if (!isAssetPathSafe(brandAssetsDir, name)) continue;
-    const resolved = path.resolve(brandAssetsDir, name);
-    if (!fs.existsSync(resolved)) continue;
+    const resolved = resolveAssetPath(brandAssetsDir, name);
+    if (!resolved || !fs.existsSync(resolved)) continue;
     const buf = fs.readFileSync(resolved);
     const b64Len = Math.ceil(buf.length / 3) * 4;
     if (b64Len > MAX_ASSET_B64_SIZE) continue;
     const b64 = buf.toString('base64');
-    const ext = path.extname(name).toLowerCase();
+    const ext = path.extname(resolved).toLowerCase();
     const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
-    loaded.push({ name, base64: b64, mime });
+    loaded.push({ name: path.basename(resolved), base64: b64, mime });
   }
   return loaded;
 }
@@ -196,6 +217,16 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
       job.status = 'done';
       job.imagePath = outPath;
       job.relPath = path.join('brand-assets', 'generated', jobId + '.png');
+      try {
+        require('./media-library').registerExistingMediaFile(outPath, {
+          type: 'generated',
+          visibility: 'internal',
+          title: jobId,
+          source: 'image-generation',
+          status: 'ready',
+          description: prompt,
+        });
+      } catch (e) { console.warn('[image-gen] media register failed:', e.message); }
       cleanupGenerated(generatedDir);
       settle(null, outPath);
     });

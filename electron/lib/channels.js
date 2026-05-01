@@ -866,6 +866,178 @@ async function sendZaloTo(target, text, opts = {}) {
   return lastResult;
 }
 
+const ZALO_IMAGE_MEDIA_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.heic', '.heif', '.avif']);
+
+function readZaloMediaPolicy() {
+  const policy = { maxMb: 25, roots: [] };
+  try {
+    const cfgPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      const candidates = [
+        cfg?.mediaMaxMb,
+        cfg?.messages?.mediaMaxMb,
+        cfg?.channels?.['modoro-zalo']?.mediaMaxMb,
+        cfg?.channels?.['modoro-zalo']?.messages?.mediaMaxMb,
+      ].filter(v => Number.isFinite(Number(v)));
+      if (candidates.length) policy.maxMb = Math.max(1, Math.min(100, Number(candidates[0])));
+      const rootCandidates = [
+        cfg?.mediaLocalRoots,
+        cfg?.messages?.mediaLocalRoots,
+        cfg?.channels?.['modoro-zalo']?.mediaLocalRoots,
+        cfg?.channels?.['modoro-zalo']?.messages?.mediaLocalRoots,
+      ].flat().filter(Boolean);
+      policy.roots.push(...rootCandidates.map(String));
+    }
+  } catch {}
+  return policy;
+}
+
+function resolveAllowedMediaRoots(extraRoots = []) {
+  const ws = getWorkspace();
+  const roots = [
+    path.join(ws, 'media-assets'),
+    path.join(ws, 'brand-assets'),
+    path.join(ws, 'knowledge'),
+    path.join(ws, 'documents'),
+    ...extraRoots,
+  ].filter(Boolean);
+  return Array.from(new Set(roots.map(root => {
+    const raw = String(root);
+    return path.resolve(path.isAbsolute(raw) ? raw : path.join(ws, raw));
+  })));
+}
+
+function isWithinAnyRoot(filePath, roots) {
+  const resolved = path.resolve(filePath);
+  return roots.some(root => resolved === root || resolved.startsWith(root + path.sep));
+}
+
+function resolveZaloMediaFile(filePath, opts = {}) {
+  if (!filePath || typeof filePath !== 'string') throw new Error('filePath required');
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) throw new Error('media file not found');
+  const stat = fs.statSync(resolved);
+  if (!stat.isFile()) throw new Error('media path is not a file');
+  const policy = readZaloMediaPolicy();
+  const maxMb = Number.isFinite(Number(opts.maxMb)) ? Number(opts.maxMb) : policy.maxMb;
+  if (stat.size > maxMb * 1024 * 1024) throw new Error(`media file too large (max ${maxMb}MB)`);
+  const roots = resolveAllowedMediaRoots([...(policy.roots || []), ...(opts.mediaLocalRoots || [])]);
+  if (!opts.allowOutsideWorkspace && !isWithinAnyRoot(resolved, roots)) {
+    throw new Error('media path is outside allowed roots');
+  }
+  return { path: resolved, size: stat.size, ext: path.extname(resolved).toLowerCase() };
+}
+
+async function sendZaloMediaTo(target, filePath, opts = {}) {
+  let targetId, isGroup;
+  if (typeof target === 'string') {
+    if (target.startsWith('group:')) { targetId = target.slice(6); isGroup = true; }
+    else if (target.startsWith('user:')) { targetId = target.slice(5); isGroup = false; }
+    else { targetId = target; isGroup = false; }
+  } else if (target && typeof target === 'object') {
+    targetId = String(target.id || target.toId || '');
+    isGroup = !!target.isGroup;
+  }
+  if (!targetId) { console.error('[sendZaloMediaTo] missing target id'); return null; }
+
+  let media;
+  try {
+    media = resolveZaloMediaFile(filePath, opts);
+  } catch (e) {
+    console.error('[sendZaloMediaTo] invalid media:', e.message);
+    return null;
+  }
+
+  const { skipFilter = false, skipPauseCheck = false } = opts;
+  if (!isZaloChannelEnabled()) {
+    console.log('[sendZaloMediaTo] channel disabled in config — skipping');
+    return null;
+  }
+  if (!skipPauseCheck && isChannelPaused('zalo')) {
+    console.log('[sendZaloMediaTo] channel paused — skipping');
+    return null;
+  }
+  if (!opts.skipListenerCheck && !isZaloListenerAlive()) {
+    console.error('[sendZaloMediaTo] Zalo listener not running — refusing send (would silently fail)');
+    return null;
+  }
+
+  let caption = opts.caption ? String(opts.caption) : '';
+  if (caption && !skipFilter) {
+    caption = sanitizeZaloText(caption);
+    const filtered = filterSensitiveOutput(caption);
+    if (filtered.blocked) {
+      console.warn(`[sendZaloMediaTo] caption filter blocked (${filtered.pattern})`);
+      caption = filtered.text;
+    }
+  }
+
+  const allow = _isZaloTargetAllowedFn ? _isZaloTargetAllowedFn(targetId, { isGroup }) : { allowed: true };
+  if (!allow.allowed) {
+    console.warn(`[sendZaloMediaTo] blocked by policy (${allow.reason}) target=${targetId}`);
+    return null;
+  }
+
+  const zcaBin = findGlobalPackageFile('openzca', 'dist/cli.js');
+  if (!zcaBin) { console.error('[sendZaloMediaTo] openzca CLI not found'); return null; }
+  const nodeBin = findNodeBin() || 'node';
+  const zcaProfile = opts.profile || (allow.state?.profile) || (_getZcaProfileFn ? _getZcaProfileFn() : 'default');
+  const knownTarget = _isKnownZaloTargetFn ? _isKnownZaloTargetFn(targetId, { isGroup, profile: zcaProfile }) : { known: true };
+  if (!knownTarget.known) {
+    console.warn(`[sendZaloMediaTo] target not in cache (${knownTarget.reason}) target=${targetId}`);
+    return null;
+  }
+
+  const sendMode = ZALO_IMAGE_MEDIA_EXTS.has(media.ext) ? 'image' : 'upload';
+  return await new Promise((resolve) => {
+    try {
+      const liveAllow = _isZaloTargetAllowedFn ? _isZaloTargetAllowedFn(targetId, { isGroup }) : { allowed: true };
+      if (!liveAllow.allowed) {
+        console.log(`[sendZaloMediaTo] blocked before send (${liveAllow.reason})`);
+        resolve(null);
+        return;
+      }
+      if (!isZaloChannelEnabled()) {
+        console.log('[sendZaloMediaTo] disabled before send — aborting');
+        resolve(null);
+        return;
+      }
+      if (isChannelPaused('zalo')) {
+        console.log('[sendZaloMediaTo] paused before send — aborting');
+        resolve(null);
+        return;
+      }
+      const args = sendMode === 'image'
+        ? [zcaBin, '--profile', zcaProfile, 'msg', 'image', targetId, media.path]
+        : [zcaBin, '--profile', zcaProfile, 'msg', 'upload', media.path, targetId];
+      if (sendMode === 'image' && caption) args.push('--message', caption);
+      if (isGroup) args.push('--group');
+      const child = require('child_process').spawn(
+        nodeBin, args,
+        { shell: false, timeout: opts.timeoutMs || 125000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+      let stderr = '';
+      let stdout = '';
+      child.stdout.on('data', (d) => { stdout += d; });
+      child.stderr.on('data', (d) => { stderr += d; });
+      child.on('close', (code) => {
+        if (code === 0) {
+          console.log(`[sendZaloMediaTo] sent ${sendMode} to ${isGroup ? 'group' : 'user'} ${targetId}`);
+          resolve({ ok: true, mode: sendMode, stdout: stdout.slice(0, 1000) });
+        } else {
+          console.error(`[sendZaloMediaTo] exit ${code}: ${stderr.slice(0, 300)}`);
+          resolve(null);
+        }
+      });
+      child.on('error', (e) => { console.error('[sendZaloMediaTo] spawn error:', e.message); resolve(null); });
+    } catch (e) {
+      console.error('[sendZaloMediaTo] error:', e.message);
+      resolve(null);
+    }
+  });
+}
+
 // ============================================
 //  READY PROBES
 // ============================================
@@ -1521,7 +1693,7 @@ module.exports = {
   isZaloChannelEnabled, setZaloChannelEnabled,
   isChannelPaused, pauseChannel, resumeChannel, getChannelPauseStatus,
   // Send
-  sendTelegram, sendTelegramPhoto, sendZalo, sendZaloTo, sendCeoAlert,
+  sendTelegram, sendTelegramPhoto, sendZalo, sendZaloTo, sendZaloMediaTo, sendCeoAlert,
   // Probes
   isZaloListenerAlive, getReadyGateState,
   finalizeTelegramReadyProbe, finalizeZaloReadyProbe,

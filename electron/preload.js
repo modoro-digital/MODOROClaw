@@ -142,6 +142,7 @@ contextBridge.exposeInMainWorld('claw', {
   googleDisconnect: () => ipcRenderer.invoke('google-disconnect'),
   googleCalendarEvents: (opts) => ipcRenderer.invoke('google-calendar-events', opts || {}),
   googleCalendarCreate: (opts) => ipcRenderer.invoke('google-calendar-create', opts),
+  googleCalendarUpdate: (opts) => ipcRenderer.invoke('google-calendar-update', opts),
   googleCalendarDelete: (opts) => ipcRenderer.invoke('google-calendar-delete', opts),
   googleCalendarFreebusy: (opts) => ipcRenderer.invoke('google-calendar-freebusy', opts || {}),
   googleCalendarFreeSlots: (opts) => ipcRenderer.invoke('google-calendar-free-slots', opts),
@@ -214,6 +215,11 @@ contextBridge.exposeInMainWorld('claw', {
   uploadBrandAsset: (filePath, name) => ipcRenderer.invoke('upload-brand-asset', filePath, name),
   deleteBrandAsset: (name) => ipcRenderer.invoke('delete-brand-asset', name),
   pickBrandAssetFile: () => ipcRenderer.invoke('pick-brand-asset-file'),
+  listMediaAssets: (filters) => ipcRenderer.invoke('list-media-assets', filters || {}),
+  uploadMediaAsset: (opts) => ipcRenderer.invoke('upload-media-asset', opts || {}),
+  describeMediaAsset: (id) => ipcRenderer.invoke('describe-media-asset', id),
+  deleteMediaAsset: (id) => ipcRenderer.invoke('delete-media-asset', id),
+  pickMediaAssetFile: () => ipcRenderer.invoke('pick-media-asset-file'),
 
   // Facebook
   getFbConfig: () => ipcRenderer.invoke('get-fb-config'),

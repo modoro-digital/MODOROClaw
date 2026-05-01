@@ -276,6 +276,119 @@ function ensureOpenclawPrewarmFix(vendorDir) {
 }
 
 // ---------------------------------------------------------------------------
+// OpenClaw self-update disable: hide upstream update UI and disable update.run
+// ---------------------------------------------------------------------------
+
+function ensureOpenclawUpdateUiDisabled(vendorDir, homeDir) {
+  try {
+    if (!vendorDir) return;
+    const distDir = path.join(vendorDir, 'node_modules', 'openclaw', 'dist');
+    if (!fs.existsSync(distDir)) return;
+
+    let patchedCount = 0;
+
+    const serverFiles = fs.readdirSync(distDir).filter(f => /^server\.impl-[A-Za-z0-9_-]+\.js$/.test(f));
+    for (const fname of serverFiles) {
+      const filePath = path.join(distDir, fname);
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf-8'); } catch { continue; }
+      let next = content;
+
+      const updateCheckMarker = '9BIZCLAW_OPENCLAW_UPDATE_CHECK_DISABLED';
+      if (!next.includes(updateCheckMarker)) {
+        next = next.replace(
+          'function getUpdateAvailable() {',
+          'function getUpdateAvailable() {\n\treturn null; // ' + updateCheckMarker
+        );
+        next = next.replace(
+          'function scheduleGatewayUpdateCheck(params) {',
+          'function scheduleGatewayUpdateCheck(params) {\n\treturn () => {}; // ' + updateCheckMarker
+        );
+      }
+
+      const updateRunMarker = '9BIZCLAW_OPENCLAW_UPDATE_RUN_DISABLED';
+      if (!next.includes(updateRunMarker)) {
+        next = next.replace(
+          'const updateHandlers = { "update.run": async ({ params, respond, client, context }) => {',
+          'const updateHandlers = { "update.run": async ({ params, respond, client, context }) => {\n\trespond(true, { ok: false, result: { status: "disabled", reason: "OpenClaw self-update is disabled in 9BizClaw." } }, void 0); return; // ' + updateRunMarker
+        );
+      }
+
+      if (next !== content) {
+        fs.writeFileSync(filePath, next, 'utf-8');
+        patchedCount++;
+        console.log(`[openclaw-update-disable] patched server ${fname}`);
+      } else if (!content.includes(updateCheckMarker) || !content.includes(updateRunMarker)) {
+        _logPatchFailure(homeDir, 'ensureOpenclawUpdateUiDisabled', `server anchors missing in ${fname}`);
+      }
+    }
+
+    const statusFiles = fs.readdirSync(distDir).filter(f => /^status\.update-[A-Za-z0-9_-]+\.js$/.test(f));
+    for (const fname of statusFiles) {
+      const filePath = path.join(distDir, fname);
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf-8'); } catch { continue; }
+      const marker = '9BIZCLAW_OPENCLAW_UPDATE_CHECK_DISABLED';
+      if (content.includes(marker)) continue;
+      let next = content
+        .replace(
+          'function resolveUpdateAvailability(update) {',
+          'function resolveUpdateAvailability(update) {\n\treturn { available: false, hasGitUpdate: false, hasRegistryUpdate: false, latestVersion: null, gitBehind: null }; // ' + marker
+        )
+        .replace(
+          'function formatUpdateAvailableHint(update) {',
+          'function formatUpdateAvailableHint(update) {\n\treturn null; // ' + marker
+        );
+      if (next !== content) {
+        fs.writeFileSync(filePath, next, 'utf-8');
+        patchedCount++;
+        console.log(`[openclaw-update-disable] patched status ${fname}`);
+      } else {
+        _logPatchFailure(homeDir, 'ensureOpenclawUpdateUiDisabled', `status anchors missing in ${fname}`);
+      }
+    }
+
+    const controlAssetsDir = path.join(distDir, 'control-ui', 'assets');
+    if (fs.existsSync(controlAssetsDir)) {
+      const uiFiles = fs.readdirSync(controlAssetsDir).filter(f => f.endsWith('.js'));
+      for (const fname of uiFiles) {
+        const filePath = path.join(controlAssetsDir, fname);
+        let content;
+        try { content = fs.readFileSync(filePath, 'utf-8'); } catch { continue; }
+        let next = content;
+        const marker = '9BIZCLAW_OPENCLAW_UPDATE_UI_DISABLED';
+        if (next.includes(marker)) continue;
+
+        next = next.replace(
+          'e.updateAvailable&&e.updateAvailable.latestVersion!==e.updateAvailable.currentVersion&&!GM(e.updateAvailable)?i`<div class="update-banner callout danger"',
+          'false&&e.updateAvailable&&e.updateAvailable.latestVersion!==e.updateAvailable.currentVersion&&!GM(e.updateAvailable)?i`<div class="update-banner callout danger"'
+        );
+        next = next.replace(
+          'async function Or(e){',
+          'async function Or(e){return;/* 9BIZCLAW_OPENCLAW_UPDATE_RUN_DISABLED */'
+        );
+        next = next.replace(
+          /<button class="btn btn--sm" \?disabled=\$\{!ne\} @click=\$\{e\.onUpdate\}>[\s\S]*?\$\{e\.updating\?`Updating…`:`Update`\}\s*<\/button>/,
+          ''
+        );
+        next = next.replace('{key:`update`,label:`Updates`},', '');
+
+        if (next !== content) {
+          if (!next.includes(marker)) next += `\n/* ${marker} */\n`;
+          fs.writeFileSync(filePath, next, 'utf-8');
+          patchedCount++;
+          console.log(`[openclaw-update-disable] patched ui ${fname}`);
+        }
+      }
+    }
+
+    if (patchedCount > 0) console.log(`[openclaw-update-disable] ${patchedCount} file(s) patched`);
+  } catch (e) {
+    console.warn('[openclaw-update-disable] error:', e?.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Openzca friend-event: auto-accept friend requests + cache refresh
 // ---------------------------------------------------------------------------
 
@@ -415,6 +528,7 @@ function applyAllVendorPatches({ vendorDir, homeDir, workspaceDir }) {
   // Openclaw dist patches (build-time safe)
   results.pricing = _tryPatch('pricing', () => ensureOpenclawPricingFix(vendorDir));
   results.prewarm = _tryPatch('prewarm', () => ensureOpenclawPrewarmFix(vendorDir));
+  results.openclawUpdate = _tryPatch('openclawUpdate', () => ensureOpenclawUpdateUiDisabled(vendorDir, homeDir));
   results.vision = _tryPatch('vision', () => ensureVisionFix(vendorDir, homeDir));
   results.visionCatalog = _tryPatch('visionCatalog', () => ensureVisionCatalogFix(vendorDir, homeDir));
   results.visionSerialization = _tryPatch('visionSerialization', () => ensureVisionSerializationFix(vendorDir, homeDir));
@@ -440,6 +554,7 @@ module.exports = {
   ensureWebFetchLocalhostFix,
   ensureOpenclawPricingFix,
   ensureOpenclawPrewarmFix,
+  ensureOpenclawUpdateUiDisabled,
   ensureOpenzcaFriendEventFix,
   applyAllVendorPatches,
 };

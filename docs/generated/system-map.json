@@ -1,10 +1,10 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 67,
-    "ipcHandlers": 146,
-    "preloadBridges": 141,
-    "dashboardPages": 12,
+    "apiRoutes": 73,
+    "ipcHandlers": 152,
+    "preloadBridges": 147,
+    "dashboardPages": 14,
     "capabilityContracts": 5
   },
   "apiRoutes": [
@@ -252,6 +252,15 @@
       ]
     },
     {
+      "path": "/api/google/calendar/update",
+      "sources": [
+        "electron/lib/google-routes.js"
+      ],
+      "kinds": [
+        "google-api"
+      ]
+    },
+    {
       "path": "/api/google/contacts/create",
       "sources": [
         "electron/lib/google-routes.js"
@@ -479,11 +488,9 @@
     {
       "path": "/api/google/status",
       "sources": [
-        "electron/lib/cron-api.js",
         "electron/lib/google-routes.js"
       ],
       "kinds": [
-        "local-api",
         "google-api"
       ]
     },
@@ -551,6 +558,42 @@
       ]
     },
     {
+      "path": "/api/media/describe",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/search",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/upload",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
       "path": "/api/system/info",
       "sources": [
         "electron/lib/cron-api.js"
@@ -606,6 +649,15 @@
     },
     {
       "path": "/api/zalo/send",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/send-media",
       "sources": [
         "electron/lib/cron-api.js"
       ],
@@ -688,11 +740,19 @@
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
+      "channel": "delete-media-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
       "channel": "delete-openclaw-cron",
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
       "channel": "delete-zalo-user-note",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "describe-media-asset",
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
@@ -837,6 +897,10 @@
     },
     {
       "channel": "google-calendar-freebusy",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "google-calendar-update",
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
@@ -1000,6 +1064,10 @@
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
+      "channel": "list-media-assets",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
       "channel": "list-zalo-friends",
       "source": "electron/lib/dashboard-ipc.js"
     },
@@ -1037,6 +1105,10 @@
     },
     {
       "channel": "pick-knowledge-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pick-media-asset-file",
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
@@ -1192,6 +1264,10 @@
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
+      "channel": "upload-media-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
       "channel": "verify-fb-token",
       "source": "electron/lib/dashboard-ipc.js"
     },
@@ -1287,6 +1363,11 @@
       "source": "electron/preload.js"
     },
     {
+      "name": "deleteMediaAsset",
+      "channel": "delete-media-asset",
+      "source": "electron/preload.js"
+    },
+    {
       "name": "deleteOpenclawCron",
       "channel": "delete-openclaw-cron",
       "source": "electron/preload.js"
@@ -1294,6 +1375,11 @@
     {
       "name": "deleteZaloUserNote",
       "channel": "delete-zalo-user-note",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "describeMediaAsset",
+      "channel": "describe-media-asset",
       "source": "electron/preload.js"
     },
     {
@@ -1474,6 +1560,11 @@
     {
       "name": "googleCalendarFreeSlots",
       "channel": "google-calendar-free-slots",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "googleCalendarUpdate",
+      "channel": "google-calendar-update",
       "source": "electron/preload.js"
     },
     {
@@ -1672,6 +1763,11 @@
       "source": "electron/preload.js"
     },
     {
+      "name": "listMediaAssets",
+      "channel": "list-media-assets",
+      "source": "electron/preload.js"
+    },
+    {
       "name": "listZaloFriends",
       "channel": "list-zalo-friends",
       "source": "electron/preload.js"
@@ -1719,6 +1815,11 @@
     {
       "name": "pickKnowledgeFile",
       "channel": "pick-knowledge-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pickMediaAssetFile",
+      "channel": "pick-media-asset-file",
       "source": "electron/preload.js"
     },
     {
@@ -1897,6 +1998,11 @@
       "source": "electron/preload.js"
     },
     {
+      "name": "uploadMediaAsset",
+      "channel": "upload-media-asset",
+      "source": "electron/preload.js"
+    },
+    {
       "name": "verifyFbToken",
       "channel": "verify-fb-token",
       "source": "electron/preload.js"
@@ -1917,11 +2023,19 @@
       "source": "electron/ui/dashboard.html"
     },
     {
+      "id": "chat",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
       "id": "facebook",
       "source": "electron/ui/dashboard.html"
     },
     {
       "id": "google",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "image-assets",
       "source": "electron/ui/dashboard.html"
     },
     {
@@ -1987,11 +2101,11 @@
   "largeSourceFiles": [
     {
       "path": "electron/ui/dashboard.html",
-      "bytes": 460415
+      "bytes": 496752
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 224066
+      "bytes": 227535
     },
     {
       "path": "electron/lib/cron.js",
@@ -2002,24 +2116,24 @@
       "bytes": 91127
     },
     {
-      "path": "electron/lib/knowledge.js",
-      "bytes": 71652
+      "path": "electron/lib/channels.js",
+      "bytes": 78315
     },
     {
-      "path": "electron/lib/channels.js",
-      "bytes": 71202
+      "path": "electron/lib/knowledge.js",
+      "bytes": 74738
     },
     {
       "path": "electron/lib/gateway.js",
-      "bytes": 66127
+      "bytes": 66322
+    },
+    {
+      "path": "electron/lib/cron-api.js",
+      "bytes": 58721
     },
     {
       "path": "electron/lib/boot.js",
       "bytes": 57804
-    },
-    {
-      "path": "electron/lib/cron-api.js",
-      "bytes": 52106
     },
     {
       "path": "electron/lib/config.js",
@@ -2027,7 +2141,7 @@
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 40337
+      "bytes": 40722
     },
     {
       "path": "electron/lib/zalo-plugin.js",
@@ -2035,11 +2149,19 @@
     },
     {
       "path": "electron/lib/nine-router.js",
-      "bytes": 31073
+      "bytes": 33115
     },
     {
       "path": "electron/lib/vendor-patches.js",
-      "bytes": 22112
+      "bytes": 27488
+    },
+    {
+      "path": "electron/lib/google-api.js",
+      "bytes": 24745
+    },
+    {
+      "path": "electron/lib/media-library.js",
+      "bytes": 22825
     },
     {
       "path": "electron/lib/conversation.js",

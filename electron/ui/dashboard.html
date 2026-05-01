@@ -7,11 +7,24 @@
   <title>9BizClaw</title>
   <link rel="icon" href="data:,">
   <script>
-    // Apply theme before paint to avoid flash of wrong theme
-    try {
-      const saved = localStorage.getItem('theme') || 'light';
-      document.documentElement.setAttribute('data-theme', saved);
-    } catch {}
+    // Apply saved Executive Neutral theme before paint.
+    (function applySavedThemeBeforePaint() {
+      const validModes = ['light', 'dark', 'system'];
+      let mode = 'system';
+      try {
+        const saved = localStorage.getItem('themeMode') || localStorage.getItem('theme');
+        if (validModes.includes(saved)) mode = saved;
+      } catch {}
+      let resolved = 'dark';
+      try {
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        resolved = mode === 'system' ? (media.matches ? 'dark' : 'light') : mode;
+      } catch {
+        resolved = mode === 'light' ? 'light' : 'dark';
+      }
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-mode', mode);
+    })();
   </script>
   <script src="../node_modules/fullcalendar/index.global.min.js"></script>
   <link rel="stylesheet" href="styles.css">
@@ -190,16 +203,42 @@
     .gw-list-main { flex:1; min-width:0; }
     .gw-list-title { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .gw-list-meta { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-    .gw-calendar-shell { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:12px; min-height:640px; overflow:hidden; }
-    .gw-calendar-shell .fc { color:var(--text); font-size:12px; }
-    .gw-calendar-shell .fc .fc-toolbar { gap:10px; flex-wrap:wrap; align-items:center; }
-    .gw-calendar-shell .fc .fc-toolbar-title { font-size:18px; font-weight:700; line-height:1.25; }
-    .gw-calendar-shell .fc .fc-button { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; box-shadow:none; }
+    .gw-calendar-head { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+    .gw-calendar-title { margin:0; font-size:17px; font-weight:700; color:var(--text); line-height:1.25; }
+    .gw-calendar-sub { font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.45; }
+    .gw-calendar-shell { background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)), var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; min-height:650px; overflow:hidden; box-shadow:0 14px 40px rgba(15,23,42,.08); }
+    .gw-calendar-shell .fc { color:var(--text); font-size:12px; --fc-border-color:var(--border); --fc-page-bg-color:transparent; --fc-neutral-bg-color:var(--bg); --fc-today-bg-color:rgba(210,38,48,.08); --fc-now-indicator-color:var(--danger, #d22630); --fc-list-event-hover-bg-color:var(--bg); }
+    .gw-calendar-shell .fc .fc-toolbar { gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+    .gw-calendar-shell .fc .fc-toolbar-title { font-size:22px; font-weight:800; line-height:1.15; letter-spacing:0; color:var(--text); }
+    .gw-calendar-shell .fc .fc-button { background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 12px; font-size:12px; font-weight:700; box-shadow:none; min-height:36px; text-transform:none; }
+    .gw-calendar-shell .fc .fc-button:hover { background:var(--surface-hover, var(--bg)); border-color:var(--text-muted); color:var(--text); }
+    .gw-calendar-shell .fc .fc-button:focus { box-shadow:0 0 0 3px rgba(210,38,48,.14); }
+    .gw-calendar-shell .fc .fc-button:disabled { opacity:.5; }
     .gw-calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active,
     .gw-calendar-shell .fc .fc-button-primary:not(:disabled):active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .gw-calendar-shell .fc .fc-button-group { border-radius:9px; overflow:hidden; box-shadow:0 1px 0 rgba(15,23,42,.04); }
     .gw-calendar-shell .fc .fc-col-header-cell-cushion,
     .gw-calendar-shell .fc .fc-daygrid-day-number { color:var(--text); text-decoration:none; }
-    .gw-calendar-shell .fc .fc-event { border-radius:6px; border:0; padding:2px 4px; overflow:hidden; }
+    .gw-calendar-shell .fc .fc-col-header-cell { background:var(--bg); }
+    .gw-calendar-shell .fc .fc-col-header-cell-cushion { display:block; padding:10px 4px; font-size:12px; font-weight:800; }
+    .gw-calendar-shell .fc .fc-timegrid-axis,
+    .gw-calendar-shell .fc .fc-timegrid-slot-label { color:var(--text-muted); font-size:11px; }
+    .gw-calendar-shell .fc .fc-timegrid-slot { height:34px; }
+    .gw-calendar-shell .fc .fc-scrollgrid { border-radius:10px; overflow:hidden; border-color:var(--border); }
+    .gw-calendar-shell .fc .fc-day-today { background:rgba(210,38,48,.07) !important; }
+    .gw-calendar-shell .fc .fc-timegrid-now-indicator-line { border-color:var(--danger, #d22630); border-width:2px 0 0; }
+    .gw-calendar-shell .fc .fc-event { border-radius:8px; border:0; padding:4px 6px; overflow:hidden; box-shadow:0 8px 22px rgba(210,38,48,.22); }
+    .gw-calendar-shell .fc .fc-event-title { font-weight:700; line-height:1.3; }
+    .gw-calendar-shell .fc .fc-event-time { font-size:11px; font-weight:700; opacity:.9; }
+    .gw-calendar-empty { margin-top:12px; padding:14px 16px; text-align:center; color:var(--text-muted); font-size:13px; background:var(--surface); border:1px dashed var(--border); border-radius:10px; }
+    .gw-calendar-modal-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:24px; width:440px; max-width:92vw; box-shadow:0 26px 80px rgba(0,0,0,.24); }
+    .gw-calendar-modal-card-wide { width:560px; max-height:88vh; overflow:auto; }
+    .gw-calendar-modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+    .gw-calendar-modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .gw-calendar-modal-label { font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:5px; line-height:1.35; }
+    .gw-calendar-modal-input { width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; outline:none; box-sizing:border-box; font-family:inherit; line-height:1.45; }
+    .gw-calendar-modal-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft, rgba(180,35,44,.12)); }
+    .gw-calendar-modal-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:20px; }
     .gw-sheet-list { display:flex; flex-direction:column; gap:6px; margin:0 0 14px; max-height:180px; overflow:auto; }
     .gw-sheet-row { width:100%; text-align:left; border:1px solid var(--border); background:var(--bg); color:var(--text); border-radius:8px; padding:8px 10px; cursor:pointer; min-width:0; }
     .gw-sheet-row:hover { border-color:var(--accent); }
@@ -215,6 +254,9 @@
       .main-content { padding:18px 16px !important; }
       .gw-grid { grid-template-columns:1fr; }
       .gw-calendar-shell { min-height:520px; }
+      .gw-calendar-shell .fc .fc-toolbar { align-items:flex-start; }
+      .gw-calendar-shell .fc .fc-toolbar-title { font-size:18px; }
+      .gw-calendar-modal-grid { grid-template-columns:1fr; }
     }
     @media (max-width:800px) {
       .sidebar { width:72px !important; padding:14px 8px !important; }
@@ -567,18 +609,25 @@
       .know-columns { grid-template-columns:1fr; }
       #page-knowledge.page.active { height:auto; }
     }
-    /* Embedded web UI pages (9Router, OpenClaw) */
-    #page-9router.page.active, #page-openclaw.page.active {
+    /* Embedded web UI pages (9Router, OpenClaw, Chat) */
+    #page-9router.page.active, #page-openclaw.page.active, #page-chat.page.active {
       display:flex; flex-direction:column; height:calc(100vh - 32px);
     }
     .embed-wrap {
       flex:1; min-height:0; position:relative;
       border:1px solid var(--border); border-radius:12px;
-      overflow:hidden; background:#fff;
+      overflow:hidden; background:var(--bg);
     }
-    html[data-theme="dark"] .embed-wrap { background:var(--bg); }
     .embed-frame { position:absolute; top:0; left:0; width:100%; height:100%; border:0; }
-    .embed-loading { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; z-index:1; }
+    .embed-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; z-index:1; background:linear-gradient(180deg, var(--surface), var(--bg)); }
+    .chat-shell { display:flex; flex-direction:column; min-height:0; flex:1; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); }
+    .chat-shell-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-bottom:1px solid var(--border); background:var(--surface-elevated); flex-shrink:0; }
+    .chat-shell-title { display:flex; align-items:center; gap:8px; min-width:0; color:var(--text); font-size:13px; font-weight:700; }
+    .chat-shell-sub { color:var(--text-muted); font-size:11px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-shell-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+    .chat-status-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border-radius:999px; border:1px solid rgba(34,197,94,.26); background:rgba(34,197,94,.1); color:var(--success); font-size:11px; font-weight:700; white-space:nowrap; }
+    .chat-status-pill::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px rgba(34,197,94,.45); }
+    .chat-shell .embed-wrap { border:0; border-radius:0; box-shadow:none; }
     .zalo-mgr-row .info { flex:1; min-width:0; overflow:hidden; }
     .zalo-mgr-row .name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .zalo-mgr-row .sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -810,7 +859,6 @@
     .sidebar-menu-item .ready-dot {
       box-shadow: 0 0 0 2px var(--bg-elevated, var(--bg));
     }
-    #theme-toggle-btn { margin-top: 8px !important; }
 
     /* === Main content === */
     .main-content {
@@ -1412,25 +1460,250 @@
       .page-header h2 { font-size: 24px !important; }
     }
 
-    /* Dark theme overrides — Linear-inspired near-black palette.
-       styles.css already defines a dark theme, but this block pins the
-       exact tokens the MODOROClaw dashboard expects so fresh installs
-       and any future styles.css drift stay consistent. */
+    /* Executive Neutral premium theme */
     :root[data-theme="dark"] {
-      --bg: #0b0d10;
-      --bg-elevated: #14171c;
-      --surface: #14171c;
-      --surface-hover: #1a1e24;
-      --surface-elevated: #1a1e24;
-      --border: #1f242b;
-      --border-strong: #2a3039;
-      --text: #e6e8eb;
-      --text-secondary: #9ba1a8;
-      --text-tertiary: #6b727a;
-      --text-muted: #9ba1a8;
-      --success: #4ade80;
-      --warning: #fbbf24;
-      --danger: #f87171;
+      --bg:#0b0d10;
+      --bg-elevated:#090a0c;
+      --surface:#12151a;
+      --surface-hover:#1b2028;
+      --surface-elevated:#171b22;
+      --border:#252a33;
+      --border-strong:#3a414d;
+      --text:#f5f2ea;
+      --text-secondary:#d8d2c6;
+      --text-tertiary:#b5ad9d;
+      --text-muted:#9ca3af;
+      --accent:#c8a75a;
+      --primary:#c8a75a;
+      --accent-contrast:#15120a;
+      --danger:#ef4444;
+      --success:#22c55e;
+      --warning:#d89a2b;
+      --muted:#9ca3af;
+      --accent-soft:rgba(200,167,90,.15);
+      --accent-glow:rgba(200,167,90,.24);
+      --gradient-accent:#c8a75a;
+      --shadow:0 18px 44px rgba(0,0,0,.26);
+      --shadow-lg:0 30px 96px rgba(0,0,0,.44);
+    }
+
+    :root[data-theme="light"] {
+      --bg:#f7f5f1;
+      --bg-elevated:#ffffff;
+      --surface:#ffffff;
+      --surface-hover:#f1ede5;
+      --surface-elevated:#faf8f3;
+      --border:#e5dfd4;
+      --border-strong:#cfc5b4;
+      --text:#1c1a16;
+      --text-secondary:#3d3931;
+      --text-tertiary:#625b4f;
+      --text-muted:#6b675f;
+      --accent:#a77a25;
+      --primary:#a77a25;
+      --accent-contrast:#ffffff;
+      --danger:#c53030;
+      --success:#16a34a;
+      --warning:#b7791f;
+      --muted:#6b675f;
+      --accent-soft:rgba(167,122,37,.12);
+      --accent-glow:rgba(167,122,37,.18);
+      --gradient-accent:#a77a25;
+      --shadow:0 14px 32px rgba(28,26,22,.08);
+      --shadow-lg:0 24px 76px rgba(28,26,22,.16);
+    }
+
+    body,
+    .app-layout {
+      background:var(--bg) !important;
+      color:var(--text);
+    }
+
+    .sidebar {
+      background:var(--bg-elevated) !important;
+      border-right:1px solid rgba(255,255,255,.08) !important;
+      box-shadow:10px 0 30px rgba(0,0,0,.08);
+      color:var(--text);
+    }
+    :root[data-theme="dark"] .sidebar {
+      --surface:#101318;
+      --surface-hover:#191e26;
+      --surface-elevated:#151922;
+      --border:#262c36;
+      --border-strong:#3b4452;
+      --text:#f5f2ea;
+      --text-secondary:#d8d2c6;
+      --text-tertiary:#b5ad9d;
+      --text-muted:#a2a8b3;
+      --accent-soft:rgba(200,167,90,.16);
+    }
+    :root[data-theme="light"] .sidebar {
+      --surface:#f8f5ee;
+      --surface-hover:#efe8dc;
+      --surface-elevated:#ffffff;
+      --border:#e4dccd;
+      --border-strong:#cbc0ad;
+      --text:#1c1a16;
+      --text-secondary:#3d3931;
+      --text-tertiary:#625b4f;
+      --text-muted:#6b675f;
+      --accent-soft:rgba(167,122,37,.12);
+    }
+    .sidebar-logo h1,
+    .sidebar-brand-tagline,
+    .sidebar-brand-version,
+    .sidebar-menu-header,
+    .sidebar-menu-item,
+    .sidebar-status span:not(.status-dot) {
+      color:inherit;
+    }
+    .sidebar-brand-tagline,
+    .sidebar-status span:not(.status-dot),
+    .sidebar-menu-header {
+      color:var(--text-muted) !important;
+    }
+    .sidebar-menu-item.active {
+      background:var(--accent-soft) !important;
+      color:var(--text) !important;
+      box-shadow:inset 3px 0 0 var(--accent), 0 8px 22px rgba(0,0,0,.16);
+    }
+
+    .main-content {
+      background:var(--bg) !important;
+    }
+    .page-header {
+      border-bottom:1px solid var(--border) !important;
+    }
+    .page-header .page-icon {
+      background:var(--surface-elevated) !important;
+      border:1px solid var(--border);
+      color:var(--accent) !important;
+      box-shadow:var(--shadow);
+    }
+
+    .card,
+    .main-card,
+    .gw-card,
+    .gw-connect-card,
+    .gw-guide-hero,
+    .gw-step,
+    .gw-check-box,
+    .ov-card,
+    .ov-stat,
+    .tip-card {
+      background:var(--surface) !important;
+      border:1px solid var(--border) !important;
+      border-radius:10px !important;
+      box-shadow:0 1px 0 rgba(255,255,255,.28), var(--shadow);
+    }
+    .card:hover,
+    .main-card:hover,
+    .gw-card:hover,
+    .gw-list-row:hover,
+    .gw-sheet-row:hover {
+      border-color:var(--border-strong) !important;
+    }
+
+    .btn {
+      border-radius:8px !important;
+      border:1px solid transparent;
+      min-width:0;
+      line-height:1.25;
+    }
+    .btn-primary {
+      background:var(--accent) !important;
+      color:var(--accent-contrast) !important;
+      border-color:var(--accent) !important;
+      box-shadow:0 8px 20px var(--accent-glow) !important;
+    }
+    .btn-primary:hover {
+      filter:brightness(.96);
+    }
+    .btn-secondary {
+      background:var(--surface-elevated) !important;
+      border-color:var(--border) !important;
+      color:var(--text) !important;
+      box-shadow:0 1px 0 rgba(255,255,255,.18);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="time"],
+    input[type="number"],
+    input[type="password"],
+    textarea,
+    select {
+      max-width:100%;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--surface-elevated);
+      color:var(--text);
+      box-sizing:border-box;
+      font-family:inherit;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline:none;
+      border-color:var(--accent) !important;
+      box-shadow:0 0 0 3px var(--accent-soft);
+    }
+
+    .gw-tabs {
+      border-bottom:1px solid var(--border) !important;
+      gap:4px !important;
+      padding:0 0 4px;
+    }
+    .gw-tab {
+      border-radius:8px 8px 0 0 !important;
+      color:var(--text-muted) !important;
+      line-height:1.2;
+    }
+    .gw-tab:hover {
+      background:var(--surface-hover) !important;
+      color:var(--text) !important;
+    }
+    .gw-tab.active {
+      color:var(--accent) !important;
+      border-bottom-color:var(--accent) !important;
+      background:var(--accent-soft) !important;
+    }
+
+    .gw-list-row,
+    .gw-sheet-row,
+    .gmail-row,
+    .activity-item {
+      background:var(--surface) !important;
+      border-color:var(--border) !important;
+    }
+    .gw-list-title,
+    .gw-list-meta,
+    .gw-sheet-row-title,
+    .gw-sheet-row-meta {
+      min-width:0;
+    }
+
+    .modal-box,
+    .cron-detail-box,
+    .zalo-mgr-box,
+    .gw-calendar-modal-card,
+    #gmail-compose-modal > div,
+    #contact-add-modal > div,
+    #task-add-modal > div,
+    #gmail-detail {
+      background:var(--surface) !important;
+      border:1px solid var(--border) !important;
+      border-radius:12px !important;
+      box-shadow:var(--shadow-lg) !important;
+    }
+
+    .gw-calendar-shell {
+      background:var(--surface) !important;
+      border-color:var(--border) !important;
+      box-shadow:var(--shadow) !important;
     }
 
     /* Theme toggle button — minimal, matches sidebar aesthetic */
@@ -1457,8 +1730,63 @@
     .theme-toggle svg { width: 16px; height: 16px; display: block; }
     .theme-toggle .icon-sun { display: none; }
     .theme-toggle .icon-moon { display: block; }
-    :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
-    :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+    .theme-mode-card {
+      cursor:default !important;
+      align-items:stretch !important;
+      flex-direction:column;
+      gap:8px;
+      padding:10px !important;
+    }
+    .theme-mode-title {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      color:var(--text);
+      font-size:12px;
+      font-weight:700;
+    }
+    .theme-mode-title .icon {
+      width:20px;
+      text-align:center;
+      color:var(--accent);
+      flex-shrink:0;
+    }
+    .theme-mode-control {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:4px;
+      width:100%;
+      padding:3px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:var(--bg);
+    }
+    .theme-mode-option {
+      min-width:0;
+      border:0;
+      border-radius:6px;
+      padding:6px 4px;
+      background:transparent;
+      color:var(--text-muted);
+      font:inherit;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .theme-mode-option:hover {
+      color:var(--text);
+      background:var(--surface-hover);
+    }
+    .theme-mode-option.active {
+      color:var(--accent-contrast);
+      background:var(--accent);
+      box-shadow:0 4px 12px var(--accent-glow);
+    }
 
     /* Tình trạng hôm nay (shop-state) */
     /* Persona mix editor page */
@@ -2029,11 +2357,17 @@
         <div class="sidebar-menu-item active" data-page="overview" onclick="switchPage('overview')">
           <span class="icon" data-icon="home"></span><span class="label">Tổng quan</span>
         </div>
+        <div class="sidebar-menu-item" data-page="chat" onclick="switchPage('chat')">
+          <span class="icon" data-icon="messages-square"></span><span class="label">Chat</span>
+        </div>
         <div class="sidebar-menu-item" data-page="schedules" onclick="switchPage('schedules')">
           <span class="icon" data-icon="calendar"></span><span class="label">Lịch tự động</span>
         </div>
         <div class="sidebar-menu-item" data-page="knowledge" onclick="switchPage('knowledge')">
           <span class="icon" data-icon="book-open"></span><span class="label">Tài liệu</span>
+        </div>
+        <div class="sidebar-menu-item" data-page="image-assets" onclick="switchPage('image-assets')">
+          <span class="icon" data-icon="image"></span><span class="label">Tài sản hình ảnh</span>
         </div>
         <div class="sidebar-menu-item" data-page="persona-mix" onclick="switchPage('persona-mix')">
           <span class="icon" data-icon="sparkles"></span>
@@ -2058,11 +2392,22 @@
         </div>
 
         <div class="sidebar-menu-header">Cài đặt</div>
-        <div class="sidebar-menu-item" data-page="9router" onclick="switchPage('9router')">
+        <div class="sidebar-menu-item" data-page="9router" onclick="openAiModelsBrowser()">
           <span class="icon" data-icon="cpu"></span><span class="label">AI Models</span>
         </div>
-        <div class="sidebar-menu-item" id="theme-toggle-btn" onclick="toggleTheme()">
-          <span class="icon" id="theme-toggle-icon" data-icon="moon"></span><span class="label" id="theme-toggle-label">Giao diện sáng</span>
+        <div class="sidebar-menu-item" onclick="openAdvancedSettings()">
+          <span class="icon" data-icon="settings-2"></span><span class="label">Cài đặt nâng cao</span>
+        </div>
+        <div class="sidebar-menu-item theme-mode-card" style="margin-top:2px" title="Chọn giao diện sạch cho Dashboard">
+          <div class="theme-mode-title">
+            <span class="icon" id="theme-toggle-icon" data-icon="gem"></span>
+            <span class="label" id="theme-toggle-label">Giao diện</span>
+          </div>
+          <div class="theme-mode-control" role="group" aria-label="Chọn giao diện">
+            <button type="button" class="theme-mode-option" data-theme-mode="light" onclick="setThemeMode('light')">Sáng</button>
+            <button type="button" class="theme-mode-option" data-theme-mode="dark" onclick="setThemeMode('dark')">Tối</button>
+            <button type="button" class="theme-mode-option" data-theme-mode="system" onclick="setThemeMode('system')">Hệ thống</button>
+          </div>
         </div>
         <div class="sidebar-menu-item" style="margin-top:2px">
           <span class="icon" data-icon="download"></span>
@@ -2662,7 +3007,7 @@
                 </label>
               </div>
             </div>
-            <div class="know-drop-zone" id="know-drop-zone" data-max-mb="100" onclick="pickKnowledgeFiles()" data-tooltip="Kéo thả hoặc bấm để thêm file. PDF, Word, Excel, TXT. Tối đa 100MB/file.">
+          <div class="know-drop-zone" id="know-drop-zone" data-max-mb="100" onclick="pickKnowledgeFiles()" data-tooltip="Kéo thả hoặc bấm để thêm file. PDF, Word, Excel, TXT, ảnh sản phẩm hoặc PDF scan. Tối đa 100MB/file.">
               <div class="upload-icon" data-icon="upload" data-icon-size="36"></div>
               <strong>Click để chọn file</strong>
               <div>hoặc kéo thả vào đây</div>
@@ -2988,6 +3333,38 @@
         </div>
       </div>
 
+      <!-- PAGE: Chat (embedded OpenClaw chat UI) -->
+      <div class="page" id="page-chat">
+        <div class="page-header">
+          <span class="page-icon" data-icon="messages-square" data-icon-size="26"></span>
+          <div><h2>Chat</h2><div class="page-sub">Trò chuyện trực tiếp với trợ lý qua OpenClaw Gateway</div></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
+            <button class="page-help-btn" title="Chat nhúng trong Dashboard, dùng cùng token Gateway">?</button>
+            <button class="btn btn-secondary btn-small" onclick="reloadEmbed('chat')" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Reload</button>
+            <button class="btn btn-secondary btn-small" onclick="copyAndShowGatewayToken()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="key-round" data-icon-size="14"></span>Token</button>
+            <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('http://127.0.0.1:18789/chat')">Browser</button>
+          </div>
+        </div>
+        <div class="chat-shell">
+          <div class="chat-shell-toolbar">
+            <div class="chat-shell-title">
+              <span data-icon="messages-square" data-icon-size="16"></span>
+              <div style="min-width:0">
+                <div>Chat với trợ lý</div>
+                <div class="chat-shell-sub">Đã chuẩn bị sẵn phiên OpenClaw để phản hồi nhanh hơn</div>
+              </div>
+            </div>
+            <div class="chat-shell-actions">
+              <span class="chat-status-pill">Gateway</span>
+              <button class="btn btn-secondary btn-small" onclick="showGatewayToken()">Hiện token</button>
+            </div>
+          </div>
+          <div class="embed-wrap" id="embed-wrap-chat">
+            <!-- webview prewarmed after Dashboard boot to reduce click-to-chat delay -->
+          </div>
+        </div>
+      </div>
+
       <!-- PAGE: 9Router (embedded web UI) -->
       <div class="page" id="page-9router">
         <div class="page-header">
@@ -3005,6 +3382,56 @@
       </div>
 
       <!-- PAGE: Facebook + Brand Assets -->
+      <div class="page" id="page-image-assets">
+        <div class="page-header">
+          <span class="page-icon" data-icon="image" data-icon-size="26"></span>
+          <div><h2>Tài sản hình ảnh</h2><div class="page-sub">Logo, mascot, ảnh sản phẩm, ảnh AI và hình đã đọc vào Knowledge</div></div>
+        </div>
+        <div style="padding:0 24px 24px;display:grid;gap:20px">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+              <div>
+                <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Tài sản thương hiệu</h3>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Logo, mascot và style reference dùng khi tạo ảnh hoặc đăng Facebook. Mặc định không tự gửi cho khách Zalo.</div>
+              </div>
+              <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
+            </div>
+            <div id="brand-assets-grid" style="display:flex;flex-wrap:wrap;gap:12px">
+              <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có tài sản thương hiệu.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+              <div>
+                <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Hình sản phẩm cho Zalo</h3>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Ảnh public để bot tự tìm và gửi đúng hình khi khách hỏi sản phẩm.</div>
+              </div>
+              <button class="btn btn-primary btn-small" onclick="uploadProductImages()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload sản phẩm</button>
+            </div>
+            <div id="product-media-grid" style="display:flex;flex-wrap:wrap;gap:12px">
+              <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có hình sản phẩm.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+              <div>
+                <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Ảnh AI và Knowledge hình ảnh</h3>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Ảnh đã tạo, ảnh upload vào Knowledge và từng trang PDF scan đã được vision đọc.</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <button class="btn btn-secondary btn-small" onclick="uploadKnowledgeFromMediaTab()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload PDF/ảnh</button>
+                <button class="btn btn-secondary btn-small" onclick="loadImageAssetsTab()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Làm mới</button>
+              </div>
+            </div>
+            <div id="knowledge-media-grid" style="display:flex;flex-wrap:wrap;gap:12px">
+              <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có ảnh Knowledge.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-facebook">
         <div class="page-header">
           <span class="page-icon" data-icon="globe" data-icon-size="26"></span>
@@ -3101,7 +3528,7 @@
           </div>
 
           <!-- Section: Brand Assets -->
-          <div class="card">
+          <div class="card" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Tài sản thương hiệu</h3>
               <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
@@ -3132,25 +3559,25 @@
         </div>
         <!-- Tab contents -->
         <div class="gw-panel" id="gw-calendar" style="display:none">
-          <div class="gw-toolbar">
+          <div class="gw-calendar-head">
             <div>
-              <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Lịch Google Calendar</h3>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px">Xem theo tháng, tuần, ngày hoặc danh sách.</div>
+              <h3 class="gw-calendar-title">Lịch Google Calendar</h3>
+              <div class="gw-calendar-sub">Xem theo tháng, tuần, ngày hoặc danh sách.</div>
             </div>
             <button class="btn btn-primary btn-small" onclick="showCalCreateModal()">Tạo sự kiện</button>
           </div>
           <div id="cal-fullcalendar" class="gw-calendar-shell"></div>
-          <div id="cal-empty" style="display:none;padding:14px 16px;text-align:center;color:var(--text-muted);font-size:13px">Không có sự kiện trong khung thời gian này.</div>
+          <div id="cal-empty" class="gw-calendar-empty" style="display:none">Không có sự kiện trong khung thời gian này.</div>
           <!-- Create event modal -->
           <div id="cal-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
-            <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:28px;width:400px;max-width:90vw">
+            <div class="gw-calendar-modal-card">
               <h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:var(--text)">Tạo sự kiện</h3>
               <div style="display:flex;flex-direction:column;gap:14px">
                 <div>
                   <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Tiêu đề</label>
                   <input type="text" id="cal-new-summary" placeholder="Họp với khách hàng" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
                 </div>
-                <div style="display:flex;gap:12px">
+                <div class="gw-calendar-modal-grid">
                   <div style="flex:1">
                     <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:4px">Bắt đầu</label>
                     <input type="datetime-local" id="cal-new-start" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;box-sizing:border-box" />
@@ -3168,6 +3595,50 @@
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
                 <button class="btn btn-secondary btn-small" onclick="hideCalCreateModal()">Hủy</button>
                 <button class="btn btn-primary btn-small" onclick="submitCalCreate()">Tạo</button>
+              </div>
+            </div>
+          </div>
+          <!-- Edit event modal -->
+          <div id="cal-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+            <div class="gw-calendar-modal-card gw-calendar-modal-card-wide">
+              <div class="gw-calendar-modal-head">
+                <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text)">Sửa sự kiện</h3>
+                <button class="btn btn-secondary btn-small" onclick="openCalEditInGoogle()">Mở Google</button>
+              </div>
+              <input type="hidden" id="cal-edit-id" />
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <label class="gw-calendar-modal-label">Tiêu đề</label>
+                  <input type="text" id="cal-edit-summary" placeholder="Họp với khách hàng" class="gw-calendar-modal-input" />
+                </div>
+                <div class="gw-calendar-modal-grid">
+                  <div>
+                    <label class="gw-calendar-modal-label">Bắt đầu</label>
+                    <input type="datetime-local" id="cal-edit-start" class="gw-calendar-modal-input" />
+                  </div>
+                  <div>
+                    <label class="gw-calendar-modal-label">Kết thúc</label>
+                    <input type="datetime-local" id="cal-edit-end" class="gw-calendar-modal-input" />
+                  </div>
+                </div>
+                <div>
+                  <label class="gw-calendar-modal-label">Địa điểm</label>
+                  <input type="text" id="cal-edit-location" placeholder="Văn phòng, Google Meet..." class="gw-calendar-modal-input" />
+                </div>
+                <div>
+                  <label class="gw-calendar-modal-label">Người tham dự</label>
+                  <input type="text" id="cal-edit-attendees" placeholder="a@company.com, b@company.com" class="gw-calendar-modal-input" />
+                </div>
+                <div>
+                  <label class="gw-calendar-modal-label">Mô tả</label>
+                  <textarea id="cal-edit-description" rows="5" placeholder="Nội dung sự kiện..." class="gw-calendar-modal-input" style="resize:vertical"></textarea>
+                </div>
+              </div>
+              <div class="gw-calendar-modal-actions">
+                <button class="btn btn-secondary btn-small" onclick="deleteCalEditEvent()">Xóa</button>
+                <span style="flex:1"></span>
+                <button class="btn btn-secondary btn-small" onclick="hideCalEditModal()">Hủy</button>
+                <button class="btn btn-primary btn-small" onclick="submitCalEdit()">Lưu</button>
               </div>
             </div>
           </div>
@@ -3666,6 +4137,7 @@
       megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
       cpu: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
       zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      gem: '<path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',
       sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
       moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
       activity: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/>',
@@ -3691,6 +4163,7 @@
       'shopping-bag': '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
       'user-plus': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
       'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>',
+      image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
       upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
       'help-circle': '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
       'pause-circle': '<circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/>',
@@ -3732,7 +4205,7 @@
       _activityCount++;
     }
 
-    // Theme toggle
+    // Executive Neutral theme modes
     async function openLogFolder() {
       try {
         const res = await window.claw.openLogFolder();
@@ -3744,26 +4217,62 @@
       }
     }
 
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try { localStorage.setItem('theme', next); } catch {}
-      updateThemeToggleUI(next);
-      addActivity('Đã đổi giao diện: ' + (next === 'dark' ? 'tối' : 'sáng'));
+    const THEME_MODES = ['light', 'dark', 'system'];
+    const systemThemeQuery = (() => {
+      try { return window.matchMedia('(prefers-color-scheme: dark)'); } catch { return null; }
+    })();
+    function resolveThemeMode(mode) {
+      const selected = THEME_MODES.includes(mode) ? mode : 'system';
+      if (selected === 'system') return systemThemeQuery && systemThemeQuery.matches ? 'dark' : 'light';
+      return selected;
     }
-    function updateThemeToggleUI(theme) {
+    function setThemeMode(mode) {
+      const selected = THEME_MODES.includes(mode) ? mode : 'system';
+      const resolved = resolveThemeMode(selected);
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-mode', selected);
+      try {
+        localStorage.setItem('themeMode', selected);
+        localStorage.removeItem('theme');
+      } catch {}
+      updateThemeToggleUI();
+    }
+    function getThemeMode() {
+      const current = document.documentElement.getAttribute('data-theme-mode');
+      if (THEME_MODES.includes(current)) return current;
+      try {
+        const saved = localStorage.getItem('themeMode');
+        if (THEME_MODES.includes(saved)) return saved;
+      } catch {}
+      return 'system';
+    }
+    function updateThemeToggleUI() {
+      const mode = getThemeMode();
       const iconEl = document.getElementById('theme-toggle-icon');
       const labelEl = document.getElementById('theme-toggle-label');
-      if (!iconEl || !labelEl) return;
-      if (theme === 'dark') {
-        iconEl.setAttribute('data-icon', 'sun');
-        iconEl.innerHTML = icon('sun', 18);
-        labelEl.textContent = 'Giao diện sáng';
-      } else {
-        iconEl.setAttribute('data-icon', 'moon');
-        iconEl.innerHTML = icon('moon', 18);
-        labelEl.textContent = 'Giao diện tối';
+      if (iconEl) {
+        const iconName = mode === 'light' ? 'sun' : (mode === 'dark' ? 'moon' : 'gem');
+        iconEl.setAttribute('data-icon', iconName);
+        iconEl.innerHTML = icon(iconName, 18);
+      }
+      if (labelEl) labelEl.textContent = 'Giao diện';
+      document.querySelectorAll('.theme-mode-option').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-theme-mode') === mode);
+      });
+    }
+    function toggleTheme() {
+      const mode = getThemeMode();
+      const next = mode === 'light' ? 'dark' : (mode === 'dark' ? 'system' : 'light');
+      setThemeMode(next);
+    }
+    if (systemThemeQuery) {
+      const onSystemThemeChange = () => {
+        if (getThemeMode() === 'system') setThemeMode('system');
+      };
+      if (typeof systemThemeQuery.addEventListener === 'function') {
+        systemThemeQuery.addEventListener('change', onSystemThemeChange);
+      } else if (typeof systemThemeQuery.addListener === 'function') {
+        systemThemeQuery.addListener(onSystemThemeChange);
       }
     }
 
@@ -3953,6 +4462,33 @@
       } catch (e) {
         addActivity('Lỗi lấy token: ' + e.message);
       }
+    }
+    async function showGatewayToken() {
+      try {
+        const token = await window.claw.getGatewayToken();
+        if (!token) {
+          showToast('Không lấy được Gateway token', 'error');
+          return;
+        }
+        document.getElementById('gateway-token').value = token;
+        document.getElementById('gateway-token-box').style.display = 'block';
+        addActivity('Gateway token hiện bên sidebar');
+      } catch (e) {
+        showToast('Lỗi: ' + e.message, 'error');
+      }
+    }
+    async function openAiModelsBrowser() {
+      if (window.claw && window.claw.openExternal) {
+        window.claw.openExternal('http://127.0.0.1:20128/');
+      }
+      addActivity('Mở AI Models trong browser');
+    }
+    async function openAdvancedSettings() {
+      if (window.claw && window.claw.openExternal) {
+        window.claw.openExternal('http://127.0.0.1:18789/');
+      }
+      await showGatewayToken();
+      addActivity('Mở cài đặt nâng cao OpenClaw trong browser');
     }
     function hideGatewayToken() {
       document.getElementById('gateway-token-box').style.display = 'none';
@@ -4161,10 +4697,13 @@
         if (!knowledgeInitialized) initKnowledge();
         else refreshKnowledgeFiles();
       }
+      if (page === 'image-assets') {
+        loadImageAssetsTab();
+      }
       if (page === 'calendar') {
         loadAppointments();
       }
-      if (page === '9router' || page === 'openclaw') {
+      if (page === '9router' || page === 'openclaw' || page === 'chat') {
         ensureEmbedLoaded(page);
       }
       if (page === 'overview') {
@@ -4205,7 +4744,6 @@
     async function loadFacebookTab() {
       loadFbConfig();
       loadFbRecentPosts();
-      loadBrandAssets();
     }
 
     async function loadFbConfig() {
@@ -4260,6 +4798,7 @@
 
     async function loadBrandAssets() {
       const el = document.getElementById('brand-assets-grid');
+      if (!el) return;
       try {
         const assets = await window.claw.listBrandAssets();
         if (!assets || !assets.length) {
@@ -4294,12 +4833,86 @@
       loadBrandAssets();
     }
 
+    function mediaAssetSrc(asset) {
+      if (!asset || !asset.path) return '';
+      return 'file:///' + String(asset.path).replace(/\\/g, '/').replace(/^\/+/, '');
+    }
+
+    function renderMediaGrid(el, assets, emptyText) {
+      if (!el) return;
+      if (!assets || !assets.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">' + esc(emptyText) + '</div>';
+        return;
+      }
+      el.innerHTML = assets.map(function(a) {
+        var src = mediaAssetSrc(a);
+        var badgeColor = a.visibility === 'public' ? 'var(--success)' : 'var(--accent)';
+        var status = a.status || 'indexed';
+        var desc = (a.description || '').slice(0, 120);
+        return '<div style="width:180px;min-height:210px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);display:flex;flex-direction:column;gap:8px">' +
+          '<div style="height:92px;border-radius:6px;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center">' +
+          (src ? '<img src="' + escAttr(src) + '" style="width:100%;height:100%;object-fit:cover">' : '<span data-icon="image" data-icon-size="32" style="color:var(--text-muted)"></span>') +
+          '</div>' +
+          '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + escAttr(a.title || a.filename || '') + '">' + esc(a.title || a.filename || '') + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px">' +
+          '<span style="color:' + badgeColor + ';border:1px solid ' + badgeColor + ';border-radius:999px;padding:1px 6px">' + esc(a.visibility || '') + '</span>' +
+          '<span style="color:var(--text-muted);border:1px solid var(--border);border-radius:999px;padding:1px 6px">' + esc(status) + '</span>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);line-height:1.45;min-height:32px;overflow:hidden">' + esc(desc || 'Chưa có mô tả vision') + '</div>' +
+          '<button class="btn-sm" data-delete-media="' + escAttr(a.id) + '" style="margin-top:auto;font-size:10px;padding:3px 8px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer">Xoá</button>' +
+        '</div>';
+      }).join('');
+      mountIcons();
+    }
+
+    async function loadImageAssetsTab() {
+      try {
+        await loadBrandAssets();
+        var products = await window.claw.listMediaAssets({ type: 'product' });
+        var all = await window.claw.listMediaAssets({});
+        var knowledgeImages = (all || []).filter(function(a) {
+          return a.type === 'knowledge_image' || a.type === 'pdf_page' || a.type === 'generated';
+        });
+        renderMediaGrid(document.getElementById('product-media-grid'), products || [], 'Chưa có hình sản phẩm.');
+        renderMediaGrid(document.getElementById('knowledge-media-grid'), knowledgeImages || [], 'Chưa có ảnh Knowledge.');
+      } catch (e) {
+        showToast('Không tải được tài sản hình ảnh: ' + e.message, 'error');
+      }
+    }
+
+    async function uploadProductImages() {
+      var paths = await window.claw.pickMediaAssetFile();
+      if (!paths || !paths.length) return;
+      for (var i = 0; i < paths.length; i++) {
+        var fp = paths[i];
+        var name = fp.split(/[\\\/]/).pop();
+        var res = await window.claw.uploadMediaAsset({ filePath: fp, type: 'product', title: name, visibility: 'public' });
+        if (!res.success) alert('Không upload được "' + name + '": ' + (res.error || 'Lỗi không xác định.'));
+      }
+      loadImageAssetsTab();
+    }
+
+    async function uploadKnowledgeFromMediaTab() {
+      switchPage('knowledge');
+      setTimeout(function() {
+        if (typeof pickKnowledgeFiles === 'function') pickKnowledgeFiles();
+      }, 150);
+    }
+
     document.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-delete-asset]');
       if (!btn) return;
       var name = btn.dataset.deleteAsset;
       if (!confirm('Xoá ' + name + '?')) return;
       window.claw.deleteBrandAsset(name).then(function() { loadBrandAssets(); });
+    });
+
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-delete-media]');
+      if (!btn) return;
+      var id = btn.dataset.deleteMedia;
+      if (!confirm('Xoá tài sản này?')) return;
+      window.claw.deleteMediaAsset(id).then(function() { loadImageAssetsTab(); });
     });
 
     async function loadPersonaMix() {
@@ -4655,6 +5268,8 @@
 
     // Initial load — fire on DOM ready (overview is the active page on first launch)
     document.addEventListener('DOMContentLoaded', () => {
+      const legacyBrandGrids = document.querySelectorAll('#brand-assets-grid');
+      if (legacyBrandGrids.length > 1) legacyBrandGrids[1].id = 'fb-brand-assets-grid-deprecated';
       loadOverview();
       startOverviewAutoRefresh();
       initAppPrefsToggle();
@@ -4681,24 +5296,27 @@
     }
 
     // ============================================
-    //  EMBEDDED WEB UI (9Router + OpenClaw)
+    //  EMBEDDED WEB UI (9Router + OpenClaw + Chat)
     // ============================================
-    const embedLoaded = { '9router': false, 'openclaw': false };
+    const embedLoaded = { '9router': false, 'openclaw': false, 'chat': false };
     const EMBED_URLS = {
       '9router': 'http://127.0.0.1:20128/',
       'openclaw': 'http://127.0.0.1:18789/',
+      'chat': 'http://127.0.0.1:18789/chat',
     };
     const EMBED_PARTITIONS = {
       '9router': 'persist:embed-9router',
       'openclaw': 'persist:embed-openclaw',
+      'chat': 'persist:embed-openclaw',
     };
     const _embedRetry = {};
-    function ensureEmbedLoaded(name) {
+    function ensureEmbedLoaded(name, options = {}) {
       if (embedLoaded[name]) return;
       embedLoaded[name] = true;
       const wrap = document.getElementById('embed-wrap-' + name);
       if (!wrap) { embedLoaded[name] = false; return; }
-      const label = name === '9router' ? '9Router' : 'OpenClaw';
+      const silent = !!options.silent;
+      const label = name === '9router' ? '9Router' : (name === 'chat' ? 'Chat' : 'OpenClaw');
 
       let loader = wrap.querySelector('.embed-loading');
       if (!loader) {
@@ -4745,7 +5363,12 @@
       });
 
       try { wv.src = EMBED_URLS[name]; } catch(ex) { wv.setAttribute('src', EMBED_URLS[name]); }
-      addActivity('Đã mở ' + label + ' trong app');
+      if (!silent) addActivity('Đã mở ' + label + ' trong app');
+    }
+    function prewarmChatEmbed() {
+      setTimeout(function() {
+        try { ensureEmbedLoaded('chat', { silent: true }); } catch (e) { console.warn('[embed] chat prewarm failed:', e); }
+      }, 2200);
     }
     function retryEmbed(name) {
       var wrap = document.getElementById('embed-wrap-' + name);
@@ -5766,7 +6389,8 @@
 
     // Init
     mountIcons(); // Render static data-icon elements
-    updateThemeToggleUI(document.documentElement.getAttribute('data-theme') || 'dark');
+    setThemeMode(getThemeMode());
+    prewarmChatEmbed();
     window.claw.onBotStatus((data) => {
       updateBotStatus(data.running, data.error);
     });
@@ -6244,14 +6868,11 @@
       try {
         const r = await window.claw.checkForUpdates();
         if (r && r.available) {
-          // User explicitly clicked check → they want the update.
-          // Skip the intermediate banner "Nhấn để cập nhật" — kick off install directly.
-          // Banner still displays progress (Đang tải X%, Đang cài..., etc) via startUpdate().
           if (label) {
             label.textContent = 'Có bản mới';
             label.title = 'Đang tải bản v' + r.version;
           }
-          _pendingUpdate = r;  // set so startUpdate() doesn't bail
+          _pendingUpdate = r;
           const banner = document.getElementById('update-banner');
           const text = document.getElementById('update-banner-text');
           if (banner && text) {
@@ -7214,6 +7835,7 @@
     (function setupKeyboardShortcuts() {
       const commands = [
         { id: 'page-overview', label: 'Mở Tổng quan', keywords: 'overview dashboard tong quan' },
+        { id: 'page-chat', label: 'Mở Chat', keywords: 'chat openclaw tro chuyen' },
         { id: 'page-telegram', label: 'Mở Telegram', keywords: 'telegram tele' },
         { id: 'page-zalo', label: 'Mở Zalo', keywords: 'zalo' },
         { id: 'page-knowledge', label: 'Mở Knowledge', keywords: 'knowledge tai lieu' },
@@ -7357,7 +7979,7 @@
 
       function anyModalOpen() {
         if (paletteOverlay.classList.contains('show') || helpOverlay.classList.contains('show')) return true;
-        const googleModals = ['cal-create-modal', 'gmail-compose-modal', 'contact-add-modal', 'task-add-modal'];
+        const googleModals = ['cal-create-modal', 'cal-edit-modal', 'gmail-compose-modal', 'contact-add-modal', 'task-add-modal'];
         if (googleModals.some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; })) return true;
         return false;
       }
@@ -7370,6 +7992,7 @@
           if (fr && fr.style.display !== 'none' && typeof hideFactoryResetModal === 'function') hideFactoryResetModal();
         } catch {}
         try { if (typeof hideCalCreateModal === 'function') hideCalCreateModal(); } catch {}
+        try { if (typeof hideCalEditModal === 'function') hideCalEditModal(); } catch {}
         try { if (typeof hideGmailComposeModal === 'function') hideGmailComposeModal(); } catch {}
         try { if (typeof hideAddContactModal === 'function') hideAddContactModal(); } catch {}
         try { if (typeof hideAddTaskModal === 'function') hideAddTaskModal(); } catch {}
@@ -7896,6 +8519,45 @@
     let _fcCalendar = null;
     let _fcRequestId = 0;
     let _fcLoadingKey = '';
+    let _calEditEvent = null;
+
+    function toLocalDateTimeInputValue(date) {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+
+    function toAllDayInputValue(value) {
+      if (!value) return '';
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10) + 'T00:00';
+      return toLocalDateTimeInputValue(value);
+    }
+
+    function dateOnlyFromDateTimeInput(value) {
+      return value ? String(value).slice(0, 10) : '';
+    }
+
+    function isSafeGoogleCalendarLink(link) {
+      if (!link) return false;
+      try {
+        const url = new URL(link);
+        if (url.protocol !== 'https:') return false;
+        return url.hostname === 'calendar.google.com'
+          || (url.hostname === 'www.google.com' && url.pathname.startsWith('/calendar'));
+      } catch {
+        return false;
+      }
+    }
+
+    function refreshCalendarEvents() {
+      return loadCalendarEvents({ force: true });
+    }
+
+    function getCalEventCalendarId(event) {
+      const raw = event?.extendedProps?.raw || {};
+      return raw.calendarId || raw.calendarID || raw.calendar || raw.calendar_id || undefined;
+    }
 
     function ensureGoogleCalendar() {
       const el = document.getElementById('cal-fullcalendar');
@@ -7915,6 +8577,12 @@
         allDaySlot: true,
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
+        selectable: true,
+        editable: true,
+        eventStartEditable: true,
+        eventDurationEditable: true,
+        eventResizableFromStart: false,
+        selectMirror: true,
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -7934,9 +8602,11 @@
         },
         eventClick: (info) => {
           info.jsEvent?.preventDefault();
-          const start = info.event.start ? info.event.start.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '';
-          alert([info.event.title, start].filter(Boolean).join('\n'));
-        }
+          showCalEditModal(info.event);
+        },
+        eventDrop: handleCalEventDropOrResize,
+        eventResize: handleCalEventDropOrResize,
+        select: handleCalDateSelect
       });
       _fcCalendar.render();
       return true;
@@ -7946,15 +8616,25 @@
       return events.map(ev => {
         const start = ev.start?.dateTime || ev.start?.date || ev.start || ev.startTime || '';
         const end = ev.end?.dateTime || ev.end?.date || ev.end || ev.endTime || '';
+        const attendees = Array.isArray(ev.attendees)
+          ? ev.attendees.map(a => (a && typeof a === 'object') ? (a.email || a.displayName || '') : a).filter(Boolean).join(', ')
+          : (ev.attendees || '');
         return {
           id: ev.id,
           title: ev.summary || ev.title || 'Không có tiêu đề',
           start,
           end: end || undefined,
           allDay: Boolean(ev.start?.date && !ev.start?.dateTime),
-          url: ev.htmlLink || ev.url || undefined,
+          url: ev.htmlLink || undefined,
           backgroundColor: 'var(--accent)',
-          borderColor: 'var(--accent)'
+          borderColor: 'var(--accent)',
+          extendedProps: {
+            raw: ev,
+            location: ev.location || '',
+            description: ev.description || '',
+            attendees,
+            htmlLink: ev.htmlLink || ''
+          }
         };
       }).filter(ev => ev.start);
     }
@@ -7965,13 +8645,14 @@
       else _fcCalendar.next();
     }
 
-    async function loadCalendarEvents() {
+    async function loadCalendarEvents(options) {
       if (!ensureGoogleCalendar()) return;
       const view = _fcCalendar.view;
       const from = view.activeStart.toISOString();
       const to = view.activeEnd.toISOString();
       const rangeKey = from + '|' + to;
-      if (_fcLoadingKey === rangeKey) return;
+      const force = Boolean(options?.force);
+      if (!force && _fcLoadingKey === rangeKey) return;
       _fcLoadingKey = rangeKey;
       const reqId = ++_fcRequestId;
       const empty = document.getElementById('cal-empty');
@@ -7999,14 +8680,111 @@
       }
     }
 
-    function showCalCreateModal() {
+    function readCalEditForm() {
+      const allDay = Boolean(_calEditEvent?.allDay);
+      const start = document.getElementById('cal-edit-start').value;
+      const end = document.getElementById('cal-edit-end').value;
+      return {
+        eventId: document.getElementById('cal-edit-id').value.trim(),
+        summary: document.getElementById('cal-edit-summary').value.trim(),
+        start: allDay ? dateOnlyFromDateTimeInput(start) : start,
+        end: allDay ? dateOnlyFromDateTimeInput(end) : end,
+        location: document.getElementById('cal-edit-location').value.trim(),
+        attendees: document.getElementById('cal-edit-attendees').value.trim(),
+        description: document.getElementById('cal-edit-description').value.trim(),
+        calendarId: getCalEventCalendarId(_calEditEvent)
+      };
+    }
+
+    function showCalEditModal(event) {
+      _calEditEvent = event;
+      const raw = event.extendedProps?.raw || {};
+      const allDay = Boolean(event.allDay);
+      const rawStart = raw.start?.date || raw.start?.dateTime || event.start;
+      const rawEnd = raw.end?.date || raw.end?.dateTime || event.end || event.start;
+      document.getElementById('cal-edit-id').value = event.id || '';
+      document.getElementById('cal-edit-summary').value = event.title || '';
+      document.getElementById('cal-edit-start').value = allDay ? toAllDayInputValue(rawStart) : toLocalDateTimeInputValue(event.start);
+      document.getElementById('cal-edit-end').value = allDay ? toAllDayInputValue(rawEnd) : toLocalDateTimeInputValue(event.end || event.start);
+      document.getElementById('cal-edit-location').value = event.extendedProps?.location || '';
+      document.getElementById('cal-edit-attendees').value = event.extendedProps?.attendees || '';
+      document.getElementById('cal-edit-description').value = event.extendedProps?.description || '';
+      document.getElementById('cal-edit-modal').style.display = 'flex';
+    }
+
+    function hideCalEditModal() {
+      const modal = document.getElementById('cal-edit-modal');
+      if (modal) modal.style.display = 'none';
+      _calEditEvent = null;
+    }
+
+    function openCalEditInGoogle() {
+      const link = _calEditEvent?.extendedProps?.htmlLink || _calEditEvent?.extendedProps?.raw?.htmlLink || '';
+      if (!isSafeGoogleCalendarLink(link)) { alert('Sự kiện này chưa có liên kết Google Calendar hợp lệ.'); return; }
+      if (window.claw?.openExternal) window.claw.openExternal(link);
+    }
+
+    async function submitCalEdit() {
+      const form = readCalEditForm();
+      if (!form.eventId || !form.summary || !form.start || !form.end) { alert('Vui lòng điền đầy đủ thông tin'); return; }
+      try {
+        if (!window.claw?.googleCalendarUpdate) throw new Error('Chưa có kết nối cập nhật Google Calendar');
+        const result = await window.claw.googleCalendarUpdate(form);
+        if (result.error) throw new Error(result.error);
+        hideCalEditModal();
+        refreshCalendarEvents();
+      } catch (e) { alert('Lỗi cập nhật sự kiện: ' + e.message); }
+    }
+
+    async function deleteCalEditEvent() {
+      const eventId = document.getElementById('cal-edit-id').value.trim();
+      if (!eventId) { alert('Không tìm thấy ID sự kiện'); return; }
+      if (!confirm('Xóa sự kiện này?')) return;
+      try {
+        const result = await window.claw.googleCalendarDelete({ eventId, calendarId: getCalEventCalendarId(_calEditEvent) });
+        if (result.error) throw new Error(result.error);
+        hideCalEditModal();
+        refreshCalendarEvents();
+      } catch (e) { alert('Lỗi xóa sự kiện: ' + e.message); }
+    }
+
+    async function handleCalEventDropOrResize(info) {
+      const event = info.event;
+      if (!event?.id) { info.revert?.(); return; }
+      const fallbackEnd = event.start ? new Date(event.start.getTime() + 3600000) : null;
+      const start = event.startStr || (event.start ? event.start.toISOString() : '');
+      const end = event.endStr || (event.end ? event.end.toISOString() : (fallbackEnd ? fallbackEnd.toISOString() : ''));
+      try {
+        if (!window.claw?.googleCalendarUpdate) throw new Error('Chưa có kết nối cập nhật Google Calendar');
+        const result = await window.claw.googleCalendarUpdate({
+          eventId: event.id,
+          calendarId: getCalEventCalendarId(event),
+          start,
+          end
+        });
+        if (result.error) throw new Error(result.error);
+        refreshCalendarEvents();
+      } catch (e) {
+        info.revert?.();
+        alert('Lỗi cập nhật thời gian sự kiện: ' + e.message);
+      }
+    }
+
+    function handleCalDateSelect(info) {
+      showCalCreateModal({ start: info.start, end: info.end });
+      try { info.view?.calendar?.unselect(); } catch {}
+    }
+
+    function showCalCreateModal(selection) {
       const m = document.getElementById('cal-create-modal');
       m.style.display = 'flex';
       const now = new Date();
-      const later = new Date(now.getTime() + 3600000);
-      const toLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      document.getElementById('cal-new-start').value = toLocal(now);
-      document.getElementById('cal-new-end').value = toLocal(later);
+      let start = selection?.start ? new Date(selection.start) : now;
+      if (isNaN(start.getTime())) start = now;
+      let end = selection?.end ? new Date(selection.end) : new Date(start.getTime() + 3600000);
+      if (isNaN(end.getTime()) || end <= start) end = new Date(start.getTime() + 3600000);
+      document.getElementById('cal-new-start').value = toLocalDateTimeInputValue(start);
+      document.getElementById('cal-new-end').value = toLocalDateTimeInputValue(end);
       document.getElementById('cal-new-summary').value = '';
       document.getElementById('cal-new-attendees').value = '';
     }

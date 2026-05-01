@@ -1,10 +1,10 @@
 9BizClaw Generated System Map
 
 Counts
-- apiRoutes: 67
-- ipcHandlers: 146
-- preloadBridges: 141
-- dashboardPages: 12
+- apiRoutes: 73
+- ipcHandlers: 152
+- preloadBridges: 147
+- dashboardPages: 14
 - capabilityContracts: 5
 
 Capability Contracts
@@ -42,6 +42,7 @@ API Routes
 - /api/google/calendar/events [google-api]
 - /api/google/calendar/free-slots [google-api]
 - /api/google/calendar/freebusy [google-api]
+- /api/google/calendar/update [google-api]
 - /api/google/contacts/create [google-api]
 - /api/google/contacts/list [google-api]
 - /api/google/contacts/search [google-api]
@@ -67,7 +68,7 @@ API Routes
 - /api/google/sheets/list [google-api]
 - /api/google/sheets/metadata [google-api]
 - /api/google/sheets/update [google-api]
-- /api/google/status [local-api, google-api]
+- /api/google/status [google-api]
 - /api/google/tasks/complete [google-api]
 - /api/google/tasks/create [google-api]
 - /api/google/tasks/list [google-api]
@@ -75,6 +76,10 @@ API Routes
 - /api/image/generate [local-api]
 - /api/image/status [local-api]
 - /api/knowledge/add [local-api]
+- /api/media/describe [local-api]
+- /api/media/list [local-api]
+- /api/media/search [local-api]
+- /api/media/upload [local-api]
 - /api/system/info [local-api]
 - /api/telegram/send-photo [local-api]
 - /api/workspace/append [local-api]
@@ -82,12 +87,15 @@ API Routes
 - /api/workspace/read [local-api]
 - /api/zalo/friends [local-api]
 - /api/zalo/send [local-api]
+- /api/zalo/send-media [local-api]
 
 Dashboard Pages
 - 9router
 - calendar
+- chat
 - facebook
 - google
+- image-assets
 - knowledge
 - openclaw
 - overview
@@ -98,18 +106,20 @@ Dashboard Pages
 - zalo
 
 Large Source Files
-- electron/ui/dashboard.html: 460415 bytes
-- electron/lib/dashboard-ipc.js: 224066 bytes
+- electron/ui/dashboard.html: 496752 bytes
+- electron/lib/dashboard-ipc.js: 227535 bytes
 - electron/lib/cron.js: 92332 bytes
 - electron/ui/wizard.html: 91127 bytes
-- electron/lib/knowledge.js: 71652 bytes
-- electron/lib/channels.js: 71202 bytes
-- electron/lib/gateway.js: 66127 bytes
+- electron/lib/channels.js: 78315 bytes
+- electron/lib/knowledge.js: 74738 bytes
+- electron/lib/gateway.js: 66322 bytes
+- electron/lib/cron-api.js: 58721 bytes
 - electron/lib/boot.js: 57804 bytes
-- electron/lib/cron-api.js: 52106 bytes
 - electron/lib/config.js: 44187 bytes
-- electron/lib/workspace.js: 40337 bytes
+- electron/lib/workspace.js: 40722 bytes
 - electron/lib/zalo-plugin.js: 34343 bytes
-- electron/lib/nine-router.js: 31073 bytes
-- electron/lib/vendor-patches.js: 22112 bytes
+- electron/lib/nine-router.js: 33115 bytes
+- electron/lib/vendor-patches.js: 27488 bytes
+- electron/lib/google-api.js: 24745 bytes
+- electron/lib/media-library.js: 22825 bytes
 - electron/lib/conversation.js: 21566 bytes

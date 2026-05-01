@@ -101,6 +101,7 @@ function purgeAgentSessions(caller) {
 
 // ─── Brand Assets ────────────────────────────────────────────────
 function getBrandAssetsDir() { return path.join(getWorkspace(), 'brand-assets'); }
+function getMediaAssetsDir() { return path.join(getWorkspace(), 'media-assets'); }
 
 // ─── Facebook Config ────────────────────────────────────────────
 function getFbConfigPath() { return path.join(getWorkspace(), 'fb-config.json'); }
@@ -487,6 +488,10 @@ function seedWorkspace() {
   try { fs.mkdirSync(path.join(ws, 'memory', 'zalo-groups'), { recursive: true }); } catch {}
   try { fs.mkdirSync(path.join(ws, 'brand-assets'), { recursive: true }); } catch {}
   try { fs.mkdirSync(path.join(ws, 'brand-assets', 'generated'), { recursive: true }); } catch {}
+  try { fs.mkdirSync(path.join(ws, 'media-assets'), { recursive: true }); } catch {}
+  for (const mediaType of ['brand', 'product', 'generated', 'knowledge_image', 'pdf_page']) {
+    try { fs.mkdirSync(path.join(ws, 'media-assets', mediaType), { recursive: true }); } catch {}
+  }
   try {
     const agentWs = getOpenclawAgentWorkspace();
     if (agentWs && agentWs !== ws) {
@@ -920,6 +925,7 @@ module.exports = {
   seedWorkspace,
   purgeAgentSessions,
   getBrandAssetsDir,
+  getMediaAssetsDir,
   getFbConfigPath,
   readFbConfig,
   writeFbConfig,

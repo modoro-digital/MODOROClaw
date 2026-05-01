@@ -143,6 +143,7 @@ function ensureWebFetchLocalhostFix() { vendorPatches.ensureWebFetchLocalhostFix
 function ensureOpenzcaFriendEventFix() { vendorPatches.ensureOpenzcaFriendEventFix(getBundledVendorDir(), getWorkspace() || ctx.resourceDir); }
 function ensureOpenclawPricingFix() { vendorPatches.ensureOpenclawPricingFix(getBundledVendorDir()); }
 function ensureOpenclawPrewarmFix() { vendorPatches.ensureOpenclawPrewarmFix(getBundledVendorDir()); }
+function ensureOpenclawUpdateUiDisabled() { vendorPatches.ensureOpenclawUpdateUiDisabled(getBundledVendorDir(), ctx.HOME); }
 
 // ============================================
 //  IPC DRAIN + BOOT GUARD
@@ -296,6 +297,7 @@ async function _startOpenClawImpl(opts = {}) {
   const _patchFns = [
     ensureOpenclawPricingFix,
     ensureOpenclawPrewarmFix,
+    ensureOpenclawUpdateUiDisabled,
     cleanBlocklist,
     ensureOpenzcaFriendEventFix,
     ensureVisionFix,
@@ -1367,6 +1369,7 @@ module.exports = {
   ensureOpenzcaFriendEventFix,
   ensureOpenclawPricingFix,
   ensureOpenclawPrewarmFix,
+  ensureOpenclawUpdateUiDisabled,
   startFastWatchdog,
   fastWatchdogTick,
   triggerGatewayMessage,
