@@ -172,7 +172,7 @@ ipcMain.handle('start-9router', async () => {
     start9Router();
     await new Promise(r => setTimeout(r, 2000));
     const { shell } = require('electron');
-    shell.openExternal('http://localhost:20128');
+    shell.openExternal('http://127.0.0.1:20128');
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
@@ -3016,7 +3016,7 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
     const dst = path.join(filesDir, finalName);
     fs.copyFileSync(filepath, dst);
 
-    const content = await extractTextFromFile(dst, finalName, { visibility });
+    const content = await extractTextFromFile(dst, finalName, { visibility, category });
     if (content && /^\[(PDF|DOCX|Excel) extract failed: /.test(content)) {
       try { fs.unlinkSync(dst); } catch {}
       const errMsg = content.replace(/^\[/, '').replace(/\]$/, '');
@@ -3061,6 +3061,11 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
           description: content || '',
           source: 'knowledge-upload',
           status: content ? 'ready' : 'needs_vision',
+          metadata: {
+            knowledgeCategory: category,
+            knowledgeFilename: finalName,
+            knowledgeFilepath: dst,
+          },
         });
       } catch (e) {
         console.warn('[knowledge] media register failed:', e.message);
@@ -3082,6 +3087,16 @@ ipcMain.handle('upload-knowledge-file', async (_event, { category, filepath, ori
           db.prepare('INSERT INTO documents_fts (filename, content) VALUES (?, ?)').run(finalName, content);
         });
         insertBoth();
+        if (mediaAsset && insertedDocId) {
+          try {
+            mediaAsset = mediaLibrary.updateMediaAsset(mediaAsset.id, {
+              metadata: {
+                ...(mediaAsset.metadata || {}),
+                documentId: insertedDocId,
+              },
+            });
+          } catch (e) { console.warn('[knowledge] media document link failed:', e.message); }
+        }
       } catch (e) {
         console.error('[knowledge] db insert error:', e.message);
         dbWarning = 'DB insert failed (file vẫn lưu trên disk): ' + e.message;
@@ -3146,10 +3161,12 @@ ipcMain.handle('set-knowledge-visibility', async (_event, { docId, visibility })
     }
     const db = getDocumentsDb();
     if (!db) return { success: false, error: 'DB unavailable' };
-    let info, category;
+    let info, category, filename, filepath;
     try {
-      const row = db.prepare('SELECT category FROM documents WHERE id=?').get(docId);
+      const row = db.prepare('SELECT category, filename, filepath FROM documents WHERE id=?').get(docId);
       category = row?.category;
+      filename = row?.filename;
+      filepath = row?.filepath;
       info = db.prepare('UPDATE documents SET visibility=? WHERE id=?').run(visibility, docId);
     } finally {
       try { db.close(); } catch {}
@@ -3160,6 +3177,11 @@ ipcMain.handle('set-knowledge-visibility', async (_event, { docId, visibility })
     if (category) {
       try { rewriteKnowledgeIndex(category); } catch (e) { indexWarning = e.message; }
       purgeAgentSessions('knowledge-visibility');
+    }
+    try {
+      mediaLibrary.updateKnowledgeMediaAssets({ docId, filename, filepath }, { visibility });
+    } catch (e) {
+      indexWarning = indexWarning || e.message;
     }
     return { success: true, indexWarning };
   } catch (e) {
@@ -3206,9 +3228,13 @@ ipcMain.handle('delete-knowledge-file', async (_event, { category, filename }) =
       return { success: false, error: 'invalid filename' };
     }
     const db = getDocumentsDb();
+    let docId = null;
+    let storedFilepath = null;
     if (db) {
       try {
-        const row = db.prepare('SELECT id FROM documents WHERE category = ? AND filename = ?').get(category, filename);
+        const row = db.prepare('SELECT id, filepath FROM documents WHERE category = ? AND filename = ?').get(category, filename);
+        docId = row?.id || null;
+        storedFilepath = row?.filepath || null;
         const deleteAll = db.transaction(() => {
           if (row) {
             db.prepare('DELETE FROM documents_chunks WHERE document_id = ?').run(row.id);
@@ -3222,6 +3248,9 @@ ipcMain.handle('delete-knowledge-file', async (_event, { category, filename }) =
       }
     }
     const fp = path.join(getKnowledgeDir(category), 'files', filename);
+    try {
+      mediaLibrary.deleteKnowledgeMediaAssets({ docId, filename, filepath: storedFilepath || fp }, { keepPath: fp });
+    } catch (e) { console.warn('[knowledge] media cleanup failed:', e.message); }
     if (fs.existsSync(fp)) fs.unlinkSync(fp);
     rewriteKnowledgeIndex(category);
     purgeAgentSessions('knowledge-delete');
@@ -4133,7 +4162,7 @@ ipcMain.handle('install-openclaw', async (event) => {
     // for dev-mode network installs until modoro-zalo is published to npm.
     const PINNED_VERSIONS = [
       'openclaw@2026.4.14',
-      '9router@0.3.82',
+      '9router@0.4.12',
       'openzca@0.1.57',
     ];
     let cmd, args;
@@ -4600,7 +4629,8 @@ ipcMain.handle('download-and-install-update', async () => {
     }
     // Windows: launch EXE installer and quit
     const { shell } = require('electron');
-    shell.openPath(localPath);
+    const openErr = await shell.openPath(localPath);
+    if (openErr) throw new Error(openErr);
     // Give installer 2s to start then quit app
     setTimeout(() => { app.quit(); }, 2000);
     return { success: true, method: 'installer', path: localPath };

@@ -28,20 +28,20 @@ CEO gửi voice — "Em chưa nghe được voice, anh nhắn text giúp em ạ.
 
 ## GỬI ZALO TỪ TELEGRAM (qua API nội bộ)
 
+Phiên Telegram CEO tự xác thực khi `web_fetch` gọi `http://127.0.0.1:20200`. KHÔNG gọi `/api/auth/token`, KHÔNG thêm `token=<token>`.
+
 ### Gửi nhóm
 1. Tra cứu nhóm: `web_fetch http://127.0.0.1:20200/api/cron/list` — lấy danh sách `groups` với `id` + `name`
 2. Confirm CEO: "Nhóm [tên] (ID: [id]). Nội dung: '[nội dung]'. Anh confirm gửi không?"
 3. CHỜ CEO reply xác nhận. KHÔNG gửi khi chưa được confirm.
-4. Lấy token: ưu tiên token trong "Token API noi bo hien tai"; nếu chưa có thì `web_fetch http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>`
-5. Gửi: `web_fetch http://127.0.0.1:20200/api/zalo/send?token=<token>&groupId=<id>&text=<nội dung>`
+4. Gửi: `web_fetch http://127.0.0.1:20200/api/zalo/send?groupId=<id>&text=<nội dung>`
 
 ### Gửi cá nhân (bạn bè)
 1. Tra cứu bạn: `web_fetch http://127.0.0.1:20200/api/zalo/friends?name=<tên>` — tìm theo tên, trả về userId
 2. Nếu nhiều kết quả: hỏi CEO chọn đúng người. Nếu 0 kết quả: báo không tìm thấy.
 3. Confirm CEO: "[tên] (ID: [id]). Nội dung: '[nội dung]'. Anh confirm gửi không?"
 4. CHỜ CEO reply xác nhận.
-5. Lấy token: ưu tiên token trong "Token API noi bo hien tai"; nếu chưa có thì `web_fetch http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>`
-6. Gửi: `web_fetch http://127.0.0.1:20200/api/zalo/send?token=<token>&friendName=<tên>&text=<nội dung>&isGroup=false`
+5. Gửi: `web_fetch http://127.0.0.1:20200/api/zalo/send?friendName=<tên>&text=<nội dung>&isGroup=false`
    Hoặc: `...&targetId=<userId>&isGroup=false&text=<nội dung>`
 
 **QUAN TRỌNG:** Khi CEO chỉ cho TÊN (không có ID), LUÔN tra cứu `/api/zalo/friends?name=<tên>` trước. KHÔNG hỏi CEO Zalo ID — tự tìm.

@@ -191,6 +191,75 @@ function ensureWebFetchLocalhostFix(vendorDir, homeDir) {
         console.log('[ssrf-nowrap-fix] applied to', file);
       }
     }
+
+    // Part 3: auth localhost Cron API automatically for CEO Telegram sessions.
+    //
+    // We deliberately do NOT put the live token into AGENTS.md or model-visible
+    // tool output. The OpenClaw web_fetch runtime already knows the current
+    // agentChannel; only Telegram direct CEO sessions receive a bearer header.
+    // Zalo/customer sessions still hit the Cron API without auth and get 403.
+    const TOKEN_MARKER = '// 9BizClaw WEB_FETCH CRON TOKEN PATCH v2';
+    const LEGACY_TOKEN_MARKER = '// 9BizClaw WEB_FETCH CRON TOKEN PATCH';
+    const CACHE_MARKER = '// 9BizClaw WEB_FETCH LOCAL API CACHE BYPASS';
+    const RUN_FUNC = 'async function runWebFetch(params) {';
+    const HEADER_BLOCK = `init: { headers: {\n\t\t\t\tAccept: "text/markdown, text/html;q=0.9, */*;q=0.1",\n\t\t\t\t"User-Agent": params.userAgent,\n\t\t\t\t"Accept-Language": "en-US,en;q=0.9"\n\t\t\t} }`;
+    const HEADER_HELPER = `async function maybeBuild9BizClawWebFetchHeaders(params) {\n\tconst headers = { Accept: "text/markdown, text/html;q=0.9, */*;q=0.1", "User-Agent": params.userAgent, "Accept-Language": "en-US,en;q=0.9" };\n\ttry {\n\t\tconst agentChannel = String(params.agentChannel || "").trim().toLowerCase();\n\t\tconst sessionKey = String(params.agentSessionKey || "");\n\t\tconst isTelegram = agentChannel === "telegram" || sessionKey.includes(":telegram:");\n\t\tif (isTelegram && /^https?:\\/\\/(?:127\\.0\\.0\\.1|localhost):2020[01](?:\\/|$)/.test(String(params.url || ""))) {\n\t\t\tconst candidates = [path.join(process.cwd(), "cron-api-token.txt")];\n\t\t\tif (process.env.APPDATA) candidates.push(path.join(process.env.APPDATA, "9bizclaw", "cron-api-token.txt"));\n\t\t\tfor (const tokenPath of candidates) {\n\t\t\t\ttry {\n\t\t\t\t\tconst token = String(await fs.readFile(tokenPath, "utf8")).trim();\n\t\t\t\t\tif (/^[a-f0-9]{48}$/i.test(token)) { headers.Authorization = "Bearer " + token; headers["X-9BizClaw-Agent-Channel"] = "telegram"; break; }\n\t\t\t\t} catch {}\n\t\t\t}\n\t\t}\n\t} catch {}\n\treturn headers;\n}\n${TOKEN_MARKER}\n`;
+    const LEGACY_HELPER_RE = /async function maybeBuild9BizClawWebFetchHeaders\(params\) \{[\s\S]*?\/\/ 9BizClaw WEB_FETCH CRON TOKEN PATCH\n/;
+    for (const file of toolFiles) {
+      const fp = path.join(distDir, file);
+      let src = fs.readFileSync(fp, 'utf-8');
+      let changed = false;
+      if (!src.includes(TOKEN_MARKER)) {
+        if (src.includes(LEGACY_TOKEN_MARKER) && LEGACY_HELPER_RE.test(src)) {
+          src = src.replace(LEGACY_HELPER_RE, HEADER_HELPER);
+          changed = true;
+        } else if (!src.includes(RUN_FUNC)) {
+          console.warn(`[web-fetch-token-fix] WARNING: ${file} runWebFetch anchor missing`);
+          _logPatchFailure(homeDir, 'ensureWebFetchLocalhostFix-token-helper', `runWebFetch anchor missing in ${file}`);
+        } else {
+          src = src.replace(RUN_FUNC, HEADER_HELPER + RUN_FUNC);
+          changed = true;
+        }
+      }
+      if (src.includes(HEADER_BLOCK)) {
+        src = src.replace(HEADER_BLOCK, 'init: { headers: await maybeBuild9BizClawWebFetchHeaders(params) }');
+        changed = true;
+      }
+      const WEBFETCH_CACHE_BLOCK = 'const cacheKey = normalizeCacheKey(`fetch:${params.url}:${params.extractMode}:${params.maxChars}${allowRfc2544BenchmarkRange ? ":allow-rfc2544" : ""}`);\n\tconst cached = readCache(FETCH_CACHE, cacheKey);';
+      if (!src.includes(CACHE_MARKER) && src.includes(WEBFETCH_CACHE_BLOCK)) {
+        src = src.replace(WEBFETCH_CACHE_BLOCK, `${CACHE_MARKER}\n\tconst skip9BizClawLocalApiCache = /^https?:\\/\\/(?:127\\.0\\.0\\.1|localhost):2020[01](?:\\/|$)/.test(String(params.url || ""));\n\tconst cacheKey = normalizeCacheKey(\`fetch:\${params.url}:\${params.extractMode}:\${params.maxChars}\${allowRfc2544BenchmarkRange ? ":allow-rfc2544" : ""}\`);\n\tconst cached = skip9BizClawLocalApiCache ? null : readCache(FETCH_CACHE, cacheKey);`);
+        changed = true;
+      }
+      const WEBFETCH_WRITE_CACHE_LINE = '\t\twriteCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);';
+      if (src.includes(CACHE_MARKER) && src.includes(WEBFETCH_WRITE_CACHE_LINE)) {
+        src = src.replace(WEBFETCH_WRITE_CACHE_LINE, '\t\tif (!skip9BizClawLocalApiCache) writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);');
+        changed = true;
+      }
+      const WEBFETCH_OPTIONS_BLOCK = `const webFetchTool = createWebFetchTool({\n\t\tconfig: options?.config,\n\t\tsandboxed: options?.sandboxed,\n\t\truntimeWebFetch: runtimeWebTools?.fetch\n\t});`;
+      if (src.includes(WEBFETCH_OPTIONS_BLOCK)) {
+        src = src.replace(WEBFETCH_OPTIONS_BLOCK, `const webFetchTool = createWebFetchTool({\n\t\tconfig: options?.config,\n\t\tsandboxed: options?.sandboxed,\n\t\truntimeWebFetch: runtimeWebTools?.fetch,\n\t\tagentSessionKey: options?.agentSessionKey,\n\t\tagentChannel: options?.agentChannel\n\t});`);
+        changed = true;
+      }
+      const WEBFETCH_OPTIONS_SESSION_ONLY_BLOCK = `const webFetchTool = createWebFetchTool({\n\t\tconfig: options?.config,\n\t\tsandboxed: options?.sandboxed,\n\t\truntimeWebFetch: runtimeWebTools?.fetch,\n\t\tagentSessionKey: options?.agentSessionKey\n\t});`;
+      if (src.includes(WEBFETCH_OPTIONS_SESSION_ONLY_BLOCK)) {
+        src = src.replace(WEBFETCH_OPTIONS_SESSION_ONLY_BLOCK, `const webFetchTool = createWebFetchTool({\n\t\tconfig: options?.config,\n\t\tsandboxed: options?.sandboxed,\n\t\truntimeWebFetch: runtimeWebTools?.fetch,\n\t\tagentSessionKey: options?.agentSessionKey,\n\t\tagentChannel: options?.agentChannel\n\t});`);
+        changed = true;
+      }
+      const WEBFETCH_RUN_PARAMS_BLOCK = `lookupFn: options?.lookupFn,\n\t\t\t\tresolveProviderFallback\n\t\t\t}));`;
+      if (src.includes(WEBFETCH_RUN_PARAMS_BLOCK)) {
+        src = src.replace(WEBFETCH_RUN_PARAMS_BLOCK, `lookupFn: options?.lookupFn,\n\t\t\t\tresolveProviderFallback,\n\t\t\t\tagentSessionKey: options?.agentSessionKey,\n\t\t\t\tagentChannel: options?.agentChannel\n\t\t\t}));`);
+        changed = true;
+      }
+      const WEBFETCH_RUN_PARAMS_SESSION_ONLY_BLOCK = `lookupFn: options?.lookupFn,\n\t\t\t\tresolveProviderFallback,\n\t\t\t\tagentSessionKey: options?.agentSessionKey\n\t\t\t}));`;
+      if (src.includes(WEBFETCH_RUN_PARAMS_SESSION_ONLY_BLOCK)) {
+        src = src.replace(WEBFETCH_RUN_PARAMS_SESSION_ONLY_BLOCK, `lookupFn: options?.lookupFn,\n\t\t\t\tresolveProviderFallback,\n\t\t\t\tagentSessionKey: options?.agentSessionKey,\n\t\t\t\tagentChannel: options?.agentChannel\n\t\t\t}));`);
+        changed = true;
+      }
+      if (changed) {
+        fs.writeFileSync(fp, src, 'utf-8');
+        console.log('[web-fetch-token-fix] applied to', file);
+      }
+    }
   } catch (e) {
     console.warn('[ssrf-localhost-fix] non-fatal:', e?.message);
   }

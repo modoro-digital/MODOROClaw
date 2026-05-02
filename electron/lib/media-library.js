@@ -420,6 +420,51 @@ function deleteMediaAsset(idOrName, options = {}) {
   return { success: true, id: asset.id, unlinked: unlinkFile };
 }
 
+function matchesKnowledgeSource(asset, { docId, filename, filepath } = {}) {
+  if (!asset || !['knowledge_image', 'pdf_page'].includes(asset.type)) return false;
+  const meta = asset.metadata || {};
+  if (docId && Number(meta.documentId) === Number(docId)) return true;
+  if (filename && (meta.knowledgeFilename === filename || meta.pdfFilename === filename)) return true;
+  if (filepath) {
+    const resolved = path.resolve(filepath);
+    if (asset.path && path.resolve(asset.path) === resolved) return true;
+    if (meta.pdfSource && path.resolve(meta.pdfSource) === resolved) return true;
+    if (meta.knowledgeFilepath && path.resolve(meta.knowledgeFilepath) === resolved) return true;
+  }
+  return false;
+}
+
+function updateKnowledgeMediaAssets(match, patch = {}) {
+  const index = readIndex();
+  let changed = 0;
+  index.assets = index.assets.map(asset => {
+    if (!matchesKnowledgeSource(asset, match)) return asset;
+    changed++;
+    return {
+      ...asset,
+      ...patch,
+      visibility: patch.visibility ? normalizeVisibility(patch.visibility, asset.type) : asset.visibility,
+      metadata: patch.metadata ? { ...(asset.metadata || {}), ...patch.metadata } : asset.metadata,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  if (changed) writeIndex(index);
+  return { success: true, changed };
+}
+
+function deleteKnowledgeMediaAssets(match, options = {}) {
+  const index = readIndex();
+  const matched = index.assets.filter(asset => matchesKnowledgeSource(asset, match));
+  let removed = 0;
+  const keepPath = options.keepPath ? path.resolve(options.keepPath) : '';
+  for (const asset of matched) {
+    const unlinkFile = asset.path && (!keepPath || path.resolve(asset.path) !== keepPath);
+    const result = deleteMediaAsset(asset.id, { unlinkFile });
+    if (result.success) removed++;
+  }
+  return { success: true, removed };
+}
+
 async function describeMediaAsset(idOrAsset, options = {}) {
   const asset = typeof idOrAsset === 'object' ? idOrAsset : findMediaAsset(idOrAsset);
   if (!asset) throw new Error('media asset not found');
@@ -495,6 +540,10 @@ async function renderPdfPagesToMedia(pdfPath, options = {}) {
           metadata: {
             pdfSource: pdfPath,
             pdfFilename: path.basename(pdfPath),
+            knowledgeFilename: options.knowledgeFilename || path.basename(pdfPath),
+            knowledgeFilepath: pdfPath,
+            knowledgeCategory: options.knowledgeCategory || '',
+            documentId: options.documentId || null,
             page: page + 1,
             totalPages: pages,
             renderMethod: 'sharp',
@@ -549,6 +598,10 @@ async function renderPdfPagesToMedia(pdfPath, options = {}) {
       metadata: {
         pdfSource: pdfPath,
         pdfFilename: path.basename(pdfPath),
+        knowledgeFilename: options.knowledgeFilename || path.basename(pdfPath),
+        knowledgeFilepath: pdfPath,
+        knowledgeCategory: options.knowledgeCategory || '',
+        documentId: options.documentId || null,
         page: img.index,
         totalPages,
         renderMethod,
@@ -611,6 +664,8 @@ module.exports = {
   findMediaAsset,
   updateMediaAsset,
   deleteMediaAsset,
+  updateKnowledgeMediaAssets,
+  deleteKnowledgeMediaAssets,
   describeMediaAsset,
   renderPdfPagesToMedia,
   backfillLegacyBrandAssets,

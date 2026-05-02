@@ -37,7 +37,7 @@ for (const rel of files) {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/\/api\/auth\/token/.test(line) && !/bot_token/.test(line)) {
+    if (/\/api\/auth\/token/.test(line) && !/bot_token/.test(line) && !/(KHÔNG|KHONG|do not|don't)/i.test(line)) {
       warnings.push(`${rel}:${i + 1}: /api/auth/token mentioned without bot_token on the same line`);
     }
   }

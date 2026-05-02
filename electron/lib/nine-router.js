@@ -18,6 +18,7 @@ let routerProcess = null;
 let _routerLogFd = null;
 
 const PROVIDER_KEYS_PATH = () => path.join(appDataDir(), 'modoroclaw-provider-keys.json');
+const RTK_DEFAULT_MARKER_PATH = () => path.join(appDataDir(), 'modoroclaw-rtk-default-applied.json');
 
 let _9routerSqliteFixAttempted = false;
 
@@ -106,6 +107,87 @@ function ensure9RouterProviderKeys() {
   } catch (e) { console.error('[9router] ensure provider keys error:', e.message); }
 }
 
+function writeRtkDefaultMarker(meta = {}) {
+  try {
+    fs.writeFileSync(
+      RTK_DEFAULT_MARKER_PATH(),
+      JSON.stringify({ appliedAt: new Date().toISOString(), ...meta }, null, 2),
+      'utf-8'
+    );
+  } catch (e) {
+    console.warn('[9router] could not write RTK marker:', e.message);
+  }
+}
+
+function tryWrite9RouterRtkDefaultToDb() {
+  try {
+    const markerPath = RTK_DEFAULT_MARKER_PATH();
+    if (fs.existsSync(markerPath)) return { changed: false, skipped: 'already-applied' };
+
+    const dbPath = path.join(appDataDir(), '9router', 'db.json');
+    if (!fs.existsSync(dbPath)) return { changed: false, skipped: 'db-missing' };
+
+    const raw = fs.readFileSync(dbPath, 'utf-8');
+    const db = JSON.parse(raw);
+    if (!db.settings || typeof db.settings !== 'object' || Array.isArray(db.settings)) {
+      db.settings = {};
+    }
+    if (db.settings.rtkEnabled === true) return { changed: false, skipped: 'already-enabled' };
+
+    db.settings.rtkEnabled = true;
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+    console.log('[9router] RTK enabled in db.json default settings');
+    return { changed: true };
+  } catch (e) {
+    console.warn('[9router] RTK db default enable failed:', e.message);
+    return { changed: false, error: e.message };
+  }
+}
+
+// 9Router v0.4.12 defaults RTK (Rust Token Killer) on for new installs and
+// reads it from per-request settings. For existing 9BizClaw installs, enable it
+// once so old db.json files get migrated without forcing the setting every run.
+// The marker lets users later disable RTK in 9Router without our startup code
+// flipping it back.
+async function ensure9RouterRtkDefaultEnabled() {
+  const markerPath = RTK_DEFAULT_MARKER_PATH();
+  if (fs.existsSync(markerPath)) return false;
+
+  const dbResult = tryWrite9RouterRtkDefaultToDb();
+  const apiResult = await nineRouterApi('PATCH', '/api/settings', { rtkEnabled: true }, 5000);
+  if (apiResult.success || dbResult.changed || dbResult.skipped === 'already-enabled') {
+    writeRtkDefaultMarker({
+      source: '9bizclaw-default',
+      package: '9router',
+      version: '0.4.12',
+      dbChanged: dbResult.changed === true,
+      apiPatched: apiResult.success === true,
+    });
+    console.log('[9router] RTK default enablement applied');
+    return true;
+  }
+
+  console.warn('[9router] RTK default enablement skipped:', apiResult.error || dbResult.error || dbResult.skipped || 'unknown');
+  return false;
+}
+
+function schedule9RouterRtkDefaultEnablement() {
+  const timer = setTimeout(async () => {
+    try {
+      if (fs.existsSync(RTK_DEFAULT_MARKER_PATH())) return;
+      const ready = await waitFor9RouterReady(30000);
+      if (!ready) {
+        console.warn('[9router] RTK default enablement deferred: 9Router not ready');
+        return;
+      }
+      await ensure9RouterRtkDefaultEnabled();
+    } catch (e) {
+      console.warn('[9router] RTK default enablement error:', e.message);
+    }
+  }, 1000);
+  if (typeof timer.unref === 'function') timer.unref();
+}
+
 function start9Router() {
   if (routerProcess) return;
   try {
@@ -117,6 +199,16 @@ function start9Router() {
 
     ensure9RouterDefaultPassword();
     ensure9RouterProviderKeys();
+    const rtkDbResult = tryWrite9RouterRtkDefaultToDb();
+    if (rtkDbResult.changed || rtkDbResult.skipped === 'already-enabled') {
+      writeRtkDefaultMarker({
+        source: '9bizclaw-db-startup',
+        package: '9router',
+        version: '0.4.12',
+        dbChanged: rtkDbResult.changed === true,
+        apiPatched: false,
+      });
+    }
     const logsDir = path.join(ctx.userDataDir, 'logs');
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     _routerLogFd = fs.openSync(path.join(logsDir, '9router.log'), 'a');
@@ -134,7 +226,7 @@ function start9Router() {
       // Resolve absolute node path so spawn doesn't depend on PATH at all.
       const nodeBin = findNodeBin() || 'node';
       routerCmd = nodeBin;
-      routerArgs = [routerScript, '-n', '--skip-update'];
+      routerArgs = [routerScript, '--host', '127.0.0.1', '-n', '--skip-update'];
       routerSpawnOpts = { shell: false };
     } else {
       // Fallback: PATH lookup via shell shim. On Windows we need `9router.cmd`
@@ -161,7 +253,7 @@ function start9Router() {
         return;
       }
       routerCmd = probe;
-      routerArgs = ['-n', '--skip-update'];
+      routerArgs = ['--host', '127.0.0.1', '-n', '--skip-update'];
       routerSpawnOpts = { shell: isWin };
     }
     // Pin 9Router auth so the login form always accepts "123456" and the JWT
@@ -199,6 +291,7 @@ function start9Router() {
       routerProcess = null;
     });
     routerProcess.unref();
+    schedule9RouterRtkDefaultEnablement();
     routerProcess.on('exit', (code, signal) => {
       routerProcess = null;
       if (thisFd !== null) { try { fs.closeSync(thisFd); } catch {} }
@@ -750,6 +843,7 @@ async function detectChatgptPlusOAuth() {
 
 module.exports = {
   ensure9RouterDefaultPassword, saveProviderKey, ensure9RouterProviderKeys,
+  ensure9RouterRtkDefaultEnabled,
   start9Router, stop9Router, nineRouterApi, autoFix9RouterSqlite,
   waitFor9RouterReady, validateOllamaKeyDirect,
   call9Router, call9RouterVision, detectChatgptPlusOAuth,

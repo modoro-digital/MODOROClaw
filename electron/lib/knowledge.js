@@ -760,6 +760,10 @@ async function describePdfScanForKnowledge(pdfPath, filename, options = {}) {
     result = await mediaLibrary.renderPdfPagesToMedia(pdfPath, {
       title: path.basename(filename, path.extname(filename)),
       visibility: options.visibility || 'public',
+      knowledgeFilename: filename,
+      knowledgeFilepath: pdfPath,
+      knowledgeCategory: options.category || '',
+      documentId: options.documentId || null,
       describe: true,
       maxPages: Infinity,
     });

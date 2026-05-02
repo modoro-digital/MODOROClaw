@@ -57,7 +57,7 @@ function section(label) { console.log(`\n[${label}]`); }
 // =========================================================================
 const PINNED = {
   openclaw: '2026.4.14',
-  '9router': '0.3.82',
+  '9router': '0.4.12',
   openzca: '0.1.57',
 };
 
@@ -136,6 +136,89 @@ function listTarEntriesWithNode(tarPath) {
   return entries;
 }
 
+function readTarEntryText(tarPath, entry) {
+  function readWithNode() {
+    const wanted = String(entry).replace(/\\/g, '/');
+    const fd = fs.openSync(tarPath, 'r');
+    const header = Buffer.alloc(512);
+    let offset = 0;
+    let pendingLongName = null;
+    let pendingPaxPath = null;
+    try {
+      while (true) {
+        const bytes = fs.readSync(fd, header, 0, 512, offset);
+        if (bytes < 512) break;
+        offset += 512;
+        let empty = true;
+        for (let i = 0; i < 512; i++) {
+          if (header[i] !== 0) { empty = false; break; }
+        }
+        if (empty) break;
+
+        const readString = (start, len) => header.toString('utf8', start, start + len).replace(/\0.*$/, '').trim();
+        let name = readString(0, 100);
+        const sizeRaw = readString(124, 12);
+        const size = parseInt(sizeRaw || '0', 8) || 0;
+        const typeflag = String.fromCharCode(header[156] || 48);
+        const prefix = readString(345, 155);
+        if (prefix) name = prefix + '/' + name;
+
+        const payloadOffset = offset;
+        const paddedSize = Math.ceil(size / 512) * 512;
+        if (typeflag === 'L' || typeflag === 'x' || typeflag === 'g') {
+          const payload = Buffer.alloc(size);
+          if (size > 0) fs.readSync(fd, payload, 0, size, payloadOffset);
+          const text = payload.toString('utf8').replace(/\0+$/, '');
+          if (typeflag === 'L') {
+            pendingLongName = text;
+          } else if (typeflag === 'x') {
+            for (const line of text.split('\n')) {
+              const m = line.match(/^\d+\s+path=(.*)$/);
+              if (m) { pendingPaxPath = m[1]; break; }
+            }
+          }
+        } else {
+          if (pendingPaxPath) {
+            name = pendingPaxPath;
+            pendingPaxPath = null;
+            pendingLongName = null;
+          } else if (pendingLongName) {
+            name = pendingLongName;
+            pendingLongName = null;
+          }
+          name = String(name || '').replace(/\\/g, '/');
+          if (name === wanted) {
+            const payload = Buffer.alloc(size);
+            if (size > 0) fs.readSync(fd, payload, 0, size, payloadOffset);
+            return payload.toString('utf8').replace(/\0+$/, '');
+          }
+        }
+        offset = payloadOffset + paddedSize;
+      }
+    } finally {
+      fs.closeSync(fd);
+    }
+    throw new Error(`entry not found in tar: ${entry}`);
+  }
+  const tarBin = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+    : 'tar';
+  const res = spawnSync(tarBin, ['-xOf', tarPath, entry], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: false,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  if (res.status !== 0) {
+    try {
+      return readWithNode();
+    } catch (fallbackErr) {
+      throw new Error(`tar -xOf failed exit ${res.status}: ${res.error?.message || (res.stderr || '').slice(0, 200) || 'no stderr'}; JS fallback failed: ${fallbackErr.message}`);
+    }
+  }
+  return res.stdout;
+}
+
 // If only the Windows tar is present, peek inside it to verify pinned versions.
 // Uses `tar -tvf` to list contents without extracting — fast.
 let tarContents = null;
@@ -173,19 +256,25 @@ if (hasVendorTar && !hasVendorDir) {
 }
 
 function checkVendorVersion(pkgName, expected) {
-  // If we only have the Windows tar, verify package path exists inside the tar listing.
-  // We can't easily read version from inside a tar without extracting, so trust the
-  // tar was built from a prebuild that already SHA256-verified + version-pinned.
+  // If we only have the Windows tar, verify package.json inside the archive.
   if (tarContents && !hasVendorDir) {
-    const entryPrefix = pkgName.startsWith('@')
-      ? `vendor/node_modules/${pkgName}/`
-      : `vendor/node_modules/${pkgName}/`;
-    const hasEntry = [...tarContents].some(e => e === entryPrefix || e.startsWith(entryPrefix));
-    if (hasEntry) {
-      pass(`vendor tar: ${pkgName} present`);
-    } else {
-      fail(`vendor tar ${pkgName}`, `${pkgName} not found in vendor-bundle.tar. Run: rm vendor-bundle.tar vendor-meta.json && npm run prebuild:vendor`);
+    const pkgJsonEntry = `vendor/node_modules/${pkgName}/package.json`;
+    if (!tarContents.has(pkgJsonEntry)) {
+      fail(`vendor tar ${pkgName}`, `${pkgName}/package.json not found in vendor-bundle.tar. Run: rm vendor-bundle.tar vendor-meta.json && npm run prebuild:vendor`);
+      return;
     }
+    let actual;
+    try {
+      actual = JSON.parse(readTarEntryText(VENDOR_TAR, pkgJsonEntry)).version;
+    } catch (e) {
+      fail(`vendor tar ${pkgName}`, `package.json unreadable in vendor-bundle.tar: ${e.message}`);
+      return;
+    }
+    if (actual !== expected) {
+      fail(`vendor tar ${pkgName}`, `version drift: have=${actual} pinned=${expected}. Run: rm vendor-bundle.tar vendor-meta.json && npm run prebuild:vendor`);
+      return;
+    }
+    pass(`vendor tar ${pkgName}@${actual}`);
     return;
   }
   if (hasVendorTar && !hasVendorDir && tarListFailed) {
@@ -259,6 +348,47 @@ if (tarContents && !hasVendorDir) {
 } else {
   pass('gog binary present (cross-build, skipping execution check)');
 }
+
+function checkVendorExtractionSentinels() {
+  if (!isBundledBuild || process.platform !== 'win32') return;
+  const bootSource = fs.readFileSync(path.join(ROOT, 'lib', 'boot.js'), 'utf8');
+  if (/node_modules['"],\s*['"]pdf-parse['"]/.test(bootSource)) {
+    fail('vendor extraction sentinels', 'boot.js must not sentinel-check pdf-parse under vendor; pdf-parse is packaged as an Electron app dependency, not in vendor-bundle.tar');
+    return;
+  }
+  const sentinelEntries = [
+    'vendor/node/node.exe',
+    'vendor/node_modules/openclaw/openclaw.mjs',
+    'vendor/node_modules/openclaw/package.json',
+    'vendor/node_modules/modoro-zalo/openclaw.plugin.json',
+    'vendor/node_modules/9router/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node',
+    'vendor/models/Xenova/multilingual-e5-small/onnx/model_quantized.onnx',
+    'vendor/models/Xenova/multilingual-e5-small/tokenizer.json',
+    'vendor/models/Xenova/multilingual-e5-small/config.json',
+  ];
+  if (tarContents && !hasVendorDir) {
+    const missing = sentinelEntries.filter(entry => !tarContents.has(entry));
+    if (missing.length) {
+      fail('vendor tar extraction sentinels', 'missing from vendor-bundle.tar: ' + missing.join(', '));
+      return;
+    }
+    pass(`vendor tar extraction sentinels (${sentinelEntries.length})`);
+    return;
+  }
+  if (hasVendorDir) {
+    const missing = sentinelEntries.filter(entry => {
+      const abs = path.join(ROOT, entry.replace(/\//g, path.sep));
+      return !fs.existsSync(abs) || fs.statSync(abs).size === 0;
+    });
+    if (missing.length) {
+      fail('vendor dir extraction sentinels', 'missing/empty in electron/vendor: ' + missing.join(', '));
+      return;
+    }
+    pass(`vendor dir extraction sentinels (${sentinelEntries.length})`);
+  }
+}
+
+checkVendorExtractionSentinels();
 
 // =========================================================================
 // TEST 2: openclaw CLI is runnable + `agent --help` works
@@ -901,6 +1031,8 @@ try {
   const agentsSrc = fs.readFileSync(path.join(templateRoot, 'AGENTS.md'), 'utf-8');
   const requiredGoogleBits = [
     [googleApiSrc, 'serviceHealth', 'google-api serviceHealth export'],
+    [googleApiSrc, 'gogReadExec', 'google-api safe read retry wrapper'],
+    [googleApiSrc, 'isTransientGogError', 'google-api transient network classifier'],
     [googleApiSrc, 'readDoc', 'google-api readDoc wrapper'],
     [googleRoutesSrc, '/health', 'google health route'],
     [googleRoutesSrc, '/docs/read', 'google docs read route'],
@@ -1023,6 +1155,7 @@ function checkModuleContracts() {
       'start9Router', 'stop9Router', 'nineRouterApi', 'autoFix9RouterSqlite',
       'waitFor9RouterReady', 'validateOllamaKeyDirect',
       'call9Router', 'call9RouterVision', 'detectChatgptPlusOAuth',
+      'ensure9RouterRtkDefaultEnabled',
       'getRouterProcess', 'setKillPort'];
     for (const fn of required) {
       if (typeof nr[fn] !== 'function') errors.push(`nine-router.js missing export: ${fn}`);
@@ -1517,6 +1650,40 @@ try {
     }
   }
   pass('cron-api sensitive read/list endpoints require token');
+  if (!/authorization/i.test(cronApiSrc) || !/Bearer\\s\+/.test(cronApiSrc) || !/x-9bizclaw-token/i.test(cronApiSrc)) {
+    fail('cron-api bearer auth', 'cron-api.js must accept internal bearer/header auth so Telegram web_fetch can authenticate without exposing token to the model');
+  } else {
+    pass('cron-api accepts bearer/header auth');
+  }
+  if (/params\.token\s*!==\s*_cronApiToken/.test(cronApiSrc)) {
+    fail('cron-api redundant query-token checks', 'Route-level params.token checks bypass bearer/header auth; use the shared suppliedToken gate only');
+  } else {
+    pass('cron-api routes share bearer/query/header auth gate');
+  }
+  const vendorPatchSrc = fs.readFileSync(path.join(__dirname, '..', 'lib', 'vendor-patches.js'), 'utf-8');
+  const hasWebFetchTokenPatch =
+    vendorPatchSrc.includes('9BizClaw WEB_FETCH CRON TOKEN PATCH v2') &&
+    vendorPatchSrc.includes('9BizClaw WEB_FETCH LOCAL API CACHE BYPASS') &&
+    vendorPatchSrc.includes('skip9BizClawLocalApiCache') &&
+    vendorPatchSrc.includes('params.agentChannel') &&
+    vendorPatchSrc.includes('agentChannel: options?.agentChannel') &&
+    vendorPatchSrc.includes('agentSessionKey: options?.agentSessionKey') &&
+    vendorPatchSrc.includes('resolveProviderFallback,\\n\\t\\t\\t\\tagentSessionKey: options?.agentSessionKey,\\n\\t\\t\\t\\tagentChannel: options?.agentChannel');
+  if (!hasWebFetchTokenPatch) {
+    fail('web_fetch cron token patch', 'vendor patch must pass agentChannel through createWebFetchTool into runWebFetch params, and attach Cron API auth only for Telegram-originated tool calls');
+  } else {
+    pass('web_fetch cron token patch is Telegram-channel-scoped');
+  }
+  const agentsSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'AGENTS.md'), 'utf-8');
+  const tokenInstructionLines = agentsSrc.split(/\r?\n/).filter(line =>
+    /api\/auth\/token\?bot_token/i.test(line) ||
+    (/token=<token>/.test(line) && !/(KHÔNG|KHONG|do not|don't)/i.test(line))
+  );
+  if (tokenInstructionLines.length) {
+    fail('AGENTS token bootstrap copy', 'AGENTS.md must not instruct the model to fetch or paste internal API tokens');
+  } else {
+    pass('AGENTS.md uses implicit Telegram API auth');
+  }
   // Localhost-only binding
   if (!/127\.0\.0\.1/.test(cronApiSrc) && !/localhost/.test(cronApiSrc)) {
     fail('cron-api binding', 'cron-api.js does not bind to 127.0.0.1/localhost — API exposed to network');
@@ -1934,7 +2101,41 @@ try {
 } catch (e) { fail('smoke chain', 'package.json read failed: ' + e.message); }
 
 // =========================================================================
-// TEST 37: File logger initialization
+// TEST 37: macOS signing and notarization workflow
+// Premium Mac releases should use Developer ID signing when cert secrets exist,
+// and notarize automatically when Apple ID secrets exist.
+// =========================================================================
+section('Mac signing/notarization');
+try {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+  const hookPath = path.join(__dirname, 'notarize-mac.js');
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'build-mac.yml');
+  const workflow = fs.existsSync(workflowPath) ? fs.readFileSync(workflowPath, 'utf-8') : '';
+  const hook = fs.existsSync(hookPath) ? fs.readFileSync(hookPath, 'utf-8') : '';
+  if (pkg.build?.afterSign !== 'scripts/notarize-mac.js') {
+    fail('mac notarization hook', 'package.json build.afterSign must point to scripts/notarize-mac.js');
+  } else if (!hook.includes('@electron/notarize') || !hook.includes('APPLE_APP_SPECIFIC_PASSWORD') || !hook.includes('APPLE_TEAM_ID')) {
+    fail('mac notarization hook', 'notarize-mac.js must use @electron/notarize with APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID');
+  } else {
+    pass('mac notarization hook wired');
+  }
+  const requiredSecrets = [
+    'MAC_CERT_P12_BASE64',
+    'MAC_CERT_PASSWORD',
+    'APPLE_ID',
+    'APPLE_APP_SPECIFIC_PASSWORD',
+    'APPLE_TEAM_ID',
+  ];
+  const missing = requiredSecrets.filter(secret => !workflow.includes(`secrets.${secret}`));
+  if (missing.length > 0) {
+    fail('mac release workflow secrets', `build-mac.yml missing secret wiring: ${missing.join(', ')}`);
+  } else {
+    pass('mac release workflow wires signing and notarization secrets');
+  }
+} catch (e) { fail('mac signing/notarization', e.message); }
+
+// =========================================================================
+// TEST 38: File logger initialization
 // initFileLogger must be called BEFORE any require() that might log.
 // Logger path must use lowercase app name to match Electron's userData.
 // =========================================================================

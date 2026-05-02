@@ -39,7 +39,12 @@ function numberToColumn(n) {
 function normalizeSheetValues(params) {
   const raw = params.valuesJson !== undefined ? params.valuesJson : params.values;
   if (raw === undefined || raw === null || raw === '') return raw;
-  if (Array.isArray(raw)) return { ok: true, values: raw };
+  if (Array.isArray(raw)) {
+    if (raw.some(row => !Array.isArray(row))) {
+      return { ok: false, error: 'values must be a JSON 2D array, for example [["Ngày","Danh mục"],["",""]]' };
+    }
+    return { ok: true, values: raw };
+  }
   if (typeof raw !== 'string') return { ok: true, values: raw };
   const trimmed = raw.trim();
   if (!trimmed) return { ok: true, values: trimmed };
@@ -47,7 +52,7 @@ function normalizeSheetValues(params) {
     try {
       const parsed = JSON.parse(trimmed);
       if (!Array.isArray(parsed) || parsed.some(row => !Array.isArray(row))) {
-        return { ok: false, error: 'values must be a JSON 2D array' };
+        return { ok: false, error: 'values must be a JSON 2D array, for example [["Ngày","Danh mục"],["",""]]' };
       }
       return { ok: true, values: parsed };
     } catch (e) {
@@ -83,6 +88,11 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
   try {
     const sourceChannel = (req.headers['x-source-channel'] || '').toLowerCase();
     const isZalo = sourceChannel === 'zalo';
+    const blockZaloMutation = (label) => {
+      if (!isZalo) return false;
+      jsonResp(res, 403, { error: `${label} not allowed from Zalo channel` });
+      return true;
+    };
 
     if (urlPath === '/status') {
       return jsonResp(res, 200, await googleApi.authStatus());
@@ -161,18 +171,21 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/drive/upload') {
+      if (blockZaloMutation('Google Drive upload')) return;
       if (!params.filePath) return jsonResp(res, 400, { error: 'filePath required' });
       if (!isHomedirPathSafe(params.filePath)) return jsonResp(res, 403, { error: 'filePath blocked by path validation' });
       const r = await googleApi.uploadFile(params.filePath, params.folderId);
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/drive/download') {
+      if (blockZaloMutation('Google Drive download')) return;
       if (!params.fileId || !params.destPath) return jsonResp(res, 400, { error: 'fileId and destPath required' });
       if (!isHomedirPathSafe(params.destPath)) return jsonResp(res, 403, { error: 'destPath blocked by path validation' });
       const r = await googleApi.downloadFile(params.fileId, params.destPath, params.format);
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/drive/share') {
+      if (blockZaloMutation('Google Drive share')) return;
       if (!params.fileId || !params.email) return jsonResp(res, 400, { error: 'fileId and email required' });
       const r = await googleApi.shareFile(params.fileId, params.email, params.role);
       return jsonResp(res, 200, r);
@@ -234,6 +247,7 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/contacts/create') {
+      if (blockZaloMutation('Google Contacts create')) return;
       if (!params.name) return jsonResp(res, 400, { error: 'name required' });
       const r = await googleApi.createContact(params.name, params.phone, params.email);
       return jsonResp(res, 200, r);
@@ -248,11 +262,13 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/tasks/create') {
+      if (blockZaloMutation('Google Tasks create')) return;
       if (!params.title) return jsonResp(res, 400, { error: 'title required' });
       const r = await googleApi.createTask(params.title, params.due, params.listId);
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/tasks/complete') {
+      if (blockZaloMutation('Google Tasks complete')) return;
       if (!params.taskId) return jsonResp(res, 400, { error: 'taskId required' });
       const r = await googleApi.completeTask(params.taskId, params.listId);
       return jsonResp(res, 200, r);
@@ -273,6 +289,7 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/sheets/update') {
+      if (blockZaloMutation('Google Sheets update')) return;
       if (!params.spreadsheetId || !params.range) return jsonResp(res, 400, { error: 'spreadsheetId and range required' });
       const parsedValues = normalizeSheetValues(params);
       if (parsedValues && !parsedValues.ok) return jsonResp(res, 400, { error: parsedValues.error });
@@ -282,6 +299,7 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
       return jsonResp(res, 200, r);
     }
     if (urlPath === '/sheets/append') {
+      if (blockZaloMutation('Google Sheets append')) return;
       if (!params.spreadsheetId || !params.range) return jsonResp(res, 400, { error: 'spreadsheetId and range required' });
       const parsedValues = normalizeSheetValues(params);
       if (parsedValues && !parsedValues.ok) return jsonResp(res, 400, { error: parsedValues.error });
@@ -291,6 +309,7 @@ async function handleGoogleRoute(urlPath, params, req, res, jsonResp) {
     }
     // Apps Script, useful for automations around Google Sheets/AppSheet data.
     if (urlPath === '/appscript/run') {
+      if (blockZaloMutation('Google Apps Script run')) return;
       if (!params.scriptId || !params.functionName) return jsonResp(res, 400, { error: 'scriptId and functionName required' });
       const r = await googleApi.runAppScript(params.scriptId, params.functionName, params.params, params.devMode);
       return jsonResp(res, 200, r);

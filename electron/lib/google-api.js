@@ -70,6 +70,39 @@ async function gogExec(args, timeoutMs = 15000) {
   return gogSpawnAsync(args, timeoutMs);
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isTransientGogError(error) {
+  const msg = String(error?.message || error || '').toLowerCase();
+  return [
+    'tls handshake timeout',
+    'timeout awaiting response headers',
+    'i/o timeout',
+    'connection reset',
+    'connection refused',
+    'socket hang up',
+    'econnreset',
+    'etimedout',
+    'temporarily unavailable',
+  ].some(part => msg.includes(part));
+}
+
+async function gogReadExec(args, timeoutMs = 20000, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await gogExec(args, timeoutMs);
+    } catch (e) {
+      lastError = e;
+      if (attempt >= attempts || !isTransientGogError(e)) throw e;
+      await sleep(750 * attempt);
+    }
+  }
+  throw lastError;
+}
+
 function normalizeGogArgs(args) {
   const normalized = Array.isArray(args) ? args.slice() : [];
   if (!normalized.includes('--json') && !normalized.includes('-j')) {
@@ -128,7 +161,7 @@ function cleanupGogProcesses() {
 
 async function authStatus() {
   try {
-    const result = await gogExec(['auth', 'status'], 10000);
+    const result = await gogReadExec(['auth', 'status'], 15000);
     const email = getGogAccount();
     return { connected: !!email, email, services: GOOGLE_SERVICES.split(','), raw: result };
   } catch {
@@ -198,7 +231,7 @@ async function listEvents(from, to, calendarId) {
   const args = ['calendar', 'events', calendarId || 'primary'];
   if (from) args.push('--from', from);
   if (to) args.push('--to', to);
-  return gogExec(args);
+  return gogReadExec(args);
 }
 
 async function createEvent(summary, start, end, attendees, calendarId) {
@@ -244,7 +277,7 @@ async function deleteEvent(eventId, calendarId) {
 }
 
 async function getFreeBusy(from, to) {
-  return gogExec(['calendar', 'freebusy', '--from', from, '--to', to]);
+  return gogReadExec(['calendar', 'freebusy', '--from', from, '--to', to]);
 }
 
 async function getFreeSlots(date, workStart, workEnd, slotMinutes) {
@@ -449,12 +482,12 @@ function normalizeGmailInboxResult(result) {
 }
 
 async function listInbox(max) {
-  const result = await gogExec(['gmail', 'search', 'in:inbox', '--max', String(max || 20)]);
+  const result = await gogReadExec(['gmail', 'search', 'in:inbox', '--max', String(max || 20)]);
   return normalizeGmailInboxResult(result);
 }
 
 async function readEmail(id) {
-  const result = await gogExec(['gmail', 'get', id]);
+  const result = await gogReadExec(['gmail', 'get', id]);
   return normalizeGmailReadResult(result);
 }
 
@@ -470,11 +503,11 @@ async function replyEmail(id, body) {
 
 async function listFiles(query, max) {
   const args = query ? ['drive', 'search', query, '--max', String(max || 20)] : ['drive', 'ls', '--max', String(max || 20)];
-  return gogExec(args);
+  return gogReadExec(args);
 }
 
 async function listSheets(max) {
-  return gogExec([
+  return gogReadExec([
     'drive', 'ls',
     '--all',
     '--query', "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
@@ -501,7 +534,7 @@ async function shareFile(fileId, email, role) {
 // --- Docs ---
 
 async function listDocs(max) {
-  return gogExec([
+  return gogReadExec([
     'drive', 'ls',
     '--all',
     '--query', "mimeType='application/vnd.google-apps.document' and trashed=false",
@@ -510,7 +543,7 @@ async function listDocs(max) {
 }
 
 async function getDocInfo(docId) {
-  return gogExec(['docs', 'info', docId]);
+  return gogReadExec(['docs', 'info', docId]);
 }
 
 async function readDoc(docId, opts) {
@@ -519,7 +552,7 @@ async function readDoc(docId, opts) {
   if (opts?.tab) args.push('--tab', opts.tab);
   if (opts?.allTabs) args.push('--all-tabs');
   if (opts?.numbered) args.push('--numbered');
-  return gogExec(args);
+  return gogReadExec(args);
 }
 
 async function createDoc(title, opts) {
@@ -572,7 +605,7 @@ async function exportDoc(docId, opts) {
 // --- Contacts ---
 
 async function listContacts(query) {
-  return query ? gogExec(['contacts', 'search', query]) : gogExec(['contacts', 'list']);
+  return query ? gogReadExec(['contacts', 'search', query]) : gogReadExec(['contacts', 'list']);
 }
 
 async function createContact(name, phone, email) {
@@ -599,7 +632,7 @@ function firstArrayFromResult(result, keys) {
 }
 
 async function listTaskLists(max) {
-  return gogExec(['tasks', 'lists', 'list', '--max', String(max || 100)]);
+  return gogReadExec(['tasks', 'lists', 'list', '--max', String(max || 100)]);
 }
 
 async function resolveTaskListId(listId) {
@@ -614,7 +647,7 @@ async function resolveTaskListId(listId) {
 
 async function listTasks(listId) {
   const taskListId = await resolveTaskListId(listId);
-  return gogExec(['tasks', 'list', taskListId]);
+  return gogReadExec(['tasks', 'list', taskListId]);
 }
 
 async function createTask(title, due, listId) {
@@ -635,7 +668,7 @@ async function getSheet(spreadsheetId, range, opts) {
   const args = ['sheets', 'get', spreadsheetId, range];
   if (opts?.render) args.push('--render', opts.render);
   if (opts?.dimension) args.push('--dimension', opts.dimension);
-  return gogExec(args);
+  return gogReadExec(args);
 }
 
 async function updateSheet(spreadsheetId, range, values, opts) {
@@ -658,7 +691,7 @@ async function appendSheet(spreadsheetId, range, values, opts) {
 }
 
 async function getSheetMetadata(spreadsheetId) {
-  return gogExec(['sheets', 'metadata', spreadsheetId]);
+  return gogReadExec(['sheets', 'metadata', spreadsheetId]);
 }
 
 async function runAppScript(scriptId, functionName, params, devMode) {
@@ -690,11 +723,11 @@ async function serviceHealth() {
   const later = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const iso = d => d.toISOString();
   const checks = [
-    probeService('calendar', () => gogExec(['calendar', 'events', 'primary', '--from', iso(now), '--to', iso(later)], 15000)),
-    probeService('gmail', () => gogExec(['gmail', 'search', 'in:inbox', '--max', '1'], 15000)),
-    probeService('drive', () => gogExec(['drive', 'ls', '--max', '1'], 15000)),
-    probeService('contacts', () => gogExec(['contacts', 'list'], 15000)),
-    probeService('tasks', () => gogExec(['tasks', 'lists', 'list', '--max', '1'], 15000)),
+    probeService('calendar', () => gogReadExec(['calendar', 'events', 'primary', '--from', iso(now), '--to', iso(later)], 20000)),
+    probeService('gmail', () => gogReadExec(['gmail', 'search', 'in:inbox', '--max', '1'], 20000)),
+    probeService('drive', () => gogReadExec(['drive', 'ls', '--max', '1'], 20000)),
+    probeService('contacts', () => gogReadExec(['contacts', 'list'], 20000)),
+    probeService('tasks', () => gogReadExec(['tasks', 'lists', 'list', '--max', '1'], 20000)),
     probeService('sheets', () => listSheets(1)),
     probeService('docs', () => listDocs(1)),
   ];
@@ -704,7 +737,7 @@ async function serviceHealth() {
 
 module.exports = {
   getGogBinaryPath, getGogConfigDir, getGogAccount,
-  gogExec, gogSpawnAsync, gogEnv, cleanupGogProcesses,
+  gogExec, gogReadExec, gogSpawnAsync, gogEnv, cleanupGogProcesses,
   authStatus, validateOAuthClientSecret, registerCredentials, connectAccount, disconnectAccount,
   listEvents, createEvent, updateEvent, deleteEvent, getFreeBusy, getFreeSlots,
   listInbox, readEmail, sendEmail, replyEmail,
@@ -727,4 +760,5 @@ module.exports._test = {
   normalizeGmailInboxResult,
   normalizeGmailReadResult,
   normalizeGmailThread,
+  isTransientGogError,
 };

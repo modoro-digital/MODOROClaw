@@ -17,6 +17,9 @@ assert('parse JSON values', parsed.ok && Array.isArray(parsed.values) && parsed.
 const invalid = t.normalizeSheetValues({ values: '[1,2,3]' });
 assert('reject non-2D JSON values', invalid.ok === false, JSON.stringify(invalid));
 
+const invalidArray = t.normalizeSheetValues({ values: ['Ngày', 'Danh mục'] });
+assert('reject non-2D array values', invalidArray.ok === false, JSON.stringify(invalidArray));
+
 assert(
   'expand single row range',
   t.fitSheetRangeToValues('Sheet1!A1:H1', [['A', 'B'], ['C', 'D']]) === 'Sheet1!A1:H2',

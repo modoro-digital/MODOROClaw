@@ -77,6 +77,24 @@ function getBundledVendorDir() {
 //
 // Errors are fatal to the launch — if extraction fails, show an error dialog
 // and quit. There's no safe fallback: bot can't run without vendor.
+function getVendorSentinelPaths(targetDir) {
+  const e5 = path.join(targetDir, 'models', 'Xenova', 'multilingual-e5-small');
+  return [
+    path.join(targetDir, 'node', 'node.exe'),
+    path.join(targetDir, 'node_modules', 'openclaw', 'openclaw.mjs'),
+    path.join(targetDir, 'node_modules', 'openclaw', 'package.json'),
+    path.join(targetDir, 'node_modules', 'modoro-zalo', 'openclaw.plugin.json'),
+    path.join(targetDir, 'node_modules', '9router', 'app', 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node'),
+    path.join(e5, 'onnx', 'model_quantized.onnx'),
+    path.join(e5, 'tokenizer.json'),
+    path.join(e5, 'config.json'),
+  ];
+}
+
+function findMissingVendorSentinel(targetDir) {
+  return getVendorSentinelPaths(targetDir).find(p => !fs.existsSync(p) || fs.statSync(p).size === 0) || null;
+}
+
 async function ensureVendorExtracted({ onProgress } = {}) {
   // Mac + Linux + dev mode → no-op. Only Windows packaged uses the tar indirection.
   if (process.platform !== 'win32') return { skipped: true };
@@ -115,18 +133,7 @@ async function ensureVendorExtracted({ onProgress } = {}) {
         // cold-F1: expanded sentinel list. Power-fail during extract could
         // leave stamp valid but any of these missing/truncated. Each is
         // load-bearing — missing one = broken feature down the line.
-        const e5 = path.join(targetDir, 'models', 'Xenova', 'multilingual-e5-small');
-        const sentinels = [
-          path.join(targetDir, 'node_modules', 'openclaw', 'openclaw.mjs'),
-          path.join(targetDir, 'node_modules', 'openclaw', 'package.json'),
-          path.join(targetDir, 'node_modules', 'modoro-zalo', 'openclaw.plugin.json'),
-          path.join(targetDir, 'node_modules', '9router', 'app', 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node'),
-          path.join(targetDir, 'node_modules', 'pdf-parse', 'index.js'),
-          path.join(e5, 'onnx', 'model_quantized.onnx'),
-          path.join(e5, 'tokenizer.json'),
-          path.join(e5, 'config.json'),
-        ];
-        const missing = sentinels.find(p => !fs.existsSync(p) || fs.statSync(p).size === 0);
+        const missing = findMissingVendorSentinel(targetDir);
         if (!missing) {
           console.log('[vendor-extract] already extracted at', targetDir, '→', meta.bundle_version);
           return { skipped: true, reason: 'already_extracted' };
@@ -344,6 +351,10 @@ async function ensureVendorExtracted({ onProgress } = {}) {
       const nodeBin = path.join(targetDir, 'node', 'node.exe');
       if (!fs.existsSync(nodeBin)) {
         return reject(new Error(`Extract succeeded but vendor/node/node.exe missing at ${nodeBin}. Archive may be damaged.`));
+      }
+      const missing = findMissingVendorSentinel(targetDir);
+      if (missing) {
+        return reject(new Error(`Extract succeeded but required vendor file is missing or empty: ${missing}. Archive may be damaged.`));
       }
       // cold-F1: 2-phase stamp write. Previous single writeFileSync could
       // commit small stamp sector to disk BEFORE tar data pages flush (in
@@ -1138,12 +1149,18 @@ async function runSplashAndExtractVendor() {
     if (!fs.existsSync(tarPath) || !fs.existsSync(metaPath)) return; // legacy layout
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
     const versionStamp = path.join(app.getPath('userData'), 'vendor-version.txt');
-    const vendorNode = path.join(app.getPath('userData'), 'vendor', 'node', 'node.exe');
+    const targetDir = path.join(app.getPath('userData'), 'vendor');
+    const vendorNode = path.join(targetDir, 'node', 'node.exe');
     if (fs.existsSync(versionStamp) && fs.existsSync(vendorNode)) {
       const current = fs.readFileSync(versionStamp, 'utf8').trim();
       if (current === meta.bundle_version) {
+        const missing = findMissingVendorSentinel(targetDir);
+        if (missing) {
+          console.log('[splash] vendor stamp matches but sentinel missing/empty:', missing, 'continuing to splash + extract');
+        } else {
         console.log('[splash] vendor already extracted — skipping splash');
         return; // Fast path: already extracted. No splash at all.
+        }
       }
     }
   } catch (e) {

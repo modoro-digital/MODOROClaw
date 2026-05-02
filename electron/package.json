@@ -23,13 +23,16 @@
     "guard:gmail-inbox": "node scripts/check-gmail-inbox-normalizer.js",
     "guard:openclaw-launchers": "node scripts/check-openclaw-launchers.js",
     "guard:premium-theme": "node scripts/check-premium-theme-no-updates.js",
+    "guard:dashboard-ux": "node scripts/check-dashboard-ux-qol.js",
+    "guard:9router-rtk": "node scripts/check-9router-rtk.js",
     "guard:facebook": "node scripts/check-facebook-publisher.js",
     "guard:image-generation": "node scripts/check-image-generation-route.js",
     "guard:media-library": "node scripts/check-media-library-contract.js",
-    "guard:architecture": "npm run map:check && npm run guard:contracts && npm run guard:api-docs && npm run guard:google-sheets && npm run guard:google-calendar && npm run guard:gmail-inbox && npm run guard:openclaw-launchers && npm run guard:premium-theme && npm run guard:facebook && npm run guard:image-generation && npm run guard:media-library && npm run guard:bundle",
+    "guard:migration-safety": "node scripts/check-migration-safety.js",
+    "guard:architecture": "npm run map:check && npm run guard:contracts && npm run guard:api-docs && npm run guard:google-sheets && npm run guard:google-calendar && npm run guard:gmail-inbox && npm run guard:openclaw-launchers && npm run guard:premium-theme && npm run guard:dashboard-ux && npm run guard:9router-rtk && npm run guard:facebook && npm run guard:image-generation && npm run guard:media-library && npm run guard:migration-safety && npm run guard:bundle",
     "prebuild:models": "node scripts/prebuild-models.js",
     "prebuild:vendor": "node scripts/prebuild-models.js && node scripts/prebuild-vendor.js",
-    "build:win": "npm run prebuild:vendor && npm run smoke && electron-builder --win && node scripts/fix-artifact-name.js && node scripts/check-bundle-size.js --strict",
+    "build:win": "node scripts/build-win.js",
     "build:mac": "node scripts/build-mac-safe.js",
     "build:mac:arm": "TARGET_ARCH=arm64 npm run prebuild:vendor && npm run smoke && electron-builder --mac --arm64 && node scripts/fix-artifact-name.js",
     "build:mac:intel": "TARGET_ARCH=x64 npm run prebuild:vendor && npm run smoke && electron-builder --mac --x64 && node scripts/fix-artifact-name.js",
@@ -40,6 +43,7 @@
     "productName": "9BizClaw",
     "copyright": "© 2026 MODORO Tech Corp",
     "publish": null,
+    "afterSign": "scripts/notarize-mac.js",
     "directories": {
       "output": "../dist",
       "buildResources": "build"
@@ -266,6 +270,7 @@
     }
   },
   "devDependencies": {
+    "@electron/notarize": "2.3.2",
     "docx": "9.6.1",
     "electron": "28.3.3",
     "electron-builder": "25.0.0"

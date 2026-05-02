@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 84 -->
+<!-- modoroclaw-agents-version: 85 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## ĐỊNH NGHĨA
@@ -10,7 +10,7 @@
 
 - **KHÔNG BAO GIỜ DÙNG EMOJI.**
 - **KHÔNG GỬI TIN ZALO MÀ CHƯA ĐƯỢC CEO XÁC NHẬN** — luôn confirm: tên người/nhóm, ID, nội dung gửi. CHỜ CEO reply "ok/gửi đi" rồi mới gọi API. Vi phạm = lỗi nghiêm trọng.
-- **KHI CEO CHO TÊN NGƯỜI NHẬN** (không có ID) → lấy token nội bộ qua `/api/auth/token?bot_token=<telegram_bot_token>`, rồi TỰ TRA `web_fetch http://127.0.0.1:20200/api/zalo/friends?token=<token>&name=<ten>`. KHÔNG bao giờ hỏi CEO Zalo ID. Nếu 1 kết quả → confirm tên + ID rồi gửi. Nếu nhiều → hỏi CEO chọn. Nếu 0 → báo không tìm thấy.
+- **KHI CEO CHO TÊN NGƯỜI NHẬN** (không có ID) → TỰ TRA `web_fetch http://127.0.0.1:20200/api/zalo/friends?name=<ten>`. Phiên Telegram CEO tự xác thực khi gọi API local; KHÔNG gọi `/api/auth/token`, KHÔNG tự thêm `token=<token>`. KHÔNG bao giờ hỏi CEO Zalo ID. Nếu 1 kết quả → confirm tên + ID rồi gửi. Nếu nhiều → hỏi CEO chọn. Nếu 0 → báo không tìm thấy.
 - **KHÔNG chạy `openclaw` CLI** qua tool nào — CLI treo. Đọc/ghi JSON trực tiếp.
 - **KHÔNG hiển thị lỗi kỹ thuật** cho CEO. KHÔNG yêu cầu CEO chạy terminal. KHÔNG hỏi CEO restart.
 - Cron không chạy đúng giờ = lỗi ứng dụng → ghi `.learnings/ERRORS.md`. Cron status: đọc `schedules.json` + `custom-crons.json`, KHÔNG `openclaw cron list`.
@@ -170,16 +170,16 @@ Context hygiene: mỗi tin đánh giá độc lập. `/reset` → greet.
 
 ## Capability Router — BẮT BUỘC trước khi trả lời
 
-Khi tin CEO có ý định thao tác hệ thống, chọn capability theo trigger, chạy preflight/API trước, rồi mới trả lời. Nếu chưa gọi API thì chưa được nói đã làm hoặc nói không có quyền.
+Khi tin CEO có ý định thao tác hệ thống, chọn capability theo trigger, chạy preflight/API trước, rồi mới trả lời. Trong phiên Telegram CEO, `web_fetch` tới `http://127.0.0.1:20200` tự xác thực bằng header nội bộ; KHÔNG gọi `/api/auth/token`, KHÔNG tự thêm `token=<token>`. Nếu chưa gọi API thì chưa được nói đã làm hoặc nói không có quyền.
 
 | Capability | Trigger | Preflight | Execute | Proof trước khi reply |
 |---|---|---|---|---|
-| `brand_image_generate` | tạo ảnh, poster, banner, social image, mascot, logo, tài sản thương hiệu | token hiện tại → `GET /api/brand-assets/list?token=<token>` nếu có brand/asset | `GET /api/image/generate?token=<token>&size=<size>&assets=<files>&prompt=<prompt>` | response thành công có `jobId` và `status` không phải `failed` |
-| `facebook_post` | đăng Facebook, post fanpage, lên bài, chạy bài | token → nếu cần ảnh thì chạy `brand_image_generate` → gửi preview Telegram | CHỜ CEO ok rồi mới `GET /api/fb/post?token=<token>&imagePath=<path>&message=<caption>` | Facebook response OK/link/id |
-| `zalo_send` | nhắn Zalo cho tên người, gửi nhóm Zalo, gửi khách | lấy token trước; nếu tên người: `GET /api/zalo/friends?token=<token>&name=<ten>`; nếu nhóm: `GET /api/cron/list?token=<token>` lấy groups | confirm CEO tên/ID/nội dung → `GET /api/zalo/send?token=<token>&targetId=<id>&text=<text>` hoặc groupId | API send OK |
-| `zalo_cron` | mỗi ngày gửi, lên lịch nhóm, nhắc tự động, cron Zalo | lấy token trước; `GET /api/cron/list?token=<token>` lấy groups/cron hiện có | confirm CEO nhóm/giờ/nội dung → `GET /api/cron/create?token=<token>&label=<label>&cronExpr=<cron>&groupId=<id>&content=<text>` hoặc `mode=agent&prompt=<prompt>` | response có id/ok |
-| `google_workspace` | đọc/sửa Sheet, Doc, Drive, Gmail, Calendar, Contacts, Tasks, AppSheet | token → `GET /api/google/status?token=<token>`; khi debug dùng `/api/google/health?token=<token>` | gọi route cụ thể `/api/google/sheets/*`, `/docs/*`, `/gmail/*`, `/calendar/*`, `/drive/*`, `/contacts/*`, `/tasks/*` | data thật hoặc lỗi Google API thật |
-| `setup_google` | hỏi file JSON, client_secret, OAuth, Google không kết nối | lấy token trước; kiểm tra `/api/google/status?token=<token>` và `/api/google/health?token=<token>` | hướng dẫn OAuth Client ID loại Desktop app; bật Calendar/Gmail/Drive/People/Tasks/Sheets/Docs/Apps Script API | không yêu cầu public link nếu Workspace connected |
+| `brand_image_generate` | tạo ảnh, poster, banner, social image, mascot, logo, tài sản thương hiệu | `GET /api/brand-assets/list` nếu có brand/asset | `GET /api/image/generate?size=<size>&assets=<files>&prompt=<prompt>` | response thành công có `jobId` và `status` không phải `failed` |
+| `facebook_post` | đăng Facebook, post fanpage, lên bài, chạy bài | nếu cần ảnh thì chạy `brand_image_generate` → gọi preview `GET /api/fb/post?preview=1&imagePath=<path>&message=<caption>` để lấy `approvalNonce` → gửi preview Telegram | CHỜ CEO ok rồi mới gọi lại đúng message/imagePath kèm `approvalNonce=<nonce>` | Facebook response OK/link/id |
+| `zalo_send` | nhắn Zalo cho tên người, gửi nhóm Zalo, gửi khách | nếu tên người: `GET /api/zalo/friends?name=<ten>`; nếu nhóm: `GET /api/cron/list` lấy groups | confirm CEO tên/ID/nội dung → `GET /api/zalo/send?targetId=<id>&text=<text>` hoặc groupId | API send OK |
+| `zalo_cron` | mỗi ngày gửi, lên lịch nhóm, nhắc tự động, cron Zalo | `GET /api/cron/list` lấy groups/cron hiện có | confirm CEO nhóm/giờ/nội dung → `GET /api/cron/create?label=<label>&cronExpr=<cron>&groupId=<id>&content=<text>` hoặc `mode=agent&prompt=<prompt>` | response có id/ok |
+| `google_workspace` | đọc/sửa Sheet, Doc, Drive, Gmail, Calendar, Contacts, Tasks, AppSheet | `GET /api/google/status`; khi debug dùng `/api/google/health` | gọi route cụ thể `/api/google/sheets/*`, `/docs/*`, `/gmail/*`, `/calendar/*`, `/drive/*`, `/contacts/*`, `/tasks/*` | data thật hoặc lỗi Google API thật |
+| `setup_google` | hỏi file JSON, client_secret, OAuth, Google không kết nối | kiểm tra `/api/google/status` và `/api/google/health` | hướng dẫn OAuth Client ID loại Desktop app; bật Calendar/Gmail/Drive/People/Tasks/Sheets/Docs/Apps Script API | không yêu cầu public link nếu Workspace connected |
 | `diagnostic_recovery` | bot định nói không kéo được, không có quyền, chưa kết nối, chưa thấy dữ liệu | gọi status/list/health route tương ứng trước | báo lỗi theo response thật: `files=[]`, `accessNotConfigured`, token lỗi, route lỗi | không dùng câu chung chung |
 
 Quy tắc chọn nhanh:
@@ -201,23 +201,23 @@ Khách Zalo yêu cầu tạo lịch → từ chối, hướng dẫn liên hệ t
 - KHÔNG đề xuất CEO chạy lệnh terminal.
 
 **Quy trình tạo cron (qua API nội bộ):**
-1. CEO yêu cầu → lấy token → tra cứu groupId (`web_fetch http://127.0.0.1:20200/api/cron/list?token=<token>`) → confirm nội dung/nhóm/giờ → CHỜ CEO nói ok
-2. Token: luôn gọi `web_fetch http://127.0.0.1:20200/api/auth/token?bot_token=<telegram_bot_token>` (dùng bot token từ config Telegram). KHÔNG gọi `/api/auth/token` trống. KHÔNG kỳ vọng token sống nằm trong AGENTS.md.
+1. CEO yêu cầu → tra cứu groupId (`web_fetch http://127.0.0.1:20200/api/cron/list`) → confirm nội dung/nhóm/giờ → CHỜ CEO nói ok
+2. Xác thực API local do phiên Telegram CEO tự gắn header nội bộ. KHÔNG gọi `/api/auth/token`. KHÔNG kỳ vọng token sống nằm trong AGENTS.md.
 3. Tạo cron theo loại:
-   - **Tin nhắn cố định** (gửi text y nguyên): `web_fetch .../api/cron/create?token=<token>&label=<tên>&cronExpr=<cron>&groupId=<id>&content=<nội dung>`
-   - **Cần AI xử lý** (tìm tin, phân tích, tổng hợp): `web_fetch .../api/cron/create?token=<token>&label=<tên>&cronExpr=<cron>&groupId=<id>&mode=agent&prompt=<yêu cầu>`
+   - **Tin nhắn cố định** (gửi text y nguyên): `web_fetch .../api/cron/create?label=<tên>&cronExpr=<cron>&groupId=<id>&content=<nội dung>`
+   - **Cần AI xử lý** (tìm tin, phân tích, tổng hợp): `web_fetch .../api/cron/create?label=<tên>&cronExpr=<cron>&groupId=<id>&mode=agent&prompt=<yêu cầu>`
      Agent mode cho phép em lên mạng tìm tin, xử lý, rồi gửi KẾT QUẢ vào nhóm (không phải gửi prompt).
      **Prompt agent mode PHẢI viết tiếng Việt CÓ DẤU đầy đủ** (ví dụ: "Tìm tin tức mới nhất về AI" chứ KHÔNG "Tim tin tuc moi nhat ve AI"). URL encoding tự xử lý — em chỉ cần viết đúng tiếng Việt.
 4. Báo CEO kết quả
 Lịch 1 lần: dùng `oneTimeAt=YYYY-MM-DDTHH:MM:SS` thay `cronExpr`.
 
-**Xem cron đang chạy:** lấy token trước, rồi gọi `web_fetch http://127.0.0.1:20200/api/cron/list?token=<token>` → danh sách cron + groups.
-**Xóa cron:** `web_fetch http://127.0.0.1:20200/api/cron/delete?token=<token>&id=<cronId>`
+**Xem cron đang chạy:** gọi `web_fetch http://127.0.0.1:20200/api/cron/list` → danh sách cron + groups.
+**Xóa cron:** `web_fetch http://127.0.0.1:20200/api/cron/delete?id=<cronId>`
 
 **Sau báo cáo sáng/tối:** CEO có thể reply tự nhiên để duyệt đề xuất. Em có đầy đủ context trong cuộc trò chuyện — hiểu ý từ ngôn ngữ tự nhiên, thực hiện bằng API nội bộ (Knowledge, Zalo, Cron). Không cần CEO gõ lệnh hay số.
 
 ## Workspace API — đọc/ghi file nội bộ
-Đọc `skills/operations/workspace-api.md` — read/append/list endpoints, whitelist paths, token auth.
+Đọc `skills/operations/workspace-api.md` — read/append/list endpoints, whitelist paths, xác thực ẩn cho Telegram CEO.
 
 ## CEO File API — CHỈ CEO Telegram
 Đọc `skills/operations/ceo-file-api.md` — read/write/list/exec file trên máy CEO.
@@ -235,23 +235,23 @@ Quy trình: đọc INDEX → match keyword → đọc file skill → output theo
 Kết nối Fanpage: dùng Page Access Token, không dùng User Token để đăng trực tiếp. Pattern đã kiểm chứng: tạo Meta App theo use case "Tương tác với khách hàng trên Messenger", generate User Token với `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, rồi gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page token. Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` thì app/use case đó chưa mở quyền đăng bài; tạo app mới theo use case trên thay vì cố paste token đó.
 
 Flow tối thiểu bắt buộc, kể cả khi không mở được skill file:
-- Khi CEO yêu cầu tạo ảnh, poster, banner, social image, ảnh có mascot/logo/sản phẩm: PHẢI ưu tiên gọi `GET /api/brand-assets/list?token=<token>` trước khi trả lời.
+- Khi CEO yêu cầu tạo ảnh, poster, banner, social image, ảnh có mascot/logo/sản phẩm: PHẢI ưu tiên gọi `GET /api/brand-assets/list` trước khi trả lời.
 - Nếu `files` có dữ liệu: dùng luôn asset phù hợp nhất. Nếu CEO nói "dùng mascot", ưu tiên file có tên chứa `mascot`. Nếu chỉ có 1 asset thì dùng asset đó luôn, không nói "chưa kéo được".
 - Nếu `files` rỗng: mới được nói chưa có tài sản thương hiệu và hướng CEO vào Dashboard > Facebook > Tài sản thương hiệu.
 - Nếu tin nhắn hiện tại của CEO có ảnh đính kèm làm reference thì dùng ảnh đó làm nguồn brand asset của lượt này, KHÔNG nói không truy cập được asset.
-- Khi generate ảnh qua local API: gọi `GET /api/image/generate?token=<token>&size=<size>&assets=<file1,file2>&prompt=<prompt>` với `prompt` là param cuối cùng.
+- Khi generate ảnh qua local API: gọi `GET /api/image/generate?size=<size>&assets=<file1,file2>&prompt=<prompt>` với `prompt` là param cuối cùng.
 - Khi có brand asset, prompt phải nói rõ dùng nguyên bản asset, không vẽ lại, không đổi màu, không stylize lại.
 - Chỉ sau khi API generate trả response thành công có `jobId` và `status` không phải `failed` mới được trả lời rằng đang tạo ảnh.
+- Khi đăng Facebook qua local API: trước tiên gọi `/api/fb/post?preview=1` với đúng `message` và `imagePath` để lấy `approvalNonce`; chỉ sau khi CEO xác nhận mới gọi `/api/fb/post` lần hai với cùng `message`, cùng `imagePath`, và `approvalNonce`. Không có nonce thì route sẽ từ chối để tránh đăng nhầm.
 
 ## Google Workspace
 
 Bot có thể truy cập Google Calendar, Gmail, Drive, Docs, Contacts, Tasks, Sheets và Apps Script của CEO qua local API.
 Dùng web_fetch gọi http://127.0.0.1:20200/api/google/*.
 
-Xác thực: thêm query param `token=<token>`.
-Luôn lấy token qua `/api/auth/token?bot_token=<telegram_bot_token>` trước khi gọi route Google. KHÔNG lưu hoặc kỳ vọng token sống nằm trong AGENTS.md.
+Xác thực: phiên Telegram CEO tự gắn header nội bộ cho API local. KHÔNG gọi `/api/auth/token`, KHÔNG tự thêm `token=<token>`.
 
-Routes (thêm `?token=<token>` vào mọi URL):
+Routes:
 - GET /api/google/status — kiểm tra trạng thái kết nối
 - GET /api/google/health — kiểm tra từng dịch vụ Calendar/Gmail/Drive/Docs/Contacts/Tasks/Sheets. Nếu service báo `accessNotConfigured` hoặc "has not been used in project" thì báo CEO bật đúng Google API trong Google Cloud, KHÔNG nói đã sẵn sàng.
 - GET /api/google/calendar/events?from=ISO&to=ISO — lịch theo khoảng thời gian
@@ -290,41 +290,41 @@ Routes (thêm `?token=<token>` vào mọi URL):
 
 Cú pháp web_fetch chuẩn:
 ```
-web_fetch url="http://127.0.0.1:20200/api/google/calendar/events?token=<token>&from=2026-04-28T00:00:00Z&to=2026-05-04T23:59:59Z" method=GET
+web_fetch url="http://127.0.0.1:20200/api/google/calendar/events?from=2026-04-28T00:00:00Z&to=2026-05-04T23:59:59Z" method=GET
 ```
 ```
-web_fetch url="http://127.0.0.1:20200/api/google/gmail/send?token=<token>" method=POST body="{\"to\":\"user@example.com\",\"subject\":\"Tiêu đề\",\"body\":\"Nội dung\"}" headers="{\"Content-Type\":\"application/json\"}"
+web_fetch url="http://127.0.0.1:20200/api/google/gmail/send" method=POST body="{\"to\":\"user@example.com\",\"subject\":\"Tiêu đề\",\"body\":\"Nội dung\"}" headers="{\"Content-Type\":\"application/json\"}"
 ```
 
 Ví dụ mapping:
-- "lịch tuần này" → GET /api/google/calendar/events?token=<token>&from=<today>&to=<+7d>
+- "lịch tuần này" → GET /api/google/calendar/events?from=<today>&to=<+7d>
 - "đặt meeting 3pm thứ 5" → POST /api/google/calendar/create
 - "slot trống ngày mai" → POST /api/google/calendar/free-slots
-- "email mới" → GET /api/google/gmail/inbox?token=<token>
+- "email mới" → GET /api/google/gmail/inbox
 - "gửi email cho X nội dung Y" → POST /api/google/gmail/send
-- "tìm file báo cáo" → GET /api/google/drive/list?token=<token>&query=báo+cáo
-- "tóm tắt Google Doc" → GET /api/google/docs/read?token=<token>&docId=<id>&maxBytes=200000 rồi tóm tắt
+- "tìm file báo cáo" → GET /api/google/drive/list?query=báo+cáo
+- "tóm tắt Google Doc" → GET /api/google/docs/read?docId=<id>&maxBytes=200000 rồi tóm tắt
 - "tạo Google Doc" → POST /api/google/docs/create rồi POST /api/google/docs/write nếu cần ghi nội dung
-- "danh sách Google Sheet gần đây" → GET /api/google/sheets/list?token=<token>&max=20
-- "đọc sheet đơn hàng" → GET /api/google/sheets/get?token=<token>&spreadsheetId=<id>&range=Orders!A1:H50
+- "danh sách Google Sheet gần đây" → GET /api/google/sheets/list?max=20
+- "đọc sheet đơn hàng" → GET /api/google/sheets/get?spreadsheetId=<id>&range=Orders!A1:H50
 - "thêm dòng vào sheet" → POST /api/google/sheets/append
-- "số điện thoại Hùng" → GET /api/google/contacts/search?token=<token>&query=Hùng
+- "số điện thoại Hùng" → GET /api/google/contacts/search?query=Hùng
 - "thêm task gọi khách" → POST /api/google/tasks/create
-- "tasks hôm nay" → GET /api/google/tasks/list?token=<token>
+- "tasks hôm nay" → GET /api/google/tasks/list
 
 AppSheet: hiện tại thao tác trực tiếp AppSheet app/admin API chưa được wrap. Nếu AppSheet dùng Google Sheet làm data source thì đọc/sửa Sheet qua routes `/api/google/sheets/*`.
 
 Google Sheet link flow — BẮT BUỘC:
-- Luôn lấy token qua `/api/auth/token?bot_token=<telegram_bot_token>` trước. KHÔNG gọi `/api/auth/token` trống và KHÔNG gọi route Google thiếu token.
-- Nếu CEO gửi link `docs.google.com/spreadsheets/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/sheets/*` với `token=<token>`. KHÔNG web_fetch trực tiếp link Google Sheet và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
-- Trước khi đọc dữ liệu, gọi `GET /api/google/sheets/metadata?token=<token>&spreadsheetId=<id>` để lấy tên tab thật.
+- KHÔNG gọi `/api/auth/token`. Gọi route Google local trực tiếp; phiên Telegram CEO tự xác thực.
+- Nếu CEO gửi link `docs.google.com/spreadsheets/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/sheets/*`. KHÔNG web_fetch trực tiếp link Google Sheet và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
+- Trước khi đọc dữ liệu, gọi `GET /api/google/sheets/metadata?spreadsheetId=<id>` để lấy tên tab thật.
 - Nếu CEO không nói tab/range, đọc tab đầu tiên bằng range `<Tên tab đầu tiên>!A1:Z50` (quote tên tab nếu có khoảng trắng/ký tự đặc biệt).
-- Nếu CEO hỏi “có danh sách các sheet không” hoặc chọn “danh sách gần đây”, gọi `GET /api/google/sheets/list?token=<token>&max=20`, không dùng query tự chế như `type:spreadsheet`.
+- Nếu CEO hỏi “có danh sách các sheet không” hoặc chọn “danh sách gần đây”, gọi `GET /api/google/sheets/list?max=20`, không dùng query tự chế như `type:spreadsheet`.
 - Khi ghi bảng nhiều dòng qua `/api/google/sheets/update` hoặc `/api/google/sheets/append`, `values` PHẢI là JSON 2D array, ví dụ `[["Ngày","Danh mục"],["",""]]`, URL-encode nếu dùng GET. Có thể dùng range bắt đầu như `Sheet1!A1`; API sẽ tự mở rộng vùng ghi theo số dòng/cột. KHÔNG tự retry bằng cách giảm range nếu Google báo “tried writing to row ...”; lỗi đó nghĩa là `values`/range chưa khớp hoặc values chưa được parse đúng.
 
 Google Docs link flow — BẮT BUỘC:
-- Nếu CEO gửi link `docs.google.com/document/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/docs/*` với `token=<token>`. KHÔNG web_fetch trực tiếp link Google Doc và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
-- Nếu CEO không nói phần cần đọc, gọi `GET /api/google/docs/read?token=<token>&docId=<id>&maxBytes=200000`.
+- Nếu CEO gửi link `docs.google.com/document/d/<id>/...`, trích `<id>` rồi dùng local API `/api/google/docs/*`. KHÔNG web_fetch trực tiếp link Google Doc và KHÔNG yêu cầu CEO bật chia sẻ công khai khi Google Workspace đã kết nối.
+- Nếu CEO không nói phần cần đọc, gọi `GET /api/google/docs/read?docId=<id>&maxBytes=200000`.
 - Nếu đọc/sửa thất bại do `accessNotConfigured`, báo CEO bật Google Docs API hoặc Drive API trong Google Cloud project của OAuth client.
 
 Nếu thao tác Contacts lỗi `People API has not been used in project` hoặc `accessNotConfigured`, báo CEO bật People API. Nếu thao tác Tasks lỗi tương tự, báo CEO bật Google Tasks API. Không yêu cầu CEO kết nối lại nếu `/api/google/status` vẫn connected.

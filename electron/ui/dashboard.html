@@ -680,6 +680,48 @@
     @keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
     .btn-spinner { display:inline-block; width:12px; height:12px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
     .btn.is-loading { opacity:0.75; cursor:wait; pointer-events:none; }
+    .btn-danger { background:var(--danger,#e74c3c); color:#fff; border-color:var(--danger,#e74c3c); }
+    .spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+    .ux-inline-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; width:100%; min-height:96px; padding:18px; text-align:center; color:var(--text-muted); border:1px solid var(--border); border-radius:10px; background:var(--surface); box-sizing:border-box; }
+    .ux-inline-state.compact { min-height:0; padding:12px; align-items:flex-start; text-align:left; }
+    .ux-inline-state.error { border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.08); color:var(--danger); }
+    .ux-inline-state.warning { border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.08); color:#b45309; }
+    .ux-inline-state.success { border-color:rgba(34,197,94,.32); background:rgba(34,197,94,.08); color:var(--success); }
+    .ux-state-title { color:var(--text); font-size:13px; font-weight:700; line-height:1.35; }
+    .ux-state-detail { color:var(--text-muted); font-size:12px; line-height:1.5; max-width:620px; overflow-wrap:anywhere; }
+    .ux-state-action { margin-top:2px; }
+    .ux-modal-overlay { position:fixed; inset:0; z-index:1300; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.48); backdrop-filter:blur(2px); }
+    .ux-dialog { width:420px; max-width:100%; border:1px solid var(--border); border-radius:12px; background:var(--bg); color:var(--text); box-shadow:0 24px 80px rgba(0,0,0,.34); overflow:hidden; }
+    .ux-dialog-head { padding:18px 18px 10px; }
+    .ux-dialog-title { margin:0; font-size:16px; font-weight:800; line-height:1.35; }
+    .ux-dialog-detail { margin-top:6px; color:var(--text-muted); font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+    .ux-dialog-body { padding:0 18px 4px; }
+    .ux-dialog-actions { display:flex; justify-content:flex-end; gap:8px; padding:14px 18px 18px; flex-wrap:wrap; }
+    .ux-dialog-input, .ux-dialog-select { width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); padding:10px 12px; font:inherit; font-size:13px; outline:none; }
+    .ux-dialog-input:focus, .ux-dialog-select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft, rgba(200,167,90,.16)); }
+    .ux-upload-queue { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+    .ux-upload-item { display:flex; gap:10px; align-items:flex-start; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); }
+    .ux-upload-item .spinner { width:14px; height:14px; margin-top:2px; flex:0 0 auto; }
+    .ux-upload-icon { width:18px; height:18px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; margin-top:1px; color:var(--text-muted); }
+    .ux-upload-name { font-size:12px; font-weight:700; line-height:1.35; word-break:break-word; }
+    .ux-upload-detail { margin-top:2px; font-size:11px; color:var(--text-muted); line-height:1.45; overflow-wrap:anywhere; }
+    .ux-upload-item.success { border-color:rgba(34,197,94,.32); background:rgba(34,197,94,.08); }
+    .ux-upload-item.error { border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.08); }
+    .ux-upload-item.error .ux-upload-detail { color:var(--danger); }
+    .know-drop-zone.is-busy { cursor:wait; pointer-events:none; border-color:var(--accent); background:var(--surface-elevated, var(--surface)); }
+    .media-card { width:180px; min-height:230px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--surface); display:flex; flex-direction:column; gap:8px; box-sizing:border-box; }
+    .media-card-thumb { height:92px; border-radius:6px; background:var(--bg); overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .media-card-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .media-card-title { font-size:12px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .media-card-desc { font-size:11px; color:var(--text-muted); line-height:1.45; min-height:32px; max-height:48px; overflow:hidden; overflow-wrap:anywhere; }
+    .media-badges { display:flex; gap:6px; flex-wrap:wrap; font-size:10px; }
+    .media-badge { border:1px solid var(--border); border-radius:999px; padding:1px 7px; color:var(--text-muted); line-height:1.6; }
+    .media-badge.public { color:var(--success); border-color:rgba(34,197,94,.45); }
+    .media-badge.internal, .media-badge.private { color:var(--accent); border-color:rgba(200,167,90,.5); }
+    .media-status-ready { color:var(--success); border-color:rgba(34,197,94,.45); }
+    .media-status-processing { color:var(--accent); border-color:rgba(200,167,90,.5); }
+    .media-status-error { color:var(--danger); border-color:rgba(239,68,68,.45); }
+    .gmail-inline-error { display:none; margin-top:10px; }
     .zalo-saving-overlay { position:absolute; inset:0; background:var(--bg, rgba(0,0,0,0.15)); opacity:0.35; pointer-events:none; border-radius:inherit; transition:opacity 0.2s; z-index:5; }
     .page-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
     /* Telegram + Zalo: header stays fixed, only lists scroll */
@@ -1707,6 +1749,168 @@
     }
 
     /* Theme toggle button — minimal, matches sidebar aesthetic */
+    .premium-entrance {
+      position:fixed;
+      inset:0;
+      z-index:10020;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      background:
+        linear-gradient(115deg, rgba(4,5,7,.98), rgba(12,10,6,.96) 48%, rgba(4,5,7,.98)),
+        var(--bg);
+      opacity:0;
+      pointer-events:none;
+      overflow:hidden;
+    }
+    .premium-entrance::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(200,167,90,.06) 42%, rgba(255,235,177,.22) 50%, rgba(200,167,90,.06) 58%, transparent 100%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 120px);
+      transform:translateX(-80%);
+      opacity:.9;
+    }
+    .premium-entrance::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      border:1px solid rgba(200,167,90,.18);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+      pointer-events:none;
+    }
+    .premium-entrance.is-visible {
+      opacity:1;
+      pointer-events:auto;
+      animation:premiumEntranceHold 2.55s ease forwards;
+    }
+    .premium-entrance.is-visible::before {
+      animation:premiumEntranceSweep 2.15s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .premium-entrance.is-leaving {
+      pointer-events:none;
+      animation:premiumEntranceExit .42s ease forwards;
+    }
+    .premium-entrance-panel {
+      position:relative;
+      width:min(760px, 92vw);
+      min-height:260px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      border:1px solid rgba(200,167,90,.34);
+      border-radius:14px;
+      background:linear-gradient(145deg, rgba(16,18,22,.78), rgba(9,8,5,.82));
+      box-shadow:0 28px 90px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08);
+      overflow:hidden;
+      transform:translateY(10px) scale(.985);
+    }
+    .premium-entrance.is-visible .premium-entrance-panel {
+      animation:premiumPanelIn .75s cubic-bezier(.18,.88,.24,1) forwards;
+    }
+    .premium-entrance-panel::before,
+    .premium-entrance-panel::after {
+      content:'';
+      position:absolute;
+      left:34px;
+      right:34px;
+      height:1px;
+      background:linear-gradient(90deg, transparent, rgba(200,167,90,.7), transparent);
+    }
+    .premium-entrance-panel::before { top:28px; }
+    .premium-entrance-panel::after { bottom:28px; opacity:.56; }
+    .premium-entrance-kicker {
+      color:rgba(232,211,157,.78);
+      font-size:12px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+    }
+    .premium-entrance-brand {
+      position:relative;
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap:16px;
+      max-width:100%;
+      color:#fffaf0;
+      font-size:clamp(34px, 6vw, 74px);
+      font-weight:900;
+      line-height:.95;
+      white-space:nowrap;
+      text-shadow:0 10px 42px rgba(0,0,0,.52);
+    }
+    .premium-entrance-brand strong {
+      position:relative;
+      color:#d8b45f;
+      font:inherit;
+      font-weight:900;
+    }
+    .premium-entrance-brand strong::after {
+      content:'';
+      position:absolute;
+      inset:-8px -14px;
+      background:linear-gradient(110deg, transparent 0%, rgba(255,255,255,.82) 48%, transparent 58%);
+      transform:translateX(-130%) skewX(-18deg);
+      mix-blend-mode:screen;
+      opacity:.65;
+    }
+    .premium-entrance.is-visible .premium-entrance-brand strong::after {
+      animation:premiumTextShine 1.35s ease .45s forwards;
+    }
+    .premium-entrance-sub {
+      color:rgba(245,242,234,.82);
+      font-size:15px;
+      font-weight:600;
+      text-align:center;
+    }
+    .premium-entrance-line {
+      width:min(360px, 64vw);
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg, transparent, #c8a75a, #fff0b7, #c8a75a, transparent);
+      transform:scaleX(.1);
+      opacity:.72;
+    }
+    .premium-entrance.is-visible .premium-entrance-line {
+      animation:premiumLineIn .7s ease .25s forwards;
+    }
+    @keyframes premiumEntranceHold {
+      0% { opacity:0; }
+      12%, 100% { opacity:1; }
+    }
+    @keyframes premiumEntranceExit {
+      to { opacity:0; transform:scale(1.012); }
+    }
+    @keyframes premiumEntranceSweep {
+      to { transform:translateX(80%); }
+    }
+    @keyframes premiumPanelIn {
+      to { transform:translateY(0) scale(1); }
+    }
+    @keyframes premiumTextShine {
+      to { transform:translateX(120%) skewX(-18deg); }
+    }
+    @keyframes premiumLineIn {
+      to { transform:scaleX(1); }
+    }
+    @media (max-width: 720px) {
+      .premium-entrance-panel { min-height:220px; gap:12px; }
+      .premium-entrance-brand { flex-direction:column; align-items:center; gap:8px; white-space:normal; }
+      .premium-entrance-kicker { font-size:10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .premium-entrance { display:none !important; }
+      .premium-entrance *,
+      .premium-entrance::before,
+      .premium-entrance::after { animation:none !important; transition:none !important; }
+    }
+
     .theme-toggle {
       display: inline-flex;
       align-items: center;
@@ -2327,6 +2531,15 @@
   </style>
 </head>
 <body>
+
+  <div class="premium-entrance" id="premium-entrance" aria-hidden="true">
+    <div class="premium-entrance-panel">
+      <div class="premium-entrance-kicker">Executive Suite</div>
+      <div class="premium-entrance-brand"><span>9BizClaw</span><strong>Premium</strong></div>
+      <div class="premium-entrance-line"></div>
+      <div class="premium-entrance-sub">Chào mừng trở lại, sếp</div>
+    </div>
+  </div>
 
   <!-- 3-Column Layout -->
   <div class="app-layout">
@@ -2972,7 +3185,7 @@
           <div class="know-col">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
               <h4 style="margin:0" id="know-files-title">Tài liệu — Công ty</h4>
-              <button class="btn btn-secondary btn-small" onclick="refreshKnowledgeFiles()" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px"><span data-icon="refresh-cw" data-icon-size="13"></span>Refresh</button>
+              <button class="btn btn-secondary btn-small" onclick="refreshKnowledgeFiles(event.currentTarget)" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px"><span data-icon="refresh-cw" data-icon-size="13"></span>Làm mới</button>
             </div>
             <div class="know-files-list" id="know-files-list">
               <div class="know-empty">Đang tải...</div>
@@ -3009,7 +3222,7 @@
             </div>
           <div class="know-drop-zone" id="know-drop-zone" data-max-mb="100" onclick="pickKnowledgeFiles()" data-tooltip="Kéo thả hoặc bấm để thêm file. PDF, Word, Excel, TXT, ảnh sản phẩm hoặc PDF scan. Tối đa 100MB/file.">
               <div class="upload-icon" data-icon="upload" data-icon-size="36"></div>
-              <strong>Click để chọn file</strong>
+              <strong>Bấm để chọn file</strong>
               <div>hoặc kéo thả vào đây</div>
             </div>
             <div id="know-progress" style="display:none"></div>
@@ -3394,7 +3607,7 @@
                 <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Tài sản thương hiệu</h3>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Logo, mascot và style reference dùng khi tạo ảnh hoặc đăng Facebook. Mặc định không tự gửi cho khách Zalo.</div>
               </div>
-              <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
+              <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets(event.currentTarget)" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
             </div>
             <div id="brand-assets-grid" style="display:flex;flex-wrap:wrap;gap:12px">
               <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có tài sản thương hiệu.</div>
@@ -3407,7 +3620,7 @@
                 <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Hình sản phẩm cho Zalo</h3>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Ảnh public để bot tự tìm và gửi đúng hình khi khách hỏi sản phẩm.</div>
               </div>
-              <button class="btn btn-primary btn-small" onclick="uploadProductImages()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload sản phẩm</button>
+              <button class="btn btn-primary btn-small" onclick="uploadProductImages(event.currentTarget)" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload sản phẩm</button>
             </div>
             <div id="product-media-grid" style="display:flex;flex-wrap:wrap;gap:12px">
               <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có hình sản phẩm.</div>
@@ -3531,7 +3744,7 @@
           <div class="card" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Tài sản thương hiệu</h3>
-              <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
+              <button class="btn btn-secondary btn-small" onclick="uploadBrandAssets(event.currentTarget)" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="upload" data-icon-size="14"></span>Upload</button>
             </div>
             <div id="brand-assets-grid" style="display:flex;flex-wrap:wrap;gap:12px">
               <div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có tài sản nào. Upload logo, ảnh sản phẩm để bot dùng khi tạo ảnh.</div>
@@ -3594,7 +3807,7 @@
               </div>
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
                 <button class="btn btn-secondary btn-small" onclick="hideCalCreateModal()">Hủy</button>
-                <button class="btn btn-primary btn-small" onclick="submitCalCreate()">Tạo</button>
+                <button class="btn btn-primary btn-small" onclick="submitCalCreate(event.currentTarget)">Tạo</button>
               </div>
             </div>
           </div>
@@ -3635,10 +3848,10 @@
                 </div>
               </div>
               <div class="gw-calendar-modal-actions">
-                <button class="btn btn-secondary btn-small" onclick="deleteCalEditEvent()">Xóa</button>
+                <button class="btn btn-secondary btn-small" onclick="deleteCalEditEvent(event.currentTarget)">Xóa</button>
                 <span style="flex:1"></span>
                 <button class="btn btn-secondary btn-small" onclick="hideCalEditModal()">Hủy</button>
-                <button class="btn btn-primary btn-small" onclick="submitCalEdit()">Lưu</button>
+                <button class="btn btn-primary btn-small" onclick="submitCalEdit(event.currentTarget)">Lưu</button>
               </div>
             </div>
           </div>
@@ -3647,7 +3860,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Hộp thư đến</h3>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-secondary btn-small" onclick="loadGmailInbox()">Làm mới</button>
+              <button class="btn btn-secondary btn-small" onclick="loadGmailInbox(event.currentTarget)">Làm mới</button>
               <button class="btn btn-primary btn-small" onclick="showGmailComposeModal()">Soạn email</button>
             </div>
           </div>
@@ -3667,7 +3880,8 @@
             <div id="gmail-detail-body" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;max-height:400px;overflow-y:auto"></div>
             <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
               <textarea id="gmail-reply-body" rows="3" placeholder="Trả lời..." style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box"></textarea>
-              <button class="btn btn-primary btn-small" onclick="submitGmailReply()" style="margin-top:8px">Gửi trả lời</button>
+              <div id="gmail-reply-error" class="gmail-inline-error"></div>
+              <button class="btn btn-primary btn-small" onclick="submitGmailReply(event.currentTarget)" style="margin-top:8px">Gửi trả lời</button>
             </div>
           </div>
           <!-- Compose modal -->
@@ -3688,9 +3902,10 @@
                   <textarea id="gmail-compose-body" rows="6" placeholder="Nội dung email..." style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;resize:vertical;box-sizing:border-box"></textarea>
                 </div>
               </div>
+              <div id="gmail-compose-error" class="gmail-inline-error"></div>
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
                 <button class="btn btn-secondary btn-small" onclick="hideGmailComposeModal()">Hủy</button>
-                <button class="btn btn-primary btn-small" onclick="submitGmailCompose()">Gửi</button>
+                <button class="btn btn-primary btn-small" onclick="submitGmailCompose(event.currentTarget)">Gửi</button>
               </div>
             </div>
           </div>
@@ -4132,6 +4347,7 @@
       home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
       calendar: '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
       send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+      mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>',
       'message-circle': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
       messenger: '<circle cx="12" cy="12" r="10"/><path d="M7 12l3 3 7-7"/>',
       megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
@@ -4757,28 +4973,39 @@
             '<div><strong>' + esc(cfg.pageName) + '</strong><div style="font-size:12px;color:var(--text-muted)">Kết nối lúc ' + new Date(cfg.connectedAt).toLocaleString('vi-VN') + '</div></div>' +
             '</div></div>';
         } else {
-          el.innerHTML = '';
+          renderInlineState(el, { type: 'empty', compact: true, icon: 'globe', title: 'Chưa kết nối Fanpage', detail: 'Paste Page Access Token hợp lệ để 9BizClaw có thể đăng bài lên đúng Fanpage.' });
         }
-      } catch { el.innerHTML = ''; }
+      } catch (e) {
+        renderInlineState(el, { type: 'error', compact: true, title: 'Không đọc được trạng thái Facebook', detail: e.message || 'Lỗi không xác định' });
+      }
     }
 
     async function connectFbPage() {
       const tokenInput = document.getElementById('fb-token-input');
       const token = tokenInput.value.trim();
-      if (!token) { tokenInput.style.borderColor = 'var(--danger)'; return; }
+      const status = document.getElementById('fb-status');
+      if (!token) {
+        tokenInput.style.borderColor = 'var(--danger)';
+        renderInlineState(status, { type: 'warning', compact: true, title: 'Thiếu Page Access Token', detail: 'Dán Page Access Token của Fanpage vào ô bên dưới rồi bấm Kết nối.' });
+        return;
+      }
       const btn = document.getElementById('fb-connect-btn');
-      btn.disabled = true; btn.textContent = 'Đang xác nhận...';
+      setBtnLoading(btn, true, 'Đang xác nhận');
       try {
         const res = await window.claw.saveFbConfig(token);
         if (res.success) {
           tokenInput.value = '';
-          loadFbConfig();
-          loadFbRecentPosts();
+          await loadFbConfig();
+          await loadFbRecentPosts();
+          showToast('Đã kết nối Fanpage', 'success');
         } else {
-          alert('Lỗi: ' + res.error);
+          renderInlineState(status, { type: 'error', compact: true, title: 'Token chưa dùng được', detail: res.error || 'Không xác thực được Fanpage.' });
         }
-      } catch (e) { alert('Lỗi: ' + e.message); }
-      btn.disabled = false; btn.textContent = 'Kết nối';
+      } catch (e) {
+        renderInlineState(status, { type: 'error', compact: true, title: 'Không kết nối được Facebook', detail: e.message || 'Lỗi không xác định' });
+      } finally {
+        setBtnLoading(btn, false);
+      }
     }
 
     async function loadFbRecentPosts() {
@@ -4802,35 +5029,59 @@
       try {
         const assets = await window.claw.listBrandAssets();
         if (!assets || !assets.length) {
-          el.innerHTML = '<div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">Chưa có tài sản nào. Upload logo, ảnh sản phẩm để bot dùng khi tạo ảnh.</div>';
+          renderInlineState(el, {
+            type: 'empty',
+            icon: 'image',
+            title: 'Chưa có tài sản thương hiệu',
+            detail: 'Upload logo, mascot hoặc style reference. Bot chỉ dùng các file này để tạo ảnh và draft bài đăng, không tự gửi cho khách.',
+          });
           return;
         }
         el.innerHTML = assets.map(function(a) {
           var thumbHtml = a.thumbDataUrl
             ? '<img src="' + a.thumbDataUrl + '" style="width:100%;height:100%;object-fit:cover" />'
             : '<span data-icon="image" data-icon-size="32" style="color:var(--text-muted)"></span>';
-          return '<div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border:1px solid var(--border);border-radius:8px">' +
-            '<div style="width:80px;height:80px;background:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">' +
-            thumbHtml +
+          return '<div class="media-card">' +
+            '<div class="media-card-thumb">' + thumbHtml + '</div>' +
+            '<div class="media-card-title" title="' + escAttr(a.name) + '">' + esc(a.name) + '</div>' +
+            '<div class="media-badges">' +
+              '<span class="media-badge internal">Nội bộ</span>' +
+              '<span class="media-badge media-status-ready">Sẵn sàng</span>' +
             '</div>' +
-            '<div style="font-size:11px;color:var(--text);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escAttr(a.name) + '">' + esc(a.name) + '</div>' +
-            '<div style="font-size:10px;color:var(--text-muted)">' + (a.size > 1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round(a.size/1024)+'KB') + '</div>' +
-            '<button class="btn-sm" data-delete-asset="' + escAttr(a.name) + '" style="font-size:10px;padding:2px 8px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer">Xoá</button>' +
+            '<div class="media-card-desc">' + esc(a.size > 1024*1024 ? (a.size/1024/1024).toFixed(1)+' MB' : Math.round(a.size/1024)+' KB') + '</div>' +
+            '<button class="btn-sm" data-delete-asset="' + escAttr(a.name) + '" style="margin-top:auto;font-size:10px;padding:3px 8px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer">Xóa</button>' +
           '</div>';
         }).join('');
+        mountIcons();
       } catch (ex) { el.innerHTML = '<div style="color:var(--text-muted)">Lỗi tải tài sản</div>'; }
     }
 
-    async function uploadBrandAssets() {
-      var paths = await window.claw.pickBrandAssetFile();
-      if (!paths || !paths.length) return;
-      for (var i = 0; i < paths.length; i++) {
-        var fp = paths[i];
-        var name = fp.split(/[\\\/]/).pop();
-        var res = await window.claw.uploadBrandAsset(fp, name);
-        if (!res.success) alert('Lỗi upload ' + name + ': ' + res.error);
+    async function withMediaButtonLoading(button, task) {
+      setBtnLoading(button, true, 'Đang xử lý');
+      try {
+        return await task();
+      } finally {
+        setBtnLoading(button, false);
       }
-      loadBrandAssets();
+    }
+
+    async function uploadBrandAssets(button) {
+      await withMediaButtonLoading(button, async function() {
+        var paths = await window.claw.pickBrandAssetFile();
+        if (!paths || !paths.length) return;
+        var failed = 0;
+        for (var i = 0; i < paths.length; i++) {
+          var fp = paths[i];
+          var name = fp.split(/[\\\/]/).pop();
+          var res = await window.claw.uploadBrandAsset(fp, name);
+          if (!res.success) {
+            failed++;
+            showToast('Không upload được ' + name + ': ' + (res.error || 'không rõ lỗi'), 'error', 6000);
+          }
+        }
+        showToast(failed ? 'Upload xong, có ' + failed + ' file lỗi' : 'Đã upload tài sản thương hiệu', failed ? 'warning' : 'success');
+        await loadBrandAssets();
+      });
     }
 
     function mediaAssetSrc(asset) {
@@ -4838,28 +5089,37 @@
       return 'file:///' + String(asset.path).replace(/\\/g, '/').replace(/^\/+/, '');
     }
 
+    function getMediaStatusMeta(status) {
+      const raw = String(status || 'indexed').toLowerCase();
+      if (raw === 'processing') return { label: 'Đang đọc ảnh', cls: 'media-status-processing' };
+      if (raw === 'needs_vision') return { label: 'Cần cấu hình vision', cls: 'media-status-error' };
+      if (raw === 'failed' || raw === 'error') return { label: 'Lỗi', cls: 'media-status-error' };
+      return { label: 'Sẵn sàng', cls: 'media-status-ready' };
+    }
+
     function renderMediaGrid(el, assets, emptyText) {
       if (!el) return;
       if (!assets || !assets.length) {
-        el.innerHTML = '<div style="color:var(--text-muted);padding:30px;text-align:center;width:100%">' + esc(emptyText) + '</div>';
+        renderInlineState(el, { type: 'empty', icon: 'image', title: emptyText, detail: 'Upload ảnh để bot có dữ liệu hình ảnh thật, không chỉ trả lời bằng chữ.' });
         return;
       }
       el.innerHTML = assets.map(function(a) {
         var src = mediaAssetSrc(a);
-        var badgeColor = a.visibility === 'public' ? 'var(--success)' : 'var(--accent)';
         var status = a.status || 'indexed';
+        var statusMeta = getMediaStatusMeta(status);
         var desc = (a.description || '').slice(0, 120);
-        return '<div style="width:180px;min-height:210px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);display:flex;flex-direction:column;gap:8px">' +
-          '<div style="height:92px;border-radius:6px;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center">' +
-          (src ? '<img src="' + escAttr(src) + '" style="width:100%;height:100%;object-fit:cover">' : '<span data-icon="image" data-icon-size="32" style="color:var(--text-muted)"></span>') +
+        var visibilityLabel = a.visibility === 'public' ? 'Khách thấy' : a.visibility === 'private' ? 'Chỉ CEO' : 'Nội bộ';
+        return '<div class="media-card">' +
+          '<div class="media-card-thumb">' +
+          (src ? '<img src="' + escAttr(src) + '">' : '<span data-icon="image" data-icon-size="32" style="color:var(--text-muted)"></span>') +
           '</div>' +
-          '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + escAttr(a.title || a.filename || '') + '">' + esc(a.title || a.filename || '') + '</div>' +
-          '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px">' +
-          '<span style="color:' + badgeColor + ';border:1px solid ' + badgeColor + ';border-radius:999px;padding:1px 6px">' + esc(a.visibility || '') + '</span>' +
-          '<span style="color:var(--text-muted);border:1px solid var(--border);border-radius:999px;padding:1px 6px">' + esc(status) + '</span>' +
+          '<div class="media-card-title" title="' + escAttr(a.title || a.filename || '') + '">' + esc(a.title || a.filename || '') + '</div>' +
+          '<div class="media-badges">' +
+          '<span class="media-badge ' + escAttr(a.visibility || '') + '">' + esc(visibilityLabel) + '</span>' +
+          '<span class="media-badge ' + escAttr(statusMeta.cls) + '">' + esc(statusMeta.label) + '</span>' +
           '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted);line-height:1.45;min-height:32px;overflow:hidden">' + esc(desc || 'Chưa có mô tả vision') + '</div>' +
-          '<button class="btn-sm" data-delete-media="' + escAttr(a.id) + '" style="margin-top:auto;font-size:10px;padding:3px 8px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer">Xoá</button>' +
+          '<div class="media-card-desc">' + esc(desc || 'Chưa có mô tả vision') + '</div>' +
+          '<button class="btn-sm" data-delete-media="' + escAttr(a.id) + '" data-media-title="' + escAttr(a.title || a.filename || a.id || '') + '" style="margin-top:auto;font-size:10px;padding:3px 8px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer">Xóa</button>' +
         '</div>';
       }).join('');
       mountIcons();
@@ -4880,16 +5140,23 @@
       }
     }
 
-    async function uploadProductImages() {
-      var paths = await window.claw.pickMediaAssetFile();
-      if (!paths || !paths.length) return;
-      for (var i = 0; i < paths.length; i++) {
-        var fp = paths[i];
-        var name = fp.split(/[\\\/]/).pop();
-        var res = await window.claw.uploadMediaAsset({ filePath: fp, type: 'product', title: name, visibility: 'public' });
-        if (!res.success) alert('Không upload được "' + name + '": ' + (res.error || 'Lỗi không xác định.'));
-      }
-      loadImageAssetsTab();
+    async function uploadProductImages(button) {
+      await withMediaButtonLoading(button, async function() {
+        var paths = await window.claw.pickMediaAssetFile();
+        if (!paths || !paths.length) return;
+        var failed = 0;
+        for (var i = 0; i < paths.length; i++) {
+          var fp = paths[i];
+          var name = fp.split(/[\\\/]/).pop();
+          var res = await window.claw.uploadMediaAsset({ filePath: fp, type: 'product', title: name, visibility: 'public' });
+          if (!res.success) {
+            failed++;
+            showToast('Không upload được "' + name + '": ' + (res.error || 'Lỗi không xác định.'), 'error', 6000);
+          }
+        }
+        showToast(failed ? 'Upload xong, có ' + failed + ' ảnh lỗi' : 'Đã upload hình sản phẩm', failed ? 'warning' : 'success');
+        await loadImageAssetsTab();
+      });
     }
 
     async function uploadKnowledgeFromMediaTab() {
@@ -4899,20 +5166,37 @@
       }, 150);
     }
 
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', async function(e) {
       var btn = e.target.closest('[data-delete-asset]');
       if (!btn) return;
       var name = btn.dataset.deleteAsset;
-      if (!confirm('Xoá ' + name + '?')) return;
-      window.claw.deleteBrandAsset(name).then(function() { loadBrandAssets(); });
+      var ok = await showConfirmDialog({
+        title: 'Xóa tài sản thương hiệu?',
+        detail: 'File "' + name + '" sẽ không còn được dùng khi tạo ảnh hoặc draft bài Facebook.',
+        confirmText: 'Xóa',
+        variant: 'danger',
+      });
+      if (!ok) return;
+      await window.claw.deleteBrandAsset(name);
+      showToast('Đã xóa tài sản thương hiệu', 'success');
+      loadBrandAssets();
     });
 
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', async function(e) {
       var btn = e.target.closest('[data-delete-media]');
       if (!btn) return;
       var id = btn.dataset.deleteMedia;
-      if (!confirm('Xoá tài sản này?')) return;
-      window.claw.deleteMediaAsset(id).then(function() { loadImageAssetsTab(); });
+      var title = btn.dataset.mediaTitle || 'tài sản này';
+      var ok = await showConfirmDialog({
+        title: 'Xóa tài sản hình ảnh?',
+        detail: 'File "' + title + '" sẽ không còn xuất hiện trong thư viện hình ảnh. File Knowledge gốc vẫn được bảo vệ bởi backend.',
+        confirmText: 'Xóa',
+        variant: 'danger',
+      });
+      if (!ok) return;
+      await window.claw.deleteMediaAsset(id);
+      showToast('Đã xóa tài sản hình ảnh', 'success');
+      loadImageAssetsTab();
     });
 
     async function loadPersonaMix() {
@@ -5266,8 +5550,43 @@
       if (_overviewTimer) { clearInterval(_overviewTimer); _overviewTimer = null; }
     }
 
+    function maybeShowPremiumEntrance() {
+      const el = document.getElementById('premium-entrance');
+      if (!el) return;
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reducedMotion) {
+        el.remove();
+        return;
+      }
+      try {
+        if (sessionStorage.getItem('premiumEntranceSeen') === '1') {
+          el.remove();
+          return;
+        }
+        sessionStorage.setItem('premiumEntranceSeen', '1');
+      } catch {}
+      let dismissed = false;
+      const dismiss = () => {
+        if (dismissed) return;
+        dismissed = true;
+        el.classList.add('is-leaving');
+        el.classList.remove('is-visible');
+        setTimeout(() => { try { el.remove(); } catch {} }, 460);
+      };
+      const onKey = (event) => {
+        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') dismiss();
+      };
+      document.addEventListener('keydown', onKey, { once: true });
+      el.addEventListener('click', dismiss, { once: true });
+      requestAnimationFrame(() => {
+        el.classList.add('is-visible');
+        setTimeout(dismiss, 2550);
+      });
+    }
+
     // Initial load — fire on DOM ready (overview is the active page on first launch)
     document.addEventListener('DOMContentLoaded', () => {
+      maybeShowPremiumEntrance();
       const legacyBrandGrids = document.querySelectorAll('#brand-assets-grid');
       if (legacyBrandGrids.length > 1) legacyBrandGrids[1].id = 'fb-brand-assets-grid-deprecated';
       loadOverview();
@@ -5310,6 +5629,22 @@
       'chat': 'persist:embed-openclaw',
     };
     const _embedRetry = {};
+    function renderEmbedLoading(loader, label, attempt) {
+      if (!loader) return;
+      const suffix = attempt ? 'Đang thử lại lần ' + attempt : 'Đang mở gateway';
+      loader.innerHTML = '<div style="text-align:center;max-width:360px"><div class="spinner" style="margin:0 auto 12px"></div><div style="font-weight:700;color:var(--text);margin-bottom:4px">' + esc(suffix) + '</div><div style="font-size:12px;color:var(--text-muted);line-height:1.5">Đang kết nối ' + esc(label) + '. Nếu server vừa khởi động, bước này có thể mất vài giây.</div></div>';
+    }
+    function renderEmbedFailure(loader, name, label) {
+      if (!loader) return;
+      loader.innerHTML = '<div style="text-align:center;max-width:360px">' +
+        '<div style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text)">Không tải được ' + esc(label) + '</div>' +
+        '<div style="margin-bottom:14px;color:var(--text-muted);font-size:13px;line-height:1.5">Gateway chưa sẵn sàng hoặc đang khởi động lại. Anh/chị có thể thử lại trong app hoặc mở bằng trình duyệt.</div>' +
+        '<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">' +
+          '<button class="btn btn-primary btn-small" onclick="retryEmbed(\'' + escAttr(name) + '\')">Thử lại</button>' +
+          '<button class="btn btn-secondary btn-small" onclick="window.claw.openExternal(' + escAttr(JSON.stringify(EMBED_URLS[name])) + ')">Mở bằng trình duyệt</button>' +
+        '</div>' +
+      '</div>';
+    }
     function ensureEmbedLoaded(name, options = {}) {
       if (embedLoaded[name]) return;
       embedLoaded[name] = true;
@@ -5324,7 +5659,7 @@
         loader.className = 'embed-loading';
         wrap.appendChild(loader);
       }
-      loader.innerHTML = '<div style="text-align:center"><div class="spinner" style="width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px"></div>Đang tải ' + label + '...</div>';
+      renderEmbedLoading(loader, label, 0);
 
       let wv = document.getElementById('iframe-' + name);
       if (!wv) {
@@ -5351,10 +5686,10 @@
         console.warn('[embed] ' + name + ' load failed (attempt ' + (attempt+1) + '): ' + (e.errorCode||'') + ' ' + (e.errorDescription||''));
         if (attempt < DELAYS.length) {
           _embedRetry[name] = attempt + 1;
-          loader.innerHTML = '<div style="text-align:center"><div class="spinner" style="width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px"></div>Đang kết nối ' + label + '... (lần ' + (_embedRetry[name]+1) + ')</div>';
+          renderEmbedLoading(loader, label, _embedRetry[name] + 1);
           setTimeout(function() { try { wv.src = EMBED_URLS[name]; } catch(ex) { wv.setAttribute('src', EMBED_URLS[name]); } }, DELAYS[attempt]);
         } else {
-          loader.innerHTML = '<div style="text-align:center;max-width:320px"><div style="font-size:15px;font-weight:600;margin-bottom:8px">Không tải được ' + label + '</div><div style="margin-bottom:12px;color:var(--text-muted);font-size:13px">Server chưa sẵn sàng hoặc đã dừng</div><button class="btn btn-primary btn-small" onclick="retryEmbed(\'' + name + '\')">Thử lại</button></div>';
+          renderEmbedFailure(loader, name, label);
         }
       });
       wv.addEventListener('new-window', function(e) {
@@ -5413,18 +5748,134 @@
       }
     }
 
+    function setBtnLoading(button, loading, label) {
+      if (!button) return;
+      if (loading) {
+        if (button.dataset.uxBusy === '1') return;
+        button.dataset.uxBusy = '1';
+        button.dataset.uxLabel = button.innerHTML;
+        button.disabled = true;
+        button.classList.add('is-loading');
+        const safeLabel = label || button.textContent || 'Đang xử lý';
+        button.innerHTML = '<span class="btn-spinner"></span><span>' + esc(safeLabel) + '</span>';
+      } else {
+        button.disabled = false;
+        button.classList.remove('is-loading');
+        if (button.dataset.uxLabel) button.innerHTML = button.dataset.uxLabel;
+        delete button.dataset.uxBusy;
+        delete button.dataset.uxLabel;
+        try { mountIcons(); } catch {}
+      }
+    }
+
+    function renderInlineState(target, state) {
+      const el = typeof target === 'string' ? document.getElementById(target) : target;
+      if (!el) return;
+      const s = state || {};
+      const type = s.type || 'empty';
+      const iconName = s.icon || (type === 'loading' ? null : type === 'error' ? 'x' : type === 'success' ? 'check' : 'help-circle');
+      const cls = 'ux-inline-state ' + (s.compact ? 'compact ' : '') + escAttr(type);
+      const spinner = type === 'loading' ? '<div class="spinner"></div>' : '';
+      const iconHtml = iconName ? '<div class="ux-upload-icon">' + icon(iconName, 20) + '</div>' : '';
+      const title = s.title ? '<div class="ux-state-title">' + esc(s.title) + '</div>' : '';
+      const detail = s.detail ? '<div class="ux-state-detail">' + esc(s.detail) + '</div>' : '';
+      const action = s.action ? '<div class="ux-state-action">' + s.action + '</div>' : '';
+      el.innerHTML = '<div class="' + cls + '">' + spinner + iconHtml + title + detail + action + '</div>';
+      mountIcons();
+    }
+
+    function closeUxDialog(value) {
+      const overlay = document.getElementById('ux-dialog-overlay');
+      if (!overlay) return;
+      const resolver = overlay._resolve;
+      overlay.remove();
+      if (resolver) resolver(value);
+    }
+
+    function showConfirmDialog(options) {
+      const opts = options || {};
+      const danger = opts.variant === 'danger';
+      return new Promise(resolve => {
+        const old = document.getElementById('ux-dialog-overlay');
+        if (old) old.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'ux-dialog-overlay';
+        overlay.className = 'ux-modal-overlay';
+        overlay._resolve = resolve;
+        overlay.innerHTML =
+          '<div class="ux-dialog" role="dialog" aria-modal="true">' +
+            '<div class="ux-dialog-head">' +
+              '<h3 class="ux-dialog-title">' + esc(opts.title || 'Xác nhận thao tác') + '</h3>' +
+              (opts.detail ? '<div class="ux-dialog-detail">' + esc(opts.detail) + '</div>' : '') +
+            '</div>' +
+            '<div class="ux-dialog-actions">' +
+              '<button class="btn btn-secondary btn-small" data-ux-cancel>' + esc(opts.cancelText || 'Hủy') + '</button>' +
+              '<button class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + ' btn-small" data-ux-confirm>' + esc(opts.confirmText || 'Xác nhận') + '</button>' +
+            '</div>' +
+          '</div>';
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeUxDialog(false); });
+        overlay.querySelector('[data-ux-cancel]').addEventListener('click', () => closeUxDialog(false));
+        overlay.querySelector('[data-ux-confirm]').addEventListener('click', () => closeUxDialog(true));
+        document.body.appendChild(overlay);
+        overlay.querySelector('[data-ux-confirm]').focus();
+      });
+    }
+
+    function showInputDialog(options) {
+      const opts = options || {};
+      return new Promise(resolve => {
+        const old = document.getElementById('ux-dialog-overlay');
+        if (old) old.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'ux-dialog-overlay';
+        overlay.className = 'ux-modal-overlay';
+        overlay._resolve = resolve;
+        const choices = Array.isArray(opts.choices) ? opts.choices : [];
+        const inputHtml = choices.length
+          ? '<select class="ux-dialog-select" data-ux-input>' + choices.map(c => '<option value="' + escAttr(c.value) + '"' + (c.value === opts.value ? ' selected' : '') + '>' + esc(c.label) + '</option>').join('') + '</select>'
+          : '<input class="ux-dialog-input" data-ux-input value="' + escAttr(opts.value || '') + '" placeholder="' + escAttr(opts.placeholder || '') + '">';
+        overlay.innerHTML =
+          '<div class="ux-dialog" role="dialog" aria-modal="true">' +
+            '<div class="ux-dialog-head">' +
+              '<h3 class="ux-dialog-title">' + esc(opts.title || 'Nhập thông tin') + '</h3>' +
+              (opts.detail ? '<div class="ux-dialog-detail">' + esc(opts.detail) + '</div>' : '') +
+            '</div>' +
+            '<div class="ux-dialog-body">' + inputHtml + '</div>' +
+            '<div class="ux-dialog-actions">' +
+              '<button class="btn btn-secondary btn-small" data-ux-cancel>' + esc(opts.cancelText || 'Hủy') + '</button>' +
+              '<button class="btn btn-primary btn-small" data-ux-confirm>' + esc(opts.confirmText || 'Lưu') + '</button>' +
+            '</div>' +
+          '</div>';
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeUxDialog(null); });
+        overlay.querySelector('[data-ux-cancel]').addEventListener('click', () => closeUxDialog(null));
+        overlay.querySelector('[data-ux-confirm]').addEventListener('click', () => {
+          const input = overlay.querySelector('[data-ux-input]');
+          closeUxDialog(input ? input.value : '');
+        });
+        document.body.appendChild(overlay);
+        overlay.querySelector('[data-ux-input]')?.focus();
+      });
+    }
+
+    const TOAST_VARIANTS = {
+      success: { bg: 'var(--success, #16a34a)' },
+      info: { bg: 'var(--accent, #4ea1ff)' },
+      warning: { bg: '#b45309' },
+      error: { bg: 'var(--danger, #e74c3c)' },
+    };
+
     // Generic toast notification (top-right, auto-dismiss)
     function showToast(text, type = 'success', durationMs = 2800) {
       let host = document.getElementById('toast-host');
       if (!host) {
         host = document.createElement('div');
         host.id = 'toast-host';
-        host.style.cssText = 'position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none';
+        host.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1600;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:min(420px,calc(100vw - 40px))';
         document.body.appendChild(host);
       }
       const t = document.createElement('div');
-      const bg = type === 'error' ? '#e74c3c' : 'var(--accent, #4ea1ff)';
-      t.style.cssText = `background:${bg};color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.3);font-size:13px;font-weight:500;pointer-events:auto;animation:toastIn 0.2s ease;max-width:360px`;
+      const variant = TOAST_VARIANTS[type] || TOAST_VARIANTS.info;
+      t.style.cssText = `background:${variant.bg};color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.3);font-size:13px;font-weight:600;line-height:1.45;pointer-events:auto;animation:toastIn 0.2s ease;max-width:100%;white-space:normal;overflow-wrap:anywhere`;
       t.textContent = text;
       host.appendChild(t);
       setTimeout(() => {
@@ -5441,6 +5892,7 @@
     let knowledgeInitialized = false;
     let currentKnowledgeCategory = 'cong-ty';
     let currentUploadVisibility = 'public';
+    let knowledgeUploadQueue = [];
     let _knowFolders = [];
     const KNOW_ICONS = { 'cong-ty': 'building', 'san-pham': 'shopping-bag', 'nhan-vien': 'users' };
 
@@ -5547,7 +5999,13 @@
       }
     }
     async function deleteKnowledgeFolder(id) {
-      if (!confirm('Xóa thư mục này và tất cả tài liệu bên trong?')) return;
+      const ok = await showConfirmDialog({
+        title: 'Xóa thư mục Knowledge?',
+        detail: 'Thư mục này và toàn bộ tài liệu bên trong sẽ bị xóa khỏi Knowledge.',
+        confirmText: 'Xóa',
+        variant: 'danger',
+      });
+      if (!ok) return;
       try {
         const res = await window.claw.deleteKnowledgeFolder(id);
         if (res.success) {
@@ -5556,9 +6014,9 @@
           refreshKnowledgeFiles();
           addActivity('Xóa thư mục Knowledge: ' + id);
         } else {
-          alert(res.error || 'Lỗi xóa thư mục');
+          showToast(res.error || 'Lỗi xóa thư mục', 'error', 6000);
         }
-      } catch (e) { alert('Lỗi: ' + e.message); }
+      } catch (e) { showToast('Lỗi: ' + e.message, 'error', 6000); }
     }
 
     // Update folder counts in-place (no flash). Called after upload/delete.
@@ -5602,9 +6060,49 @@
     }
     document.addEventListener('DOMContentLoaded', loadRagConfig);
 
-    async function refreshKnowledgeFiles() {
+    function renderKnowledgeUploadQueue() {
+      const progressEl = document.getElementById('know-progress');
+      if (!progressEl) return;
+      if (!knowledgeUploadQueue.length) {
+        progressEl.style.display = 'none';
+        progressEl.innerHTML = '';
+        return;
+      }
+      progressEl.style.display = 'block';
+      progressEl.className = 'know-progress ux-upload-queue';
+      progressEl.innerHTML = knowledgeUploadQueue.map(item => {
+        const state = item.status || 'pending';
+        const iconHtml = state === 'processing'
+          ? '<div class="spinner"></div>'
+          : '<div class="ux-upload-icon">' + icon(state === 'success' ? 'check' : state === 'error' ? 'x' : 'clock', 16) + '</div>';
+        const detail = item.detail || (state === 'pending' ? 'Đang chờ xử lý' : state === 'processing' ? 'Đang đọc file và tạo knowledge' : state === 'success' ? 'Đã thêm vào knowledge' : 'Có lỗi khi xử lý');
+        return '<div class="ux-upload-item ' + escAttr(state) + '">' +
+          iconHtml +
+          '<div style="min-width:0;flex:1">' +
+            '<div class="ux-upload-name">' + esc(item.name || '') + '</div>' +
+            '<div class="ux-upload-detail">' + esc(detail) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function setKnowledgeUploadBusy(isBusy) {
+      const zone = document.getElementById('know-drop-zone');
+      if (!zone) return;
+      if (!zone.dataset.idleHtml) zone.dataset.idleHtml = zone.innerHTML;
+      zone.classList.toggle('is-busy', !!isBusy);
+      if (isBusy) {
+        zone.innerHTML = '<div class="spinner" style="margin-bottom:12px"></div><strong>Đang đọc file</strong><div>PDF scan hoặc ảnh có thể mất vài phút.</div>';
+      } else {
+        zone.innerHTML = zone.dataset.idleHtml;
+        mountIcons();
+      }
+    }
+
+    async function refreshKnowledgeFiles(button) {
+      setBtnLoading(button, true, 'Đang tải');
       const list = document.getElementById('know-files-list');
-      list.innerHTML = '<div class="know-empty">Đang tải...</div>';
+      renderInlineState(list, { type: 'loading', title: 'Đang tải tài liệu', detail: 'Đang đọc danh sách file trong thư mục này.' });
       try {
         const files = await window.claw.listKnowledgeFiles(currentKnowledgeCategory);
         if (!files || files.length === 0) {
@@ -5622,7 +6120,7 @@
           const sizeKB = (f.filesize / 1024).toFixed(1);
           const date = new Date(f.created_at + 'Z').toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
           const vis = f.visibility || 'public';
-          const visLabel = vis === 'private' ? 'Chỉ CEO' : vis === 'internal' ? 'Nội bộ' : 'Công khai';
+          const visLabel = vis === 'private' ? 'Chỉ CEO' : vis === 'internal' ? 'Nội bộ' : 'Khách thấy';
           const visBadge = (f.id != null)
             ? `<span class="vis-badge vis-${vis}" data-doc-id="${f.id}" onclick="editVisibility(${f.id}, this)" title="Đổi tầng hiển thị">${visLabel}</span>`
             : `<span class="vis-badge vis-${vis}" title="Tầng hiển thị (cần DB để chỉnh)">${visLabel}</span>`;
@@ -5644,26 +6142,38 @@
         }).join('');
         mountIcons();
       } catch (e) {
-        list.innerHTML = '<div class="know-empty">Lỗi load: ' + esc(e.message) + '</div>';
+        renderInlineState(list, { type: 'error', title: 'Không tải được tài liệu', detail: e.message || 'Lỗi không xác định', action: '<button class="btn btn-secondary btn-small" onclick="refreshKnowledgeFiles()">Thử lại</button>' });
+      } finally {
+        setBtnLoading(button, false);
       }
+    }
+
+    async function showKnowledgeVisibilityDialog(docId, currentVisibility) {
+      const next = await showInputDialog({
+        title: 'Đổi quyền hiển thị',
+        detail: 'Chọn ai được phép dùng file này khi bot trả lời.',
+        value: currentVisibility || 'public',
+        confirmText: 'Lưu',
+        choices: [
+          { value: 'public', label: 'Khách thấy' },
+          { value: 'internal', label: 'Nội bộ' },
+          { value: 'private', label: 'Chỉ CEO' },
+        ],
+      });
+      if (!next) return;
+      const r = await window.claw.setKnowledgeVisibility(docId, next);
+      if (!r || !r.success) {
+        showToast('Không đổi được quyền hiển thị: ' + (r && r.error ? r.error : 'không rõ lỗi'), 'error', 6000);
+        return;
+      }
+      showToast('Đã cập nhật quyền hiển thị', 'success');
+      refreshKnowledgeFiles();
     }
 
     async function editVisibility(docId, el) {
       const current = el.classList.contains('vis-private') ? 'private'
                     : el.classList.contains('vis-internal') ? 'internal' : 'public';
-      const next = prompt(
-        `Đổi tầng hiển thị cho file (hiện tại: ${current}):\n\n` +
-        `1 = Công khai (khách thấy)\n` +
-        `2 = Nội bộ (nhân viên)\n` +
-        `3 = Chỉ mình tôi`,
-        current === 'public' ? '1' : current === 'internal' ? '2' : '3'
-      );
-      if (!next) return;
-      const vis = next === '1' ? 'public' : next === '2' ? 'internal' : next === '3' ? 'private' : null;
-      if (!vis) return alert('Giá trị không hợp lệ');
-      const r = await window.claw.setKnowledgeVisibility(docId, vis);
-      if (!r || !r.success) return alert('Lỗi: ' + (r && r.error ? r.error : 'unknown'));
-      refreshKnowledgeFiles();
+      return showKnowledgeVisibilityDialog(docId, current);
     }
 
     async function pickKnowledgeFiles() {
@@ -5679,50 +6189,84 @@
     async function uploadKnowledgePaths(paths) {
       if (!paths || paths.length === 0) return;
       const progressEl = document.getElementById('know-progress');
-      progressEl.style.display = 'block';
-      progressEl.className = 'know-progress';
+      setKnowledgeUploadBusy(true);
+      knowledgeUploadQueue = paths.map((fp, idx) => ({
+        id: String(Date.now()) + '-' + idx,
+        name: fp.split(/[\\/]/).pop(),
+        status: 'pending',
+        detail: 'Đang chờ xử lý',
+      }));
+      renderKnowledgeUploadQueue();
       let success = 0, failed = 0;
       for (let i = 0; i < paths.length; i++) {
         const fp = paths[i];
         const filename = fp.split(/[\\/]/).pop();
-        progressEl.textContent = `Đang xử lý ${i + 1}/${paths.length}: ${filename}...`;
+        knowledgeUploadQueue[i].status = 'processing';
+        knowledgeUploadQueue[i].detail = `Đang đọc file ${i + 1}/${paths.length}. PDF scan hoặc ảnh có thể mất vài phút.`;
+        renderKnowledgeUploadQueue();
         try {
           const r = await window.claw.uploadKnowledgeFile(currentKnowledgeCategory, fp, filename, currentUploadVisibility);
           if (r?.success) {
             success++;
+            knowledgeUploadQueue[i].status = 'success';
+            knowledgeUploadQueue[i].detail = 'Đã thêm vào Knowledge và sẵn sàng để bot tìm kiếm.';
             addActivity(`Đã thêm: ${r.filename}`);
           } else {
             failed++;
             const errMsg = r?.error || 'unknown';
+            knowledgeUploadQueue[i].status = 'error';
+            knowledgeUploadQueue[i].detail = errMsg;
             addActivity(`Lỗi: ${filename} — ${errMsg}`);
             // Surface upload errors as toast so CEO doesn't miss them in activity feed
             showToast(`${filename}: ${errMsg}`, 'error');
           }
         } catch (e) {
           failed++;
+          knowledgeUploadQueue[i].status = 'error';
+          knowledgeUploadQueue[i].detail = e.message;
           addActivity(`Lỗi: ${filename} — ${e.message}`);
           showToast(`${filename}: ${e.message}`, 'error');
         }
+        renderKnowledgeUploadQueue();
       }
-      progressEl.textContent = `Xong! Thành công: ${success}, lỗi: ${failed}`;
-      setTimeout(() => { progressEl.style.display = 'none'; }, 4000);
+      knowledgeUploadQueue.push({
+        id: 'summary',
+        name: 'Kết quả upload',
+        status: failed ? 'error' : 'success',
+        detail: `Thành công: ${success}, lỗi: ${failed}`,
+      });
+      renderKnowledgeUploadQueue();
+      setKnowledgeUploadBusy(false);
+      if (!failed) setTimeout(() => {
+        knowledgeUploadQueue = [];
+        renderKnowledgeUploadQueue();
+      }, 5000);
       await refreshKnowledgeCounts();
       await refreshKnowledgeFiles();
     }
 
     async function deleteKnowledgeFile(filename) {
-      if (!confirm('Xóa "' + filename + '" khỏi knowledge?')) return;
+      const ok = await showConfirmDialog({
+        title: 'Xóa tài liệu khỏi Knowledge?',
+        detail: 'File "' + filename + '" sẽ không còn được bot dùng để trả lời.',
+        confirmText: 'Xóa',
+        variant: 'danger',
+      });
+      if (!ok) return;
       try {
         const r = await window.claw.deleteKnowledgeFile(currentKnowledgeCategory, filename);
         if (r?.success) {
           addActivity('Đã xóa: ' + filename);
+          showToast('Đã xóa tài liệu Knowledge', 'success');
           await refreshKnowledgeCounts();
           await refreshKnowledgeFiles();
         } else {
           addActivity('Lỗi xóa: ' + (r?.error || 'unknown'));
+          showToast('Lỗi xóa: ' + (r?.error || 'unknown'), 'error', 6000);
         }
       } catch (e) {
         addActivity('Lỗi: ' + e.message);
+        showToast('Lỗi: ' + e.message, 'error', 6000);
       }
     }
 
@@ -5779,6 +6323,22 @@
       return !zaloMgrConfig.groupAllowFrom
         || zaloMgrConfig.groupAllowFrom.includes('*')
         || zaloMgrConfig.groupPolicy === 'open';
+    }
+
+    function normalizeZaloGroupMode(mode) {
+      return ['off', 'mention', 'all'].includes(mode) ? mode : null;
+    }
+
+    function getDefaultZaloGroupMode() {
+      const defaultMode = zaloMgrConfig.groupSettings
+        && zaloMgrConfig.groupSettings.__default
+        && zaloMgrConfig.groupSettings.__default.mode;
+      return normalizeZaloGroupMode(defaultMode) || 'off';
+    }
+
+    function getZaloGroupMode(groupId) {
+      const gSettings = (zaloMgrConfig.groupSettings || {})[groupId] || {};
+      return normalizeZaloGroupMode(gSettings.mode) || getDefaultZaloGroupMode();
     }
 
     // Merged "Kiểm tra" + "Đồng bộ" into one button. CEO shouldn't need to
@@ -5884,10 +6444,8 @@
     let _zaloGroupsSorted = [];
     let _zaloGroupsRendered = 0;
     function _renderGroupItem(g) {
-      const openMode = isOpenGroupMode();
-      const checked = openMode || (zaloMgrConfig.groupAllowFrom || []).includes(g.groupId);
       const gSettings = (zaloMgrConfig.groupSettings || {})[g.groupId] || {};
-      const mode = gSettings.mode || (checked ? 'mention' : 'off');
+      const mode = getZaloGroupMode(g.groupId);
       const avatarHtml = g.avatar
         ? `<img class="zc-avatar" src="${esc(g.avatar)}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span class="zc-avatar-fallback" style="display:none">${icon('users', 16)}</span>`
         : `<span class="zc-avatar-fallback">${icon('users', 16)}</span>`;
@@ -5949,12 +6507,7 @@
         list.innerHTML = '<div class="zalo-mgr-empty">Chưa có nhóm Zalo nào.<br>Thêm bot vào nhóm trên Zalo, rồi nhấn Refresh.</div>';
         return;
       }
-      const openMode = isOpenGroupMode();
-      const modeOf = (g) => {
-        const checked = openMode || (zaloMgrConfig.groupAllowFrom || []).includes(g.groupId);
-        const gs = (zaloMgrConfig.groupSettings || {})[g.groupId] || {};
-        return gs.mode || (checked ? 'mention' : 'off');
-      };
+      const modeOf = (g) => getZaloGroupMode(g.groupId);
       const priority = { all: 0, mention: 1, off: 2 };
       _zaloGroupsSorted = [...filtered].sort((a, b) => {
         const pa = priority[modeOf(a)] ?? 3;
@@ -8720,32 +9273,53 @@
 
     function openCalEditInGoogle() {
       const link = _calEditEvent?.extendedProps?.htmlLink || _calEditEvent?.extendedProps?.raw?.htmlLink || '';
-      if (!isSafeGoogleCalendarLink(link)) { alert('Sự kiện này chưa có liên kết Google Calendar hợp lệ.'); return; }
+      if (!isSafeGoogleCalendarLink(link)) { showToast('Sự kiện này chưa có liên kết Google Calendar hợp lệ.', 'warning'); return; }
       if (window.claw?.openExternal) window.claw.openExternal(link);
     }
 
-    async function submitCalEdit() {
-      const form = readCalEditForm();
-      if (!form.eventId || !form.summary || !form.start || !form.end) { alert('Vui lòng điền đầy đủ thông tin'); return; }
+    async function runCalendarAction(button, busyLabel, task) {
+      setBtnLoading(button, true, busyLabel || 'Đang xử lý');
       try {
+        await task();
+        return true;
+      } catch (e) {
+        showToast(e.message || 'Lỗi Google Calendar', 'error', 7000);
+        return false;
+      } finally {
+        setBtnLoading(button, false);
+      }
+    }
+
+    async function submitCalEdit(button) {
+      const form = readCalEditForm();
+      if (!form.eventId || !form.summary || !form.start || !form.end) { showToast('Vui lòng điền đầy đủ thông tin sự kiện.', 'warning'); return; }
+      await runCalendarAction(button, 'Đang lưu', async function() {
         if (!window.claw?.googleCalendarUpdate) throw new Error('Chưa có kết nối cập nhật Google Calendar');
         const result = await window.claw.googleCalendarUpdate(form);
         if (result.error) throw new Error(result.error);
         hideCalEditModal();
         refreshCalendarEvents();
-      } catch (e) { alert('Lỗi cập nhật sự kiện: ' + e.message); }
+        showToast('Đã cập nhật sự kiện', 'success');
+      });
     }
 
-    async function deleteCalEditEvent() {
+    async function deleteCalEditEvent(button) {
       const eventId = document.getElementById('cal-edit-id').value.trim();
-      if (!eventId) { alert('Không tìm thấy ID sự kiện'); return; }
-      if (!confirm('Xóa sự kiện này?')) return;
-      try {
+      if (!eventId) { showToast('Không tìm thấy ID sự kiện.', 'error'); return; }
+      const ok = await showConfirmDialog({
+        title: 'Xóa sự kiện này?',
+        detail: 'Sự kiện sẽ bị xóa khỏi Google Calendar đang kết nối.',
+        confirmText: 'Xóa',
+        variant: 'danger',
+      });
+      if (!ok) return;
+      await runCalendarAction(button, 'Đang xóa', async function() {
         const result = await window.claw.googleCalendarDelete({ eventId, calendarId: getCalEventCalendarId(_calEditEvent) });
         if (result.error) throw new Error(result.error);
         hideCalEditModal();
         refreshCalendarEvents();
-      } catch (e) { alert('Lỗi xóa sự kiện: ' + e.message); }
+        showToast('Đã xóa sự kiện', 'success');
+      });
     }
 
     async function handleCalEventDropOrResize(info) {
@@ -8754,7 +9328,7 @@
       const fallbackEnd = event.start ? new Date(event.start.getTime() + 3600000) : null;
       const start = event.startStr || (event.start ? event.start.toISOString() : '');
       const end = event.endStr || (event.end ? event.end.toISOString() : (fallbackEnd ? fallbackEnd.toISOString() : ''));
-      try {
+      const ok = await runCalendarAction(null, 'Đang cập nhật', async function() {
         if (!window.claw?.googleCalendarUpdate) throw new Error('Chưa có kết nối cập nhật Google Calendar');
         const result = await window.claw.googleCalendarUpdate({
           eventId: event.id,
@@ -8764,9 +9338,10 @@
         });
         if (result.error) throw new Error(result.error);
         refreshCalendarEvents();
-      } catch (e) {
+        showToast('Đã cập nhật thời gian sự kiện', 'success');
+      });
+      if (!ok) {
         info.revert?.();
-        alert('Lỗi cập nhật thời gian sự kiện: ' + e.message);
       }
     }
 
@@ -8790,33 +9365,65 @@
     }
     function hideCalCreateModal() { document.getElementById('cal-create-modal').style.display = 'none'; }
 
-    async function submitCalCreate() {
+    async function submitCalCreate(button) {
       const summary = document.getElementById('cal-new-summary').value.trim();
       const start = document.getElementById('cal-new-start').value;
       const end = document.getElementById('cal-new-end').value;
       const attendees = document.getElementById('cal-new-attendees').value.trim();
-      if (!summary || !start || !end) { alert('Vui lòng điền đầy đủ thông tin'); return; }
-      try {
+      if (!summary || !start || !end) { showToast('Vui lòng điền đầy đủ thông tin sự kiện.', 'warning'); return; }
+      await runCalendarAction(button, 'Đang tạo', async function() {
         const result = await window.claw.googleCalendarCreate({ summary, start, end, attendees: attendees || undefined });
         if (result.error) throw new Error(result.error);
         hideCalCreateModal();
         loadCalendarEvents();
-      } catch (e) { alert('Lỗi tạo sự kiện: ' + e.message); }
+        showToast('Đã tạo sự kiện', 'success');
+      });
     }
 
     // --- Gmail tab ---
     let _gmailCurrentId = null;
 
-    async function loadGmailInbox() {
+    function renderGoogleListState(el, state) {
+      renderInlineState(el, Object.assign({ compact: false }, state || {}));
+    }
+
+    function formatGoogleErrorMessage(message, service) {
+      const raw = String(message || '').trim();
+      if (/not connected|chưa kết nối|not authenticated/i.test(raw)) return 'Google Workspace chưa kết nối. Mở tab Cài đặt để kết nối lại.';
+      if (/has not been used|accessNotConfigured|API has not been used/i.test(raw)) return 'Google API cho ' + service + ' chưa được bật trong Google Cloud. Bật API tương ứng rồi thử lại.';
+      if (/permission|insufficient|forbidden|403/i.test(raw)) return 'Tài khoản Google chưa có quyền cho thao tác này hoặc OAuth thiếu scope.';
+      return raw || 'Lỗi không xác định từ Google.';
+    }
+
+    function showGmailInlineError(id, message) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = 'block';
+      renderInlineState(el, { type: 'error', compact: true, title: 'Không gửi được', detail: message });
+    }
+
+    function clearGmailInlineError(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = 'none';
+      el.innerHTML = '';
+    }
+
+    async function loadGmailInbox(button) {
       const list = document.getElementById('gmail-list');
       const empty = document.getElementById('gmail-empty');
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
+      setBtnLoading(button, true, 'Đang tải');
+      renderGoogleListState(list, { type: 'loading', title: 'Đang tải email', detail: 'Đang đọc hộp thư đến từ Gmail.' });
       empty.style.display = 'none';
       try {
         const data = await window.claw.googleGmailInbox({});
         if (data.error) throw new Error(data.error);
         const emails = data.messages || data.items || data.data || [];
-        if (!emails.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+        if (!emails.length) {
+          empty.style.display = 'none';
+          renderGoogleListState(list, { type: 'empty', icon: 'mail', title: 'Hộp thư đến đang trống', detail: 'Gmail đã kết nối nhưng route inbox không trả về email trong giới hạn hiện tại.' });
+          return;
+        }
         list.innerHTML = emails.map(e => {
           const from = e.from || e.sender || '';
           const subject = e.subject || 'Không có tiêu đề';
@@ -8830,7 +9437,9 @@
             '<span class="row-date">' + esc(dateStr) + '</span></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải email') + '</div>';
+        renderGoogleListState(list, { type: 'error', title: 'Không tải được Gmail', detail: formatGoogleErrorMessage(e.message, 'Gmail'), action: '<button class="btn btn-secondary btn-small" onclick="loadGmailInbox()">Thử lại</button>' });
+      } finally {
+        setBtnLoading(button, false);
       }
     }
 
@@ -8848,7 +9457,7 @@
         document.getElementById('gmail-detail-from').textContent = data.from || data.sender || '';
         document.getElementById('gmail-detail-body').textContent = data.body || data.text || data.snippet || '';
       } catch (e) {
-        document.getElementById('gmail-detail-body').textContent = 'Lỗi: ' + e.message;
+        document.getElementById('gmail-detail-body').textContent = 'Không đọc được email: ' + formatGoogleErrorMessage(e.message, 'Gmail');
       }
     }
 
@@ -8857,51 +9466,68 @@
       _gmailCurrentId = null;
     }
 
-    async function submitGmailReply() {
+    async function submitGmailReply(button) {
       if (!_gmailCurrentId) return;
       const body = document.getElementById('gmail-reply-body').value.trim();
-      if (!body) return;
+      clearGmailInlineError('gmail-reply-error');
+      if (!body) { showGmailInlineError('gmail-reply-error', 'Nhập nội dung trả lời trước khi gửi.'); return; }
+      setBtnLoading(button, true, 'Đang gửi');
       try {
         const r = await window.claw.googleGmailReply({ id: _gmailCurrentId, body });
         if (r.error) throw new Error(r.error);
         document.getElementById('gmail-reply-body').value = '';
-        alert('Đã gửi trả lời');
-      } catch (e) { alert('Lỗi: ' + e.message); }
+        showToast('Đã gửi trả lời email', 'success');
+      } catch (e) {
+        showGmailInlineError('gmail-reply-error', formatGoogleErrorMessage(e.message, 'Gmail'));
+      } finally {
+        setBtnLoading(button, false);
+      }
     }
 
     function showGmailComposeModal() {
       document.getElementById('gmail-compose-to').value = '';
       document.getElementById('gmail-compose-subject').value = '';
       document.getElementById('gmail-compose-body').value = '';
+      clearGmailInlineError('gmail-compose-error');
       document.getElementById('gmail-compose-modal').style.display = 'flex';
     }
     function hideGmailComposeModal() { document.getElementById('gmail-compose-modal').style.display = 'none'; }
 
-    async function submitGmailCompose() {
+    async function submitGmailCompose(button) {
       const to = document.getElementById('gmail-compose-to').value.trim();
       const subject = document.getElementById('gmail-compose-subject').value.trim();
       const body = document.getElementById('gmail-compose-body').value.trim();
-      if (!to || !subject || !body) { alert('Vui lòng điền đầy đủ thông tin'); return; }
+      clearGmailInlineError('gmail-compose-error');
+      if (!to || !subject || !body) { showGmailInlineError('gmail-compose-error', 'Điền đủ người nhận, tiêu đề và nội dung trước khi gửi.'); return; }
+      setBtnLoading(button, true, 'Đang gửi');
       try {
         const r = await window.claw.googleGmailSend({ to, subject, body });
         if (r.error) throw new Error(r.error);
         hideGmailComposeModal();
-        alert('Đã gửi email');
+        showToast('Đã gửi email', 'success');
         loadGmailInbox();
-      } catch (e) { alert('Lỗi gửi email: ' + e.message); }
+      } catch (e) {
+        showGmailInlineError('gmail-compose-error', formatGoogleErrorMessage(e.message, 'Gmail'));
+      } finally {
+        setBtnLoading(button, false);
+      }
     }
 
     // --- Drive tab ---
     async function loadDriveFiles(query) {
       const list = document.getElementById('drive-list');
       const empty = document.getElementById('drive-empty');
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Đang tải...</div>';
+      renderGoogleListState(list, { type: 'loading', title: 'Đang tải Drive', detail: 'Đang đọc danh sách file từ Google Drive.' });
       empty.style.display = 'none';
       try {
         const data = await window.claw.googleDriveList({ query });
         if (data.error) throw new Error(data.error);
         const files = data.files || data.items || data.data || [];
-        if (!files.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+        if (!files.length) {
+          empty.style.display = 'none';
+          renderGoogleListState(list, { type: 'empty', icon: 'file-text', title: 'Không tìm thấy file Drive', detail: query ? 'Không có file nào khớp từ khóa này.' : 'Drive đã kết nối nhưng chưa trả về file trong giới hạn hiện tại.' });
+          return;
+        }
         list.innerHTML = files.map(f => {
           const name = f.name || f.title || 'Không có tên';
           const size = f.size ? (parseInt(f.size) / 1024).toFixed(0) + ' KB' : '';
@@ -8915,7 +9541,7 @@
             '</div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải file') + '</div>';
+        renderGoogleListState(list, { type: 'error', title: 'Không tải được Drive', detail: formatGoogleErrorMessage(e.message, 'Drive'), action: '<button class="btn btn-secondary btn-small" onclick="loadDriveFiles()">Thử lại</button>' });
       }
     }
 
@@ -8948,14 +9574,14 @@
       const box = document.getElementById('docs-recent-list');
       if (!box || !window.claw.googleDocsList) return;
       if (box.dataset.loaded === '1' && !showLoading) return;
-      if (showLoading) box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Đang tải danh sách...</div>';
+      if (showLoading) renderGoogleListState(box, { type: 'loading', compact: true, title: 'Đang tải Docs', detail: 'Đang đọc danh sách Google Docs gần đây.' });
       try {
         const data = await window.claw.googleDocsList({ max: 20 });
         if (data.error) throw new Error(data.error);
         const files = normalizeDocFiles(data);
         box.dataset.loaded = '1';
         if (!files.length) {
-          box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Chưa tìm thấy Google Doc gần đây.</div>';
+          renderGoogleListState(box, { type: 'empty', compact: true, icon: 'file-text', title: 'Chưa tìm thấy Google Doc gần đây', detail: 'Tạo Doc mới hoặc dán link/ID để đọc trực tiếp.' });
           return;
         }
         box.innerHTML = files.map(f => {
@@ -8969,7 +9595,7 @@
             '</button>';
         }).join('');
       } catch (e) {
-        box.innerHTML = '<div style="padding:10px;color:var(--danger);font-size:12px">' + esc(e.message || 'Lỗi tải Docs') + '</div>';
+        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Docs', detail: formatGoogleErrorMessage(e.message, 'Docs') });
       }
     }
     async function loadDocInfo() {
@@ -9075,14 +9701,14 @@
       const box = document.getElementById('sheets-recent-list');
       if (!box || !window.claw.googleSheetsList) return;
       if (box.dataset.loaded === '1' && !showLoading) return;
-      if (showLoading) box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Đang tải danh sách...</div>';
+      if (showLoading) renderGoogleListState(box, { type: 'loading', compact: true, title: 'Đang tải Sheets', detail: 'Đang đọc danh sách Google Sheets gần đây.' });
       try {
         const data = await window.claw.googleSheetsList({ max: 20 });
         if (data.error) throw new Error(data.error);
         const files = normalizeSheetFiles(data);
         box.dataset.loaded = '1';
         if (!files.length) {
-          box.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">Chưa tìm thấy Google Sheet nào trong Drive.</div>';
+          renderGoogleListState(box, { type: 'empty', compact: true, icon: 'file-text', title: 'Chưa tìm thấy Google Sheet nào', detail: 'Dán link/ID Sheet để đọc trực tiếp, hoặc kiểm tra quyền Drive của tài khoản Google.' });
           return;
         }
         box.innerHTML = files.map(file => {
@@ -9097,7 +9723,7 @@
         }).join('');
       } catch (e) {
         box.dataset.loaded = '';
-        box.innerHTML = '<div style="padding:10px;color:var(--danger);font-size:12px">' + esc(e.message || 'Lỗi tải danh sách Sheet') + '</div>';
+        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Sheets', detail: formatGoogleErrorMessage(e.message, 'Sheets') });
       }
     }
     async function loadSheetMetadata() {

@@ -15,6 +15,13 @@ try { shell = require('electron').shell; } catch {}
 let _cronApiServer = null;
 let _cronApiPort = 20200;
 let _cronApiToken = '';
+const _fbPostApprovals = new Map();
+
+function cleanupFbPostApprovals(now = Date.now()) {
+  for (const [nonce, entry] of _fbPostApprovals.entries()) {
+    if (!entry || entry.expiresAt <= now) _fbPostApprovals.delete(nonce);
+  }
+}
 
 function replaceTokenInValue(value, token, changedRef) {
   if (typeof value === 'string') {
@@ -64,6 +71,18 @@ function redactSecrets(value) {
     return out;
   }
   return value;
+}
+
+function sanitizeMediaAssetForApi(asset) {
+  if (!asset || typeof asset !== 'object') return asset;
+  const {
+    path: _path,
+    absolutePath: _absolutePath,
+    sourcePath: _sourcePath,
+    localPath: _localPath,
+    ...safe
+  } = asset;
+  return safe;
 }
 
 function resolveZaloIsGroup({ groupId, groupName, friendName, isGroupParam }) {
@@ -131,6 +150,80 @@ function startCronApi() {
     } catch { return { byId: {}, byName: {} }; }
   }
 
+  function boolParam(value) {
+    if (value === true || value === 'true' || value === '1' || value === 1) return true;
+    if (value === false || value === 'false' || value === '0' || value === 0) return false;
+    return null;
+  }
+
+  function resolveFriendByName(friendName) {
+    const q = String(friendName || '').trim().toLowerCase();
+    if (!q) return { error: 'friendName required' };
+    const matches = loadFriendsList().filter(f =>
+      String(f.displayName || '').toLowerCase().includes(q)
+      || String(f.zaloName || '').toLowerCase().includes(q)
+      || String(f.userId || '').toLowerCase() === q
+    );
+    if (matches.length === 0) {
+      return { error: 'No friend found matching "' + friendName + '". Check /api/zalo/friends?name=' + encodeURIComponent(friendName) };
+    }
+    if (matches.length > 1) {
+      return {
+        error: 'Multiple friends match "' + friendName + '": ' + matches.slice(0, 5).map(f => `${f.displayName || f.zaloName} (${f.userId})`).join(', '),
+      };
+    }
+    const friend = matches[0];
+    return {
+      id: String(friend.userId),
+      label: friend.displayName || friend.zaloName || String(friend.userId),
+    };
+  }
+
+  function resolveCronZaloTarget(params, opts = {}) {
+    const allowMultipleGroups = opts.allowMultipleGroups !== false;
+    const groupTargets = [];
+    if (params.groupIds) {
+      for (const raw of String(params.groupIds).split(',')) {
+        const item = raw.trim();
+        if (item) groupTargets.push(item);
+      }
+    }
+    if (params.groupId) groupTargets.push(String(params.groupId).trim());
+    if (params.groupName) groupTargets.push(String(params.groupName).trim());
+
+    const isGroupFlag = boolParam(params.isGroup);
+    const rawTargetId = String(params.targetId || '').trim();
+    if (isGroupFlag === true && rawTargetId) groupTargets.push(rawTargetId);
+
+    if (groupTargets.length > 0) {
+      if (!allowMultipleGroups && groupTargets.length > 1) return { error: 'Only one Zalo group target is allowed for this cron mode.' };
+      const { byId, byName } = loadGroupsMap();
+      const resolvedIds = groupTargets.map(t => byName[String(t).toLowerCase()] || t);
+      const invalidIds = resolvedIds.filter(id => !(id in byId));
+      if (invalidIds.length > 0) {
+        return { error: 'unknown groupId(s): ' + invalidIds.join(', ') + '. Available: ' + Object.entries(byId).map(([id, name]) => `${name} (${id})`).join(', ') };
+      }
+      return {
+        type: 'group',
+        ids: resolvedIds,
+        labels: resolvedIds.map(id => byId[id] || id),
+      };
+    }
+
+    if (params.friendName) {
+      const friend = resolveFriendByName(params.friendName);
+      if (friend.error) return friend;
+      return { type: 'user', ids: [friend.id], labels: [friend.label], friendName: friend.label };
+    }
+
+    if (rawTargetId) {
+      if (isGroupFlag === true) return { error: 'targetId with isGroup=true did not match a known group. Use groupId/groupName for groups.' };
+      return { type: 'user', ids: [rawTargetId], labels: [rawTargetId] };
+    }
+
+    return null;
+  }
+
   function jsonResp(res, code, obj) {
     const body = JSON.stringify(obj);
     res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
@@ -143,14 +236,25 @@ function startCronApi() {
         const u = new URL(req.url, 'http://127.0.0.1');
         const obj = {};
         for (const [k, v] of u.searchParams) obj[k] = v;
-        // Long text params may contain & which breaks URL parsing.
-        // Extract the LAST known text param from raw query as a fallback.
+        // Long text params may contain an unescaped "&" which breaks URL parsing.
+        // Recover only the text value, never trailing control/auth params.
         const raw = req.url;
+        const stopKeys = [
+          'token', 'groupId', 'targetId', 'groupName', 'friendName', 'mediaId', 'imagePath',
+          'filePath', 'isGroup', 'label', 'cronExpr', 'oneTimeAt', 'mode', 'approvalNonce',
+          'preview', 'dryRun', 'type', 'visibility', 'audience', 'limit', 'max',
+        ];
         for (const key of ['content', 'message', 'text', 'prompt']) {
           const marker = key + '=';
           const idx = raw.indexOf(marker);
           if (idx !== -1 && (!obj[key] || obj[key].length < 5)) {
-            const rawVal = raw.slice(idx + marker.length);
+            let rawVal = raw.slice(idx + marker.length);
+            let cutAt = rawVal.length;
+            for (const stopKey of stopKeys) {
+              const stopIdx = rawVal.indexOf('&' + stopKey + '=');
+              if (stopIdx !== -1 && stopIdx < cutAt) cutAt = stopIdx;
+            }
+            rawVal = rawVal.slice(0, cutAt);
             try { obj[key] = decodeURIComponent(rawVal.replace(/\+/g, ' ')); }
             catch { obj[key] = rawVal.replace(/\+/g, ' '); }
           }
@@ -206,8 +310,12 @@ function startCronApi() {
     // (prevents Zalo-originated prompt injection from acquiring the cron API token).
     const tokenFreeEndpoints = ['/api/auth/token'];
     const requiresToken = !tokenFreeEndpoints.includes(urlPath);
-    if (requiresToken && params.token !== _cronApiToken) {
-      return jsonResp(res, 403, { error: 'invalid or missing token. Call /api/auth/token with your telegram bot_token to get the cron-api token.' });
+    const authHeader = String(req.headers.authorization || '').trim();
+    const bearerToken = authHeader.match(/^Bearer\s+([a-f0-9]{48})$/i)?.[1] || '';
+    const headerToken = String(req.headers['x-9bizclaw-token'] || '').trim();
+    const suppliedToken = params.token || bearerToken || headerToken;
+    if (requiresToken && suppliedToken !== _cronApiToken) {
+      return jsonResp(res, 403, { error: 'Thiếu xác thực API nội bộ. Chỉ phiên Telegram CEO được tự động xác thực khi gọi API local.' });
     }
 
     // /api/auth/token — exchange Telegram bot token for cron API token.
@@ -262,7 +370,7 @@ function startCronApi() {
     }
 
     if (urlPath === '/api/cron/create') {
-      const { label, cronExpr, oneTimeAt, groupId, groupIds, content, mode, prompt: rawPrompt } = params;
+      const { label, cronExpr, oneTimeAt, groupId, groupIds, groupName, targetId: rawTargetId, friendName, isGroup, content, mode, prompt: rawPrompt } = params;
       const isAgentMode = mode === 'agent';
 
       if (isAgentMode) {
@@ -293,22 +401,21 @@ function startCronApi() {
         }
         if (!cronExpr && !oneTimeAt) return jsonResp(res, 400, { error: 'cronExpr or oneTimeAt required' });
 
-        // If groupId provided, validate it and append delivery instructions
+        // If a Zalo target is provided, validate it and append delivery instructions.
         let finalPrompt = String(agentPrompt);
-        let resolvedGroupId = null;
-        let resolvedGroupName = null;
-        if (groupId) {
-          const { byId, byName } = loadGroupsMap();
-          resolvedGroupId = byName[String(groupId).toLowerCase()] || String(groupId).trim();
-          resolvedGroupName = byId[resolvedGroupId];
-          if (!resolvedGroupName) {
-            return jsonResp(res, 400, { error: 'unknown groupId: ' + groupId + '. Check /api/cron/list for available groups.' });
-          }
-          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào nhóm Zalo:\n'
-            + 'web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=' + _cronApiToken + '&groupId=' + resolvedGroupId + '&text=KẾT_QUẢ\n'
+        const delivery = resolveCronZaloTarget({ groupId, groupIds, groupName, targetId: rawTargetId, friendName, isGroup }, { allowMultipleGroups: false });
+        if (delivery?.error) return jsonResp(res, 400, { error: delivery.error });
+        if (delivery) {
+          const deliveryParam = delivery.type === 'group'
+            ? 'groupId=' + encodeURIComponent(delivery.ids[0])
+            : 'targetId=' + encodeURIComponent(delivery.ids[0]) + '&isGroup=false';
+          const deliveryLabel = delivery.labels[0] || delivery.ids[0];
+          finalPrompt += '\n\n---\nSAU KHI HOÀN THÀNH: gửi kết quả vào ' + (delivery.type === 'group' ? 'nhóm Zalo' : 'Zalo cá nhân') + ' "' + deliveryLabel + '":\n'
+            + 'web_fetch url=http://127.0.0.1:20200/api/zalo/send?token=' + _cronApiToken + '&' + deliveryParam + '&text=KET_QUA_DA_VIET\n'
             + 'QUY TẮC VIẾT:\n'
-            + '- Viết tiếng Việt CÓ DẤU đầy đủ (ví dụ: "trí tuệ nhân tạo" chứ KHÔNG "tri tue nhan tao")\n'
-            + '- Viết dạng đoạn văn tự nhiên như đang chat, KHÔNG dùng danh sách số (1. 2. 3.), KHÔNG dùng bullet points\n'
+            + '- Thay KET_QUA_DA_VIET bằng nội dung cuối cùng, URL-encode đúng cách nếu cần.\n'
+            + '- Viết tiếng Việt CÓ DẤU đầy đủ.\n'
+            + '- Viết dạng đoạn văn tự nhiên như đang chat, KHÔNG dùng danh sách số (1. 2. 3.), KHÔNG dùng bullet points.\n'
             + '- Ngắn gọn, KHÔNG dùng emoji, KHÔNG tự xưng là AI/bot/trợ lý.';
         }
 
@@ -321,7 +428,12 @@ function startCronApi() {
           enabled: true,
           createdAt: new Date().toISOString(),
         };
-        if (resolvedGroupId) entry.groupId = resolvedGroupId;
+        if (delivery?.type === 'group') entry.groupId = delivery.ids[0];
+        if (delivery?.type === 'user') {
+          entry.targetId = delivery.ids[0];
+          entry.isGroup = false;
+          if (delivery.friendName) entry.friendName = delivery.friendName;
+        }
         if (cronExpr) entry.cronExpr = String(cronExpr).trim().replace(/\s+/g, ' ');
         else entry.oneTimeAt = oneTimeAt;
         try {
@@ -330,10 +442,10 @@ function startCronApi() {
             crons.push(entry);
             writeJsonAtomic(getCustomCronsPath(), crons);
             try { restartCronJobs(); } catch {}
-            const groupLabel = resolvedGroupName ? ' — group: ' + resolvedGroupName : '';
-            console.log('[cron-api] created agent cron:', id, label || '', groupLabel);
+            const targetLabel = delivery ? ' — ' + delivery.type + ': ' + (delivery.labels || delivery.ids).join(', ') : '';
+            console.log('[cron-api] created agent cron:', id, label || '', targetLabel);
             try {
-              sendCeoAlert('[Cron] Đã tạo (agent): ' + (label || 'no label') + ' — ' + (cronExpr || oneTimeAt) + groupLabel);
+              sendCeoAlert('[Cron] Đã tạo (agent): ' + (label || 'no label') + ' — ' + (cronExpr || oneTimeAt) + targetLabel);
             } catch {}
             return jsonResp(res, 200, { success: true, id, entry });
           });
@@ -462,9 +574,6 @@ function startCronApi() {
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
     } else if (urlPath === '/api/workspace/append') {
-      if (params.token !== _cronApiToken) {
-        return jsonResp(res, 403, { error: 'invalid or missing token' });
-      }
       const ws = getWorkspace();
       if (!ws) return jsonResp(res, 500, { error: 'workspace not found' });
       const reqPath = String(params.path || '').replace(/\\/g, '/');
@@ -595,7 +704,7 @@ function startCronApi() {
       }
       asset = mediaLibrary.findMediaAsset(String(mediaId));
       if (!asset) return jsonResp(res, 404, { error: 'media asset not found' });
-      if (asset.visibility !== 'public' && params.allowInternal !== 'true') {
+      if (asset.visibility !== 'public') {
         return jsonResp(res, 403, { error: 'media asset is not public' });
       }
       absPath = asset.path;
@@ -957,7 +1066,7 @@ function startCronApi() {
           type: params.type || undefined,
           visibility: params.visibility || undefined,
           audience: params.audience || 'customer',
-        });
+        }).map(sanitizeMediaAssetForApi);
         return jsonResp(res, 200, { files });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
@@ -969,7 +1078,7 @@ function startCronApi() {
           type: params.type || undefined,
           audience: params.audience || 'customer',
           limit: params.limit || params.max || 5,
-        });
+        }).map(sanitizeMediaAssetForApi);
         return jsonResp(res, 200, { query: q, results });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
@@ -1052,19 +1161,49 @@ function startCronApi() {
 
     // ─── Facebook API ────────────────────────────────────────────
     } else if (urlPath === '/api/fb/post') {
-      const { message: fbMessage, imagePath: relImgPath } = params;
+      const { message: fbMessage, imagePath: relImgPath, approvalNonce } = params;
       if (!fbMessage) return jsonResp(res, 400, { error: 'message required' });
       if (String(fbMessage).length > 63206) return jsonResp(res, 400, { error: 'message too long (max 63206 chars)' });
       const cfg = readFbConfig();
       if (!cfg || !cfg.accessToken) return jsonResp(res, 400, { error: 'Facebook chưa kết nối. Paste token vào Dashboard.' });
       const fbPub = require('./fb-publisher');
       try {
-        let result;
-        if (relImgPath) {
+        cleanupFbPostApprovals();
+        const normalizedImagePath = relImgPath ? String(relImgPath) : '';
+        let absImg = '';
+        if (normalizedImagePath) {
           const ws = getWorkspace();
-          const absImg = path.resolve(ws, relImgPath);
+          absImg = path.resolve(ws, normalizedImagePath);
           if (!absImg.startsWith(ws + path.sep)) return jsonResp(res, 400, { error: 'invalid imagePath' });
           if (!fs.existsSync(absImg)) return jsonResp(res, 400, { error: 'image not found' });
+        }
+        const fingerprint = JSON.stringify({
+          pageId: cfg.pageId || '',
+          message: String(fbMessage),
+          imagePath: normalizedImagePath,
+        });
+        const isPreview = params.preview === 'true' || params.preview === '1' || params.dryRun === 'true' || params.dryRun === '1';
+        if (isPreview) {
+          const nonce = crypto.randomBytes(18).toString('hex');
+          const expiresAt = Date.now() + 10 * 60 * 1000;
+          _fbPostApprovals.set(nonce, { fingerprint, expiresAt });
+          return jsonResp(res, 200, {
+            success: true,
+            preview: true,
+            approvalNonce: nonce,
+            expiresAt: new Date(expiresAt).toISOString(),
+            pageId: cfg.pageId,
+            pageName: cfg.pageName,
+            hasImage: !!normalizedImagePath,
+          });
+        }
+        const approval = approvalNonce ? _fbPostApprovals.get(String(approvalNonce)) : null;
+        if (!approval || approval.expiresAt <= Date.now() || approval.fingerprint !== fingerprint) {
+          return jsonResp(res, 403, { error: 'Facebook post requires a fresh approvalNonce from /api/fb/post?preview=1 with the exact same message and imagePath.' });
+        }
+        _fbPostApprovals.delete(String(approvalNonce));
+        let result;
+        if (normalizedImagePath) {
           const imgBuf = fs.readFileSync(absImg);
           result = await fbPub.postPhoto(cfg.pageId, cfg.accessToken, String(fbMessage), imgBuf, absImg);
         } else {

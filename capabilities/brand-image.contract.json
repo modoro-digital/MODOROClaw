@@ -24,7 +24,7 @@
     "creates-image-file",
     "may-send-telegram-photo"
   ],
-  "tokenSource": "current internal token from AGENTS, or /api/auth/token?bot_token=<telegram_bot_token>",
+  "tokenSource": "Telegram CEO web_fetch automatically attaches internal bearer auth for localhost API; no model-visible token",
   "apiCalls": [
     {
       "method": "GET",

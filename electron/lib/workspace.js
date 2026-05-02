@@ -32,7 +32,7 @@ const DEFAULT_SCHEDULES_JSON = [
 ];
 
 // --- AGENTS.md versioning (private) ---
-const CURRENT_AGENTS_MD_VERSION = 84;
+const CURRENT_AGENTS_MD_VERSION = 85;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 // ─── Core workspace path ─────────────────────────────────────────
@@ -233,6 +233,15 @@ function seedWorkspace() {
       // accidentally editing the stamp higher and freezing the file forever.
       const spoofed = existingVersion > CURRENT_AGENTS_MD_VERSION + 10;
       if (existingVersion < CURRENT_AGENTS_MD_VERSION || spoofed) {
+        try {
+          backupWorkspace({
+            force: true,
+            reason: (spoofed ? 'pre-spoof-reset' : 'pre-template-upgrade')
+              + '-v' + existingVersion + '-to-v' + CURRENT_AGENTS_MD_VERSION,
+          });
+        } catch (preBackupErr) {
+          console.warn('[seedWorkspace] pre-upgrade backup failed:', preBackupErr && preBackupErr.message ? preBackupErr.message : String(preBackupErr));
+        }
         // Back up the stale file to .learnings/ so any user-added custom
         // rules (or bot self-improvement promotions) survive the overwrite.
         try {
@@ -770,11 +779,15 @@ function enforceRetentionPolicies() {
   }
 }
 
-function backupWorkspace() {
+const BACKUP_FORMAT_VERSION = 2;
+
+function backupWorkspace(opts = {}) {
   const ws = getWorkspace();
   if (!ws || !fs.existsSync(ws)) return;
   const backupsRoot = path.join(ws, 'backups');
   try { fs.mkdirSync(backupsRoot, { recursive: true }); } catch {}
+  const force = opts && opts.force === true;
+  const reason = String((opts && opts.reason) || 'scheduled');
 
   // Throttle: skip if most recent backup < 1 hour old
   try {
@@ -786,8 +799,13 @@ function backupWorkspace() {
       const latestPath = path.join(backupsRoot, latest);
       try {
         const st = fs.statSync(latestPath);
-        if (Date.now() - st.mtimeMs < 60 * 60 * 1000) {
-          console.log('[backup] skipped — recent backup exists');
+        const manifestPath = path.join(latestPath, 'backup-manifest.json');
+        let latestFormat = 0;
+        try {
+          latestFormat = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')).formatVersion || 0;
+        } catch {}
+        if (!force && latestFormat >= BACKUP_FORMAT_VERSION && Date.now() - st.mtimeMs < 60 * 60 * 1000) {
+          console.log('[backup] skipped — recent full backup exists');
           return;
         }
       } catch {}
@@ -812,49 +830,75 @@ function backupWorkspace() {
     } catch {}
   };
 
+  const countFiles = (root) => {
+    let n = 0;
+    const walk = (p) => {
+      try {
+        for (const e of fs.readdirSync(p, { withFileTypes: true })) {
+          const full = path.join(p, e.name);
+          if (e.isDirectory()) walk(full);
+          else if (e.isFile()) n++;
+        }
+      } catch {}
+    };
+    if (fs.existsSync(root)) walk(root);
+    return n;
+  };
+
+  const copyDirIfExists = (rel, filterFn) => {
+    const src = path.join(ws, rel);
+    const out = path.join(dst, rel);
+    if (!fs.existsSync(src)) return;
+    try {
+      fs.cpSync(src, out, {
+        recursive: true,
+        force: true,
+        filter: (srcPath) => {
+          const base = path.basename(srcPath);
+          if (base === 'Cache' || base === 'Code Cache' || base === 'GPUCache') return false;
+          if (base === 'logs' || base === 'backups') return false;
+          if (/\.tmp\.\d+\.\d+\.\d+$/i.test(base)) return false;
+          return filterFn ? filterFn(srcPath) : true;
+        },
+      });
+      fileCount += countFiles(out);
+    } catch (e) {
+      console.warn('[backup] dir copy failed:', rel, e && e.message ? e.message : String(e));
+    }
+  };
+
   const flatFiles = [
     'AGENTS.md', 'IDENTITY.md', 'COMPANY.md', 'PRODUCTS.md', 'USER.md',
     'SOUL.md', 'MEMORY.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'TOOLS.md',
     'schedules.json', 'custom-crons.json',
     'zalo-blocklist.json', 'telegram-paused.json', 'zalo-paused.json',
+    'zalo-group-settings.json', 'zalo-stranger-policy.json',
+    'shop-state.json', 'active-persona.json', 'active-persona.md',
+    'app-prefs.json', 'setup-complete.json', 'fb-config.json',
+    'google-workspace.json', 'memory.db', 'memory.db-wal', 'memory.db-shm',
+    'media-library.json',
   ];
   for (const rel of flatFiles) {
     copyFileIfExists(path.join(ws, rel), path.join(dst, rel));
   }
 
-  // memory/ recursive, excluding Cache + logs
-  const memSrc = path.join(ws, 'memory');
-  if (fs.existsSync(memSrc)) {
-    try {
-      fs.cpSync(memSrc, path.join(dst, 'memory'), {
-        recursive: true,
-        filter: (src) => {
-          const base = path.basename(src);
-          if (base === 'Cache' || base === 'logs') return false;
-          return true;
-        },
-      });
-      // Count files recursively
-      const walk = (p) => {
-        try {
-          const entries = fs.readdirSync(p, { withFileTypes: true });
-          for (const e of entries) {
-            const full = path.join(p, e.name);
-            if (e.isDirectory()) walk(full);
-            else if (e.isFile()) fileCount++;
-          }
-        } catch {}
-      };
-      walk(path.join(dst, 'memory'));
-    } catch {}
-  }
-
-  // knowledge/<cat>/index.md only
-  for (const cat of ['cong-ty', 'san-pham', 'nhan-vien']) {
-    copyFileIfExists(
-      path.join(ws, 'knowledge', cat, 'index.md'),
-      path.join(dst, 'knowledge', cat, 'index.md'),
-    );
+  // Full user-owned workspace data. This intentionally includes uploaded
+  // Knowledge blobs and custom skills so upgrade rollback is real, not cosmetic.
+  for (const rel of [
+    'memory',
+    'knowledge',
+    'skills',
+    'prompts',
+    'tools',
+    'docs',
+    'config',
+    'personas',
+    '.learnings',
+    'brand-assets',
+    'media-assets',
+    'documents',
+  ]) {
+    copyDirIfExists(rel);
   }
 
   // ~/.openclaw/openclaw.json
@@ -863,7 +907,28 @@ function backupWorkspace() {
     copyFileIfExists(openclawJson, path.join(dst, 'openclaw.json'));
   } catch {}
 
-  console.log(`[backup] saved ${dst} (${fileCount} files)`);
+  try {
+    fs.writeFileSync(path.join(dst, 'backup-manifest.json'), JSON.stringify({
+      formatVersion: BACKUP_FORMAT_VERSION,
+      createdAt: new Date().toISOString(),
+      reason,
+      sourceWorkspace: ws,
+      includes: [
+        'knowledge/**',
+        'skills/**',
+        'media-assets/**',
+        'brand-assets/**',
+        'memory/**',
+        'config/**',
+        'custom-crons.json',
+        'memory.db',
+        'openclaw.json',
+      ],
+      fileCount,
+    }, null, 2), 'utf-8');
+  } catch {}
+
+  console.log(`[backup] saved ${dst} (${fileCount} files, reason=${reason})`);
 
   // Retention: keep 7 most recent
   try {

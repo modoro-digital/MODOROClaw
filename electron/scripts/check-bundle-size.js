@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const { WORKSPACE_ROOT, absFromWorkspace } = require('./lib/architecture-map');
 
 const strict = process.argv.includes('--strict');
@@ -34,9 +35,34 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 }
 
+function tarContainsEntries(tarRelPath, entries) {
+  const tarPath = absFromWorkspace(tarRelPath);
+  if (!fs.existsSync(tarPath)) return false;
+  const tarBin = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+    : 'tar';
+  const res = spawnSync(tarBin, ['-tf', tarPath], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: false,
+    maxBuffer: 128 * 1024 * 1024,
+  });
+  if (res.status !== 0) return false;
+  const found = new Set(res.stdout.split(/\r?\n/).map(s => s.trim()).filter(Boolean));
+  return entries.every(entry => found.has(entry) || found.has(entry.replace(/\\/g, '/')));
+}
+
 for (const [name, cfg] of Object.entries(budget.artifacts || {})) {
   const bytes = bytesFor(cfg.path);
   if (bytes === null) {
+    if (name === 'embeddingModel' && tarContainsEntries('electron/vendor-bundle.tar', [
+      'vendor/models/Xenova/multilingual-e5-small/onnx/model_quantized.onnx',
+      'vendor/models/Xenova/multilingual-e5-small/tokenizer.json',
+      'vendor/models/Xenova/multilingual-e5-small/config.json',
+    ])) {
+      warnings.push(`${name} missing at ${cfg.path}, verified inside electron/vendor-bundle.tar`);
+      continue;
+    }
     const msg = `${name} missing at ${cfg.path}`;
     if (strict) failures.push(msg);
     else warnings.push(msg);

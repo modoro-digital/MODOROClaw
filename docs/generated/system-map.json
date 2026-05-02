@@ -2101,11 +2101,11 @@
   "largeSourceFiles": [
     {
       "path": "electron/ui/dashboard.html",
-      "bytes": 496752
+      "bytes": 526928
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 227535
+      "bytes": 228757
     },
     {
       "path": "electron/lib/cron.js",
@@ -2117,11 +2117,11 @@
     },
     {
       "path": "electron/lib/channels.js",
-      "bytes": 78315
+      "bytes": 76932
     },
     {
       "path": "electron/lib/knowledge.js",
-      "bytes": 74738
+      "bytes": 74902
     },
     {
       "path": "electron/lib/gateway.js",
@@ -2129,11 +2129,11 @@
     },
     {
       "path": "electron/lib/cron-api.js",
-      "bytes": 58721
+      "bytes": 65071
     },
     {
       "path": "electron/lib/boot.js",
-      "bytes": 57804
+      "bytes": 58393
     },
     {
       "path": "electron/lib/config.js",
@@ -2141,27 +2141,27 @@
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 40722
+      "bytes": 42946
+    },
+    {
+      "path": "electron/lib/nine-router.js",
+      "bytes": 36698
     },
     {
       "path": "electron/lib/zalo-plugin.js",
       "bytes": 34343
     },
     {
-      "path": "electron/lib/nine-router.js",
-      "bytes": 33115
-    },
-    {
       "path": "electron/lib/vendor-patches.js",
-      "bytes": 27488
+      "bytes": 34145
     },
     {
       "path": "electron/lib/google-api.js",
-      "bytes": 24745
+      "bytes": 25701
     },
     {
       "path": "electron/lib/media-library.js",
-      "bytes": 22825
+      "bytes": 25204
     },
     {
       "path": "electron/lib/conversation.js",

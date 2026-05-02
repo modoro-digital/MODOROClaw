@@ -866,7 +866,7 @@ export async function handleModoroZaloInbound(params: {
     } // close __osPaused else
   }
   // === END 9BizClaw OUT-OF-SCOPE FILTER v1 ===
-  // === 9BizClaw GROUP-SETTINGS PATCH v7 ===
+  // === 9BizClaw GROUP-SETTINGS PATCH v8 ===
   if (message.isGroup) {
     try {
       const __gsFs = require("node:fs");
@@ -942,9 +942,9 @@ export async function handleModoroZaloInbound(params: {
           break;
         } catch (__gsInnerErr: any) {
           if (__gsInnerErr?.code === "ENOENT") {
-            runtime.log?.(`modoro-zalo: group settings file temporarily unavailable (atomic write in progress) — allowing message through`);
+            runtime.log?.(`modoro-zalo: group settings file temporarily unavailable (atomic write in progress) — fail-closed for group ${message.threadId}`);
             __gsFound = true;
-            break;
+            return;
           }
         }
       }

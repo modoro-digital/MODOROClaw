@@ -7,7 +7,7 @@ metadata:
 
 # Workspace API — doc/ghi file noi bo
 
-Cung server port 20200. Doc file KHONG can token. Ghi file can token (lay tu `web_fetch .../workspace/read?path=cron-api-token.txt`).
+Cung server port 20200. Phien Telegram CEO tu xac thuc khi `web_fetch` goi API local. KHONG doc `cron-api-token.txt`, KHONG them `token=<token>`.
 
 ## Doc file (khong can token)
 
@@ -15,12 +15,12 @@ Cung server port 20200. Doc file KHONG can token. Ghi file can token (lay tu `we
 web_fetch http://127.0.0.1:20200/api/workspace/read?path=.learnings/LEARNINGS.md
 ```
 
-Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`, `cron-api-token.txt`.
+Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`.
 
 ## Append vao LEARNINGS.md
 
 ```
-web_fetch http://127.0.0.1:20200/api/workspace/append?token=<token>&path=.learnings/LEARNINGS.md&content=L-042+...
+web_fetch http://127.0.0.1:20200/api/workspace/append?path=.learnings/LEARNINGS.md&content=L-042+...
 ```
 
 Max 2000 bytes. Chi LEARNINGS.md.
@@ -28,7 +28,7 @@ Max 2000 bytes. Chi LEARNINGS.md.
 ## Them Knowledge FAQ
 
 ```
-web_fetch http://127.0.0.1:20200/api/knowledge/add?token=<token>&category=san-pham&title=Chinh+sach+tra+gop&content=Noi+dung+FAQ
+web_fetch http://127.0.0.1:20200/api/knowledge/add?category=san-pham&title=Chinh+sach+tra+gop&content=Noi+dung+FAQ
 ```
 
 Category: `cong-ty`, `san-pham`, `nhan-vien`. Append vao `knowledge/<category>/index.md`.
@@ -36,7 +36,7 @@ Category: `cong-ty`, `san-pham`, `nhan-vien`. Append vao `knowledge/<category>/i
 ## Liet ke file
 
 ```
-web_fetch http://127.0.0.1:20200/api/workspace/list?token=<token>&dir=memory/zalo-users/
+web_fetch http://127.0.0.1:20200/api/workspace/list?dir=memory/zalo-users/
 ```
 
 Whitelist: `memory/zalo-users/`, `memory/zalo-groups/`, `knowledge/*/`.

@@ -44,6 +44,12 @@ const os = require('os');
 // Previous bumps: v22.11.0 → v22.12.0 (insufficient) → v22.22.2.
 const NODE_VERSION = process.env.NODE_VENDOR_VERSION || 'v22.22.2';
 
+const PINNED_VENDOR_VERSIONS = {
+  openclaw: '2026.4.14',
+  '9router': '0.4.12',
+  openzca: '0.1.57',
+};
+
 // SHA256 checksums from https://nodejs.org/dist/<version>/SHASUMS256.txt
 // Update when bumping NODE_VERSION. HTTPS protects against MITM but not
 // against registry/CDN compromise — checksum verification catches both.
@@ -119,7 +125,15 @@ function sha256File(filePath) {
 }
 
 function getVendorBundleVersion(platform, arch) {
-  return `${NODE_VERSION}_openclaw-2026.4.14_modoro-zalo_gog-${GOG_VERSION}_${platform}-${arch}`;
+  return [
+    NODE_VERSION,
+    `openclaw-${PINNED_VENDOR_VERSIONS.openclaw}`,
+    `9router-${PINNED_VENDOR_VERSIONS['9router']}`,
+    `openzca-${PINNED_VENDOR_VERSIONS.openzca}`,
+    'modoro-zalo',
+    `gog-${GOG_VERSION}`,
+    `${platform}-${arch}`,
+  ].join('_');
 }
 
 function tarHasEntryWithNode(tarPath, entryPath) {
@@ -456,11 +470,7 @@ function npmInstallVendorPackages() {
   function readVendorVersion(pkgPath) {
     try { return require(path.resolve(pkgPath)).version || ''; } catch { return ''; }
   }
-  const expectedVersions = {
-    openclaw: '2026.4.14',
-    '9router': '0.3.82',
-    openzca: '0.1.57',
-  };
+  const expectedVersions = PINNED_VENDOR_VERSIONS;
   const installedVersions = {
     openclaw: readVendorVersion(path.join(VENDOR_NM, 'openclaw', 'package.json')),
     '9router': readVendorVersion(path.join(VENDOR_NM, '9router', 'package.json')),
@@ -517,9 +527,9 @@ function npmInstallVendorPackages() {
   // wizard + cron + Zalo + Telegram still work, THEN ship a build.
   // See PINNING.md (root of repo) for the full upgrade procedure.
   const PINNED = [
-    'openclaw@2026.4.14',
-    '9router@0.3.82',
-    'openzca@0.1.57',
+    `openclaw@${PINNED_VENDOR_VERSIONS.openclaw}`,
+    `9router@${PINNED_VENDOR_VERSIONS['9router']}`,
+    `openzca@${PINNED_VENDOR_VERSIONS.openzca}`,
   ];
 
   log('npm install (PINNED versions): ' + PINNED.join(' '));

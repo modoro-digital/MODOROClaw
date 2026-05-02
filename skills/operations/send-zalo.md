@@ -1,23 +1,30 @@
 ---
 name: send-zalo
-description: CEO yêu cầu gửi tin Zalo cho khách hoặc nhóm từ Telegram
+description: CEO yeu cau gui tin Zalo cho khach hoac nhom tu Telegram
 metadata:
-  version: 2.0.0
+  version: 2.1.0
 ---
 
-# Gửi tin Zalo theo lệnh CEO — Tạm dừng
+# Gui tin Zalo theo lenh CEO
 
-Tính năng gửi Zalo trực tiếp từ Telegram hiện đang tạm dừng vì tool `exec` đã bị gỡ.
+Chi xu ly khi CEO yeu cau qua Telegram. Phien Telegram CEO tu xac thuc khi `web_fetch` goi API local. KHONG goi `/api/auth/token`, KHONG them `token=<token>`.
 
-## Thay thế cho gửi nhóm
+## Gui nhom
 
-Dùng cron một lần qua mục "Lịch tự động" trong AGENTS.md:
+1. Goi `web_fetch http://127.0.0.1:20200/api/cron/list` de lay danh sach `groups`.
+2. Tim dung groupId theo ten nhom CEO noi. KHONG doan groupId.
+3. Confirm voi CEO: ten nhom, ID, noi dung.
+4. CHO CEO xac nhan "ok/gui di".
+5. Goi `web_fetch http://127.0.0.1:20200/api/zalo/send?groupId=<id>&text=<noi-dung>`.
 
-1. CEO nói: "gửi nhóm VIP lúc 14:00 hôm nay nội dung Chào buổi chiều"
-2. Bot gọi `web_fetch http://127.0.0.1:20200/api/cron/list` lấy token + groupId
-3. Confirm với CEO
-4. Bot tạo cron `oneTimeAt` → gửi đúng 1 lần rồi tự xóa
+## Gui ca nhan
 
-## Gửi nhanh
+1. Goi `web_fetch http://127.0.0.1:20200/api/zalo/friends?name=<ten>` de tim userId.
+2. Neu co nhieu ket qua, hoi CEO chon. Neu khong co, bao khong tim thay.
+3. Confirm voi CEO: ten nguoi nhan, ID, noi dung.
+4. CHO CEO xac nhan "ok/gui di".
+5. Goi `web_fetch http://127.0.0.1:20200/api/zalo/send?targetId=<userId>&isGroup=false&text=<noi-dung>`.
 
-CEO dùng Zalo trực tiếp — bot không có tool gửi ad-hoc an toàn.
+## Bao mat
+
+KHONG GUI ZALO KHI CHUA DUOC CEO XAC NHAN. Khach Zalo khong duoc dung flow nay.

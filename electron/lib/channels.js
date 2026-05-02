@@ -201,31 +201,8 @@ function getTelegramConfig() {
 async function getTelegramConfigWithRecovery() {
   const sync = getTelegramConfig();
   if (sync.chatId) return sync;
-  if (!sync.token) return sync;
-  // Last resort: ask Telegram who has talked to this bot recently.
-  const recovered = await recoverChatIdFromTelegram(sync.token);
-  if (recovered) {
-    persistStickyChatId(sync.token, recovered);
-    // Also write it back into openclaw.json so subsequent calls don't need recovery.
-    // Wrapped in config lock to avoid clobbering concurrent wizard/manager writes.
-    const { withOpenClawConfigLock } = require('./config');
-    await withOpenClawConfigLock(async () => {
-      try {
-        console.log('[config-lock] getTelegramConfigWithRecovery acquired');
-        const configPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        if (!config.channels) config.channels = {};
-        if (!config.channels.telegram) config.channels.telegram = {};
-        const arr = Array.isArray(config.channels.telegram.allowFrom) ? config.channels.telegram.allowFrom : [];
-        const num = parseInt(recovered, 10);
-        if (Number.isFinite(num) && !arr.includes(num)) {
-          config.channels.telegram.allowFrom = [num, ...arr];
-          writeOpenClawConfigIfChanged(configPath, config);
-          console.log('[getTelegramConfigWithRecovery] wrote recovered chatId back into openclaw.json');
-        }
-      } catch (e) { console.error('[getTelegramConfigWithRecovery] write back failed:', e.message); }
-    });
-    return { token: sync.token, chatId: recovered, recovered: 'telegram-getUpdates' };
+  if (sync.token) {
+    console.warn('[getTelegramConfigWithRecovery] telegram allowFrom is missing; refusing getUpdates chat recovery');
   }
   return sync;
 }

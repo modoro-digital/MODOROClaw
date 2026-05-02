@@ -91,7 +91,7 @@ assert('knowledge search does not leak absolute media path', !/path:\s*asset\.pa
 
 const dashboardIpcSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'dashboard-ipc.js'), 'utf8');
 assert('knowledge image upload registers media asset', dashboardIpcSource.includes('registerExistingMediaFile(dst'), 'knowledge uploads do not register media assets');
-assert('knowledge upload passes visibility to extractor', /extractTextFromFile\(dst,\s*finalName,\s*\{\s*visibility\s*\}/.test(dashboardIpcSource), 'PDF/image vision extraction must receive the selected Knowledge visibility');
+assert('knowledge upload passes visibility to extractor', /extractTextFromFile\(dst,\s*finalName,\s*\{[^}]*visibility[^}]*\}/.test(dashboardIpcSource), 'PDF/image vision extraction must receive the selected Knowledge visibility');
 
 const dashboardSource = fs.readFileSync(path.join(__dirname, '..', 'ui', 'dashboard.html'), 'utf8');
 assert('dashboard has image assets page', dashboardSource.includes('page-image-assets'), 'missing image assets page');
