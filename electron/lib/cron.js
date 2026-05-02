@@ -767,18 +767,114 @@ function buildZaloFollowUpPrompt(candidates) {
   );
 }
 
+function readTextSnippet(filePath, maxChars = 4000) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return '';
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    if (raw.length <= maxChars) return raw;
+    return raw.slice(-maxChars);
+  } catch {
+    return '';
+  }
+}
+
+function listRecentFiles(dir, predicate, limit = 8) {
+  try {
+    if (!dir || !fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir)
+      .map(name => {
+        const fullPath = path.join(dir, name);
+        let stat = null;
+        try { stat = fs.statSync(fullPath); } catch {}
+        return { name, fullPath, stat };
+      })
+      .filter(entry => entry.stat && entry.stat.isFile() && (!predicate || predicate(entry.name, entry.fullPath)))
+      .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+function collectZaloMemoryStats(ws) {
+  const usersDir = path.join(ws, 'memory', 'zalo-users');
+  const groupsDir = path.join(ws, 'memory', 'zalo-groups');
+  const lines = [];
+
+  try {
+    const userFiles = fs.existsSync(usersDir) ? fs.readdirSync(usersDir).filter(f => f.endsWith('.md')) : [];
+    let activeUsers = 0;
+    const samples = [];
+    for (const file of userFiles.slice(0, 80)) {
+      const raw = readTextSnippet(path.join(usersDir, file), 2000);
+      const msgCount = Number(raw.match(/^msgCount:\s*(\d+)/m)?.[1] || 0);
+      const name = raw.match(/^name:\s*(.+)$/m)?.[1]?.trim() || file.replace(/\.md$/, '');
+      const lastSeen = raw.match(/^lastSeen:\s*(.+)$/m)?.[1]?.trim() || '';
+      if (msgCount > 0) activeUsers++;
+      if (msgCount > 0 && samples.length < 5) samples.push(`${name} msgCount=${msgCount}${lastSeen ? ` lastSeen=${lastSeen}` : ''}`);
+    }
+    lines.push(`Zalo users: ${userFiles.length} profile(s), ${activeUsers} co msgCount > 0`);
+    if (samples.length) lines.push('Mau user co tuong tac: ' + samples.join('; '));
+  } catch {
+    lines.push('Zalo users: khong doc duoc thong ke');
+  }
+
+  try {
+    const groupFiles = fs.existsSync(groupsDir) ? fs.readdirSync(groupsDir).filter(f => f.endsWith('.md')) : [];
+    lines.push(`Zalo groups: ${groupFiles.length} profile(s)`);
+  } catch {
+    lines.push('Zalo groups: khong doc duoc thong ke');
+  }
+
+  return lines.join('\n');
+}
+
+function collectMeditationContext() {
+  const ws = getWorkspace();
+  if (!ws) return 'Workspace chua san sang, khong co du lieu noi bo de review.';
+
+  const parts = [];
+  const learnings = readTextSnippet(path.join(ws, '.learnings', 'LEARNINGS.md'), 7000)
+    || readTextSnippet(path.join(ws, 'LEARNINGS.md'), 7000);
+  parts.push(`--- LEARNINGS.md GAN DAY ---\n${learnings || '(Chua co learning nao.)'}`);
+
+  const memDir = path.join(ws, 'memory');
+  const recentMemoryFiles = listRecentFiles(memDir, name => name.endsWith('.md'), 8);
+  const memoryBlocks = recentMemoryFiles.map(entry => {
+    const content = readTextSnippet(entry.fullPath, 1800);
+    return `### memory/${entry.name}\n${content || '(rong)'}`;
+  });
+  parts.push(`--- MEMORY JOURNAL GAN DAY ---\n${memoryBlocks.length ? memoryBlocks.join('\n\n') : '(Khong co journal memory gan day.)'}`);
+
+  const weeklyFiles = listRecentFiles(memDir, name => /^week-.*-summary\.md$/i.test(name) || /weekly-digest\.md$/i.test(name), 4);
+  const weeklyBlocks = weeklyFiles.map(entry => `### memory/${entry.name}\n${readTextSnippet(entry.fullPath, 1600) || '(rong)'}`);
+  if (weeklyBlocks.length) parts.push(`--- WEEKLY DIGEST / SUMMARY ---\n${weeklyBlocks.join('\n\n')}`);
+
+  parts.push(`--- ZALO MEMORY STATS ---\n${collectZaloMemoryStats(ws)}`);
+
+  const cronTail = readTextSnippet(path.join(ws, 'logs', 'cron-runs.jsonl'), 3500);
+  if (cronTail) parts.push(`--- CRON RUN TAIL ---\n${cronTail}`);
+
+  return parts.join('\n\n').slice(0, 18000);
+}
+
 function buildMeditationPrompt() {
+  const contextBlock = collectMeditationContext();
   return (
-    `Bây giờ là 01:00 sáng. Đây là phiên TỐI ƯU BAN ĐÊM — em tự review bài học và tối ưu bộ nhớ.\n\n` +
-    `1. Đọc .learnings/LEARNINGS.md — liệt kê những learning nào xuất hiện > 2 lần hoặc có impact cao\n` +
-    `2. Đọc memory/ (journal entries, weekly-digest.md nếu có) — tìm patterns: khách hay hỏi gì, CEO cần gì thường xuyên, điểm nào bot hay sai\n` +
-    `3. Nếu tìm thấy pattern đáng ghi nhận: append vào .learnings/LEARNINGS.md với format L-XXX (tiếp số hiện có)\n` +
-    `4. Gửi CEO báo cáo ngắn:\n` +
-    `**TỐI ƯU BAN ĐÊM**\n` +
-    `- Đã review N learning entries\n` +
-    `- Pattern mới phát hiện: [bullet nếu có, hoặc "Không có gì mới"]\n` +
-    `- Điểm cần cải thiện: [1-2 bullet ngắn]\n\n` +
-    `KHÔNG dùng emoji. KHÔNG hỏi lại CEO. KHÔNG sửa AGENTS.md (chỉ ghi vào LEARNINGS.md).`
+    `Bay gio la 01:00 sang. Day la phien TOI UU BAN DEM.\n\n` +
+    `He thong da doc san du lieu can thiet ben duoi. KHONG tu bao thieu quyen doc workspace neu block du lieu da co san.\n` +
+    `Chi goi API /api/workspace/append?path=.learnings/LEARNINGS.md neu that su co learning moi dang ghi nhan.\n\n` +
+    `Nhiem vu:\n` +
+    `1. Dem uoc luong learning entries da review tu block LEARNINGS.\n` +
+    `2. Tim pattern lap lai/impact cao tu LEARNINGS, memory journal, Zalo memory stats va cron tail.\n` +
+    `3. Neu co pattern moi dang ghi nhan: append vao .learnings/LEARNINGS.md voi ma L-XXX tiep theo, noi dung ngan duoi 2000 bytes.\n` +
+    `4. Gui CEO bao cao ngan bang tieng Viet co dau:\n` +
+    `**TOI UU BAN DEM**\n` +
+    `- Da review N learning entries\n` +
+    `- Pattern moi phat hien: [bullet neu co, hoac "Khong co gi moi"]\n` +
+    `- Diem can cai thien: [1-2 bullet ngan]\n\n` +
+    `KHONG dung emoji. KHONG hoi lai CEO. KHONG sua AGENTS.md. KHONG noi ve duong dan file trong cau tra loi.\n\n` +
+    `--- DU LIEU NOI BO DA DOC SAN ---\n${contextBlock}\n--- HET DU LIEU NOI BO ---`
   );
 }
 

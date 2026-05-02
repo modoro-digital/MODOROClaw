@@ -15,7 +15,7 @@ Cung server port 20200. Phien Telegram CEO tu xac thuc khi `web_fetch` goi API l
 web_fetch http://127.0.0.1:20200/api/workspace/read?path=.learnings/LEARNINGS.md
 ```
 
-Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`.
+Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/*.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`.
 
 ## Append vao LEARNINGS.md
 
@@ -39,4 +39,4 @@ Category: `cong-ty`, `san-pham`, `nhan-vien`. Append vao `knowledge/<category>/i
 web_fetch http://127.0.0.1:20200/api/workspace/list?dir=memory/zalo-users/
 ```
 
-Whitelist: `memory/zalo-users/`, `memory/zalo-groups/`, `knowledge/*/`.
+Whitelist: `.learnings/`, `memory/`, `memory/zalo-users/`, `memory/zalo-groups/`, `knowledge/*/`.

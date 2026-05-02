@@ -91,6 +91,14 @@ if (!cronApi.includes('stripCronApiTokenFromCustomCrons') || !cronApi.includes('
 if (/finalPrompt\s*\+=[\s\S]{0,600}token=\s*['"]?\s*\+\s*_cronApiToken/.test(cronApi)) {
   fail('electron/lib/cron-api.js', 'agent cron prompts must not persist the live cron API token');
 }
+if (!cronApi.includes('/^memory\\/[^\\/]+\\.md$/') || !cronApi.includes('/^memory\\/?$/') || !cronApi.includes('/^\\.?learnings\\/?$/')) {
+  fail('electron/lib/cron-api.js', 'workspace API must allow the night cron to read/list learnings and top-level memory journals');
+}
+
+const cronJs = readText('electron/lib/cron.js');
+if (!cronJs.includes('collectMeditationContext') || !cronJs.includes('DU LIEU NOI BO DA DOC SAN')) {
+  fail('electron/lib/cron.js', 'night meditation cron must preload workspace context instead of making the agent discover raw paths');
+}
 
 const facebookSkill = readText('skills/operations/facebook-image.md');
 if (/workspace\/read\?path=cron-api-token\.txt/i.test(facebookSkill)) {

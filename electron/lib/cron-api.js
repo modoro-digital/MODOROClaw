@@ -553,6 +553,7 @@ function startCronApi() {
       const ALLOWED = [
         /^\.?learnings\/LEARNINGS\.md$/,
         /^LEARNINGS\.md$/,
+        /^memory\/[^\/]+\.md$/,
         /^memory\/zalo-users\/[^\/]+\.md$/,
         /^memory\/zalo-groups\/[^\/]+\.md$/,
         /^knowledge\/[^\/]+\/index\.md$/,
@@ -602,12 +603,14 @@ function startCronApi() {
       if (!ws) return jsonResp(res, 500, { error: 'workspace not found' });
       const dir = String(params.dir || '').replace(/\\/g, '/');
       const DIRS_ALLOWED = [
+        /^\.?learnings\/?$/,
+        /^memory\/?$/,
         /^memory\/zalo-users\/?$/,
         /^memory\/zalo-groups\/?$/,
         /^knowledge\/[^\/]+\/?$/,
       ];
       if (!dir || dir.includes('..') || !DIRS_ALLOWED.some(r => r.test(dir))) {
-        return jsonResp(res, 403, { error: 'dir not in whitelist. Allowed: memory/zalo-users/, memory/zalo-groups/, knowledge/*/' });
+        return jsonResp(res, 403, { error: 'dir not in whitelist. Allowed: .learnings/, memory/, memory/zalo-users/, memory/zalo-groups/, knowledge/*/' });
       }
       try {
         const fullDir = path.join(ws, dir);
