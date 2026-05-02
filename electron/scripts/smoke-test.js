@@ -2116,6 +2116,8 @@ try {
     fail('mac notarization hook', 'package.json build.afterSign must point to scripts/notarize-mac.js');
   } else if (!hook.includes('@electron/notarize') || !hook.includes('APPLE_APP_SPECIFIC_PASSWORD') || !hook.includes('APPLE_TEAM_ID')) {
     fail('mac notarization hook', 'notarize-mac.js must use @electron/notarize with APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID');
+  } else if (!hook.includes('SIGN_AVAILABLE') || !hook.includes('CSC_IDENTITY_AUTO_DISCOVERY')) {
+    fail('mac notarization hook', 'notarize-mac.js must skip notarization when the app was not code signed');
   } else {
     pass('mac notarization hook wired');
   }

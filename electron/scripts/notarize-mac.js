@@ -10,6 +10,10 @@ exports.default = async function notarizeMac(context) {
     console.log(`[notarize] skipped: target is ${context.electronPlatformName}`);
     return;
   }
+  if (process.env.SIGN_AVAILABLE !== 'true' || process.env.CSC_IDENTITY_AUTO_DISCOVERY !== 'true') {
+    console.log('[notarize] skipped: macOS code signing is not available');
+    return;
+  }
 
   const appleId = process.env.APPLE_ID;
   const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_ID_PASSWORD;
