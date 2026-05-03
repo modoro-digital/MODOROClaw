@@ -711,6 +711,7 @@ function signDarwinVendorBinaries() {
 
   const identity = findDeveloperIdIdentity();
   if (!identity) fatal('SIGN_AVAILABLE=true but no Developer ID Application identity is available for vendor codesign');
+  const entitlements = path.join(ROOT, 'build', 'entitlements.mac.inherit.plist');
 
   const binaries = [];
   function walk(dir) {
@@ -727,17 +728,39 @@ function signDarwinVendorBinaries() {
 
   log(`signing ${binaries.length} darwin vendor Mach-O binaries before tar pack...`);
   for (const file of binaries) {
-    const res = spawnSync('/usr/bin/codesign', [
+    try { fs.chmodSync(file, 0o755); } catch {}
+    spawnSync('/usr/bin/codesign', ['--remove-signature', file], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    });
+    const args = [
       '--force',
       '--timestamp',
       '--options', 'runtime',
-      '--sign', identity,
-      file,
-    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+    ];
+    if (fs.existsSync(entitlements)) args.push('--entitlements', entitlements);
+    args.push('--sign', identity, file);
+    const res = spawnSync('/usr/bin/codesign', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    });
     if (res.status !== 0) {
       fatal(
         `codesign failed for vendor binary: ${file}\n` +
         `${res.stdout || ''}${res.stderr || ''}`.trim()
+      );
+    }
+    const verify = spawnSync('/usr/bin/codesign', ['--verify', '--verbose=2', file], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    });
+    if (verify.status !== 0) {
+      fatal(
+        `codesign verify failed for vendor binary: ${file}\n` +
+        `${verify.stdout || ''}${verify.stderr || ''}`.trim()
       );
     }
   }
