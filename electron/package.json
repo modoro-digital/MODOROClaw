@@ -211,6 +211,10 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "type": "distribution",
+      "signIgnore": [
+        ".*/Contents/Resources/vendor/node_modules/(?!.*\\.node$).*",
+        ".*/Contents/Resources/vendor/node/lib/node_modules/.*"
+      ],
       "extraResources": [
         {
           "from": "vendor",
