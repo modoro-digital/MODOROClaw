@@ -172,6 +172,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          ulimit -n 65536 2>/dev/null || ulimit -n 10240 2>/dev/null || true
+          echo "open file limit: $(ulimit -n)"
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             npx electron-builder --mac --arm64 --publish never
           else
