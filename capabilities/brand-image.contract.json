@@ -38,6 +38,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/image/generate-and-send-zalo",
+      "purpose": "atomically generate an image and deliver it to a CEO-approved Zalo target when the image is ready"
+    },
+    {
+      "method": "GET",
       "path": "/api/image/status",
       "purpose": "poll image generation job when needed"
     },
@@ -53,13 +58,15 @@
   ],
   "successProofs": [
     "successful generate response contains jobId and non-failed status",
+    "multi-step generate-and-send-Zalo response contains success:true and delivery.status",
     "asset list is checked before claiming no brand assets",
-    "generated image path is returned or sent to Telegram"
+    "generated image path/mediaId is returned before any separate send/post step uses the image"
   ],
   "negativeTests": [
     "must not say brand assets are unavailable before calling /api/brand-assets/list",
     "must not say image generation started when /api/image/generate returns error",
     "must prioritize mascot-named file when CEO asks for mascot",
-    "must not perform this from Zalo customer channel"
+    "must not perform this from Zalo customer channel",
+    "must not treat status=generating as proof that the image is ready for Zalo/Facebook delivery"
   ]
 }

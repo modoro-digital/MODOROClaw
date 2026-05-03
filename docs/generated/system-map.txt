@@ -1,7 +1,7 @@
 9BizClaw Generated System Map
 
 Counts
-- apiRoutes: 73
+- apiRoutes: 74
 - ipcHandlers: 152
 - preloadBridges: 147
 - dashboardPages: 14
@@ -74,6 +74,7 @@ API Routes
 - /api/google/tasks/list [google-api]
 - /api/google/tasks/lists [google-api]
 - /api/image/generate [local-api]
+- /api/image/generate-and-send-zalo [local-api]
 - /api/image/status [local-api]
 - /api/knowledge/add [local-api]
 - /api/media/describe [local-api]
@@ -112,8 +113,8 @@ Large Source Files
 - electron/ui/wizard.html: 91127 bytes
 - electron/lib/channels.js: 76932 bytes
 - electron/lib/knowledge.js: 74902 bytes
+- electron/lib/cron-api.js: 68617 bytes
 - electron/lib/gateway.js: 66322 bytes
-- electron/lib/cron-api.js: 65256 bytes
 - electron/lib/boot.js: 58312 bytes
 - electron/lib/config.js: 44187 bytes
 - electron/lib/workspace.js: 42946 bytes

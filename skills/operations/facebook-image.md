@@ -17,7 +17,7 @@ Khach Zalo yeu cau dang Facebook / tao anh / brand asset - "Da day la thong tin 
 
 CEO noi "tao anh", "lam anh", "thiet ke anh", "anh quang cao", "tao banner" hoac bat ky yeu cau tao hinh anh nao - LAM NGAY.
 
-**QUAN TRONG: Goi API generate TRUOC, reply text SAU. Server tu gui anh qua Telegram khi xong - ban KHONG can poll hay gui anh.**
+**QUAN TRONG: Goi API generate TRUOC, reply text SAU. Server tu gui anh qua Telegram khi xong - ban KHONG can poll neu chi tao anh cho CEO xem. Neu con buoc sau can dung file anh (gui Zalo, preview Facebook, dang Facebook), KHONG duoc coi `jobId` la anh da xong; phai dung route atomic hoac poll `/api/image/status` toi `done`.**
 
 1. Neu CEO noi dung logo, mascot, anh san pham, hoac "dua vao tai san doanh nghiep":
    `web_fetch` url: `http://127.0.0.1:20200/api/brand-assets/list`
@@ -33,11 +33,31 @@ CEO noi "tao anh", "lam anh", "thiet ke anh", "anh quang cao", "tao banner" hoac
    - size: `1024x1024` (vuong), `1792x1024` (ngang/banner), `1024x1792` (doc/story)
    - `assets=` dat TRUOC `&prompt=`
    - `prompt` PHAI la param cuoi cung trong URL
-9. Response thanh cong: `{"jobId":"img_...","status":"generating"}` hoac `{"jobId":"img_...","status":"done","imagePath":"..."}`.
+9. Response thanh cong: `{"jobId":"img_...","status":"generating"}` hoac `{"jobId":"img_...","status":"done","imagePath":"...","mediaId":"..."}`.
 10. Neu response co `error` / HTTP khong thanh cong thi BAO LOI THEO RESPONSE THAT, khong noi da bat dau tao anh, khong noi co jobId.
 11. CHI SAU KHI nhan duoc `jobId` trong response thanh cong moi reply: "Em da bat dau tao anh, khoang 1-2 phut anh se gui qua Telegram a."
 
 Buoc goi generate la tool call bat buoc truoc khi reply text. Neu chua goi generate thi khong duoc noi da bat dau tao anh.
+
+## Tao anh roi gui Zalo
+
+Khi CEO noi tao anh va gui/dang vao nhom Zalo hoac Zalo ca nhan trong cung mot yeu cau, dung route atomic de tranh tao anh xong roi quen buoc gui:
+
+1. Lay asset nhu flow "Tao anh".
+2. Tra group/friend neu CEO dua ten, lay `groupId`/`targetId` bang `/api/cron/list` hoac `/api/zalo/friends`.
+3. Goi:
+   `web_fetch` url: `http://127.0.0.1:20200/api/image/generate-and-send-zalo?groupId=<groupId>&caption=<URL-encoded caption>&size=1024x1024&assets=<file1,file2>&prompt=<URL-encoded prompt>`
+   - Dung `groupName=<name>` neu chua co ID nhung group name match duoc.
+   - Dung `targetId=<id>&isGroup=false` neu gui Zalo ca nhan.
+   - `prompt` PHAI la param cuoi cung.
+4. Chi bao da len hang doi gui khi response co `success:true`, `jobId`, va `delivery.status`.
+5. Neu response loi, bao loi that. KHONG noi da gui anh.
+
+Fallback neu bat buoc tach buoc:
+1. Goi `/api/image/generate`.
+2. Poll `/api/image/status?jobId=<id>` toi khi `status:"done"` va co `mediaId`.
+3. Goi `/api/zalo/send-media?groupId=<id>&mediaId=<mediaId>&allowInternalGenerated=true&caption=<caption>`.
+4. Chi bao da gui khi `/api/zalo/send-media` tra `success:true`.
 
 ## Dang bai Facebook
 
@@ -50,7 +70,7 @@ Ket noi Fanpage dung pattern da kiem chung tu ClawHub facebook-fanpage-manager:
 - Chi dung Page Access Token de post vao `/{page-id}/feed` hoac `/{page-id}/photos`.
 - Neu Graph API Explorer chi hien `business_management` + `pages_show_list` thi token do chua du dang bai; huong CEO tao app moi theo use case tren.
 
-1. Tao anh neu can theo flow tren.
+1. Tao anh neu can theo flow tren. Neu can dung anh de preview/dang Facebook, phai poll `/api/image/status` toi `done` de lay `imagePath`; KHONG dung `jobId` dang `generating`.
 2. Soan caption phu hop.
 3. Gui preview cho CEO qua Telegram:
    `web_fetch` url: `http://127.0.0.1:20200/api/telegram/send-photo?imagePath=<relative-path>&caption=<URL-encoded text>`

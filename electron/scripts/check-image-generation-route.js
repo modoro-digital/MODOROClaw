@@ -30,6 +30,9 @@ assert(
 const cronApiSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'cron-api.js'), 'utf8');
 assert('image route waits for immediate failure', cronApiSource.includes('waitForJobResult(jobId, 3000)'), 'image route does not wait for early job failure');
 assert('image route returns failed status', cronApiSource.includes("status: 'failed'"), 'image route does not return failed status');
+assert('image route exposes mediaId after completion', fs.readFileSync(path.join(__dirname, '..', 'lib', 'image-gen.js'), 'utf8').includes('mediaId'), 'image status does not expose mediaId for follow-up delivery');
+assert('atomic image-to-zalo route exists', cronApiSource.includes('/api/image/generate-and-send-zalo'), 'missing atomic generate-and-send-zalo route');
+assert('generated internal media can be sent only with explicit flag', cronApiSource.includes('allowInternalGenerated') && cronApiSource.includes("asset.type === 'generated'"), 'send-media does not gate internal generated image delivery explicitly');
 
 if (failures.length) {
   console.error('[image-generation-route] FAIL');

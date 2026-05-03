@@ -1,7 +1,7 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 73,
+    "apiRoutes": 74,
     "ipcHandlers": 152,
     "preloadBridges": 147,
     "dashboardPages": 14,
@@ -532,6 +532,15 @@
     },
     {
       "path": "/api/image/generate",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/generate-and-send-zalo",
       "sources": [
         "electron/lib/cron-api.js"
       ],
@@ -2124,12 +2133,12 @@
       "bytes": 74902
     },
     {
-      "path": "electron/lib/gateway.js",
-      "bytes": 66322
+      "path": "electron/lib/cron-api.js",
+      "bytes": 68617
     },
     {
-      "path": "electron/lib/cron-api.js",
-      "bytes": 65256
+      "path": "electron/lib/gateway.js",
+      "bytes": 66322
     },
     {
       "path": "electron/lib/boot.js",

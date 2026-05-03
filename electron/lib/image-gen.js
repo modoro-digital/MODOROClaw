@@ -189,7 +189,7 @@ function withGenLock(fn) {
 }
 
 function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
-  const job = { status: 'generating', imagePath: null, relPath: null, error: null, startedAt: Date.now(), waiters: [] };
+  const job = { status: 'generating', imagePath: null, relPath: null, mediaId: null, error: null, startedAt: Date.now(), waiters: [] };
   let _settled = false;
   _jobs.set(jobId, job);
   pruneJobs();
@@ -218,7 +218,7 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
       job.imagePath = outPath;
       job.relPath = path.join('brand-assets', 'generated', jobId + '.png');
       try {
-        require('./media-library').registerExistingMediaFile(outPath, {
+        const mediaAsset = require('./media-library').registerExistingMediaFile(outPath, {
           type: 'generated',
           visibility: 'internal',
           title: jobId,
@@ -226,6 +226,7 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
           status: 'ready',
           description: prompt,
         });
+        job.mediaId = mediaAsset?.id || null;
       } catch (e) { console.warn('[image-gen] media register failed:', e.message); }
       cleanupGenerated(generatedDir);
       settle(null, outPath);
@@ -251,7 +252,7 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
 function getJobStatus(jobId) {
   const job = _jobs.get(jobId);
   if (!job) return { status: 'not_found' };
-  if (job.status === 'done') return { status: 'done', imagePath: job.relPath || job.imagePath };
+  if (job.status === 'done') return { status: 'done', imagePath: job.relPath || job.imagePath, mediaId: job.mediaId || null };
   if (job.status === 'failed') return { status: 'failed', error: job.error };
   return { status: 'generating' };
 }

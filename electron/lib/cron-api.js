@@ -243,6 +243,7 @@ function startCronApi() {
           'token', 'groupId', 'targetId', 'groupName', 'friendName', 'mediaId', 'imagePath',
           'filePath', 'isGroup', 'label', 'cronExpr', 'oneTimeAt', 'mode', 'approvalNonce',
           'preview', 'dryRun', 'type', 'visibility', 'audience', 'limit', 'max',
+          'caption', 'allowInternalGenerated', 'allowInternal',
         ];
         for (const key of ['content', 'message', 'text', 'prompt']) {
           const marker = key + '=';
@@ -707,7 +708,8 @@ function startCronApi() {
       }
       asset = mediaLibrary.findMediaAsset(String(mediaId));
       if (!asset) return jsonResp(res, 404, { error: 'media asset not found' });
-      if (asset.visibility !== 'public') {
+      const allowInternalGenerated = ['true', '1', 'yes'].includes(String(params.allowInternalGenerated || params.allowInternal || '').toLowerCase());
+      if (asset.visibility !== 'public' && !(allowInternalGenerated && asset.type === 'generated' && asset.visibility === 'internal')) {
         return jsonResp(res, 403, { error: 'media asset is not public' });
       }
       absPath = asset.path;
@@ -1117,6 +1119,61 @@ function startCronApi() {
         return jsonResp(res, 200, { success: true, asset: sanitizeMediaAssetForApi(asset) });
       } catch (e) { return jsonResp(res, 500, { success: false, error: e.message }); }
 
+    } else if (urlPath === '/api/image/generate-and-send-zalo') {
+      const { prompt, assets, size, caption } = params;
+      if (!prompt) return jsonResp(res, 400, { error: 'prompt required' });
+      if (String(prompt).length > 5000) return jsonResp(res, 400, { error: 'prompt too long (max 5000)' });
+      const delivery = resolveCronZaloTarget(params, { allowMultipleGroups: false });
+      if (!delivery) return jsonResp(res, 400, { error: 'groupId, groupName, targetId, or friendName required' });
+      if (delivery.error) return jsonResp(res, 400, { error: delivery.error });
+
+      const imageGen = require('./image-gen');
+      const jobId = imageGen.generateJobId();
+      const brandDir = getBrandAssetsDir();
+      const assetList = Array.isArray(assets) ? assets : (assets ? String(assets).split(',').map(s => s.trim()).filter(Boolean) : []);
+      const deliveryTarget = { id: delivery.ids[0], isGroup: delivery.type === 'group' };
+      const deliveryLabel = delivery.labels?.[0] || delivery.ids[0];
+      let earlyFailureHandled = false;
+
+      imageGen.startJob(jobId, String(prompt), brandDir, assetList, size || '1024x1024', async (err, imgPath) => {
+        if (err) {
+          setTimeout(() => {
+            if (!earlyFailureHandled) sendCeoAlert('[Tạo ảnh/Zalo] Tạo ảnh thất bại: ' + err.message).catch(() => {});
+          }, 3000);
+          return;
+        }
+        if (!imgPath) return;
+        try {
+          const ok = await sendZaloMediaTo(deliveryTarget, imgPath, { caption: caption || 'Ảnh đã tạo xong' });
+          const status = imageGen.getJobStatus(jobId);
+          if (ok) {
+            sendCeoAlert(`[Tạo ảnh/Zalo] Đã tạo ảnh và gửi vào ${delivery.type === 'group' ? 'nhóm' : 'Zalo cá nhân'} "${deliveryLabel}".`).catch(() => {});
+          } else {
+            sendCeoAlert(`[Tạo ảnh/Zalo] Ảnh đã tạo xong nhưng gửi vào "${deliveryLabel}" thất bại. jobId: ${jobId}${status?.mediaId ? ', mediaId: ' + status.mediaId : ''}`).catch(() => {});
+          }
+        } catch (e) {
+          sendCeoAlert(`[Tạo ảnh/Zalo] Ảnh đã tạo xong nhưng bước gửi Zalo lỗi: ${String(e?.message || e).slice(0, 200)}. jobId: ${jobId}`).catch(() => {});
+        }
+      });
+      const earlyStatus = await imageGen.waitForJobResult(jobId, 3000);
+      if (earlyStatus.status === 'failed') {
+        earlyFailureHandled = true;
+        return jsonResp(res, 502, { jobId, status: 'failed', error: earlyStatus.error || 'image generation failed' });
+      }
+      return jsonResp(res, 200, {
+        success: true,
+        jobId,
+        status: earlyStatus.status || 'generating',
+        imagePath: earlyStatus.imagePath,
+        mediaId: earlyStatus.mediaId || null,
+        delivery: {
+          status: earlyStatus.status === 'done' ? 'sending_or_sent' : 'queued_after_image_done',
+          targetId: delivery.ids[0],
+          isGroup: delivery.type === 'group',
+          label: deliveryLabel,
+        },
+      });
+
     } else if (urlPath === '/api/image/generate') {
       const { prompt, assets, size } = params;
       if (!prompt) return jsonResp(res, 400, { error: 'prompt required' });
@@ -1230,7 +1287,7 @@ function startCronApi() {
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
     } else {
-      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/zalo/send-media', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/media/list', '/api/media/search', '/api/media/upload', '/api/media/describe', '/api/image/generate', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent'] });
+      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/zalo/send-media', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/media/list', '/api/media/search', '/api/media/upload', '/api/media/describe', '/api/image/generate', '/api/image/generate-and-send-zalo', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent'] });
     }
   });
 
