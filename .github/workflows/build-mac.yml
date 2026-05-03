@@ -10,6 +10,10 @@ on:
         description: 'Create a GitHub Release with the .dmg files'
         required: false
         default: 'false'
+      unsigned:
+        description: 'Build unsigned DMG artifacts when signing cert/password is unavailable'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write   # Needed to create releases + upload assets
@@ -90,10 +94,16 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ALLOW_UNSIGNED_MANUAL: ${{ github.event_name == 'workflow_dispatch' && inputs.unsigned == 'true' && 'true' || 'false' }}
         run: |
           IS_RELEASE_TAG=false
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             IS_RELEASE_TAG=true
+          fi
+          if [ "$ALLOW_UNSIGNED_MANUAL" = "true" ]; then
+            echo "Manual unsigned build requested — signing and notarization disabled for this run"
+            echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+            exit 0
           fi
           if [ "$IS_RELEASE_TAG" = "true" ]; then
             missing=""
@@ -126,7 +136,16 @@ jobs:
               security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
               security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
               security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
-              security import "$CERT_PATH" -P "$MAC_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+              if ! security import "$CERT_PATH" -P "$MAC_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"; then
+                if [ "$IS_RELEASE_TAG" = "true" ]; then
+                  echo "::error::Failed to import Developer ID certificate. MAC_CERT_PASSWORD may not match the .p12 file."
+                  exit 1
+                fi
+                echo "⚠ Signing cert import failed — building unsigned workflow artifact"
+                echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+                rm -f "$CERT_PATH"
+                exit 0
+              fi
               security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
               security list-keychains -d user -s "$KEYCHAIN_PATH" "$(security default-keychain -d user | xargs)"
               security find-identity -v "$KEYCHAIN_PATH"
