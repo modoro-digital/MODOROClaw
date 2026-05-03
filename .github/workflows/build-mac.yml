@@ -170,6 +170,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARIZE_AFTER_DMG: "true"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ulimit -n 65536 2>/dev/null || ulimit -n 10240 2>/dev/null || true
@@ -179,6 +180,28 @@ jobs:
           else
             npx electron-builder --mac --x64 --publish never
           fi
+
+      - name: Notarize .dmg
+        if: env.SIGN_AVAILABLE == 'true'
+        working-directory: electron
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG=$(find "$(pwd)/../dist" -maxdepth 1 -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "FATAL: no DMG found to notarize"
+            exit 1
+          fi
+          echo "Submitting DMG for notarization: $DMG"
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
 
       - name: Verify + fix better-sqlite3 arch in final build
         working-directory: electron

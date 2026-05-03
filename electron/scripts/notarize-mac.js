@@ -14,6 +14,10 @@ exports.default = async function notarizeMac(context) {
     console.log('[notarize] skipped: macOS code signing is not available');
     return;
   }
+  if (process.env.NOTARIZE_AFTER_DMG === 'true') {
+    console.log('[notarize] skipped: workflow will notarize and staple the DMG after packaging');
+    return;
+  }
 
   const appleId = process.env.APPLE_ID;
   const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_ID_PASSWORD;
