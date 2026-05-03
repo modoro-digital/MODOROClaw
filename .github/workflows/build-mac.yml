@@ -178,28 +178,6 @@ jobs:
             npx electron-builder --mac --x64 --publish never
           fi
 
-      - name: Notarize .dmg
-        if: env.SIGN_AVAILABLE == 'true'
-        working-directory: electron
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          DMG=$(find "$(pwd)/../dist" -maxdepth 1 -name "*.dmg" | head -1)
-          if [ -z "$DMG" ]; then
-            echo "FATAL: no DMG found to notarize"
-            exit 1
-          fi
-          echo "Submitting DMG for notarization: $DMG"
-          xcrun notarytool submit "$DMG" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-          xcrun stapler staple "$DMG"
-          xcrun stapler validate "$DMG"
-
       - name: Verify + fix better-sqlite3 arch in final build
         working-directory: electron
         env:
@@ -303,6 +281,66 @@ jobs:
             echo "FATAL: DMG better_sqlite3.node arch mismatch"
             exit 1
           fi
+
+      - name: Notarize .dmg
+        if: env.SIGN_AVAILABLE == 'true'
+        working-directory: electron
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG=$(find "$(pwd)/../dist" -maxdepth 1 -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "FATAL: no DMG found to notarize"
+            exit 1
+          fi
+
+          APP_PATH=$(find "$(pwd)/../dist" -maxdepth 2 -name "9BizClaw.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            echo "Verifying signed app bundle before notarization: $APP_PATH"
+            codesign --verify --deep --strict --verbose=4 "$APP_PATH" || true
+            codesign --display --verbose=4 "$APP_PATH" || true
+            spctl --assess --type execute --verbose=4 "$APP_PATH" || true
+          else
+            echo "WARN: unpacked app bundle not found for pre-notary diagnostics"
+          fi
+
+          SUBMIT_JSON="$RUNNER_TEMP/notary-submit-${{ matrix.arch }}.json"
+          LOG_JSON="$RUNNER_TEMP/notary-log-${{ matrix.arch }}.json"
+          echo "Submitting DMG for notarization: $DMG"
+          set +e
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json > "$SUBMIT_JSON"
+          SUBMIT_EXIT=$?
+          set -e
+
+          echo "Notary submit response:"
+          cat "$SUBMIT_JSON" || true
+          SUBMISSION_ID=$(python3 -c "import json,sys; print((json.load(open(sys.argv[1])).get('id') or '').strip())" "$SUBMIT_JSON" 2>/dev/null || true)
+          STATUS=$(python3 -c "import json,sys; print((json.load(open(sys.argv[1])).get('status') or '').strip())" "$SUBMIT_JSON" 2>/dev/null || true)
+
+          if [ -n "$SUBMISSION_ID" ]; then
+            echo "Fetching Apple notary log for submission: $SUBMISSION_ID"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json > "$LOG_JSON" || true
+            cat "$LOG_JSON" || true
+          fi
+
+          if [ "$SUBMIT_EXIT" -ne 0 ] || [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization failed with status: ${STATUS:-unknown}"
+            exit 1
+          fi
+
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
 
       - name: List dist output
         run: ls -lh dist/ || true
