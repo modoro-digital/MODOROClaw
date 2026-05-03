@@ -14,6 +14,15 @@ on:
         description: 'Build unsigned DMG artifacts when signing cert/password is unavailable'
         required: false
         default: 'false'
+      arch:
+        description: 'Which mac build to run'
+        required: false
+        default: 'arm64'
+        type: choice
+        options:
+          - arm64
+          - x64
+          - both
 
 permissions:
   contents: write   # Needed to create releases + upload assets
@@ -21,9 +30,14 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.arch }} on ${{ matrix.runner }}
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.arch == 'both' ||
+      github.event.inputs.arch == matrix.arch
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
+      max-parallel: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.arch != 'both' && 1 || 2 }}
       matrix:
         include:
           - arch: arm64
