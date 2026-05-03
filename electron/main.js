@@ -17786,10 +17786,11 @@ app.on('second-instance', () => {
   }
 });
 
-// Strip frame-blocking headers for trusted local web UIs (9Router + OpenClaw gateway)
+// Strip frame-blocking headers for trusted local web UIs (9Router + OpenClaw gateway/chat)
 // so we can embed them in <webview> inside the dashboard.
 //
-// CRITICAL: dashboard.html uses <webview partition="persist:embed-openclaw"> and
+// CRITICAL: dashboard.html uses <webview partition="persist:embed-openclaw">,
+// <webview partition="persist:embed-openclaw-chat">, and
 // <webview partition="persist:embed-9router">. Each `partition` value creates
 // its OWN session in Electron — `session.defaultSession.webRequest` listeners
 // do NOT fire for partition sessions. We must install the stripper on EACH
@@ -17842,12 +17843,13 @@ function installEmbedHeaderStripper() {
     // dashboard.html. Without these, openclaw webview never loads because the
     // partition session doesn't go through defaultSession's webRequest hooks.
     attach(session.fromPartition('persist:embed-openclaw'), 'persist:embed-openclaw');
+    attach(session.fromPartition('persist:embed-openclaw-chat'), 'persist:embed-openclaw-chat');
     attach(session.fromPartition('persist:embed-9router'), 'persist:embed-9router');
     attach(session.fromPartition('persist:embed-gcal'), 'persist:embed-gcal');
     // Redirect new-window requests (OAuth popups, external links) from webview
     // partitions to the default browser. Without this, 9Router's ChatGPT OAuth
     // opens inside Electron's restricted context → freezes on Mac.
-    for (const partName of ['persist:embed-9router', 'persist:embed-openclaw', 'persist:embed-gcal']) {
+    for (const partName of ['persist:embed-9router', 'persist:embed-openclaw', 'persist:embed-openclaw-chat', 'persist:embed-gcal']) {
       try {
         session.fromPartition(partName).setWindowOpenHandler(({ url }) => {
           if (url && url.startsWith('http')) {

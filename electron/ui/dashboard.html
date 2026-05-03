@@ -431,8 +431,8 @@
       .know-columns { grid-template-columns:1fr; }
       #page-knowledge.page.active { height:auto; }
     }
-    /* Embedded web UI pages (9Router, OpenClaw) */
-    #page-9router.page.active, #page-openclaw.page.active {
+    /* Embedded web UI pages (9Router, OpenClaw, Chat) */
+    #page-9router.page.active, #page-openclaw.page.active, #page-chat.page.active {
       display:flex; flex-direction:column; height:calc(100vh - 32px);
     }
     .embed-wrap {
@@ -1880,6 +1880,9 @@
         <div class="sidebar-menu-item active" data-page="overview" onclick="switchPage('overview')">
           <span class="icon" data-icon="home"></span><span class="label">Tổng quan</span>
         </div>
+        <div class="sidebar-menu-item" data-page="chat" onclick="switchPage('chat')">
+          <span class="icon" data-icon="message-square"></span><span class="label">Chat</span>
+        </div>
         <div class="sidebar-menu-item" data-page="schedules" onclick="switchPage('schedules')">
           <span class="icon" data-icon="calendar"></span><span class="label">Lịch tự động</span>
         </div>
@@ -2825,6 +2828,23 @@
         </div>
       </div>
 
+      <!-- PAGE: Chat (embedded OpenClaw web chat) -->
+      <div class="page" id="page-chat">
+        <div class="page-header">
+          <span class="page-icon" data-icon="message-square" data-icon-size="26"></span>
+          <div><h2>Chat</h2><div class="page-sub">OpenClaw web chat - light mode</div></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-start">
+            <button class="page-help-btn" title="OpenClaw web chat inside 9BizClaw">?</button>
+            <button class="btn btn-secondary btn-small" onclick="copyAndShowGatewayToken()" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="check" data-icon-size="14"></span>Copy token</button>
+            <button class="btn btn-secondary btn-small" onclick="reloadEmbed('chat')" style="display:inline-flex;align-items:center;gap:6px"><span data-icon="refresh-cw" data-icon-size="14"></span>Reload</button>
+            <button class="btn btn-secondary btn-small" onclick="window.claw.openExternal('http://127.0.0.1:18789/chat?themeMode=light')">Open in browser</button>
+          </div>
+        </div>
+        <div class="embed-wrap" id="embed-wrap-chat">
+          <!-- webview created lazily by ensureEmbedLoaded('chat') to save RAM -->
+        </div>
+      </div>
+
       <!-- PAGE: 9Router (embedded web UI) -->
       <div class="page" id="page-9router">
         <div class="page-header">
@@ -3575,7 +3595,7 @@
       if (page === 'calendar') {
         loadAppointments();
       }
-      if (page === '9router' || page === 'openclaw') {
+      if (page === '9router' || page === 'openclaw' || page === 'chat') {
         ensureEmbedLoaded(page);
       }
       if (page === 'overview') {
@@ -3955,24 +3975,85 @@
     }
 
     // ============================================
-    //  EMBEDDED WEB UI (9Router + OpenClaw)
+    //  EMBEDDED WEB UI (9Router + OpenClaw + Chat)
     // ============================================
-    const embedLoaded = { '9router': false, 'openclaw': false };
+    const embedLoaded = { '9router': false, 'openclaw': false, 'chat': false };
     const EMBED_URLS = {
       '9router': 'http://127.0.0.1:20128/',
       'openclaw': 'http://127.0.0.1:18789/',
+      'chat': 'http://127.0.0.1:18789/chat?themeMode=light',
     };
     const EMBED_PARTITIONS = {
       '9router': 'persist:embed-9router',
       'openclaw': 'persist:embed-openclaw',
+      'chat': 'persist:embed-openclaw-chat',
     };
     const _embedRetry = {};
+
+    function forceOpenClawChatLightMode(wv) {
+      if (!wv || typeof wv.executeJavaScript !== 'function') return;
+      const script = `
+        (() => {
+          try {
+            const vars = {
+              '--bg': '#f8fafc',
+              '--bg-accent': '#f1f5f9',
+              '--bg-elevated': '#ffffff',
+              '--card': '#ffffff',
+              '--card-foreground': '#111827',
+              '--panel': '#ffffff',
+              '--surface': '#ffffff',
+              '--surface-hover': '#f1f5f9',
+              '--text': '#111827',
+              '--text-strong': '#0f172a',
+              '--chat-text': '#111827',
+              '--muted': '#64748b',
+              '--border': '#d8dee9',
+              '--border-strong': '#b7c0cf',
+              '--input': '#ffffff',
+              '--chrome': 'rgba(255,255,255,0.96)',
+              '--chrome-strong': '#ffffff'
+            };
+            document.documentElement.style.colorScheme = 'light';
+            document.documentElement.dataset.themeMode = 'light';
+            Object.entries(vars).forEach(([key, value]) => {
+              document.documentElement.style.setProperty(key, value);
+            });
+            let style = document.getElementById('modoro-openclaw-chat-light-mode');
+            if (!style) {
+              style = document.createElement('style');
+              style.id = 'modoro-openclaw-chat-light-mode';
+              document.head.appendChild(style);
+            }
+            style.textContent = 'html,body{background:#f8fafc!important;color:#111827!important;color-scheme:light!important;} body *{color-scheme:light!important;}';
+            try {
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const raw = key ? localStorage.getItem(key) : null;
+                if (!raw || raw[0] !== '{') continue;
+                const value = JSON.parse(raw);
+                if (!value || typeof value !== 'object') continue;
+                if ('themeMode' in value || /openclaw|control|settings|ui/i.test(key)) {
+                  value.themeMode = 'light';
+                  localStorage.setItem(key, JSON.stringify(value));
+                }
+              }
+            } catch (_) {}
+          } catch (_) {}
+        })();
+      `;
+      try {
+        const result = wv.executeJavaScript(script, false);
+        if (result && typeof result.catch === 'function') result.catch(() => {});
+      } catch (_) {}
+    }
+
     function ensureEmbedLoaded(name) {
       if (embedLoaded[name]) return;
       embedLoaded[name] = true;
       const wrap = document.getElementById('embed-wrap-' + name);
       if (!wrap) { embedLoaded[name] = false; return; }
-      const label = name === '9router' ? '9Router' : 'OpenClaw';
+      const label = name === '9router' ? '9Router' : (name === 'chat' ? 'Chat' : 'OpenClaw');
 
       let loader = wrap.querySelector('.embed-loading');
       if (!loader) {
@@ -3998,9 +4079,14 @@
 
       wv.addEventListener('did-finish-load', function() {
         _embedRetry[name] = 0;
+        if (name === 'chat') forceOpenClawChatLightMode(wv);
         wv.style.visibility = 'visible';
         if (loader.parentNode) loader.remove();
       });
+      if (name === 'chat') {
+        wv.addEventListener('dom-ready', function() { forceOpenClawChatLightMode(wv); });
+        wv.addEventListener('did-navigate-in-page', function() { forceOpenClawChatLightMode(wv); });
+      }
       wv.addEventListener('did-fail-load', function(e) {
         if (e.isMainFrame === false) return;
         var attempt = _embedRetry[name] || 0;
@@ -6456,6 +6542,7 @@
         { id: 'page-schedules', label: 'Mở Lịch tự động', keywords: 'schedules lich tu dong cron' },
         { id: 'page-9router', label: 'Mở AI Models', keywords: 'ai models 9router' },
         { id: 'page-openclaw', label: 'Mở OpenClaw', keywords: 'openclaw' },
+        { id: 'page-chat', label: 'Mở Chat', keywords: 'chat openclaw web chat' },
         { id: 'action-help', label: 'Xem phím tắt (?)', keywords: 'help shortcut phim tat' }
       ];
 
