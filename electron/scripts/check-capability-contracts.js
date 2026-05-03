@@ -99,6 +99,19 @@ const cronJs = readText('electron/lib/cron.js');
 if (!cronJs.includes('collectMeditationContext') || !cronJs.includes('DU LIEU NOI BO DA DOC SAN')) {
   fail('electron/lib/cron.js', 'night meditation cron must preload workspace context instead of making the agent discover raw paths');
 }
+if (!cronJs.includes('repairJsonControlCharsInStrings') || !cronJs.includes('custom-crons.json auto-repaired')) {
+  fail('electron/lib/cron.js', 'custom-crons.json loader must auto-repair raw control characters instead of disabling all custom crons');
+}
+
+const zaloRiskScanPath = absFromWorkspace('tools/zalo-risk-scan.js');
+if (!fs.existsSync(zaloRiskScanPath)) {
+  fail('tools/zalo-risk-scan.js', 'legacy Zalo risk summary cron compatibility script is missing');
+} else {
+  const zaloRiskScan = readText('tools/zalo-risk-scan.js');
+  if (!zaloRiskScan.includes('BÁO CÁO RỦI RO ZALO') || !zaloRiskScan.includes('process.exitCode = 0')) {
+    fail('tools/zalo-risk-scan.js', 'legacy Zalo risk scan script must return a CEO-readable summary and fail soft');
+  }
+}
 
 const facebookSkill = readText('skills/operations/facebook-image.md');
 if (/workspace\/read\?path=cron-api-token\.txt/i.test(facebookSkill)) {

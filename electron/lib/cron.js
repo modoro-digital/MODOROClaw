@@ -362,6 +362,64 @@ const legacyCustomCronsPaths = [
   path.join(ctx.HOME, '.openclaw', 'workspace', 'custom-crons.json'),
 ];
 
+function repairJsonControlCharsInStrings(raw) {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < String(raw || '').length; i++) {
+    const ch = raw[i];
+    const code = ch.charCodeAt(0);
+    if (!inString) {
+      out += ch;
+      if (ch === '"') inString = true;
+      continue;
+    }
+    if (escaped) {
+      out += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      out += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      out += ch;
+      inString = false;
+      continue;
+    }
+    if (code >= 0 && code < 0x20) {
+      if (ch === '\n') out += '\\n';
+      else if (ch === '\r') out += '\\r';
+      else if (ch === '\t') out += '\\t';
+      else out += ' ';
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+function parseCustomCronsJson(raw) {
+  const cleanRaw = String(raw || '').replace(/^\uFEFF/, '');
+  try {
+    const parsed = JSON.parse(cleanRaw);
+    if (!Array.isArray(parsed)) throw new Error('custom-crons.json must be an array, got ' + typeof parsed);
+    return { parsed, repaired: false };
+  } catch (firstErr) {
+    const repairedRaw = repairJsonControlCharsInStrings(cleanRaw);
+    if (repairedRaw === cleanRaw) throw firstErr;
+    try {
+      const parsed = JSON.parse(repairedRaw);
+      if (!Array.isArray(parsed)) throw new Error('custom-crons.json must be an array, got ' + typeof parsed);
+      return { parsed, repaired: true, originalError: firstErr.message };
+    } catch {
+      throw firstErr;
+    }
+  }
+}
+
 function loadSchedules() {
   const schedulesPath = getSchedulesPath();
   try {
@@ -1148,9 +1206,22 @@ function loadCustomCrons() {
     if (fs.existsSync(customCronsPath)) {
       const raw = fs.readFileSync(customCronsPath, 'utf-8');
       try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) {
-          throw new Error('custom-crons.json must be an array, got ' + typeof parsed);
+        const parsedResult = parseCustomCronsJson(raw);
+        const parsed = parsedResult.parsed;
+        let needsWriteback = false;
+        const writebackReasons = [];
+        if (parsedResult.repaired) {
+          const backupPath = customCronsPath + '.repair-backup-' + Date.now();
+          try { fs.copyFileSync(customCronsPath, backupPath); } catch {}
+          needsWriteback = true;
+          writebackReasons.push('repaired raw control characters in string values');
+          console.warn(`[custom-crons] auto-repaired JSON control characters in ${customCronsPath}. Backup: ${backupPath}`);
+          try {
+            const errFile = path.join(getWorkspace(), '.learnings', 'ERRORS.md');
+            fs.mkdirSync(path.dirname(errFile), { recursive: true });
+            fs.appendFileSync(errFile, `\n## ${new Date().toISOString()} — custom-crons.json auto-repaired\n\nOriginal error: ${parsedResult.originalError || 'invalid JSON'}\nBackup: ${backupPath}\nAction: Escaped raw control characters inside JSON string values and kept custom crons active.\n`, 'utf-8');
+          } catch {}
+          sendCeoAlert(`Custom cron bị lỗi JSON do nội dung có ký tự xuống dòng chưa được escape. Hệ thống đã tự sửa file và giữ lịch custom tiếp tục chạy. Bản gốc đã được backup: ${path.basename(backupPath)}.`).catch((e) => { console.error('[loadCustomCrons] repair alert error:', e.message); });
         }
         const beforeLen = parsed.length;
         const cleaned = parsed.filter(c => !c || c.source !== 'openclaw');
@@ -1158,21 +1229,21 @@ function loadCustomCrons() {
         if (ocStripped > 0) {
           parsed.length = 0;
           Array.prototype.push.apply(parsed, cleaned);
-          _withCustomCronLock(async () => {
-            try {
-              writeJsonAtomic(customCronsPath, cleaned);
-              console.log(`[custom-crons] upgrade migration: stripped ${ocStripped} OpenClaw-merged entries`);
-            } catch (e) { console.warn('[custom-crons] migration writeback failed:', e.message); }
-          }).catch(() => {});
+          needsWriteback = true;
+          writebackReasons.push(`stripped ${ocStripped} OpenClaw-merged entries`);
         }
         const wasHealed = healCustomCronEntries(parsed);
         if (wasHealed) {
+          needsWriteback = true;
+          writebackReasons.push('healed aliases/default fields');
+        }
+        if (needsWriteback) {
           const snapshot = JSON.parse(JSON.stringify(parsed));
           _withCustomCronLock(async () => {
             try {
               writeJsonAtomic(customCronsPath, snapshot);
-              console.log('[custom-crons] healed entries (alias/defaults) and rewrote file');
-            } catch (e) { console.warn('[custom-crons] heal-writeback failed:', e.message); }
+              console.log('[custom-crons] rewrote file after repair/migration: ' + writebackReasons.join('; '));
+            } catch (e) { console.warn('[custom-crons] repair-writeback failed:', e.message); }
           }).catch(() => {});
         }
         modoroEntries = parsed;
@@ -2096,6 +2167,7 @@ module.exports = {
   // Schedule management
   getSchedulesPath, getCustomCronsPath,
   loadSchedules, loadCustomCrons,
+  repairJsonControlCharsInStrings, parseCustomCronsJson,
   loadDailySummaries, generateWeeklySummary, loadWeeklySummaries,
   loadPromptTemplate,
   // Prompt builders
