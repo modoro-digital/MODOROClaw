@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- MODOROClaw needs these entitlements because Electron's main process spawns
+    <!-- 9BizClaw needs these entitlements because Electron's main process spawns
          child processes (openclaw gateway, 9router, openzca listener) and needs to
          load native node modules (better-sqlite3) from outside the app bundle. -->
 
@@ -32,8 +32,5 @@
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
 
-    <!-- Allow inheriting these to child processes (openclaw, 9router, openzca subprocesses) -->
-    <key>com.apple.security.inherit</key>
-    <true/>
 </dict>
 </plist>
