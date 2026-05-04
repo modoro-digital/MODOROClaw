@@ -1,0 +1,19 @@
+# Huge dirs — exclude from deploy
+vendor/
+dist/
+docs/
+scripts/
+skills/
+memory/
+logs/
+.learnings/
+knowledge/
+
+# Exclude electron (Windows app, large)
+electron/
+
+# Exclude local node_modules (Vercel reinstalls them)
+app/node_modules/
+
+# Exclude large config dirs
+packages/

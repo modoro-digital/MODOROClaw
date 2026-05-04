@@ -115,3 +115,5 @@ graphify-out/
 # Root package.json (app is in electron/)
 /package.json
 /package-lock.json
+.vercel
+app/.next/
