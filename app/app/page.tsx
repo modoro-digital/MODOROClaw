@@ -253,12 +253,14 @@ export default function Dashboard() {
   const fetchKeys = useCallback(async () => {
     setLoadingKeys(true)
     try {
-      const res = await fetch('/api/keys/list', { redirect: 'manual' })
-      // redirect: 'manual' prevents fetch from following the redirect
-      // if redirected (307/302) → unauthenticated; if 401 → also unauthenticated
-      if (res.status === 307 || res.status === 302 || res.status === 301) {
-        setAuthenticated(false); return
-      }
+      // First check session validity via /api/auth/check
+      const checkRes = await fetch('/api/auth/check')
+      if (checkRes.status !== 200) { setAuthenticated(false); return }
+      const checkData = await checkRes.json()
+      if (!checkData.ok) { setAuthenticated(false); return }
+
+      // Session valid — fetch license keys
+      const res = await fetch('/api/keys/list')
       if (res.status === 401) { setAuthenticated(false); return }
       const json = await res.json()
       setData(json); setAuthenticated(true)

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getIronSession } from 'iron-session'
-import { sessionOptions } from '@/lib/session'
 
 export async function POST(req: NextRequest) {
   const res = NextResponse.json({ ok: true })
-  const session = await getIronSession(req, res, sessionOptions)
-  session.destroy()
+  res.cookies.set('claw_session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  })
   return res
 }
