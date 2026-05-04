@@ -1,0 +1,5 @@
+Remove redundant root middleware.ts (Edge Middleware lives at app/middleware.ts)
+
+Vercel rootDirectory: "app" means root middleware.ts is never used but
+still gets bundled into the Edge Middleware build, causing potential
+conflicts with app/middleware.ts.
