@@ -263,7 +263,14 @@ export default function Dashboard() {
       const res = await fetch('/api/keys/list')
       if (res.status === 401) { setAuthenticated(false); return }
       const json = await res.json()
-      setData(json); setAuthenticated(true)
+      // Handle backend error (e.g. Supabase unreachable)
+      if (json.error) {
+        setToast({ msg: json.error + ' (kiem tra Supabase env var tren Vercel)', type: 'error' })
+        setData({ licenses: [], revoked: [] })
+      } else {
+        setData(json)
+      }
+      setAuthenticated(true)
     } catch { setAuthenticated(false) }
     finally { setLoadingKeys(false); setChecking(false) }
   }, [])
