@@ -27,7 +27,7 @@ export async function GET() {
     try { revoked = JSON.parse(revokedRes.body) } catch {}
     return NextResponse.json({ licenses, revoked })
   } catch (err: any) {
-    console.error('[api/keys/list]', err)
+    console.error('[api/keys/list] Error:', err?.message, String(err).slice(0, 200))
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })
   }
 }
