@@ -5363,7 +5363,7 @@
       const statusEl = document.getElementById('tg-modal-status');
       if (tokenEl) { tokenEl.value = ''; tokenEl.placeholder = _tgCfgCache.botToken || 'Nhập Bot Token'; }
       if (uidEl) uidEl.value = _tgCfgCache.allowFrom?.length ? String(_tgCfgCache.allowFrom[0]) : '';
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl) statusEl.textContent = _tgCfgCache.botTokenSet ? 'Để trống Bot Token nếu chỉ đổi User ID.' : '';
       modal.classList.add('show');
       mountIcons();
     }
@@ -5378,20 +5378,34 @@
       const statusEl = document.getElementById('tg-modal-status');
       const token = document.getElementById('tg-modal-token')?.value?.trim();
       const uid = document.getElementById('tg-modal-uid')?.value?.trim();
-      if (!token || !uid) {
-        if (statusEl) statusEl.textContent = 'Vui lòng nhập cả Token và User ID';
+      const hasSavedToken = !!_tgCfgCache.botTokenSet;
+      if (!uid) {
+        if (statusEl) statusEl.textContent = 'Vui lòng nhập User ID';
+        return;
+      }
+      if (!token && !hasSavedToken) {
+        if (statusEl) statusEl.textContent = 'Vui lòng nhập Bot Token lần đầu';
         return;
       }
       btn.disabled = true;
       if (statusEl) statusEl.textContent = 'Đang kiểm tra...';
       try {
-        const test = await window.claw.testTelegram(token, uid);
+        const tokenForTest = token || undefined;
+        const test = await window.claw.testTelegram(tokenForTest, uid);
         if (!test?.success) {
-          if (statusEl) statusEl.textContent = 'Token hoặc User ID không hợp lệ. Kiểm tra lại.';
+          const errText = String(test?.error || '');
+          if (/bots can.?t send messages to bots/i.test(errText)) {
+            if (statusEl) statusEl.textContent = 'User ID đang là ID của bot. Hãy nhập ID tài khoản người dùng, không phải bot.';
+          } else if (/chat not found/i.test(errText)) {
+            if (statusEl) statusEl.textContent = 'User ID chưa từng nhắn /start với bot này hoặc không tồn tại.';
+          } else {
+            if (statusEl) statusEl.textContent = 'Token hoặc User ID không hợp lệ. Kiểm tra lại.';
+          }
           btn.disabled = false;
           return;
         }
-        const r = await window.claw.saveTelegramConfig(token, uid);
+        const tokenForSave = token || undefined;
+        const r = await window.claw.saveTelegramConfig(tokenForSave, uid);
         if (r?.success) {
           showToast('Đã lưu tài khoản Telegram', 'success');
           closeTgChangeModal();

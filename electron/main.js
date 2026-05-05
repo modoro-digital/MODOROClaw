@@ -10955,10 +10955,15 @@ ipcMain.handle('save-telegram-config', async (_e, { botToken, userId }) => {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       if (!config.channels) config.channels = {};
       if (!config.channels.telegram) config.channels.telegram = {};
-      if (botToken !== undefined) config.channels.telegram.botToken = botToken;
+      if (typeof botToken === 'string' && botToken.trim()) config.channels.telegram.botToken = botToken.trim();
       if (userId !== undefined) {
         const uid = parseInt(userId, 10);
-        if (!isNaN(uid) && uid > 0) config.channels.telegram.allowFrom = [uid];
+        if (!isNaN(uid) && uid > 0) {
+          config.channels.telegram.allowFrom = [uid];
+          persistStickyChatId(config.channels.telegram.botToken, uid);
+        } else {
+          return { success: false, error: 'invalid_user_id' };
+        }
       }
       writeOpenClawConfigIfChanged(configPath, config);
       return { success: true };
@@ -16211,20 +16216,31 @@ ipcMain.handle('delete-document', async (_event, filename) => {
 ipcMain.handle('test-telegram', async (_event, { token, chatId }) => {
   return new Promise((resolve) => {
     const https = require('https');
+    const resolvedToken = (typeof token === 'string' && token.trim()) || getTelegramConfig().token;
+    const resolvedChatId = String(chatId || '').trim();
+    if (!resolvedToken || !resolvedChatId) {
+      resolve({ success: false, error: 'missing_token_or_user_id' });
+      return;
+    }
     const payload = JSON.stringify({
-      chat_id: chatId, text: '9BizClaw — Kết nối thành công!', parse_mode: 'Markdown',
+      chat_id: resolvedChatId, text: '9BizClaw — Kết nối thành công!', parse_mode: 'Markdown',
     });
     const req = https.request(
-      `https://api.telegram.org/bot${token}/sendMessage`,
+      `https://api.telegram.org/bot${resolvedToken}/sendMessage`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' } },
       (res) => {
         let data = '';
         res.on('data', (c) => (data += c));
-        res.on('end', () => { try { resolve({ success: JSON.parse(data).ok }); } catch { resolve({ success: false }); } });
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve({ success: !!parsed.ok, error: parsed.ok ? undefined : (parsed.description || 'telegram_api_error') });
+          } catch { resolve({ success: false, error: 'invalid_telegram_response' }); }
+        });
       }
     );
-    req.on('error', () => resolve({ success: false }));
-    req.setTimeout(10000, () => { req.destroy(); resolve({ success: false }); });
+    req.on('error', (e) => resolve({ success: false, error: e?.message || 'network_error' }));
+    req.setTimeout(10000, () => { req.destroy(); resolve({ success: false, error: 'timeout' }); });
     req.write(payload);
     req.end();
   });
