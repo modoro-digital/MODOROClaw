@@ -1,5 +1,8 @@
-Remove redundant root middleware.ts (Edge Middleware lives at app/middleware.ts)
+fix: add missing lib/compact.js stub + fix Mac build workflow vendor model
 
-Vercel rootDirectory: "app" means root middleware.ts is never used but
-still gets bundled into the Edge Middleware build, causing potential
-conflicts with app/middleware.ts.
+- Add electron/lib/compact.js: stub exports so main.js can require it.
+  Missing file caused "Cannot find module './lib/compact'" crash on startup.
+- build-mac-release.yml: add prepare-vendor job (runs on ubuntu-latest,
+  downloads embedding model via prebuild-vendor) then uploads vendor/ as
+  artifact. Mac build jobs download and reuse it, fixing smoke failure
+  "vendor dir extraction sentinels missing model files".

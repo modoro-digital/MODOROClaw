@@ -30,9 +30,36 @@ permissions:
   contents: write
 
 jobs:
+  prepare-vendor:
+    name: Prepare vendor bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Build vendor bundle (includes embedding model)
+        working-directory: electron
+        env:
+          TARGET_PLATFORM: darwin
+          TARGET_ARCH: arm64
+        run: npm run prebuild:vendor
+
+      - name: Upload vendor directory
+        uses: actions/upload-artifact@v5
+        with:
+          name: vendor-bundle
+          path: electron/vendor/
+          retention-days: 2
+
   build:
     name: Build ${{ matrix.arch }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
+    needs: prepare-vendor
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -51,6 +78,12 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
+
+      - name: Download vendor bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: vendor-bundle
+          path: electron/vendor/
 
       - name: Print env
         run: |
@@ -158,16 +191,6 @@ jobs:
       - name: Prebuild modoro-zalo plugin
         working-directory: electron
         run: npm run prebuild:modoro-zalo
-
-      - name: Prebuild vendor bundle
-        working-directory: electron
-        env:
-          TARGET_ARCH: ${{ matrix.arch }}
-          TARGET_PLATFORM: darwin
-          npm_config_arch: ${{ matrix.arch }}
-          npm_config_target_arch: ${{ matrix.arch }}
-          npm_config_target_platform: darwin
-        run: npm run prebuild:vendor
 
       - name: Run smoke guards
         working-directory: electron
@@ -362,16 +385,16 @@ jobs:
           body: |
             ## 9BizClaw Premium — macOS Release
 
-            **Tải file `.dmg` phù hợp với máy Mac của bạn:**
-            - **Apple Silicon (M1/M2/M3/M4)**: file có chữ `arm64`
-            - **Intel Mac (cũ hơn 2020)**: file có chữ `x64`
+            **Tai file `.dmg` phu hop voi may Mac cua ban:**
+            - **Apple Silicon (M1/M2/M3/M4)**: file co chu `arm64`
+            - **Intel Mac (cu hon 2020)**: file co chu `x64`
 
-            **Cài đặt:**
+            **Cai dat:**
             1. Double-click file `.dmg`
-            2. Kéo icon **9BizClaw** vào thư mục **Applications**
-            3. Mở Launchpad hoặc Applications → click 9BizClaw
-            4. Lần đầu macOS có thể hỏi "bạn có muốn mở app từ internet?" → click **Open**
+            2. Keo icon **9BizClaw** vao thu muc **Applications**
+            3. Mo Launchpad hoac Applications → click 9BizClaw
+            4. Lan dau macOS co the hoi "ban co muon mo app tu internet?" → click **Open**
 
-            **Lần đầu chạy:** App sẵn sàng ngay — không cần tải thêm gì.
+            **Lan dau chay:** App san sang ngay — khong can tai them gi.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
