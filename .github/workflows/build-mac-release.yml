@@ -30,8 +30,8 @@ permissions:
   contents: write
 
 jobs:
-  prepare-vendor:
-    name: Prepare vendor bundle
+  prepare-vendor-arm64:
+    name: Prepare vendor bundle (arm64)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build vendor bundle (includes embedding model)
+      - name: Build vendor bundle (arm64 — includes embedding model)
         working-directory: electron
         env:
           TARGET_PLATFORM: darwin
@@ -52,14 +52,40 @@ jobs:
       - name: Upload vendor directory
         uses: actions/upload-artifact@v5
         with:
-          name: vendor-bundle
+          name: vendor-bundle-arm64
+          path: electron/vendor/
+          retention-days: 2
+
+  prepare-vendor-x64:
+    name: Prepare vendor bundle (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Build vendor bundle (x64 — includes embedding model)
+        working-directory: electron
+        env:
+          TARGET_PLATFORM: darwin
+          TARGET_ARCH: x64
+        run: npm run prebuild:vendor
+
+      - name: Upload vendor directory
+        uses: actions/upload-artifact@v5
+        with:
+          name: vendor-bundle-x64
           path: electron/vendor/
           retention-days: 2
 
   build:
     name: Build ${{ matrix.arch }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
-    needs: prepare-vendor
+    needs: [prepare-vendor-arm64, prepare-vendor-x64]
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -79,10 +105,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Download vendor bundle
+      - name: Download vendor bundle (${{ matrix.arch }})
         uses: actions/download-artifact@v5
         with:
-          name: vendor-bundle
+          name: vendor-bundle-${{ matrix.arch }}
           path: electron/vendor/
 
       - name: Print env
@@ -192,12 +218,11 @@ jobs:
         working-directory: electron
         run: npm run prebuild:modoro-zalo
 
-      # Vendor is already pre-built by the "prepare-vendor" job (runs on Ubuntu,
-      # downloads the 2 GB embedding model, uploads as artifact). Downloading the
-      # artifact into electron/vendor/ satisfies the smoke-test sentinel checks.
-      # Do NOT run prebuild:vendor here again — it would re-download node + npm
-      # install the vendor packages from scratch, overwriting the artifact with
-      # a freshly-built (but potentially arch-mismatched) copy.
+      # Vendor is pre-built per-arch by "prepare-vendor-arm64" / "prepare-vendor-x64"
+      # jobs (run on Ubuntu, download the embedding model). Each build job downloads
+      # its matching vendor-bundle-<arch> artifact. Do NOT run prebuild:vendor here
+      # again — it would re-download node + npm install from scratch, overwriting the
+      # artifact with a freshly-built (but potentially arch-mismatched) copy.
       # Tell prebuild-vendor.js to skip its work when SKIP_VENDOR_PREBUILD=1.
       - name: Run smoke guards
         working-directory: electron
