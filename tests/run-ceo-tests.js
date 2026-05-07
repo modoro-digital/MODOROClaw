@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MODOROClaw CEO Test Runner — v2.3.48
+ * 9BizClaw CEO Test Runner — v2.3.48
  * Tests 100 cases against live running instance.
  * Categories: file structure, config, bot rules, channels, defense, FB, cron, knowledge, security
  */

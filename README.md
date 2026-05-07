@@ -164,4 +164,4 @@ cd 9BizClaw
 
 ## License
 
-Proprietary · MODORO Tech Corp
+Proprietary · 9Biz

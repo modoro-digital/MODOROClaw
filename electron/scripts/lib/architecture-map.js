@@ -64,6 +64,12 @@ function collectApiRoutes() {
     addRoute(routeMap, '/api/google' + match[1], googleRel, 'google-api');
   }
 
+  const fbSchedRel = 'electron/lib/fb-schedule.js';
+  const fbSched = readText(fbSchedRel);
+  for (const match of fbSched.matchAll(/urlPath\s*===\s*['"`](\/api\/[A-Za-z0-9_./-]+)['"`]/g)) {
+    addRoute(routeMap, match[1], fbSchedRel, 'fb-schedule-api');
+  }
+
   return [...routeMap.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 

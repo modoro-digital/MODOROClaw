@@ -41,7 +41,7 @@
 
 ### C. Patch/ensure function
 
-- [ ] Function có marker idempotent (VD: `// === MODOROClaw XXX PATCH ===`)
+- [ ] Function có marker idempotent (VD: `// === 9BizClaw XXX PATCH ===`)
 - [ ] Được gọi trong `_startOpenClawImpl()` — chạy mỗi lần boot
 - [ ] Nếu patch openclaw dist: thêm anchor check vào `smoke-test.js`
 - [ ] Fresh-install safe: KHÔNG giả định file đã tồn tại trước

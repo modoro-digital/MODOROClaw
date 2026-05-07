@@ -1,5 +1,5 @@
 /**
- * MODOROClaw Capability Verifier v2
+ * 9BizClaw Capability Verifier v2
  * Sends test prompts via Telegram, waits for bot response, checks against expected behavior.
  * Usage: node scripts/verify-capabilities.js
  *
@@ -189,7 +189,7 @@ const tests = [
 // ─── Runner ──────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('=== MODOROClaw Capability Verifier v2 ===');
+  console.log('=== 9BizClaw Capability Verifier v2 ===');
   console.log(`Telegram Bot: ${TOKEN.slice(0, 10)}... | Chat ID: ${CHAT_ID}`);
   console.log(`Tests: ${tests.length}\n`);
 

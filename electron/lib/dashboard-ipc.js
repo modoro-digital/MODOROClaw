@@ -2149,7 +2149,7 @@ ipcMain.handle('get-schedules', async () => {
 });
 
 ipcMain.handle('get-custom-crons', async () => {
-  // Merge MODOROClaw custom-crons.json + OpenClaw built-in cron/jobs.json.
+  // Merge 9BizClaw custom-crons.json + OpenClaw built-in cron/jobs.json.
   // The bot creates crons via OpenClaw's `cron` tool (saved to
   // ~/.openclaw/cron/jobs.json), NOT to custom-crons.json. The Dashboard
   // previously only read custom-crons.json, so bot-created crons were
@@ -2164,7 +2164,7 @@ ipcMain.handle('get-custom-crons', async () => {
       const jobs = Array.isArray(raw?.jobs) ? raw.jobs : [];
       for (const j of jobs) {
         if (!j || !j.id) continue;
-        // Map OpenClaw cron format → MODOROClaw display format
+        // Map OpenClaw cron format → 9BizClaw display format
         const schedExpr = j.schedule?.expr || j.schedule?.at || '';
         const kind = j.schedule?.kind || 'cron';
         let displayTime = schedExpr;
@@ -2193,14 +2193,14 @@ ipcMain.handle('get-custom-crons', async () => {
   } catch (e) {
     console.warn('[get-custom-crons] failed to read OpenClaw cron/jobs.json:', e?.message);
   }
-  // Merge: OpenClaw entries first (they're the ones bot created), then MODOROClaw
+  // Merge: OpenClaw entries first (they're the ones bot created), then 9BizClaw
   return [...openclawEntries, ...modoroEntries];
 });
 
 ipcMain.handle('save-custom-crons', async (_event, crons) => {
   try {
     if (!Array.isArray(crons)) return { success: false, error: 'crons must be an array' };
-    // CRIT #7: Dashboard `get-custom-crons` merges MODOROClaw crons with
+    // CRIT #7: Dashboard `get-custom-crons` merges 9BizClaw crons with
     // OpenClaw-sourced entries (source:'openclaw' — bot-created crons read
     // from ~/.openclaw/agents/main/jobs.json). FE passes the merged array back
     // on any toggle/delete. If we wrote it verbatim, those OpenClaw entries

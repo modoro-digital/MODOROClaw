@@ -1,4 +1,4 @@
-# Hướng Dẫn Nhanh — Trợ Lý AI MODOROClaw
+# Hướng Dẫn Nhanh — Trợ Lý AI 9BizClaw
 
 ## Bạn có gì?
 
@@ -42,4 +42,4 @@ Trợ lý tự động theo dõi tin nhắn Zalo OA. Khi khách hàng/nhân viê
 
 ## Cần hỗ trợ?
 
-Liên hệ MODORO Tech: support@modoro.tech | Website: https://modoro.tech
+Liên hệ 9Biz: support@modoro.tech | Website: https://modoro.tech

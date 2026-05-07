@@ -1,4 +1,4 @@
-// MODOROClaw License Server — Cloudflare Worker
+// 9BizClaw License Server — Cloudflare Worker
 // KV binding: LICENSE_KV, Secret: ADMIN_SECRET
 
 const KEY_CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';

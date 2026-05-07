@@ -1,7 +1,7 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 80,
+    "apiRoutes": 91,
     "ipcHandlers": 155,
     "preloadBridges": 147,
     "dashboardPages": 14,
@@ -123,6 +123,105 @@
       ],
       "kinds": [
         "local-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/approve",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/create",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/delete",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/edit-caption",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/list",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/pending",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/regenerate",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/reject",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/trigger-generate",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/update",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
       ]
     },
     {
@@ -2176,19 +2275,19 @@
   "largeSourceFiles": [
     {
       "path": "electron/ui/dashboard.html",
-      "bytes": 520252
+      "bytes": 520244
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 227598
+      "bytes": 227590
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 103613
+      "bytes": 104271
     },
     {
       "path": "electron/lib/cron-api.js",
-      "bytes": 99229
+      "bytes": 99472
     },
     {
       "path": "electron/ui/wizard.html",
@@ -2196,7 +2295,7 @@
     },
     {
       "path": "electron/lib/channels.js",
-      "bytes": 80734
+      "bytes": 80732
     },
     {
       "path": "electron/lib/knowledge.js",
@@ -2216,19 +2315,23 @@
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 44069
+      "bytes": 44067
     },
     {
       "path": "electron/lib/nine-router.js",
-      "bytes": 38510
+      "bytes": 38508
     },
     {
       "path": "electron/lib/boot.js",
-      "bytes": 37953
+      "bytes": 37951
+    },
+    {
+      "path": "electron/lib/fb-schedule.js",
+      "bytes": 37304
     },
     {
       "path": "electron/lib/zalo-plugin.js",
-      "bytes": 34972
+      "bytes": 34970
     },
     {
       "path": "electron/lib/vendor-patches.js",

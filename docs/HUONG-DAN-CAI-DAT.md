@@ -1,6 +1,6 @@
-# Hướng Dẫn Cài Đặt MODOROClaw Cho Khách Hàng
+# Hướng Dẫn Cài Đặt 9BizClaw Cho Khách Hàng
 
-> Tài liệu nội bộ MODORO Tech Corp. Dành cho nhân viên kỹ thuật khi đi setup máy cho khách hàng.
+> Tài liệu nội bộ 9Biz. Dành cho nhân viên kỹ thuật khi đi setup máy cho khách hàng.
 >
 > Tổng thời gian ước tính: **30-45 phút** (bao gồm cả thời gian chờ cài đặt npm).
 
@@ -12,7 +12,7 @@
 
 Trước khi đến nơi khách hàng, cần chuẩn bị sẵn những thứ sau:
 
-### 1. Copy folder MODOROClaw vào USB
+### 1. Copy folder 9BizClaw vào USB
 
 - Copy toàn bộ folder `claw` (bao gồm tất cả file và subfolder) vào USB.
 - Đảm bảo USB có ít nhất **500MB** dung lượng trống.
@@ -23,11 +23,11 @@ Có 3 mã cài đặt hợp lệ (nhập mã nào cũng được, không phân b
 
 | Mã cài đặt | Ghi chú |
 |---|---|
-| `MODORO-2026` | Mã chính |
-| `MODORO-INSTALL` | Mã dự phòng 1 |
-| `MODORO-SETUP` | Mã dự phòng 2 |
+| `9BIZ-2026` | Mã chính |
+| `9BIZ-INSTALL` | Mã dự phòng 1 |
+| `9BIZ-SETUP` | Mã dự phòng 2 |
 
-> **Lưu ý:** Khi nhập, hệ thống tự động chuyển thành CHỮ HOA trước khi kiểm tra. Vậy nên nhập `modoro-2026` hay `MODORO-2026` đều được.
+> **Lưu ý:** Khi nhập, hệ thống tự động chuyển thành CHỮ HOA trước khi kiểm tra. Vậy nên nhập `9biz-2026` hay `9BIZ-2026` đều được.
 
 ### 3. Chuẩn bị tài khoản Telegram cho khách
 
@@ -76,18 +76,18 @@ Hỏi khách trước hoặc in phiếu để khách điền:
 4. Cửa sổ CMD sẽ hiện ra. Chờ đợi:
    - Nếu máy chưa có Node.js → hệ thống tự tải và cài (mất thêm 2-3 phút).
    - Nếu chưa có `node_modules` → hệ thống chạy `npm install` lần đầu (mất 1-2 phút).
-5. Sau đó, cửa sổ **MODOROClaw** sẽ hiện lên với màn hình "Cài đặt lần đầu".
+5. Sau đó, cửa sổ **9BizClaw** sẽ hiện lên với màn hình "Cài đặt lần đầu".
 
 [Ảnh: Màn hình "Cài đặt lần đầu" với ô nhập mã cài đặt]
 
 ### 1.3. Nhập mã cài đặt
 
-1. Nhập một trong các mã: `MODORO-2026`, `MODORO-INSTALL`, hoặc `MODORO-SETUP`.
+1. Nhập một trong các mã: `9BIZ-2026`, `9BIZ-INSTALL`, hoặc `9BIZ-SETUP`.
 2. Nhấn **Xác nhận**.
 
 [Ảnh: Ô nhập mã cài đặt]
 
-- Nếu sai mã → hiện thông báo đỏ "Mã cài đặt không đúng. Liên hệ MODORO để nhận mã."
+- Nếu sai mã → hiện thông báo đỏ "Mã cài đặt không đúng. Liên hệ 9Biz để nhận mã."
 - Nếu đúng → hiện nút "Cài đặt tự động".
 
 ### 1.4. Nhấn "Cài đặt tự động" và chờ đợi
@@ -118,7 +118,7 @@ Sau khi cài đặt xong và app khởi động lại, màn hình Wizard hiện 
 
 ### Màn hình 1/6: Thông tin cơ bản
 
-[Ảnh: Màn hình "Chào mừng đến với MODOROClaw!" với các ô nhập]
+[Ảnh: Màn hình "Chào mừng đến với 9BizClaw!" với các ô nhập]
 
 Điền các thông tin sau:
 
@@ -169,14 +169,14 @@ Nhấn **Tiếp tục**.
 
 #### Bước 3.2: Lấy API Key
 
-1. Quay lại app MODOROClaw, nhấn nút **Mở trang API Keys** → trình duyệt mở ra trang ollama.com/settings/keys.
+1. Quay lại app 9BizClaw, nhấn nút **Mở trang API Keys** → trình duyệt mở ra trang ollama.com/settings/keys.
 2. Nhấn nút **New API Key** màu xanh.
-3. Đặt tên bất kỳ (ví dụ: "MODOROClaw") → nhấn **Create**.
+3. Đặt tên bất kỳ (ví dụ: "9BizClaw") → nhấn **Create**.
 4. Một dòng key dài hiện ra (dạng `sk-...` hoặc tương tự) → **Copy toàn bộ dòng key đó**.
 
 [Ảnh: Trang API Keys của Ollama với nút New API Key và dòng key vừa tạo]
 
-5. Quay lại app MODOROClaw, dán key vào ô **"Dán Ollama API Key vào đây"**.
+5. Quay lại app 9BizClaw, dán key vào ô **"Dán Ollama API Key vào đây"**.
 
 #### Bước 3.3: Thiết lập AI tự động
 
@@ -217,13 +217,13 @@ Làm trên điện thoại hoặc máy tính của khách:
 2. Tìm kiếm **@BotFather** (có dấu tích xanh).
 3. Nhấn **Start** hoặc gửi `/start`.
 4. Gửi tin nhắn: `/newbot`
-5. BotFather hỏi tên bot → nhập tên, ví dụ: `Tro Ly MODORO`
+5. BotFather hỏi tên bot → nhập tên, ví dụ: `Tro Ly 9Biz`
 6. BotFather hỏi username → nhập tên không dấu, kết thúc bằng `bot`, ví dụ: `modoro_assistant_bot`
 7. BotFather gửi lại một **dòng token rất dài** dạng: `7123456789:AAHk5...` → **Copy toàn bộ dòng đó**.
 
 [Ảnh: Cuộc trò chuyện với BotFather, highlight dòng token]
 
-8. Quay lại app MODOROClaw, dán token vào ô **"Dán Bot Token vào đây"**.
+8. Quay lại app 9BizClaw, dán token vào ô **"Dán Bot Token vào đây"**.
 
 #### Bước 4.2: Lấy User ID của khách
 
@@ -235,7 +235,7 @@ Vẫn trên Telegram của khách:
 
 [Ảnh: Cuộc trò chuyện với @userinfobot, highlight dãy số User ID]
 
-4. Quay lại app MODOROClaw, dán vào ô **"Dán User ID vào đây"** (chỉ gồm số, ví dụ: `123456789`).
+4. Quay lại app 9BizClaw, dán vào ô **"Dán User ID vào đây"** (chỉ gồm số, ví dụ: `123456789`).
 
 #### Bước 4.3: Test kết nối
 
@@ -243,7 +243,7 @@ Vẫn trên Telegram của khách:
 
 1. Trên Telegram của khách, tìm bot vừa tạo (tên đã đặt ở bước 4.1).
 2. Gửi tin nhắn `/start` cho bot đó.
-3. Quay lại app MODOROClaw, nhấn nút **Test kết nối Telegram**.
+3. Quay lại app 9BizClaw, nhấn nút **Test kết nối Telegram**.
 4. Nếu thành công → hiện xanh "Thành công! Kiểm tra Telegram — bot vừa gửi tin nhắn cho bạn."
 5. Kiểm tra Telegram của khách — phải thấy tin nhắn từ bot.
 
@@ -270,10 +270,10 @@ Nhấn **Tiếp tục**.
 
 #### Bước 5.1: Quét QR đăng nhập Zalo
 
-1. Nhấn nút **Đăng nhập Zalo** trong app MODOROClaw.
+1. Nhấn nút **Đăng nhập Zalo** trong app 9BizClaw.
 2. Chờ vài giây → mã QR hiện ra trên màn hình.
 
-[Ảnh: Mã QR Zalo hiện trong app MODOROClaw]
+[Ảnh: Mã QR Zalo hiện trong app 9BizClaw]
 
 3. Mở app **Zalo trên điện thoại** của khách.
 4. Vào phần **Quét QR** (góc trên bên phải màn hình chính của Zalo).
@@ -328,7 +328,7 @@ Sau khi wizard hoàn tất và Dashboard hiện lên, cần upload tài liệu c
 
 ### 6.1. Mở Dashboard → Knowledge
 
-1. Trong app MODOROClaw, click vào tab **Knowledge** trên sidebar.
+1. Trong app 9BizClaw, click vào tab **Knowledge** trên sidebar.
 2. Có 3 danh mục: **Công ty**, **Sản phẩm**, **Nhân viên**.
 
 ### 6.2. Upload tài liệu công ty
@@ -366,7 +366,7 @@ Sau khi wizard hoàn tất và Dashboard hiện lên, cần upload tài liệu c
 [Ảnh: Bot trả lời tin nhắn trên Telegram]
 
 **Nếu bot không trả lời:**
-- Kiểm tra Dashboard trên app MODOROClaw → phải hiện "Đang chạy" (trạng thái xanh).
+- Kiểm tra Dashboard trên app 9BizClaw → phải hiện "Đang chạy" (trạng thái xanh).
 - Nếu hiện "Đã dừng" → nhấn nút khởi động lại.
 - Xem log: mở file `claw\logs\openclaw.log` để kiểm tra lỗi.
 
@@ -406,10 +406,10 @@ Giải thích cho khách:
 
 ### 8.2. Những điều khách cần biết
 
-- **Máy tính phải bật:** Bot chỉ hoạt động khi máy tính bật và app MODOROClaw đang chạy.
+- **Máy tính phải bật:** Bot chỉ hoạt động khi máy tính bật và app 9BizClaw đang chạy.
 - **Internet:** Cần có kết nối internet để bot hoạt động.
 - **Cập nhật thông tin:** Khi có sản phẩm mới hoặc thay đổi giá, upload PDF mới vào Dashboard → Knowledge. Bot tự cập nhật.
-- **Liên hệ hỗ trợ:** Nếu có vấn đề, liên hệ MODORO qua [điền kênh hỗ trợ của MODORO].
+- **Liên hệ hỗ trợ:** Nếu có vấn đề, liên hệ 9Biz qua [điền kênh hỗ trợ của 9Biz].
 
 ### 8.3. Để lại cho khách
 
@@ -427,7 +427,7 @@ Giải thích cho khách:
 | Lỗi | Nguyên nhân | Cách fix |
 |---|---|---|
 | **RUN.bat flash rồi đóng** | Chưa có Node.js và không tải được | Cài Node.js thủ công từ https://nodejs.org (chọn bản LTS), rồi chạy lại RUN.bat |
-| **"Mã cài đặt không đúng"** | Nhập sai mã | Thử lại: `MODORO-2026`, `MODORO-INSTALL`, hoặc `MODORO-SETUP` |
+| **"Mã cài đặt không đúng"** | Nhập sai mã | Thử lại: `9BIZ-2026`, `9BIZ-INSTALL`, hoặc `9BIZ-SETUP` |
 | **Cài đặt bị treo** | Mạng yếu hoặc bị firewall chặn | Kiểm tra internet. Thử tắt firewall/antivirus tạm thời rồi chạy lại |
 | **"Cài xong nhưng không tìm thấy openclaw"** | PATH chưa cập nhật | Đóng app, đóng CMD, chạy lại RUN.bat. Nếu vẫn lỗi, restart máy rồi thử lại |
 | **Thiết lập AI thất bại** | Ollama API key sai hoặc hết hạn | Vào ollama.com/settings/keys, tạo key mới, dán lại |
@@ -455,7 +455,7 @@ Giải thích cho khách:
 - **OpenClaw config:** `%USERPROFILE%\.openclaw\openclaw.json`
 - **9Router config:** `%APPDATA%\9router\db.json`
 
-Mở các file log bằng Notepad để xem lỗi chi tiết. Chụp màn hình gửi cho đội kỹ thuật MODORO nếu cần hỗ trợ.
+Mở các file log bằng Notepad để xem lỗi chi tiết. Chụp màn hình gửi cho đội kỹ thuật 9Biz nếu cần hỗ trợ.
 
 ---
 
@@ -472,7 +472,7 @@ USB copy folder claw vào Desktop
          |
     Màn hình "Cài đặt lần đầu"
          |
-    Nhập mã: MODORO-2026
+    Nhập mã: 9BIZ-2026
          |
     Nhấn "Cài đặt tự động" → cài openclaw, 9router, openzca (2-5 phút)
          |
@@ -497,4 +497,4 @@ USB copy folder claw vào Desktop
 
 ---
 
-*Tài liệu này được tạo bởi MODORO Tech Corp. Phiên bản: 2026-04-06.*
+*Tài liệu này được tạo bởi 9Biz. Phiên bản: 2026-04-06.*

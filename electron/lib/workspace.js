@@ -518,7 +518,7 @@ function seedWorkspace() {
 
   // Zalo per-user memory dir (bot writes <senderId>.md per customer).
   // Bot's actual workspace is in openclaw.json -> agents.defaults.workspace,
-  // NOT MODOROClaw's getWorkspace(). Pre-create at BOTH locations so the
+  // NOT 9BizClaw's getWorkspace(). Pre-create at BOTH locations so the
   // Dashboard reader sees something even if openclaw.json isn't ready yet
   // on a fresh install (the agent-workspace one is the canonical one that
   // bot will actually use after wizard).

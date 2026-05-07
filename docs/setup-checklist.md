@@ -1,10 +1,10 @@
-# Checklist Thiết Lập MODOROClaw — Dành cho nhân viên MODORO
+# Checklist Thiết Lập 9BizClaw — Dành cho nhân viên 9Biz
 
 ## Chuẩn bị (trước khi gặp CEO)
 
 - [ ] Tạo VPS trên nhà cung cấp Việt Nam (Viettel IDC / FPT Cloud)
 - [ ] Cài đặt OpenClaw trên VPS
-- [ ] Clone MODOROClaw-Setup vào workspace OpenClaw
+- [ ] Clone 9BizClaw-Setup vào workspace OpenClaw
 - [ ] Cài plugin Telegram: `openclaw plugins install @openclaw/telegram`
 - [ ] Cài plugin Zalo: `openclaw plugins install @openclaw/zalo`
 
@@ -19,7 +19,7 @@
 ## Tạo Telegram Bot
 
 - [ ] Mở Telegram, tìm @BotFather
-- [ ] Gửi `/newbot`, đặt tên bot (ví dụ: "Trợ Lý MODORO")
+- [ ] Gửi `/newbot`, đặt tên bot (ví dụ: "Trợ Lý 9Biz")
 - [ ] Lưu Bot Token
 - [ ] CEO gửi tin nhắn đầu tiên cho bot
 - [ ] Lấy Chat ID của CEO (dùng `https://api.telegram.org/bot<TOKEN>/getUpdates`)

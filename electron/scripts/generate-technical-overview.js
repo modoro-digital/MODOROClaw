@@ -126,7 +126,7 @@ sections.push(
   new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 200 },
-    children: [new TextRun({ text: 'MODORO Tech Corp  |  Nội bộ — Không phát hành công khai', font: FONT, size: 20, color: '999999' })],
+    children: [new TextRun({ text: '9Biz  |  Nội bộ — Không phát hành công khai', font: FONT, size: 20, color: '999999' })],
   }),
   pageBreak(),
 );
@@ -526,7 +526,7 @@ sections.push(
   p('NSIS installer ship vendor-bundle.tar (~1.6 GB) thay vì 126,644 file nhỏ. First launch: SHA256 verify -> tar -xvf với progress bar (splash.html) -> ghi version stamp. Subsequent launches: skip. EXE ~370MB.'),
 
   h2('Mac: Signed + Notarized'),
-  p('DMG ship vendor/ directory trực tiếp (APFS drag-drop nhanh). Developer ID: MODORO Tech Corp, Team ID: UQKLW82B3A. Apple Notarized.'),
+  p('DMG ship vendor/ directory trực tiếp (APFS drag-drop nhanh). Developer ID: 9Biz, Team ID: UQKLW82B3A. Apple Notarized.'),
 
   h2('Windows: Chưa Ký'),
   p('EXE chưa có code signing certificate. Đây là lý do chính antivirus báo nhầm. Lộ trình: mua EV cert (~$240-500/năm).'),
@@ -651,7 +651,7 @@ sections.push(
 // ============================================================
 
 const doc = new Document({
-  creator: 'MODORO Tech Corp',
+  creator: '9Biz',
   title: '9BizClaw Technical Overview',
   description: 'Tài liệu kỹ thuật tổng hợp hệ thống 9BizClaw',
   styles: {

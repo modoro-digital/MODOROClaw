@@ -1,6 +1,6 @@
 # Pinned dependency versions
 
-MODOROClaw v2.4.0+ uses **runtime install** — packages are downloaded on first run instead of bundled in the EXE. This document tracks pinned versions for the runtime install process.
+9BizClaw v2.4.0+ uses **runtime install** — packages are downloaded on first run instead of bundled in the EXE. This document tracks pinned versions for the runtime install process.
 
 ## Current pinned versions
 
@@ -86,7 +86,7 @@ These are real bugs we hit. Pinning would have prevented all of them.
    - Send a Zalo message → bot replies in 1 message
    - Test "Báo cáo sáng" cron → bot generates real report from history
    - Verify config audit log: `tail ~/.openclaw/logs/config-audit.jsonl` — no `"Unrecognized key"` errors after 5 minutes of runtime
-6. **Bump MODOROClaw version** in `electron/package.json` (semver patch for non-breaking, minor for new behavior).
+6. **Bump 9BizClaw version** in `electron/package.json` (semver patch for non-breaking, minor for new behavior).
 7. **Build EXE/DMG** — smoke test runs automatically as pre-build hook.
 8. **Update this file** with new versions + add a row to the bug table if you fixed a known issue.
 9. **Ship**.
@@ -100,7 +100,7 @@ These are real bugs we hit. Pinning would have prevented all of them.
 ## When you SHOULD upgrade
 
 - Security CVE in current pinned version
-- Critical bug fix that affects MODOROClaw users
+- Critical bug fix that affects 9BizClaw users
 - New feature you actually need (and have committed to maintain)
 
 ## Future-proofing strategies (in priority order)
@@ -108,5 +108,5 @@ These are real bugs we hit. Pinning would have prevented all of them.
 1. **Smoke test** (DONE) — catches breakage at build time, not in production.
 2. **Defensive patching layer** (DONE) — `healOpenClawConfigInline`, `ensureXxxFix` re-apply on every boot.
 3. **Self-heal for unknown errors** (DONE) — schema healer parses 3 error formats, strips unknown bad keys.
-4. **Fork strategically** — when MODOROClaw has 50+ paying users, fork `openzca` (Zalo reverse-engineer) to own the most critical path.
-5. **Eliminate dependency** — when MODOROClaw has 500+ users, build native Zalo client. Nuclear option.
+4. **Fork strategically** — when 9BizClaw has 50+ paying users, fork `openzca` (Zalo reverse-engineer) to own the most critical path.
+5. **Eliminate dependency** — when 9BizClaw has 500+ users, build native Zalo client. Nuclear option.

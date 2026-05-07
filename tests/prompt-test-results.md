@@ -1,4 +1,4 @@
-# MODOROClaw Prompt Test Results
+# 9BizClaw Prompt Test Results
 
 **Date:** 18:08:50 21/4/2026
 **AGENTS.md:** 18726 chars

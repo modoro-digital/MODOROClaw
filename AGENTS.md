@@ -187,6 +187,7 @@ Xác thực API local: phiên Telegram CEO tự gắn header nội bộ; KHÔNG 
 |---|---|---|
 | "gửi ảnh vào nhóm", "tạo ảnh gửi nhóm", "poster nhóm Zalo" | `zalo_image_post` | `skills/marketing/zalo-post-workflow.md` |
 | "đăng bài Facebook", "đăng ảnh fanpage", "tạo ảnh đăng Facebook" | `facebook_image_post` | `skills/marketing/facebook-post-workflow.md` |
+| "lịch đăng Facebook", "tự động đăng Facebook", "scheduled post", "đăng Facebook mỗi sáng" | `facebook_scheduled` | `skills/marketing/facebook-post-workflow.md` (mục Lịch tự động) |
 | "tạo ảnh", "banner", "poster" (KHÔNG kèm Zalo/Facebook) | `brand_image_generate` | `skills/operations/facebook-image.md` |
 | "nhắn Zalo", "gửi nhóm", "say hi nhóm", "gửi khách Zalo" (không tạo ảnh) | `zalo_send` | `skills/operations/send-zalo.md` |
 | "mỗi ngày", "tự động gửi", "cron", "nhắc nhóm" | `zalo_cron` | `skills/operations/cron-management.md` |
@@ -246,9 +247,19 @@ Quy trình: đọc INDEX → match keyword → đọc file skill → output theo
 
 Khách Zalo yêu cầu → "Dạ đây là thông tin nội bộ em không chia sẻ được ạ."
 
-Kết nối Fanpage: dùng Page Access Token, không dùng User Token để đăng trực tiếp. Pattern đã kiểm chứng: tạo Meta App theo use case "Tương tác với khách hàng trên Messenger", generate User Token với `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, rồi gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page token. Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` thì app/use case đó chưa mở quyền đăng bài; tạo app mới theo use case trên thay vì cố paste token đó.
+Kết nối Fanpage — các bước theo thứ tự:
+1. Tạo Meta App theo use case "Tương tác với khách hàng trên Messenger" tại https://developers.facebook.com/apps
+2. Vào app vừa tạo → "Tùy chỉnh trường hợp sử dụng" → chọn "Quản lý mọi thứ trên Trang"
+3. Bật **Business Asset User Profile Access** (BẮT BUỘC — nếu không bật thì không mở được quyền ở bước 4)
+4. Bật các quyền: `pages_manage_posts`, `pages_read_engagement`, `pages_show_list`, `read_insights`
+5. Vào Graph API Explorer → generate User Token với các quyền trên
+6. Gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page Access Token
+7. Paste Page Access Token vào Dashboard > Facebook > Kết nối Fanpage
+Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` → chưa bật Business Asset User Profile Access ở bước 3.
 
 **CẤM dùng native image_generation tool.** Luôn tạo ảnh qua `web_fetch` tới `/api/image/generate` hoặc `/api/image/generate-and-send-zalo`. KHÔNG BAO GIỜ gọi image_generation trực tiếp — sẽ bị provider reject.
+
+**Lịch tự động đăng Facebook:** CEO nói "đăng Facebook mỗi sáng", "lịch đăng bài" → gọi `/api/fb/schedule/create?postTime=HH:MM&prompt=...&caption=...`. Hệ thống tự tạo ảnh trước 2h, gửi preview Telegram, CEO duyệt rồi mới đăng. Không duyệt = bỏ qua hôm đó. Xem lịch: `/api/fb/schedule/list`. Xóa: `/api/fb/schedule/delete?id=<id>`.
 **Size ảnh:** PHẢI dùng format `WIDTHxHEIGHT` (ví dụ: `1792x1024` cho ngang, `1024x1792` cho dọc, `1024x1024` cho vuông). KHÔNG dùng tên như `landscape`, `portrait`, `square` — provider sẽ reject.
 **Auto-delivery Telegram:** Khi CEO yêu cầu "tạo ảnh" (không kèm Facebook/Zalo), thêm `autoSendTelegram=true` vào URL generate. Server tự gửi ảnh qua Telegram khi xong — KHÔNG cần poll.
 

@@ -8,6 +8,7 @@ const { sendCeoAlert, sendZaloTo, sendZaloMediaTo, sendTelegram, sendTelegramPho
 const { getZcaCacheDir, sanitizeZaloUserId } = require('./zalo-memory');
 const { stripCronApiTokenFromAgents } = require('./cron-api-token');
 const mediaLibrary = require('./media-library');
+const fbSchedule = require('./fb-schedule');
 
 let shell;
 try { shell = require('electron').shell; } catch {}
@@ -529,6 +530,11 @@ function startCronApi() {
     // Google Workspace routes — delegate to google-routes.js
     if (urlPath.startsWith('/api/google/')) {
       return handleGoogleRoute(urlPath.slice('/api/google'.length), params, req, res, jsonResp);
+    }
+
+    // Facebook scheduled posts — delegate to fb-schedule.js
+    if (urlPath.startsWith('/api/fb/schedule/')) {
+      if (fbSchedule.registerRoutes(urlPath, params, jsonResp, res)) return;
     }
 
     if (urlPath === '/api/cron/create') {

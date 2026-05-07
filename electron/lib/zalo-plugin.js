@@ -151,7 +151,7 @@ async function ensureZaloPlugin() {
 //  seedZaloCustomersFromCache
 // ============================================
 // Bulk-seed memory/zalo-users/ and memory/zalo-groups/ from openzca cache.
-// Solves the "cold start memory" problem: CEO installs MODOROClaw on day 1 and
+// Solves the "cold start memory" problem: CEO installs 9BizClaw on day 1 and
 // customers who've been Zalo friends for years get recognized on their first
 // bot interaction instead of being treated as strangers.
 //

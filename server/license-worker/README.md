@@ -1,4 +1,4 @@
-# MODOROClaw License Server
+# 9BizClaw License Server
 
 Cloudflare Worker + KV for license key management.
 

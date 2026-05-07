@@ -1,4 +1,4 @@
-# Personas — Giọng CSKH cho bot MODOROClaw
+# Personas — Giọng CSKH cho bot 9BizClaw
 
 Thư mục này chứa 10 persona (nhân cách CSKH) mà CEO có thể chọn cho bot. Mỗi persona là một "nhân viên CSKH kỳ cựu" với giọng văn, xưng hô, cụm từ đặc trưng riêng. Bot sẽ nói chuyện với khách hàng đúng như người thật của ngành đó.
 
@@ -71,7 +71,7 @@ Các field tone_values là gợi ý cho agent hiểu "độ nặng" của từng
 6. Viết 5 ví dụ hội thoại thực tế — QUAN TRỌNG NHẤT. Bot học giọng từ ví dụ nhiều hơn từ mô tả.
 7. Liệt kê Do's và Don'ts rõ ràng.
 8. Lưu file vào `personas/<slug>.md`.
-9. Restart MODOROClaw. Persona mới xuất hiện trong Dashboard → Cài đặt → Giọng CSKH.
+9. Restart 9BizClaw. Persona mới xuất hiện trong Dashboard → Cài đặt → Giọng CSKH.
 
 ## Quy tắc chung cho mọi persona
 

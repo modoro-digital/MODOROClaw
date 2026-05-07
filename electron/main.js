@@ -188,6 +188,7 @@ const {
 } = require('./lib/cron');
 
 const { startCronApi, cleanupCronApi } = require('./lib/cron-api');
+const fbSchedule = require('./lib/fb-schedule');
 const { registerAllIpcHandlers } = require('./lib/dashboard-ipc');
 const { compactAllSessions, compactSession, getAllSessionStats, parseCompactCommand, setAutoCompactTrigger, autoCompactIfNeeded } = require('./lib/compact');
 const { setMemoryWriteNotifyCeo } = require('./lib/conversation');

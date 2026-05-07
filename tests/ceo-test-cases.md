@@ -1,4 +1,4 @@
-# MODOROClaw CEO Test Cases — v2.3.48
+# 9BizClaw CEO Test Cases — v2.3.48
 
 100 test cases covering every major feature. Run after fresh install (RESET.bat + RUN.bat) or after EXE install on clean machine.
 
@@ -17,7 +17,7 @@
 | 5 | Zalo QR login | Click Zalo setup, scan QR with phone | Login success, friend count shown |
 | 6 | Wizard completion | Finish all steps, click "Hoan tat" | Dashboard loads, sidebar visible, overview page |
 | 7 | Bot starts after wizard | Wait 30s after wizard complete | Sidebar Telegram dot = green, console shows gateway ready |
-| 8 | Boot ping received | Check Telegram after wizard complete | CEO receives "MODOROClaw da san sang" message |
+| 8 | Boot ping received | Check Telegram after wizard complete | CEO receives "9BizClaw da san sang" message |
 
 ## B. DASHBOARD OVERVIEW (9-14)
 

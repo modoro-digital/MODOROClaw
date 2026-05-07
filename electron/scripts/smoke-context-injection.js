@@ -15,7 +15,7 @@ function fail(msg) { console.error('[context-injection smoke] FAIL:', msg); proc
 function ok(msg) { console.log('  OK  ', msg); }
 
 // Try the source-tree vendor first (post-prebuild). Fall back to AppData
-// locations where a running MODOROClaw install stores its vendor dir so dev
+// locations where a running 9BizClaw install stores its vendor dir so dev
 // can run this smoke without first running prebuild:vendor.
 function candidateDistDirs() {
   const dirs = [path.join(root, 'vendor', 'node_modules', 'openclaw', 'dist')];
@@ -48,7 +48,7 @@ async function run() {
   const found = findBootstrapFilesChunk();
   if (!found) {
     console.log('  WARN chunk not found in source vendor/ or AppData installs — skip smoke');
-    console.log('       run prebuild:vendor OR install MODOROClaw OR set OPENCLAW_DIST_DIR=<dir>');
+    console.log('       run prebuild:vendor OR install 9BizClaw OR set OPENCLAW_DIST_DIR=<dir>');
     return;
   }
   const { path: chunkPath, dir: chunkDir } = found;

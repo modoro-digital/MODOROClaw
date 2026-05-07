@@ -1,6 +1,6 @@
 # Trước Buổi Cài Đặt — Anh/Chị Chỉ Cần Chuẩn Bị 4 Thứ
 
-> Em là MODORO. Em sẽ đến tận nơi cài đặt trợ lý AI cho anh/chị, mất khoảng **30 phút**.
+> Em là 9Biz. Em sẽ đến tận nơi cài đặt trợ lý AI cho anh/chị, mất khoảng **30 phút**.
 >
 > Phần kỹ thuật em lo hết. Anh/chị chỉ cần chuẩn bị **4 thứ** dưới đây — đơn giản như chuẩn bị giấy tờ trước khi đi công chứng vậy.
 
@@ -121,4 +121,4 @@ Bot sẽ tự lo hết.
 
 **Có gì thắc mắc, anh/chị cứ gọi hoặc nhắn em bất cứ lúc nào.**
 
-— *MODORO Tech Corp*
+— *9Biz*

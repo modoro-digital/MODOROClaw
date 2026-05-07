@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MODOROClaw Prompt-Based Test Runner
+ * 9BizClaw Prompt-Based Test Runner
  * Sends REAL messages through the gateway and validates bot responses.
  * Tests bot behavior, not code structure.
  */
@@ -98,7 +98,7 @@ function wordCount(text) {
 }
 
 async function run() {
-  console.log('MODOROClaw Prompt Test Runner');
+  console.log('9BizClaw Prompt Test Runner');
   console.log('Sending real messages via 9Router at http://127.0.0.1:20128');
   console.log('System prompt: AGENTS.md (' + AGENTS_MD.length + ' chars)');
   console.log('API Key: ' + NINEROUTER_KEY.substring(0, 8) + '...\n');

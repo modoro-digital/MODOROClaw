@@ -1,6 +1,6 @@
-# Hướng dẫn buổi Zoom cài đặt MODOROClaw
+# Hướng dẫn buổi Zoom cài đặt 9BizClaw
 
-Dành cho nhân viên MODORO khi hỗ trợ CEO qua TeamViewer.
+Dành cho nhân viên 9Biz khi hỗ trợ CEO qua TeamViewer.
 
 ---
 

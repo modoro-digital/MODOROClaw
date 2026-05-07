@@ -1695,7 +1695,7 @@ async function registerTelegramCommands() {
   if (!token) return;
   const https = require('https');
   const commands = [
-    // --- Custom MODOROClaw ---
+    // --- Custom 9BizClaw ---
     { command: 'menu', description: 'Xem mẫu giao việc theo ngành' },
     { command: 'baocao', description: 'Tạo báo cáo tổng hợp ngay lập tức' },
     { command: 'huongdan', description: 'Hướng dẫn cách sử dụng trợ lý' },

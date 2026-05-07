@@ -13,6 +13,7 @@ const {
 } = require('./channels');
 const { extractConversationHistory, writeDailyMemoryJournal } = require('./conversation');
 const { call9Router } = require('./nine-router');
+const fbSchedule = require('./fb-schedule');
 const { getZcaProfile } = require('./zalo-memory');
 
 // Lazy-load gateway to avoid circular require
@@ -2014,6 +2015,23 @@ function _startCronJobsInner() {
       console.error(`[cron] Failed custom ${c.id}:`, e.message);
       surfaceCronConfigError(c, `cron.schedule threw: ${e.message}`);
     }
+  }
+
+  // Facebook scheduled posts (2-phase: generate + publish)
+  try {
+    const fbJobs = fbSchedule.getScheduledCronJobs();
+    for (const fj of fbJobs) {
+      try {
+        const job = cron.schedule(fj.cronExpr, fj.handler, { timezone: 'Asia/Ho_Chi_Minh' });
+        cronJobs.push({ id: fj.id, job });
+        console.log(`[cron] FB schedule ${fj.id}: ${fj.cronExpr} (${fj.phase})`);
+      } catch (e) {
+        console.error(`[cron] Failed FB schedule ${fj.id}:`, e.message);
+      }
+    }
+    fbSchedule.cleanupOldPending();
+  } catch (e) {
+    console.error('[cron] FB schedule setup error:', e.message);
   }
 }
 

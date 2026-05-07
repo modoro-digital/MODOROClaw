@@ -31,7 +31,7 @@ Cấu trúc mặc định ngắn gọn, tín hiệu cao cho báo cáo buổi sá
 
 ---
 
-## Cải tiến từ MODORO
+## Cải tiến từ 9Biz
 
 Bổ sung thêm các phần kiểm tra thực tế:
 

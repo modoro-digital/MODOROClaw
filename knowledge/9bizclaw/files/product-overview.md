@@ -105,4 +105,4 @@ Khi chủ muốn tự trả lời khách:
 ## Hỗ trợ
 
 - Website: 9bizclaw.com
-- Phát triển bởi MODORO Tech Corp
+- Phát triển bởi 9Biz

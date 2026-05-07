@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MODOROClaw License Key Admin CLI
+// 9BizClaw License Key Admin CLI
 // Usage:
 //   node scripts/generate-keys.js [count] [--max-machines N] [--note "text"]
 //   node scripts/generate-keys.js list

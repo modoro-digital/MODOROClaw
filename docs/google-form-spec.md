@@ -1,6 +1,6 @@
-# Google Form — "MODOROClaw — Đăng ký cài đặt trợ lý AI"
+# Google Form — "9BizClaw — Đăng ký cài đặt trợ lý AI"
 
-Tạo form này trên Google Forms. Team MODORO dùng để thu thập thông tin khách hàng đã mua, lên lịch remote cài đặt qua TeamViewer (1-2 tiếng).
+Tạo form này trên Google Forms. Team 9Biz dùng để thu thập thông tin khách hàng đã mua, lên lịch remote cài đặt qua TeamViewer (1-2 tiếng).
 
 ---
 
@@ -65,7 +65,7 @@ Tạo form này trên Google Forms. Team MODORO dùng để thu thập thông ti
 - Bắt buộc: Yes
 - Options:
   - Đã có
-  - Chưa có, cần MODORO hỗ trợ mua
+  - Chưa có, cần 9Biz hỗ trợ mua
 
 ### 10. Chọn ngày cài đặt
 - Loại: Date picker
@@ -87,15 +87,15 @@ Tạo form này trên Google Forms. Team MODORO dùng để thu thập thông ti
 ### 13. Đồng ý xử lý dữ liệu
 - Loại: Checkbox (1 option)
 - Bắt buộc: Yes
-- Text: "Tôi đồng ý cho MODORO xử lý thông tin cá nhân để cài đặt và hỗ trợ trợ lý AI (theo NĐ 13/2023/NĐ-CP)"
+- Text: "Tôi đồng ý cho 9Biz xử lý thông tin cá nhân để cài đặt và hỗ trợ trợ lý AI (theo NĐ 13/2023/NĐ-CP)"
 
 ---
 
 ## Lưu ý khi tạo form
 
-- Title: "MODOROClaw — Đăng ký cài đặt trợ lý AI"
-- Description: "Vui lòng điền thông tin bên dưới để team MODORO lên lịch cài đặt trợ lý AI cho bạn. Thời gian cài đặt khoảng 1-2 tiếng qua remote (TeamViewer)."
-- Confirmation message: "Cảm ơn bạn đã đăng ký! Team MODORO sẽ liên hệ qua Telegram/Zalo để xác nhận lịch cài đặt."
-- Mặc định tất cả khách chưa cài. MODORO team remote cài qua TeamViewer.
-- Form data chỉ cho MODORO staff sử dụng, không feed vào wizard tự động.
+- Title: "9BizClaw — Đăng ký cài đặt trợ lý AI"
+- Description: "Vui lòng điền thông tin bên dưới để team 9Biz lên lịch cài đặt trợ lý AI cho bạn. Thời gian cài đặt khoảng 1-2 tiếng qua remote (TeamViewer)."
+- Confirmation message: "Cảm ơn bạn đã đăng ký! Team 9Biz sẽ liên hệ qua Telegram/Zalo để xác nhận lịch cài đặt."
+- Mặc định tất cả khách chưa cài. 9Biz team remote cài qua TeamViewer.
+- Form data chỉ cho 9Biz staff sử dụng, không feed vào wizard tự động.
 - Field 10 min date cần update mỗi đợt bán mới.

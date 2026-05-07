@@ -1,7 +1,7 @@
 9BizClaw Generated System Map
 
 Counts
-- apiRoutes: 80
+- apiRoutes: 91
 - ipcHandlers: 155
 - preloadBridges: 147
 - dashboardPages: 14
@@ -28,6 +28,17 @@ API Routes
 - /api/exec [local-api]
 - /api/fb/post [local-api]
 - /api/fb/recent [local-api]
+- /api/fb/schedule [local-api]
+- /api/fb/schedule/approve [fb-schedule-api]
+- /api/fb/schedule/create [fb-schedule-api]
+- /api/fb/schedule/delete [fb-schedule-api]
+- /api/fb/schedule/edit-caption [fb-schedule-api]
+- /api/fb/schedule/list [fb-schedule-api]
+- /api/fb/schedule/pending [fb-schedule-api]
+- /api/fb/schedule/regenerate [fb-schedule-api]
+- /api/fb/schedule/reject [fb-schedule-api]
+- /api/fb/schedule/trigger-generate [fb-schedule-api]
+- /api/fb/schedule/update [fb-schedule-api]
 - /api/fb/verify [local-api]
 - /api/file [local-api]
 - /api/file/copy [local-api]
@@ -113,20 +124,21 @@ Dashboard Pages
 - zalo
 
 Large Source Files
-- electron/ui/dashboard.html: 520252 bytes
-- electron/lib/dashboard-ipc.js: 227598 bytes
-- electron/lib/cron.js: 103613 bytes
-- electron/lib/cron-api.js: 99229 bytes
+- electron/ui/dashboard.html: 520244 bytes
+- electron/lib/dashboard-ipc.js: 227590 bytes
+- electron/lib/cron.js: 104271 bytes
+- electron/lib/cron-api.js: 99472 bytes
 - electron/ui/wizard.html: 88676 bytes
-- electron/lib/channels.js: 80734 bytes
+- electron/lib/channels.js: 80732 bytes
 - electron/lib/knowledge.js: 74902 bytes
 - electron/lib/gateway.js: 66322 bytes
 - electron/lib/runtime-installer.js: 54489 bytes
 - electron/lib/config.js: 44187 bytes
-- electron/lib/workspace.js: 44069 bytes
-- electron/lib/nine-router.js: 38510 bytes
-- electron/lib/boot.js: 37953 bytes
-- electron/lib/zalo-plugin.js: 34972 bytes
+- electron/lib/workspace.js: 44067 bytes
+- electron/lib/nine-router.js: 38508 bytes
+- electron/lib/boot.js: 37951 bytes
+- electron/lib/fb-schedule.js: 37304 bytes
+- electron/lib/zalo-plugin.js: 34970 bytes
 - electron/lib/vendor-patches.js: 33786 bytes
 - electron/lib/google-api.js: 29327 bytes
 - electron/lib/media-library.js: 26688 bytes

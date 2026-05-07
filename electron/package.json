@@ -3,10 +3,10 @@
   "version": "2.4.0",
   "membership": true,
   "description": "9BizClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
-  "author": "MODORO Tech Corp",
+  "author": "9Biz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/modoro-digital/MODOROClaw.git"
+    "url": "https://github.com/modoro-digital/9BizClaw.git"
   },
   "main": "main.js",
   "scripts": {
@@ -43,7 +43,7 @@
   "build": {
     "appId": "vn.9biz.claw",
     "productName": "9BizClaw",
-    "copyright": "© 2026 MODORO Tech Corp",
+    "copyright": "© 2026 9Biz",
     "publish": null,
     "afterSign": "scripts/notarize-mac.js",
     "directories": {

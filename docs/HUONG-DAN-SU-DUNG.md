@@ -9,7 +9,7 @@ pdf_options:
 
 Trợ lý AI tự động trả lời khách hàng trên Telegram và Zalo — được thiết kế riêng cho CEO doanh nghiệp vừa và nhỏ Việt Nam.
 
-<div class="subtitle">Phiên bản 2.2 · MODORO Tech Corp · modoro.vn</div>
+<div class="subtitle">Phiên bản 2.2 · 9Biz · modoro.vn</div>
 
 ---
 
@@ -154,7 +154,7 @@ Toàn bộ cài đặt và theo dõi được thực hiện qua Dashboard trên 
 ## Câu hỏi thường gặp
 
 **Bot không trả lời — phải làm gì?**
-Mở Dashboard → kiểm tra dot màu ở sidebar. Nếu đỏ → tắt và mở lại ứng dụng. Nếu vẫn đỏ → liên hệ MODORO hỗ trợ.
+Mở Dashboard → kiểm tra dot màu ở sidebar. Nếu đỏ → tắt và mở lại ứng dụng. Nếu vẫn đỏ → liên hệ 9Biz hỗ trợ.
 
 **Khách hỏi thông tin sai — sửa thế nào?**
 Vào tab Knowledge → xóa file cũ → upload file đã cập nhật. Bot áp dụng ngay, không cần khởi động lại.
@@ -167,4 +167,4 @@ Tab Telegram hoặc Zalo → nhấn "Tạm dừng". Nhớ bật lại sau khi xo
 
 ---
 
-<footer>9BizClaw · MODORO Tech Corp · modoro.vn · Hỗ trợ qua Telegram: @modoro_support</footer>
+<footer>9BizClaw · 9Biz · modoro.vn · Hỗ trợ qua Telegram: @modoro_support</footer>

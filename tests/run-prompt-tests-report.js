@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MODOROClaw Prompt Test Runner — Full Report
+ * 9BizClaw Prompt Test Runner — Full Report
  * Sends REAL messages through 9Router and logs every prompt + actual response.
  * Output: tests/prompt-test-results.md
  */
@@ -521,13 +521,13 @@ const TESTS = [
 
 async function run() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  console.log(`MODOROClaw Prompt Test — ${new Date().toLocaleString('vi-VN')}`);
+  console.log(`9BizClaw Prompt Test — ${new Date().toLocaleString('vi-VN')}`);
   console.log(`AGENTS.md: ${AGENTS_MD.length} chars`);
   console.log(`Tests: ${TESTS.length}\n`);
 
   const lines = [];
   const now = new Date();
-  lines.push('# MODOROClaw Prompt Test Results');
+  lines.push('# 9BizClaw Prompt Test Results');
   lines.push('');
   lines.push('**Date:** ' + now.toLocaleString('vi-VN'));
   lines.push('**AGENTS.md:** ' + AGENTS_MD.length + ' chars');

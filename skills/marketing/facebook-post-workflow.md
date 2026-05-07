@@ -66,12 +66,15 @@ web_fetch url="http://127.0.0.1:20200/api/brand-assets/list" method=GET
 
 Nếu CEO hỏi về kết nối Fanpage:
 
-1. Hướng dẫn CEO tạo Meta App theo use case **"Tương tác với khách hàng trên Messenger"**
-2. Generate User Token với quyền: `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`
-3. Gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page Access Token
-4. Điền token vào Dashboard > Facebook > Kết nối Fanpage
+1. Tạo Meta App theo use case **"Tương tác với khách hàng trên Messenger"** tại https://developers.facebook.com/apps
+2. Vào app vừa tạo → **"Tùy chỉnh trường hợp sử dụng"** → chọn **"Quản lý mọi thứ trên Trang"**
+3. Bật **Business Asset User Profile Access** (BẮT BUỘC — không bật thì không mở được quyền ở bước 4)
+4. Bật các quyền: `pages_manage_posts`, `pages_read_engagement`, `pages_show_list`, `read_insights`
+5. Vào Graph API Explorer → generate User Token với các quyền trên
+6. Gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page Access Token
+7. Paste Page Access Token vào Dashboard > Facebook > Kết nối Fanpage
 
-**Nếu CEO paste token nhưng lỗi:** Kiểm tra xem token có đủ quyền (`pages_manage_posts`). Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` → token chưa đủ đăng bài, cần tạo app mới.
+**Nếu CEO paste token nhưng lỗi:** Kiểm tra xem token có đủ quyền (`pages_manage_posts`). Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` → chưa bật **Business Asset User Profile Access** ở bước 3.
 
 **Nếu Pha 0 đã pass** — token verified, tiếp tục bình thường. Nếu `/api/fb/post` vẫn trả lỗi token sau đó (token hết hạn giữa chừng), báo CEO cập nhật trong Dashboard.
 
@@ -225,3 +228,55 @@ Nếu response báo token lỗi:
 - [ ] Đã chờ CEO xác nhận "ok"/"đăng đi" trước khi gọi `/api/fb/post`?
 - [ ] Đã đọc `id`/`post_id` trong response body?
 - [ ] Nếu lỗi token: đã hướng dẫn CEO cập nhật Fanpage trong Dashboard?
+
+---
+
+## Lịch tự động đăng Facebook (Scheduled Posts)
+
+CEO nói: "đăng Facebook mỗi sáng 9h", "tự động đăng bài mỗi ngày", "lịch đăng Facebook"...
+
+### Tạo lịch
+
+```
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/create?postTime=09:00&leadMinutes=120&prompt=<prompt-tạo-ảnh>&caption=<caption>&label=<tên>&imageSize=1024x1024"
+```
+
+- `postTime` (BẮT BUỘC): giờ đăng, dạng HH:MM (VD: `09:00`)
+- `leadMinutes`: tạo ảnh trước bao nhiêu phút (mặc định 120 = 2 tiếng)
+- `prompt`: prompt tạo ảnh (TIẾNG ANH, chi tiết)
+- `caption`: nội dung bài đăng Facebook
+- `assetNames`: brand assets dùng (JSON array, VD: `["mascot-removebg.png"]`)
+- `autoPost`: `true` = tự đăng không cần duyệt (MẶC ĐỊNH: `false`)
+
+### Flow tự động
+
+1. **Trước giờ đăng** (leadMinutes): hệ thống tự tạo ảnh → gửi preview qua Telegram
+2. **CEO duyệt**: reply "ok" / "đăng đi" → bài đăng đúng giờ
+3. **CEO sửa**: reply "sửa caption: <nội dung mới>" → cập nhật caption
+4. **CEO tạo lại**: reply "tạo ảnh khác" → tạo ảnh mới, gửi preview lại
+5. **CEO hủy**: reply "hủy" → bỏ bài hôm nay
+6. **CEO không reply**: đến giờ đăng mà chưa duyệt → bỏ qua, thông báo CEO
+
+### Chế độ tự động (autoPost)
+
+Khi tạo lịch với `autoPost=true`:
+- Ảnh tự đăng không cần CEO duyệt
+- CEO vẫn nhận preview qua Telegram (để biết)
+- CEO có thể reply "hủy <id>" để chặn trước giờ đăng
+- **Cảnh báo CEO khi bật:** "Bài sẽ tự đăng không cần duyệt"
+
+### Xem / xóa lịch
+
+```
+web_fetch http://127.0.0.1:20200/api/fb/schedule/list
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/delete?id=<scheduleId>"
+```
+
+### API duyệt thủ công (nếu cần)
+
+```
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/approve?id=<scheduleId>"
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/reject?id=<scheduleId>"
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/edit-caption?id=<scheduleId>&caption=<mới>"
+web_fetch "http://127.0.0.1:20200/api/fb/schedule/regenerate?id=<scheduleId>"
+```

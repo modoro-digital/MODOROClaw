@@ -327,7 +327,7 @@ function start9Router() {
     // ENOENT (binary not found) doesn't bubble up as an uncaught exception
     // and crash the entire main process with a JS error dialog. spawn errors
     // are async — they fire after this function's try/catch has already
-    // returned. Without this listener, ENOENT kills MODOROClaw on launch
+    // returned. Without this listener, ENOENT kills 9BizClaw on launch
     // when 9router is missing/misconfigured.
     routerProcess.on('error', (err) => {
       console.error('[9router] spawn error:', err.message);

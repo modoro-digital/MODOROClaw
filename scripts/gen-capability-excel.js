@@ -179,7 +179,7 @@ XLSX.utils.book_append_sheet(wb, ws, 'Khả năng Bot');
 
 // Summary sheet
 const summaryData = [
-  ['MODOROClaw — Bảng tổng hợp khả năng bot'],
+  ['9BizClaw — Bảng tổng hợp khả năng bot'],
   [''],
   ['Phiên bản', 'v2.3.47.3'],
   ['Ngày tạo', '2026-04-22'],
@@ -196,7 +196,7 @@ Object.entries(cats).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => {
 
 summaryData.push(['']);
 summaryData.push(['Hướng dẫn kiểm tra']);
-summaryData.push(['1. Mở app MODOROClaw đã cài v2.3.47.3']);
+summaryData.push(['1. Mở app 9BizClaw đã cài v2.3.47.3']);
 summaryData.push(['2. Với mỗi dòng trong sheet "Khả năng Bot", gửi prompt mẫu qua kênh tương ứng (Zalo/Telegram)']);
 summaryData.push(['3. So sánh phản hồi thực tế với cột "Hành vi mong đợi"']);
 summaryData.push(['4. Ghi kết quả vào cột "Kết quả kiểm tra": PASS / FAIL / SKIP']);
@@ -208,7 +208,7 @@ const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
 ws2['!cols'] = [{ wch: 50 }, { wch: 20 }];
 XLSX.utils.book_append_sheet(wb, ws2, 'Tổng quan');
 
-const outPath = path.join(__dirname, '..', 'docs', 'MODOROClaw-Capabilities-v2.3.47.3.xlsx');
+const outPath = path.join(__dirname, '..', 'docs', '9BizClaw-Capabilities-v2.3.47.3.xlsx');
 XLSX.writeFile(wb, outPath);
 console.log('Written:', outPath);
 console.log('Total capabilities:', rows.length);

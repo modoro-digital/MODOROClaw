@@ -332,7 +332,7 @@ function enumerateNodeManagerLibDirs() {
 //
 // Important: do NOT filter by fs.existsSync. PATH lookup tolerates non-existent
 // dirs gracefully, and including them means the user installing Node *after*
-// MODOROClaw boot still works without an Electron restart. Only cost is a
+// 9BizClaw boot still works without an Electron restart. Only cost is a
 // slightly longer PATH string.
 function initPathAugmentation() {
   if (process.platform === 'darwin' || process.platform === 'linux') {

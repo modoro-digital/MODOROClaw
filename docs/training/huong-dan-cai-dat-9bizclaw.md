@@ -61,14 +61,14 @@ Khi khách hỏi "app này làm gì?", installer trả lời:
 ### 2.1. Gửi installer này cho khách qua Zalo/email trước buổi cài
 
 - [ ] Hỏi khách: **"Anh/chị xài Windows hay Mac?"** → gửi đúng file
-- [ ] Gửi link download: **https://github.com/modoro-digital/MODOROClaw/releases/latest**
+- [ ] Gửi link download: **https://github.com/modoro-digital/9BizClaw/releases/latest**
 - [ ] Khách tải về **TRƯỚC** buổi cài (tiết kiệm 5-10 phút ở chỗ khách)
 
 ### 2.2. Xin thông tin của khách trước
 
 Khi đến nơi, installer phải có sẵn:
 - [ ] **Tên chủ doanh nghiệp** (để bot xưng hô, VD: "anh Tuấn", "chị Linh")
-- [ ] **Tên doanh nghiệp/shop** (VD: "MODORO Tech")
+- [ ] **Tên doanh nghiệp/shop** (VD: "9Biz Tech")
 - [ ] **Ngành nghề** (VD: "bán điện thoại", "spa", "quần áo nữ")
 - [ ] **Phong cách muốn** (VD: "chuyên nghiệp", "thân thiện", "lịch sự")
 - [ ] **Tài khoản Zalo cá nhân** của chủ doanh nghiệp (để cài bot vào)
@@ -95,7 +95,7 @@ Khi đến nơi, installer phải có sẵn:
 - File trong thư mục Downloads, tên `9BizClaw Setup 2.3.46.exe`
 
 **Nếu chưa:**
-- Mở Chrome/Edge → **https://github.com/modoro-digital/MODOROClaw/releases/latest**
+- Mở Chrome/Edge → **https://github.com/modoro-digital/9BizClaw/releases/latest**
 - Click file `.exe` để tải
 - Kích thước ~420MB, mạng FTTH tải 1-2 phút
 
@@ -136,11 +136,11 @@ Lần đầu sau cài, app hiện splash với progress bar:
 ### 4.2. Cài đặt
 
 - Double-click file `.dmg`
-- Mac hiện cửa sổ với **MODOROClaw icon** + **Applications folder**
-- **Kéo MODOROClaw vào Applications**
-- Mở **Finder** → **Applications** → double-click **MODOROClaw**
-- macOS block: **"MODOROClaw can't be opened"** (chưa có Apple signing)
-  - **System Settings** → **Privacy & Security** → kéo xuống cuối → **"MODOROClaw was blocked..."** → bấm **"Open Anyway"**
+- Mac hiện cửa sổ với **9BizClaw icon** + **Applications folder**
+- **Kéo 9BizClaw vào Applications**
+- Mở **Finder** → **Applications** → double-click **9BizClaw**
+- macOS block: **"9BizClaw can't be opened"** (chưa có Apple signing)
+  - **System Settings** → **Privacy & Security** → kéo xuống cuối → **"9BizClaw was blocked..."** → bấm **"Open Anyway"**
   - Dialog hiện lại → **"Open"**
 
 ---
@@ -182,7 +182,7 @@ Wizard tự hiện sau khi cài. Làm theo thứ tự:
 
 Hỏi khách 3 câu:
 1. **"Anh/chị muốn bot gọi mình là gì?"** → VD: "anh Tuấn"
-2. **"Shop tên là gì?"** → VD: "MODORO Tech"
+2. **"Shop tên là gì?"** → VD: "9Biz Tech"
 3. **"Muốn giọng điệu chuyên nghiệp hay thân thiện?"**
 
 Điền vào các ô tương ứng. Có thể tinh chỉnh sau trong tab **"Tính cách bot"**.
@@ -413,7 +413,7 @@ A: Hiện tại **1 máy = 1 tài khoản Zalo + 1 bot**. Nếu doanh nghiệp c
 A: Cài lại đè lên — workspace data của khách được giữ (config + memory + docs). Nếu muốn xoá sạch: Uninstall → xoá thư mục `%APPDATA%\9bizclaw` → cài lại từ đầu.
 
 **Q: Có trial / refund không?**
-A: Tuỳ chính sách team — installer xác nhận với CEO MODORO trước khi promise.
+A: Tuỳ chính sách team — installer xác nhận với CEO 9Biz trước khi promise.
 
 ---
 
@@ -440,4 +440,4 @@ A: Tuỳ chính sách team — installer xác nhận với CEO MODORO trước k
 
 **Hết tài liệu. Version v2.3.46 — Apr 2026.**
 
-**Có câu hỏi: liên hệ team MODORO Tech Corp**
+**Có câu hỏi: liên hệ team 9Biz**
