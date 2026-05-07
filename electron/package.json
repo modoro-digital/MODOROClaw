@@ -210,10 +210,6 @@
       "type": "distribution",
       "extraResources": [
         {
-          "from": "dist/modoro-zalo",
-          "to": "modoro-zalo"
-        },
-        {
           "from": "vendor-meta.json",
           "to": "vendor-meta.json"
         },

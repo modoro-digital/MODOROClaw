@@ -2275,11 +2275,11 @@
   "largeSourceFiles": [
     {
       "path": "electron/ui/dashboard.html",
-      "bytes": 520244
+      "bytes": 520114
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 227590
+      "bytes": 230227
     },
     {
       "path": "electron/lib/cron.js",
@@ -2291,11 +2291,11 @@
     },
     {
       "path": "electron/ui/wizard.html",
-      "bytes": 88676
+      "bytes": 85070
     },
     {
       "path": "electron/lib/channels.js",
-      "bytes": 80732
+      "bytes": 80014
     },
     {
       "path": "electron/lib/knowledge.js",
@@ -2307,7 +2307,7 @@
     },
     {
       "path": "electron/lib/runtime-installer.js",
-      "bytes": 54489
+      "bytes": 53557
     },
     {
       "path": "electron/lib/config.js",

@@ -773,12 +773,14 @@ for (const pf of ['evening-briefing.md', 'morning-briefing.md', 'weekly-report.m
 // adds ~10-15s to the smoke; still hermetic (no network, no external state).
 section('RAG accuracy');
 const modelsDir = path.join(__dirname, '..', 'vendor', 'models', 'Xenova');
-if (fs.existsSync(modelsDir)) {
+const hostArch = process.arch;
+const targetArch = process.env.TARGET_ARCH || process.env.npm_config_arch || hostArch;
+const isCrossArch = targetArch !== hostArch;
+if (isCrossArch) {
+  warn('RAG smoke', `cross-arch build (host=${hostArch}, target=${targetArch}) — native modules won't load. Skipped.`);
+} else if (fs.existsSync(modelsDir)) {
   console.log('  running smoke-rag-test.js (40-query probe)...');
   try {
-    // Use process.execPath instead of 'node' — binds to the exact Node
-    // binary running smoke-test.js. Guards against CI PATH quirks where
-    // `node` could resolve to a different version than our parent.
     require('child_process').execFileSync(
       process.execPath,
       [path.join(__dirname, 'smoke-rag-test.js')],
