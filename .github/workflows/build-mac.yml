@@ -17,12 +17,12 @@ on:
       arch:
         description: 'Which mac build to run'
         required: false
-        default: 'arm64'
+        default: 'both'
         type: choice
         options:
+          - both
           - arm64
           - x64
-          - both
 
 permissions:
   contents: write   # Needed to create releases + upload assets
@@ -159,6 +159,10 @@ jobs:
         env:
           TARGET_ARCH: ${{ matrix.arch }}
         run: npm run prebuild:modoro-zalo
+
+      - name: Download embedding model
+        working-directory: electron
+        run: node scripts/prebuild-models.js
 
       - name: Prebuild vendor bundle
         working-directory: electron
