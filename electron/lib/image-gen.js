@@ -162,7 +162,7 @@ function buildCodexRequest(prompt, assets, size, options = {}) {
   const body = {
     model: 'cx/gpt-5.4',
     input: [{ role: 'user', content }],
-    tools: [{ type: 'image_generation', model: 'gpt-image-2', size: normalizedSize }],
+    tools: [{ type: 'image_generation', model: 'gpt-image-2', size: normalizedSize, quality: 'high' }],
     stream: true,
     store: false
   };

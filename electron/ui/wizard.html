@@ -1096,7 +1096,7 @@
               </div>
               <div class="wz-instruction-body">
                 <p>Nhấn nút bên dưới — trang quản lý AI sẽ mở ra trong trình duyệt.</p>
-                <p>Nếu được hỏi mật khẩu, nhập: <strong style="font-family:monospace;letter-spacing:0.5px;user-select:all">123456</strong></p>
+                <p>Nhập mật khẩu: <strong style="font-family:monospace;letter-spacing:0.5px;user-select:all">123456</strong> rồi đăng nhập. Sau đó quay lại đây và nhấn nút ở bước 2.</p>
               </div>
               <div style="margin-top:14px;padding-left:40px">
                 <button class="wz-btn wz-btn-secondary" onclick="open9RouterLogin()" id="open-9router-btn" type="button">
@@ -1111,7 +1111,7 @@
                 <div class="wz-instruction-title">Kết nối ChatGPT</div>
               </div>
               <div class="wz-instruction-body">
-                <p>Sau khi đăng nhập 9Router, nhấn nút bên dưới để mở trang kết nối ChatGPT.</p>
+                <p>Nhấn nút bên dưới — trang kết nối ChatGPT sẽ mở ra.</p>
                 <p>Nhấn <strong>Connect</strong> bên cạnh <strong>ChatGPT</strong> và đăng nhập bằng tài khoản ChatGPT của anh/chị.</p>
               </div>
               <div style="margin-top:14px;padding-left:40px">
@@ -1127,7 +1127,7 @@
                 <div class="wz-instruction-title">Xác nhận kết nối</div>
               </div>
               <div class="wz-instruction-body">
-                <p>Sau khi đăng nhập ChatGPT xong trên trình duyệt, quay lại đây và nhấn nút bên dưới.</p>
+                <p>Sau khi đăng nhập ChatGPT xong, quay lại đây và nhấn nút bên dưới.</p>
               </div>
               <div style="margin-top:14px;padding-left:40px">
                 <button class="wz-btn wz-btn-secondary" onclick="verifyChatGPTConnection()" id="verify-chatgpt-btn" type="button">
@@ -1955,6 +1955,9 @@
       syncMixUI();
       updateMixPreview();
       setProgress(1);
+
+      // Pre-start 9Router so it's ready by the time user reaches step 2
+      window.claw.setup9RouterAuto({ ensureRunning: true }).catch(() => {});
 
       // Theme toggle
       document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

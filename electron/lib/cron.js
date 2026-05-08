@@ -170,13 +170,12 @@ async function deliverCronResultToZalo(replyText, zaloTarget, label) {
 
 function buildAgentArgs(prompt, chatId, useJson = false) {
   const idStr = String(chatId);
-  // When useJson=true, we want structured JSON output and handle delivery ourselves
-  // (omitting --deliver means no channel delivery; openclaw will output JSON only).
-  // When useJson=false, --deliver sends the reply to Telegram (the old behaviour).
   const base = ['agent', '--message', prompt];
   if (useJson) base.push('--json');
   if (_agentFlagProfile === 'full') {
-    return [...base, '--channel', 'telegram', '--to', idStr, '--reply-channel', 'telegram', '--reply-to', idStr];
+    const args = [...base, '--channel', 'telegram', '--to', idStr];
+    if (!useJson) args.push('--reply-channel', 'telegram', '--reply-to', idStr);
+    return args;
   }
   if (_agentFlagProfile === 'medium') {
     return [...base, '--channel', 'telegram', '--to', idStr];
@@ -373,7 +372,7 @@ async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, timeoutMs = 
       console.log(`[cron-agent] "${niceLabel}" done in ${durMs}ms, reply length=${replyText ? replyText.length : 0} chars`);
       // Deliver to Zalo if this cron has a zaloTarget
       let zaloOk = true;
-      if (zaloTarget && replyText) {
+      if (zaloTarget && replyText && !zaloTarget.isGroup) {
         zaloOk = await deliverCronResultToZalo(replyText, zaloTarget, niceLabel);
       }
       journalCronRun({ phase: 'ok', label: niceLabel, attempt, durMs, profile: _agentFlagProfile, viaCmdShell: res.viaCmdShell, zaloDelivered: !!zaloTarget });
@@ -1035,14 +1034,9 @@ async function runCronViaSessionOrFallback(prompt, opts = {}) {
     const ok = await sendToGatewaySession(sessionKey, prompt);
     if (ok) {
       journalCronRun({ phase: 'ok', label: opts.label || 'cron', mode: 'session-send' });
-      // Session send delivered to CEO only (Telegram). If zaloTarget is set,
-      // also deliver the prompt result to Zalo — but we have no reply text here,
-      // so fall through to runCronAgentPrompt which gives us the actual content.
-      // Actually session-send is fire-and-forget to CEO; we still want agent content.
-      // Skip session path when zaloTarget is set to get structured agent output.
-      if (!opts.zaloTarget) return true;
+      return true;
     }
-    console.log('[cron] sessions.send failed or zaloTarget set, falling back to runCronAgentPrompt');
+    console.log('[cron] sessions.send failed, falling back to runCronAgentPrompt');
   }
   return runCronAgentPrompt(prompt, opts);
 }
@@ -1395,7 +1389,24 @@ function loadCustomCrons() {
     console.warn('[custom-crons] failed to read OpenClaw cron/jobs.json:', e?.message);
   }
 
-  return [...modoroEntries, ...openclawEntries];
+  const merged = [...modoroEntries, ...openclawEntries];
+  const seen = new Set();
+  const deduped = [];
+  for (const c of merged) {
+    if (!c) { deduped.push(c); continue; }
+    const schedKey = c.cronExpr ? c.cronExpr.trim().replace(/\s+/g, ' ') : (c.oneTimeAt || '');
+    if (!schedKey) { deduped.push(c); continue; }
+    const targetKey = c.zaloTarget?.id || c.groupId || '';
+    if (!targetKey) { deduped.push(c); continue; }
+    const fp = schedKey + '|' + targetKey;
+    if (seen.has(fp)) {
+      console.warn(`[custom-crons] DEDUP: skipping "${c.label || c.id}" — duplicate schedule+target: ${fp}`);
+      continue;
+    }
+    seen.add(fp);
+    deduped.push(c);
+  }
+  return deduped;
 }
 
 let customCronWatcher = null;
@@ -1881,6 +1892,7 @@ function _startCronJobsInner() {
   // Custom crons
   const customs = loadCustomCrons();
   if (!global._cronInFlight) global._cronInFlight = new Map();
+  if (!global._cronFireDedup) global._cronFireDedup = new Map();
   for (const c of customs) {
     if (!c) continue;
     if (!c.enabled) continue;
@@ -1991,6 +2003,18 @@ function _startCronJobsInner() {
           console.warn(`[cron] Custom "${c.label || c.id}" SKIPPED — previous run still in flight`);
           journalCronRun({ phase: 'skip', label: c.label || c.id, reason: 'previous-still-in-flight' });
           return;
+        }
+        const dedupTarget = c.zaloTarget?.id || c.groupId || '';
+        if (dedupTarget && c.cronExpr) {
+          const minuteKey = c.cronExpr.trim().replace(/\s+/g, ' ') + '|' + dedupTarget + '|' + new Date().toISOString().slice(0, 16);
+          const lastFire = global._cronFireDedup.get(minuteKey);
+          if (lastFire) {
+            console.warn(`[cron] Custom "${c.label || c.id}" SKIPPED — same cronExpr+target already fired this minute (by ${lastFire})`);
+            journalCronRun({ phase: 'skip', label: c.label || c.id, reason: 'duplicate-fire-same-minute' });
+            return;
+          }
+          global._cronFireDedup.set(minuteKey, niceId);
+          setTimeout(() => global._cronFireDedup.delete(minuteKey), 120000);
         }
         global._cronInFlight.set(niceId, true);
         try {

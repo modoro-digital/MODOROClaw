@@ -1153,6 +1153,9 @@ function finalizeZaloReadyProbe(base) {
 }
 
 async function probeTelegramReady() {
+  const pause = getChannelPauseStatus('telegram');
+  if (pause?.permanent) return { ready: false, reason: 'paused-permanent', error: 'Telegram đang bị khóa an toàn trong Dashboard.' };
+  if (pause?.paused) return { ready: false, reason: 'paused', error: pause.until ? `Telegram đang tạm dừng đến ${pause.until}.` : 'Telegram đang tạm dừng.' };
   const { token, chatId } = getTelegramConfig();
   if (!token) return { ready: false, error: 'Chưa cấu hình bot token' };
   const https = require('https');
@@ -1559,17 +1562,17 @@ async function broadcastChannelStatusOnce() {
     // `now` already declared above (marker-fresh check); reuse.
     const probes = { telegram: tg, zalo: zl };
     const labels = { telegram: 'Telegram', zalo: 'Zalo' };
+    const _INTENTIONAL_OFF = new Set(['disabled', 'paused', 'paused-permanent']);
     if (!global._channelDownSince) global._channelDownSince = {};
     for (const ch of ['telegram', 'zalo']) {
-      const prev = _lastChannelState[ch];
       const cur = probes[ch];
-      if (cur.ready === false) {
+      const intentionallyOff = cur.ready === false && _INTENTIONAL_OFF.has(cur.reason);
+      if (intentionallyOff || cur.ready === true) {
+        delete global._channelDownSince[ch];
+      } else if (cur.ready === false) {
         if (!global._channelDownSince[ch]) global._channelDownSince[ch] = now;
       }
-      if (cur.ready === true) {
-        delete global._channelDownSince[ch];
-      }
-      if (cur.ready === false && global._channelDownSince[ch] && (now - global._channelDownSince[ch]) >= DOWN_GRACE_MS) {
+      if (!intentionallyOff && cur.ready === false && global._channelDownSince[ch] && (now - global._channelDownSince[ch]) >= DOWN_GRACE_MS) {
         if (now - (_lastChannelAlertAt[ch] || 0) >= THROTTLE_MS) {
           const hhmm = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
           const reason = (cur && cur.error) ? String(cur.error) : 'không rõ';
