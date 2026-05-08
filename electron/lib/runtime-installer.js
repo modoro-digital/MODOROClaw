@@ -296,10 +296,17 @@ function getRuntimeNodeBinPath() {
 }
 
 function findNpmCliIn(dir) {
-  const npmBinDir = path.join(dir, 'node_modules', 'npm', 'bin');
-  for (const name of ['npm-cli.js', 'npm-cli.cjs', 'npm-cli.mjs']) {
-    const p = path.join(npmBinDir, name);
-    if (fs.existsSync(p)) return p;
+  // Windows: dir/node_modules/npm/bin/npm-cli.{js,cjs}
+  // Mac/Linux: dir/lib/node_modules/npm/bin/npm-cli.{js,cjs}
+  const searchDirs = [
+    path.join(dir, 'node_modules', 'npm', 'bin'),
+    path.join(dir, 'lib', 'node_modules', 'npm', 'bin'),
+  ];
+  for (const npmBinDir of searchDirs) {
+    for (const name of ['npm-cli.js', 'npm-cli.cjs', 'npm-cli.mjs']) {
+      const p = path.join(npmBinDir, name);
+      if (fs.existsSync(p)) return p;
+    }
   }
   return null;
 }
