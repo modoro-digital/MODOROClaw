@@ -704,8 +704,29 @@ function getRuntimeNpmCommand(nodeBin = null) {
   return { command: isWin ? 'npm.cmd' : 'npm', argsPrefix: [], shell: isWin };
 }
 
+function killOrphan9RouterProcesses() {
+  if (process.platform !== 'win32') return;
+  try {
+    const { execSync } = require('child_process');
+    const vendorDir = getRuntimeNodeModulesDir();
+    if (!vendorDir) return;
+    const nrDir = path.join(vendorDir, '9router');
+    if (!fs.existsSync(nrDir)) return;
+    const out = execSync('wmic process where "CommandLine like \'%9router%\'" get ProcessId /format:list', {
+      encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'ignore']
+    });
+    const pids = out.match(/ProcessId=(\d+)/g)?.map(m => m.split('=')[1]) || [];
+    for (const pid of pids) {
+      try { execSync(`taskkill /pid ${pid} /f /t`, { stdio: 'ignore', timeout: 5000 }); } catch {}
+    }
+    if (pids.length) console.log('[runtime-installer] killed orphan 9router process(es):', pids.join(', '));
+  } catch {}
+}
+
 async function installNpmPackages(versions, onProgress) {
   console.log('[runtime-installer] Installing npm packages...');
+
+  killOrphan9RouterProcesses();
 
   const nodeBin = await getWorkingNodeBin();
   if (!nodeBin) {
@@ -833,6 +854,7 @@ async function installNpmPackages(versions, onProgress) {
         maxDelay: 30000,
         onRetry: ({ attempt, maxRetries, error, delay }) => {
           console.log(`[runtime-installer] Retry ${attempt}/${maxRetries} for npm install after ${delay}ms: ${error?.message}`);
+          if (error?.message?.includes('EBUSY')) killOrphan9RouterProcesses();
           if (onProgress) {
             onProgress({ step: 'packages', message: `Đang thử lại (lần ${attempt + 1})...`, subStep: 'retry' });
           }
@@ -842,6 +864,7 @@ async function installNpmPackages(versions, onProgress) {
     } else {
       for (let attempt = 0; attempt < 3; attempt++) {
         if (attempt > 0) {
+          if (lastError?.message?.includes('EBUSY')) killOrphan9RouterProcesses();
           await new Promise(r => setTimeout(r, 5000 * attempt));
           console.log('[runtime-installer] Retry', attempt + 1, 'for npm install');
         }
