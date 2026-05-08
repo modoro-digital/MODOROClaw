@@ -405,7 +405,7 @@ async function extractFlateImagesFromPdf(pdfPath, maxImages = Infinity) {
         const width = parseInt(wMatch[1], 10);
         const height = parseInt(hMatch[1], 10);
         const bpc = bpcMatch ? parseInt(bpcMatch[1], 10) : 8;
-        if (width >= 32 && height >= 32 && bpc === 8) {
+        if (width >= 32 && height >= 32 && bpc === 8 && width * height <= 100_000_000) {
           let channels = 3;
           if (/\/DeviceGray/.test(dict)) channels = 1;
           else if (/\/DeviceCMYK/.test(dict)) channels = 4;
@@ -424,9 +424,13 @@ async function extractFlateImagesFromPdf(pdfPath, maxImages = Infinity) {
       const [dataStart, dataEnd] = stripPdfStreamNewline(buf, c.streamAt + streamToken.length, c.endAt);
       let raw;
       try { raw = zlib.inflateSync(buf.slice(dataStart, dataEnd)); }
-      catch { raw = zlib.inflateRawSync(buf.slice(dataStart, dataEnd)); }
+      catch {
+        try { raw = zlib.inflateRawSync(buf.slice(dataStart, dataEnd)); }
+        catch { continue; }
+      }
+      if (raw.length > 200 * 1024 * 1024) continue;
       const expected = c.width * c.height * c.channels;
-      if (raw.length < expected) continue;
+      if (raw.length < expected || Math.abs(raw.length - expected) > expected * 0.05) continue;
       if (raw.length > expected) raw = raw.slice(0, expected);
       const pngBuf = await sharp(raw, { raw: { width: c.width, height: c.height, channels: c.channels } }).png().toBuffer();
       if (pngBuf.length > 2048) {
