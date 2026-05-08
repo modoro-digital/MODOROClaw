@@ -868,7 +868,7 @@ async function installNpmPackages(versions, onProgress) {
     await new Promise((resolve, reject) => {
       const child = spawn(
         npm.command,
-        [...npm.argsPrefix, 'install', '--prefix', vendorDir, ...specs, '--save', '--no-fund', '--no-audit'],
+        [...npm.argsPrefix, 'install', '--prefix', vendorDir, ...specs, '--save', '--no-fund', '--no-audit', '--ignore-scripts'],
         { timeout: NPM_INSTALL_TIMEOUT_MS, encoding: 'utf-8', stdio: 'pipe', shell: npm.shell }
       );
       let stderr = '';
@@ -981,7 +981,74 @@ async function installNpmPackages(versions, onProgress) {
     }
   }
 
+  // --ignore-scripts skips postinstall (avoids node-gyp/Xcode CLT requirement).
+  // Manually fetch prebuilt native binaries for packages that need them.
+  await fixRuntimeNativeModules(nodeBin, nodeModulesDir, onProgress);
+
   return result;
+}
+
+async function fixRuntimeNativeModules(nodeBin, nodeModulesDir, onProgress) {
+  // 9router ships better-sqlite3 which needs a platform-specific .node binary.
+  // With --ignore-scripts, its install script (prebuild-install || node-gyp)
+  // didn't run. prebuild-install is NOT bundled in 9router's package, so we
+  // install it temporarily, run it, then clean up.
+  const bsqlDir = path.join(nodeModulesDir, '9router', 'app', 'node_modules', 'better-sqlite3');
+  if (!fs.existsSync(bsqlDir)) return;
+
+  const bsqlBin = path.join(bsqlDir, 'build', 'Release', 'better_sqlite3.node');
+  if (fs.existsSync(bsqlBin)) {
+    console.log('[runtime-installer] better-sqlite3 native binary already present');
+    return;
+  }
+
+  if (onProgress) onProgress({ step: 'packages', percent: 82, message: 'Tải native module cho 9router...' });
+
+  let nodeVer;
+  try {
+    nodeVer = require('child_process')
+      .execFileSync(nodeBin, ['--version'], { encoding: 'utf-8', timeout: 5000 })
+      .trim().replace(/^v/, '');
+  } catch { return; }
+
+  const arch = process.arch;
+  const platform = process.platform;
+  console.log(`[runtime-installer] fetching better-sqlite3 prebuilt for node-${nodeVer} ${platform}-${arch}`);
+
+  // Install prebuild-install temporarily into better-sqlite3's own node_modules
+  const tmpNm = path.join(bsqlDir, 'node_modules');
+  const npm = getRuntimeNpmCommand(nodeBin);
+  try {
+    const installArgs = [...npm.argsPrefix, 'install', '--prefix', bsqlDir,
+      'prebuild-install', '--no-save', '--no-fund', '--no-audit', '--ignore-scripts'];
+    require('child_process').execFileSync(npm.command, installArgs, {
+      timeout: 60000, encoding: 'utf-8', stdio: 'pipe', shell: npm.shell,
+    });
+  } catch (e) {
+    console.warn('[runtime-installer] failed to install prebuild-install:', e.message);
+  }
+
+  // Run prebuild-install to fetch the prebuilt binary
+  const prebuildJs = path.join(tmpNm, 'prebuild-install', 'bin.js');
+  if (fs.existsSync(prebuildJs)) {
+    try {
+      require('child_process').execFileSync(nodeBin,
+        [prebuildJs, '-r', 'node', '-t', nodeVer, '--arch', arch],
+        { cwd: bsqlDir, timeout: 60000, shell: false,
+          env: { ...process.env, npm_config_arch: arch } });
+      if (fs.existsSync(bsqlBin)) {
+        console.log('[runtime-installer] ✓ better-sqlite3 prebuilt fetched');
+        try { fs.rmSync(tmpNm, { recursive: true, force: true }); } catch {}
+        return;
+      }
+    } catch (e) {
+      console.warn('[runtime-installer] prebuild-install run failed:', e.message);
+    }
+  }
+
+  // Cleanup temp
+  try { fs.rmSync(tmpNm, { recursive: true, force: true }); } catch {}
+  console.warn('[runtime-installer] could not fetch better-sqlite3 prebuilt — 9router autoFix will retry at startup');
 }
 
 // =====================================================================
