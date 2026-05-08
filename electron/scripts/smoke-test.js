@@ -352,7 +352,7 @@ if (tarContents && !hasVendorDir) {
 } else if (hasVendorTar && !hasVendorDir && tarListFailed) {
   // Tar inspect already failed above; avoid a misleading missing-binary cascade.
 } else if (!fs.existsSync(gogBin)) {
-  fail('gog binary', 'vendor/gog/gog binary not found — run prebuild-vendor first');
+  warn('gog binary', 'vendor/gog/gog binary not found — expected in runtime-only model (gog downloaded on first launch)');
 } else if (process.platform === (gogBin.endsWith('.exe') ? 'win32' : process.platform)) {
   const gogRes = spawnSync(gogBin, ['version'], { encoding: 'utf-8', timeout: 10000 });
   if (gogRes.status !== 0) {
