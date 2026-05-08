@@ -3675,37 +3675,36 @@
                 <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 1: Tạo Facebook App</div>
                 <div style="padding-left:8px;margin-bottom:14px">
                   Mở <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/creation/');return false" style="color:var(--accent)">developers.facebook.com/apps/creation</a><br>
-                  Chọn use case theo hướng dẫn đang hoạt động của ClawHub: <b>"Tương tác với khách hàng trên Messenger"</b><br>
-                  <span style="font-size:11px;color:var(--text-muted)">Không chọn app/use case chỉ hiện <code>business_management</code> + <code>pages_show_list</code>, vì app đó thường không mở được <code>pages_manage_posts</code>.</span><br>
                   Đặt tên app (VD: "9BizClaw") &rarr; nhấn <b>"Tạo ứng dụng"</b><br>
                   <span style="font-size:11px;color:var(--text-muted)">Nếu đã có app rồi, bỏ qua bước này.</span>
                 </div>
 
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 2: Lấy User Token + thêm quyền</div>
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 2: Thêm quyền trong App Dashboard</div>
+                <div style="padding-left:8px;margin-bottom:14px">
+                  Mở <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/');return false" style="color:var(--accent)">App Dashboard</a> &rarr; chọn app vừa tạo<br>
+                  Vào mục <b>"Tùy chỉnh trường hợp sử dụng: Quản lý mọi thứ trên Trang"</b><br>
+                  Nhấn <b>"Business Asset User Profile Access"</b> &rarr; nhấn <b>+ Thêm</b><br>
+                  Tiếp tục nhấn <b>+ Thêm</b> cho từng quyền sau:<br>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_manage_posts</code>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_show_list</code>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_read_engagement</code>
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">read_insights</code><br>
+                  <span style="font-size:11px;color:var(--text-muted)">Phải thêm quyền ở đây trước, nếu không Graph API Explorer sẽ không hiện quyền để chọn.</span>
+                </div>
+
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 3: Lấy Page Token từ Graph API Explorer</div>
                 <div style="padding-left:8px;margin-bottom:14px">
                   Mở <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/tools/explorer/');return false" style="color:var(--accent)">Graph API Explorer</a><br>
                   Cột phải, mục <b>"Ứng dụng trên Meta"</b>: chọn app vừa tạo<br>
-                  Mục <b>"Người dùng hoặc Trang"</b>: chọn <b>"Lấy mã truy cập người dùng"</b><br>
-                  Cuộn xuống mục <b>"Quyền"</b> &rarr; nhấn <b>"Thêm quyền"</b><br>
-                  <b>Gõ tìm</b> từng quyền (không browse theo nhóm):<br>
-                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_show_list</code>
-                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_manage_posts</code>
-                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">pages_read_engagement</code>
-                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">business_management</code><br>
-                  <span style="font-size:11px;color:var(--text-muted)">business_management giúp hiện Page nằm trong Business Portfolio, nhưng một mình nó không đủ để đăng bài.</span><br>
-                  Nhấn <b>"Generate Access Token"</b> &rarr; popup đăng nhập &rarr; cấp tất cả quyền &rarr; <b>chọn Fanpage</b> trong popup
-                </div>
-
-                <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 3: Lấy Page Access Token</div>
-                <div style="padding-left:8px;margin-bottom:14px">
-                  Quay lại Explorer, đổi URL thành <b>me/accounts?fields=id,name,tasks,access_token</b> &rarr; nhấn <b>"Gửi"</b><br>
-                  Kết quả trả về danh sách Fanpage kèm <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">access_token</code> cho mỗi trang<br>
-                  Copy token của Fanpage cần kết nối
+                  Mục <b>"Người dùng hoặc Trang"</b>: chọn <b>"Lấy mã truy cập Trang"</b> &rarr; <b>chọn đúng Fanpage</b><br>
+                  Cuộn xuống mục <b>"Quyền"</b> &rarr; chọn các quyền đã thêm ở bước 2<br>
+                  Nhấn <b>"Generate Access Token"</b> &rarr; popup đăng nhập &rarr; cấp tất cả quyền
                 </div>
 
                 <div style="font-weight:600;color:var(--text);margin-bottom:4px">Bước 4: Kết nối</div>
                 <div style="padding-left:8px;margin-bottom:14px">
-                  Paste token vào ô <b>"Paste Page Access Token..."</b> ở trên &rarr; nhấn <b>"Kết nối"</b><br>
+                  Copy token từ ô <b>"Access Token"</b> trong Graph API Explorer<br>
+                  Paste vào ô <b>"Paste Page Access Token..."</b> ở trên &rarr; nhấn <b>"Kết nối"</b><br>
                   Hệ thống tự kiểm tra token + hiện tên Fanpage nếu hợp lệ
                 </div>
 
@@ -3715,20 +3714,16 @@
                   Mở <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/tools/debug/accesstoken/');return false" style="color:var(--accent)">Access Token Debugger</a><br>
                   Paste token vừa copy &rarr; nhấn <b>"Debug"</b><br>
                   Nhấn nút <b>"Extend Access Token"</b> ở cuối trang &rarr; copy token mới (dài hạn 60 ngày)<br>
-                  Quay lại Explorer, paste token dài hạn vào ô Access Token &rarr; đổi URL thành <b>me/accounts</b> &rarr; nhấn <b>"Gửi"</b><br>
-                  Copy <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:3px">access_token</code> của Fanpage trong kết quả &rarr; paste vào ô trên và nhấn Kết nối<br>
+                  Paste token dài hạn vào ô trên và nhấn <b>Kết nối</b><br>
                   <span style="font-size:11px;color:var(--text-muted)">Page Token lấy từ User Token dài hạn sẽ không hết hạn, trừ khi anh/chị đổi mật khẩu Facebook hoặc thu hồi quyền app.</span>
                 </div>
 
                 <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-top:10px">
                   <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
-                    <b>Nếu chỉ thấy</b> <code>business_management</code> và <code>pages_show_list</code> như Graph API Explorer mới:
-                    token đó chỉ đủ để liệt kê Page, <b>chưa đủ để 9BizClaw đăng bài</b>. Đừng paste token đó vào app.
-                    Cách chắc nhất: tạo app mới theo use case <b>"Tương tác với khách hàng trên Messenger"</b> như skill ClawHub, rồi lấy token lại. Hoặc vào
-                    <a href="#" onclick="window.claw.openExternal('https://developers.facebook.com/apps/');return false" style="color:var(--accent)">App Dashboard</a>
-                    &rarr; app &rarr; <b>Use cases</b> hoặc <b>App Review &gt; Permissions and Features</b> &rarr; tìm và thêm
-                    <code>pages_manage_posts</code> + <code>pages_read_engagement</code>. Sau đó quay lại Graph API Explorer,
-                    bấm Generate Access Token lại và chọn Fanpage trong popup. Ở Development mode, tài khoản dùng để lấy token phải là Admin/Developer/Tester của app và có quyền tạo nội dung trên Page.
+                    <b>Lưu ý:</b> Nếu Graph API Explorer không hiện quyền <code>pages_manage_posts</code> để chọn,
+                    quay lại bước 2 kiểm tra đã thêm quyền trong App Dashboard chưa
+                    (<b>Tùy chỉnh trường hợp sử dụng: Quản lý mọi thứ trên Trang</b> &rarr; <b>+ Thêm</b>).
+                    Ở Development mode, tài khoản dùng để lấy token phải là Admin/Developer/Tester của app và có quyền tạo nội dung trên Page.
                   </div>
                 </div>
 

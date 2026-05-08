@@ -21,14 +21,14 @@ const dashboard = fs.readFileSync(path.join(__dirname, '..', 'ui', 'dashboard.ht
 const cronApi = fs.readFileSync(path.join(__dirname, '..', 'lib', 'cron-api.js'), 'utf8');
 const agents = fs.readFileSync(path.join(__dirname, '..', '..', 'AGENTS.md'), 'utf8');
 assert(
-  'dashboard recommends working ClawHub app use case',
-  dashboard.includes('Tương tác với khách hàng trên Messenger'),
-  'missing Messenger use-case guidance'
+  'dashboard guides adding permissions in App Dashboard',
+  dashboard.includes('Quản lý mọi thứ trên Trang') && dashboard.includes('Business Asset User Profile Access'),
+  'missing App Dashboard permission setup guidance'
 );
 assert(
-  'dashboard requests Page token with tasks',
-  dashboard.includes('me/accounts?fields=id,name,tasks,access_token'),
-  'missing me/accounts fields query'
+  'dashboard guides Page token via Graph API Explorer',
+  dashboard.includes('Lấy mã truy cập Trang') && dashboard.includes('Generate Access Token'),
+  'missing Graph API Explorer page token guidance'
 );
 assert(
   'cron api requires approval nonce for Facebook post',
