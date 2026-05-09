@@ -2292,7 +2292,7 @@
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 105104
+      "bytes": 105194
     },
     {
       "path": "electron/lib/cron-api.js",
@@ -2316,15 +2316,15 @@
     },
     {
       "path": "electron/lib/runtime-installer.js",
-      "bytes": 57893
+      "bytes": 60792
+    },
+    {
+      "path": "electron/lib/config.js",
+      "bytes": 45424
     },
     {
       "path": "electron/lib/workspace.js",
       "bytes": 44415
-    },
-    {
-      "path": "electron/lib/config.js",
-      "bytes": 44187
     },
     {
       "path": "electron/lib/nine-router.js",
