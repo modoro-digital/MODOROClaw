@@ -99,15 +99,7 @@ console.log('\n\x1b[1m=== SUITE 1: Workspace Files ===\x1b[0m\n');
   else pass('T1.3 MEMORY.md no emoji');
 })();
 
-// T1.4: HEARTBEAT.md has no emoji
-(() => {
-  const p = path.join(WS, 'HEARTBEAT.md');
-  if (!fs.existsSync(p)) return skip('T1.4 HEARTBEAT.md no emoji', 'file not found');
-  const content = fs.readFileSync(p, 'utf-8');
-  const emojiRe = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/u;
-  if (emojiRe.test(content)) fail('T1.4 HEARTBEAT.md no emoji', 'emoji found');
-  else pass('T1.4 HEARTBEAT.md no emoji');
-})();
+// T1.4: removed — HEARTBEAT.md no longer shipped (leaked internal protocol to agent)
 
 // T1.5: No fake memory files
 (() => {

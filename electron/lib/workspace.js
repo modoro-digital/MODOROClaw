@@ -293,7 +293,7 @@ function seedWorkspace() {
         // their own version stamps, so they only get updated on AGENTS.md
         // version bumps. CEO customizations in these files are rare (they're
         // bot-internal, not user-facing), so overwriting is safe.
-        const alsoOverwrite = ['HEARTBEAT.md', 'BOOTSTRAP.md', 'SOUL.md', 'TOOLS.md', 'README.md'];
+        const alsoOverwrite = ['BOOTSTRAP.md', 'SOUL.md', 'TOOLS.md', 'README.md'];
         // Force-refresh template-owned files in these dirs while preserving
         // any files the customer created (custom skills, prompts, etc.).
         // Strategy: walk the template dir, overwrite matching files in workspace,
@@ -349,7 +349,7 @@ function seedWorkspace() {
   if (ws !== templateRoot) {
     const templateFiles = [
       'AGENTS.md', 'BOOTSTRAP.md', 'SOUL.md', 'IDENTITY.md', 'USER.md',
-      'COMPANY.md', 'PRODUCTS.md', 'MEMORY.md', 'HEARTBEAT.md', 'TOOLS.md',
+      'COMPANY.md', 'PRODUCTS.md', 'MEMORY.md', 'TOOLS.md',
       'README.md',
     ];
     for (const f of templateFiles) {
@@ -359,6 +359,13 @@ function seedWorkspace() {
         try { fs.copyFileSync(src, dst); } catch {}
       }
     }
+    // Cleanup orphaned HEARTBEAT.md — leaked internal protocol to agent context
+    for (const orphan of ['HEARTBEAT.md']) {
+      const p = path.join(ws, orphan);
+      try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch {}
+    }
+    const hbPrompt = path.join(ws, 'prompts', 'heartbeat-prompt.md');
+    try { if (fs.existsSync(hbPrompt)) fs.unlinkSync(hbPrompt); } catch {}
     const templateDirs = ['skills', 'industry', 'prompts', 'memory', 'tools', 'docs', '.learnings', 'config', 'personas'];
     for (const d of templateDirs) {
       copyDirRecursive(path.join(templateRoot, d), path.join(ws, d));
@@ -904,7 +911,7 @@ function backupWorkspace(opts = {}) {
 
   const flatFiles = [
     'AGENTS.md', 'IDENTITY.md', 'COMPANY.md', 'PRODUCTS.md', 'USER.md',
-    'SOUL.md', 'MEMORY.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'TOOLS.md',
+    'SOUL.md', 'MEMORY.md', 'BOOTSTRAP.md', 'TOOLS.md',
     'schedules.json', 'custom-crons.json',
     'zalo-blocklist.json', 'telegram-paused.json', 'zalo-paused.json',
     'zalo-group-settings.json', 'zalo-stranger-policy.json',

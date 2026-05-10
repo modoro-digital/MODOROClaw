@@ -1,6 +1,6 @@
 {
   "name": "9bizclaw",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "membership": true,
   "description": "9BizClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
   "author": "9Biz",
@@ -101,10 +101,6 @@
       {
         "from": "../MEMORY.md",
         "to": "workspace-templates/MEMORY.md"
-      },
-      {
-        "from": "../HEARTBEAT.md",
-        "to": "workspace-templates/HEARTBEAT.md"
       },
       {
         "from": "../TOOLS.md",

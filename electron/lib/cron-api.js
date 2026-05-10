@@ -850,7 +850,6 @@ function startCronApi() {
         /^USER\.md$/,
         /^BOOTSTRAP\.md$/,
         /^MEMORY\.md$/,
-        /^HEARTBEAT\.md$/,
         /^TOOLS\.md$/,
         /^COMPANY\.md$/,
         /^PRODUCTS\.md$/,

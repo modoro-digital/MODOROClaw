@@ -233,10 +233,10 @@
     .wz-input::placeholder, .wz-textarea::placeholder {
       color: var(--text-tertiary);
     }
-    .wz-field-secure { display:flex; align-items:stretch; gap:8px; }
-    .wz-field-secure .wz-input { flex:1; }
+    .wz-field-secure { display:flex; align-items:center; gap:8px; }
+    .wz-field-secure .wz-input { flex:1; height:48px; box-sizing:border-box; }
     .wz-toggle-vis {
-      width:44px; flex-shrink:0; border:1px solid var(--border); border-radius:10px;
+      width:44px; height:48px; flex-shrink:0; border:1px solid var(--border); border-radius:10px;
       background:var(--surface); cursor:pointer; display:flex; align-items:center;
       justify-content:center; color:var(--text-muted); transition:border-color 0.15s, color 0.15s;
       box-sizing:border-box; padding:0;

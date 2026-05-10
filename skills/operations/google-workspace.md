@@ -20,6 +20,7 @@ Xác thực: phiên Telegram CEO tự gắn header nội bộ cho API local. KH�
 ### Calendar
 - GET /api/google/calendar/events?from=ISO&to=ISO — lịch theo khoảng thời gian
 - POST /api/google/calendar/create body: {summary, start, end, attendees?} — tạo sự kiện
+- POST /api/google/calendar/update body: {eventId, summary?, start?, end?, description?, location?, attendees?, sendUpdates?} — cập nhật sự kiện
 - POST /api/google/calendar/delete body: {eventId} — xóa sự kiện
 - POST /api/google/calendar/freebusy body: {from, to} — kiểm tra lịch bận
 - POST /api/google/calendar/free-slots body: {date: "YYYY-MM-DD"} — tìm slot trống
@@ -39,7 +40,8 @@ Xác thực: phiên Telegram CEO tự gắn header nội bộ cho API local. KH�
 ### Sheets
 - GET /api/google/sheets/list?max=20 — liệt kê Google Sheets gần đây trong Drive
 - GET /api/google/sheets/metadata?spreadsheetId=<id> — xem metadata Google Sheet
-- GET /api/google/sheets/get?spreadsheetId=<id>&range=Sheet1!A1:D20 — đọc dữ liệu Sheet
+- GET /api/google/sheets/get?spreadsheetId=<id>&range=Sheet1!A1:D20 — đọc dữ liệu Sheet (giá trị hiển thị)
+- GET /api/google/sheets/get?spreadsheetId=<id>&range=Sheet1!A1:D20&render=FORMULA — đọc công thức thay vì giá trị (render: FORMATTED_VALUE | UNFORMATTED_VALUE | FORMULA)
 - POST /api/google/sheets/update body: {spreadsheetId, range, values} — sửa vùng dữ liệu Sheet
 - POST /api/google/sheets/append body: {spreadsheetId, range, values} — thêm dòng vào Sheet
 

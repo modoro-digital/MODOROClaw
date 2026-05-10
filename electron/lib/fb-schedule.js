@@ -263,10 +263,14 @@ async function handleGenerate(scheduleId) {
       throw new Error('Tạo ảnh thành công nhưng file không tồn tại');
     }
 
-    pending.imagePath = imagePath;
-    pending.generatedAt = new Date().toISOString();
-    pending.status = 'pending';
-    savePending(pending);
+    // Re-read pending from disk — CEO may have edited caption during generation
+    const freshPending = loadPending(scheduleId, date) || pending;
+    freshPending.imagePath = imagePath;
+    freshPending.generatedAt = new Date().toISOString();
+    if (freshPending.status === 'regenerating') freshPending.status = 'pending';
+    if (!freshPending.status || freshPending.status === 'generating') freshPending.status = 'pending';
+    savePending(freshPending);
+    Object.assign(pending, freshPending);
 
     auditLog('fb_schedule_generate_done', { scheduleId, date, jobId, imagePath });
     console.log(`[fb-schedule] image generated: ${imagePath}`);
@@ -400,56 +404,72 @@ async function publishPending(pending, schedule) {
   const fbPub = require('./fb-publisher');
   const caption = pending.caption || '';
   const imagePath = pending.imagePath;
+  const imgBuf = (imagePath && fs.existsSync(imagePath)) ? fs.readFileSync(imagePath) : null;
 
-  try {
-    let result;
-    if (imagePath && fs.existsSync(imagePath)) {
-      const imgBuf = fs.readFileSync(imagePath);
-      result = await fbPub.postPhoto(cfg.pageId, cfg.accessToken, caption, imgBuf, imagePath);
-    } else {
-      result = await fbPub.postText(cfg.pageId, cfg.accessToken, caption);
-    }
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [2000, 4000, 8000];
 
-    pending.status = 'published';
-    pending.publishedAt = new Date().toISOString();
-    pending.postId = result.postId || null;
-    pending.postUrl = result.postUrl || null;
-    savePending(pending);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      let result;
+      if (imgBuf) {
+        result = await fbPub.postPhoto(cfg.pageId, cfg.accessToken, caption, imgBuf, imagePath);
+      } else {
+        result = await fbPub.postText(cfg.pageId, cfg.accessToken, caption);
+      }
 
-    auditLog('fb_schedule_published', {
-      scheduleId: pending.scheduleId,
-      date: pending.date,
-      postId: result.postId,
-      postUrl: result.postUrl,
-    });
-    console.log(`[fb-schedule] published ${pending.scheduleId} on ${pending.date}: ${result.postUrl}`);
+      pending.status = 'published';
+      pending.publishedAt = new Date().toISOString();
+      pending.postId = result.postId || null;
+      pending.postUrl = result.postUrl || null;
+      savePending(pending);
 
-    if (_sendTelegram) {
-      try {
-        await _sendTelegram(`[FB Schedule] Đã đăng "${schedule?.label || pending.scheduleId}" thành công.\n${result.postUrl || ''}`);
-      } catch {}
-    }
-  } catch (err) {
-    const isTokenExpired = err._isTokenExpired || err._httpStatus === 401 ||
-      /OAuthException|expired|invalid.*token|session.*invalid/i.test(err.message);
+      auditLog('fb_schedule_published', {
+        scheduleId: pending.scheduleId,
+        date: pending.date,
+        postId: result.postId,
+        postUrl: result.postUrl,
+        attempt,
+      });
+      console.log(`[fb-schedule] published ${pending.scheduleId} on ${pending.date}: ${result.postUrl}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
 
-    pending.status = 'skipped';
-    pending.error = err.message;
-    savePending(pending);
+      if (_sendTelegram) {
+        try {
+          await _sendTelegram(`[FB Schedule] Đã đăng "${schedule?.label || pending.scheduleId}" thành công.\n${result.postUrl || ''}`);
+        } catch {}
+      }
+      return;
+    } catch (err) {
+      const isTokenExpired = err._isTokenExpired || err._httpStatus === 401 ||
+        /OAuthException|expired|invalid.*token|session.*invalid/i.test(err.message);
+      const isTransient = !isTokenExpired && (err._httpStatus >= 500 || /ECONNRESET|ETIMEDOUT|ECONNREFUSED|socket hang up/i.test(err.message));
 
-    auditLog('fb_schedule_publish_failed', {
-      scheduleId: pending.scheduleId,
-      date: pending.date,
-      error: err.message,
-      tokenExpired: isTokenExpired,
-    });
-    console.error(`[fb-schedule] publish failed for ${pending.scheduleId}:`, err.message);
+      if (isTransient && attempt < MAX_RETRIES) {
+        console.warn(`[fb-schedule] transient error on attempt ${attempt + 1}, retrying in ${RETRY_DELAYS[attempt]}ms: ${err.message}`);
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
 
-    if (_sendTelegram) {
-      const tokenMsg = isTokenExpired ? ' Token Facebook hết hạn — cần paste token mới vào Dashboard.' : '';
-      try {
-        await _sendTelegram(`[FB Schedule] Đăng thất bại "${schedule?.label || pending.scheduleId}": ${err.message}${tokenMsg}`);
-      } catch {}
+      pending.status = 'skipped';
+      pending.error = err.message;
+      savePending(pending);
+
+      auditLog('fb_schedule_publish_failed', {
+        scheduleId: pending.scheduleId,
+        date: pending.date,
+        error: err.message,
+        tokenExpired: isTokenExpired,
+        attempt,
+      });
+      console.error(`[fb-schedule] publish failed for ${pending.scheduleId} (attempt ${attempt + 1}):`, err.message);
+
+      if (_sendTelegram) {
+        const tokenMsg = isTokenExpired ? ' Token Facebook hết hạn — cần paste token mới vào Dashboard.' : '';
+        try {
+          await _sendTelegram(`[FB Schedule] Đăng thất bại "${schedule?.label || pending.scheduleId}": ${err.message}${tokenMsg}`);
+        } catch {}
+      }
+      return;
     }
   }
 }

@@ -99,11 +99,13 @@ Sau khi có thông tin (caption, mô tả ảnh, có/không brand assets):
 
 ```
 GET http://127.0.0.1:20200/api/image/generate
-  ?size=1024x1024
+  ?autoSendTelegram=false
+  &size=1024x1024
   &assets=<file1,file2>
   &prompt=<URL-encoded prompt>
 ```
 
+- **`autoSendTelegram=false` BẮT BUỘC** — workflow này tự poll + gửi preview riêng ở Pha 3, KHÔNG để server tự gửi
 - `size`: `1024x1024` (vuông), `1792x1024` (ngang/banner), `1024x1792` (doc/story)
 - `assets` để TRƯỚC `&prompt=`
 - `prompt` — **PHẢI là param CUỐI CÙNG**
@@ -116,11 +118,11 @@ GET http://127.0.0.1:20200/api/image/generate
 GET http://127.0.0.1:20200/api/image/status?jobId=<jobId>
 ```
 
-Tiếp tục poll cho đến khi `status: "done"` và có `imagePath`/`mediaId`.
+Poll mỗi **15 giây**, tối đa **12 lần** (= ~180 giây). Mỗi lần gọi `web_fetch` tới URL trên.
 
 **TUYỆT ĐỐI KHÔNG:** Dùng `jobId` đang `generating` làm "ảnh đã xong".
 
-**Timeout (>120s):** "Tạo ảnh bị timeout, thử lại sau nhé anh."
+**Timeout (hết 12 lần poll mà vẫn `generating`):** "Tạo ảnh lâu hơn dự kiến, anh chờ thêm chút nhé — ảnh xong em gửi preview ngay." Sau đó gọi thêm 6 lần nữa (mỗi 15s). Nếu vẫn `generating` sau tổng 18 lần → "Tạo ảnh bị timeout, thử lại sau nhé anh."
 
 ---
 

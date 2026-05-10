@@ -319,6 +319,9 @@ const _outputFilterPatterns = [
   { name: 'pii-cccd-cmnd', re: /(?:cccd|căn\s*cước|cmnd|chứng\s*minh\s*(?:nhân\s*dân|thư))[\s:=]*\d{9}(?:\d{3})?\b/i },
   { name: 'pii-bank-account', re: /(?:stk|số\s*tài\s*khoản|account\s*(?:number|no\.?)|acct\s*#?)[\s:=]*\d{6,20}/i },
   { name: 'pii-credit-card', re: /\b\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{1,4}\b/ },
+  // Layer A1.3: internal protocol terms — heartbeat protocol leaked to customers
+  { name: 'heartbeat-ok', re: /\bHEARTBEAT_OK\b/ },
+  { name: 'heartbeat-protocol', re: /\blệnh heartbeat\b/i },
   // Layer A1.4: upstream API / LLM error leakage — ChatGPT/OpenAI errors passed through
   // 9Router into bot reply text. Customer must NEVER see "[Error] Our servers are..."
   { name: 'api-error-bracket', re: /\[Error\]/i },
@@ -734,7 +737,8 @@ async function sendTelegramPhoto(imagePath, caption, _retryCount = 0) {
       });
     });
     req.on('error', () => resolve(false));
-    req.setTimeout(30000, () => { req.destroy(); resolve(false); });
+    const timeoutMs = payload.length > 2 * 1024 * 1024 ? 60000 : 30000;
+    req.setTimeout(timeoutMs, () => { req.destroy(); resolve(false); });
     req.write(payload);
     req.end();
   });

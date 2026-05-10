@@ -555,6 +555,9 @@ export async function sendTextModoroZalo(options: SendTextOptions): Promise<Modo
       { name: "hex-token-partial", re: /\b[a-f0-9]{16,47}\b/i },
       { name: "botToken-field", re: /\bbotToken\b/i },
       { name: "apiKey-field", re: /\bapiKey\b/i },
+      // --- Layer A1.3: internal protocol terms ---
+      { name: "heartbeat-ok", re: /\bHEARTBEAT_OK\b/ },
+      { name: "heartbeat-protocol", re: /\blệnh heartbeat\b/i },
       // --- Layer A1.5: bot "silent" tokens leaked as reply ---
       { name: "bot-silent-token", re: /^(NO_REPLY|SKIP|SILENT|DO_NOT_REPLY|IM_LANG|IM LẶNG|KHÔNG TRẢ LỜI|no.?reply|skip.?message)$/i },
       // --- Layer A2: OpenClaw system messages (compaction, context reset) ---

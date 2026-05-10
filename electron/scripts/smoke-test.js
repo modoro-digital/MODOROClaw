@@ -714,7 +714,7 @@ section('Workspace templates (extraResources)');
 const templateRoot = path.resolve(__dirname, '..', '..');
 const requiredTemplates = [
   'AGENTS.md', 'IDENTITY.md', 'SOUL.md', 'BOOTSTRAP.md', 'COMPANY.md',
-  'PRODUCTS.md', 'USER.md', 'MEMORY.md', 'HEARTBEAT.md', 'TOOLS.md',
+  'PRODUCTS.md', 'USER.md', 'MEMORY.md', 'TOOLS.md',
 ];
 for (const f of requiredTemplates) {
   const p = path.join(templateRoot, f);
@@ -2150,7 +2150,7 @@ try {
       return from;
     });
   const criticalTemplates = ['AGENTS.md', 'IDENTITY.md', 'SOUL.md', 'BOOTSTRAP.md',
-    'COMPANY.md', 'PRODUCTS.md', 'USER.md', 'MEMORY.md', 'HEARTBEAT.md', 'TOOLS.md'];
+    'COMPANY.md', 'PRODUCTS.md', 'USER.md', 'MEMORY.md', 'TOOLS.md'];
   const missingFromBuild = criticalTemplates.filter(t =>
     !templateFromEntries.some(e => e === t || e.endsWith('/' + t))
   );
@@ -2252,6 +2252,78 @@ try {
     warn('file logger path', 'could not verify app name case — check initFileLogger manually');
   }
 } catch (e) { fail('file logger', 'main.js read failed: ' + e.message); }
+
+// =========================================================================
+// TEST: Image generation pipeline integrity
+// =========================================================================
+section('Image generation pipeline');
+
+try {
+  const imageGen = require('../lib/image-gen');
+
+  // loadAssets returns { loaded, skipped } (not a plain array)
+  const result = imageGen._test?.buildCodexRequest
+    ? (() => {
+        const lg = require('../lib/image-gen');
+        // Verify module exports are present
+        if (typeof lg.startJob !== 'function') throw new Error('startJob not exported');
+        if (typeof lg.getJobStatus !== 'function') throw new Error('getJobStatus not exported');
+        if (typeof lg.generateJobId !== 'function') throw new Error('generateJobId not exported');
+        if (typeof lg.waitForJobResult !== 'function') throw new Error('waitForJobResult not exported');
+        if (typeof lg.normalizeImageSize !== 'function') throw new Error('normalizeImageSize not exported');
+        return true;
+      })()
+    : false;
+  if (result) pass('image-gen module exports intact');
+  else fail('image-gen exports', 'missing expected function exports');
+
+  // Verify normalizeImageSize aliases
+  const sizeTests = [
+    ['1024x1024', '1024x1024'], ['landscape', '1792x1024'], ['ngang', '1792x1024'],
+    ['portrait', '1024x1792'], ['vuông', '1024x1024'], ['auto', 'auto'],
+    ['invalid', '1024x1024'], [null, '1024x1024'], [undefined, '1024x1024'],
+  ];
+  let sizeOk = true;
+  for (const [input, expected] of sizeTests) {
+    const got = imageGen.normalizeImageSize(input);
+    if (got !== expected) { sizeOk = false; fail('normalizeImageSize', `"${input}" → "${got}", expected "${expected}"`); break; }
+  }
+  if (sizeOk) pass('normalizeImageSize aliases correct');
+
+  // Verify getJobStatus returns not_found for missing job
+  const missing = imageGen.getJobStatus('nonexistent_job_id');
+  if (missing && missing.status === 'not_found') pass('getJobStatus returns not_found for missing job');
+  else fail('getJobStatus', `expected {status:"not_found"}, got ${JSON.stringify(missing)}`);
+
+  // Verify generateJobId format
+  const jid = imageGen.generateJobId();
+  if (/^img_\d+_[a-z0-9]{4}$/.test(jid)) pass('generateJobId format correct');
+  else fail('generateJobId', `unexpected format: ${jid}`);
+
+} catch (e) {
+  fail('image-gen pipeline', e.message);
+}
+
+// fb-schedule module loads without error
+try {
+  const fbSched = require('../lib/fb-schedule');
+  if (typeof fbSched.handleGenerate === 'function' && typeof fbSched.handlePublish === 'function') {
+    pass('fb-schedule module loads with handleGenerate + handlePublish');
+  } else {
+    fail('fb-schedule exports', 'missing handleGenerate or handlePublish');
+  }
+} catch (e) {
+  fail('fb-schedule load', e.message);
+}
+
+// channels module: sendTelegramPhoto exported
+try {
+  const ch = require('../lib/channels');
+  if (typeof ch.sendTelegramPhoto === 'function') pass('channels.sendTelegramPhoto exported');
+  else fail('channels exports', 'sendTelegramPhoto not found');
+} catch (e) {
+  fail('channels load', e.message);
+}
 
 // =========================================================================
 // SUMMARY

@@ -33,7 +33,7 @@ fs.writeFileSync(path.join(TEMP_OC, 'openclaw.json'), JSON.stringify({
 // Copy template files from repo root so seedWorkspace can find them
 const TEMPLATE_FILES = [
   'AGENTS.md', 'BOOTSTRAP.md', 'SOUL.md', 'IDENTITY.md', 'USER.md',
-  'COMPANY.md', 'PRODUCTS.md', 'MEMORY.md', 'HEARTBEAT.md', 'TOOLS.md', 'README.md',
+  'COMPANY.md', 'PRODUCTS.md', 'MEMORY.md', 'TOOLS.md', 'README.md',
 ];
 for (const f of TEMPLATE_FILES) {
   const src = path.join(REPO_ROOT, f);

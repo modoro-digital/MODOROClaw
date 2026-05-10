@@ -82,16 +82,32 @@ function resolveAssetPath(brandAssetsDir, name) {
 function loadAssets(brandAssetsDir, assetNames) {
   console.log(`[image-gen] loadAssets called: brandDir=${brandAssetsDir}, names=${JSON.stringify(assetNames)}`);
   const loaded = [];
+  const skipped = [];
   for (const name of assetNames) {
     const resolved = resolveAssetPath(brandAssetsDir, name);
     if (!resolved || !fs.existsSync(resolved)) {
       console.warn(`[image-gen] asset SKIP "${name}": resolved=${resolved}, exists=${resolved ? fs.existsSync(resolved) : false}`);
+      skipped.push({ name, reason: 'not_found' });
       continue;
     }
-    const buf = fs.readFileSync(resolved);
+    let buf;
+    try {
+      buf = fs.readFileSync(resolved);
+    } catch (e) {
+      console.error(`[image-gen] asset READ FAILED "${name}": ${e.message}`);
+      skipped.push({ name, reason: 'read_error', error: e.message });
+      continue;
+    }
+    if (!buf || buf.length === 0) {
+      console.warn(`[image-gen] asset SKIP "${name}": file is empty (0 bytes)`);
+      skipped.push({ name, reason: 'empty_file' });
+      continue;
+    }
     const b64Len = Math.ceil(buf.length / 3) * 4;
     if (b64Len > MAX_ASSET_B64_SIZE) {
-      console.warn(`[image-gen] asset SKIP "${name}": too large (${(b64Len / 1024 / 1024).toFixed(1)} MB)`);
+      const sizeMB = (b64Len / 1024 / 1024).toFixed(1);
+      console.error(`[image-gen] asset REJECTED "${name}": ${sizeMB} MB exceeds ${(MAX_ASSET_B64_SIZE / 1024 / 1024).toFixed(0)} MB limit`);
+      skipped.push({ name, reason: 'too_large', sizeMB });
       continue;
     }
     const b64 = buf.toString('base64');
@@ -100,8 +116,8 @@ function loadAssets(brandAssetsDir, assetNames) {
     loaded.push({ name: path.basename(resolved), base64: b64, mime });
     console.log(`[image-gen] asset LOADED "${name}" → ${resolved} (${(buf.length / 1024).toFixed(0)} KB, ${mime})`);
   }
-  console.log(`[image-gen] loadAssets result: ${loaded.length} of ${assetNames.length} loaded`);
-  return loaded;
+  console.log(`[image-gen] loadAssets result: ${loaded.length} loaded, ${skipped.length} skipped of ${assetNames.length} requested`);
+  return { loaded, skipped };
 }
 
 const BRAND_ASSET_PREFIX = 'CRITICAL INSTRUCTION: The attached reference image(s) are brand assets. You MUST reproduce them EXACTLY as they appear — preserve every detail: exact colors, exact shapes, exact text/typography, exact proportions, exact art style. Do NOT redraw, reinterpret, reimagine, or stylize them. Composite the ORIGINAL image unchanged into the scene.\n\n';
@@ -121,29 +137,55 @@ function findImageConnectionId() {
   } catch { return null; }
 }
 
+function categorizeCodexConnections(conns) {
+  const codex = conns.filter(c =>
+    c.provider === 'codex' && c.isActive !== false &&
+    typeof c['modelLock_gpt-5.4-image'] !== 'string'
+  );
+  const plus = codex.filter(c => c.providerSpecificData?.chatgptPlanType === 'plus');
+  const team = codex.filter(c => c.providerSpecificData?.chatgptPlanType === 'team');
+  const free = codex.filter(c => {
+    const plan = c.providerSpecificData?.chatgptPlanType;
+    return !plan || plan === 'free';
+  });
+  return {
+    primary: [...plus.map(c => c.id), ...team.map(c => c.id)],
+    free: free.map(c => c.id),
+  };
+}
+
 function findAllImageConnectionIds() {
   const result = { primary: [], free: [] };
   try {
     const appData = process.env.APPDATA || (process.platform === 'darwin'
       ? path.join(process.env.HOME || '', 'Library', 'Application Support')
-      : path.join(process.env.HOME || '', '.config'));
+      : process.env.XDG_CONFIG_HOME || path.join(process.env.HOME || '', '.config'));
     const dbPath = path.join(appData, '9router', 'db.json');
-    if (!fs.existsSync(dbPath)) return result;
+    if (!fs.existsSync(dbPath)) {
+      console.warn('[image-gen] 9router db.json not found at', dbPath);
+      return result;
+    }
     const db = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    const conns = db.providerConnections || [];
-    const codex = conns.filter(c =>
-      c.provider === 'codex' && c.isActive !== false &&
-      typeof c['modelLock_gpt-5.4-image'] !== 'string'
-    );
-    const plus = codex.filter(c => c.providerSpecificData?.chatgptPlanType === 'plus');
-    const team = codex.filter(c => c.providerSpecificData?.chatgptPlanType === 'team');
-    const free = codex.filter(c => {
-      const plan = c.providerSpecificData?.chatgptPlanType;
-      return !plan || plan === 'free';
-    });
-    result.primary = [...plus.map(c => c.id), ...team.map(c => c.id)];
-    result.free = free.map(c => c.id);
-  } catch {}
+    const conns = db.providerConnections || db.connections || db.providers || [];
+    if (!Array.isArray(conns) || conns.length === 0) {
+      console.warn('[image-gen] no provider connections in db.json (keys: ' + Object.keys(db).join(', ') + ')');
+      return result;
+    }
+    const cat = categorizeCodexConnections(conns);
+    if (cat.primary.length === 0 && cat.free.length === 0) {
+      const allCodex = conns.filter(c => c.provider === 'codex');
+      console.warn(`[image-gen] 0 eligible codex connections (${allCodex.length} total codex, ${conns.length} total providers)`);
+      if (allCodex.length > 0) {
+        console.warn('[image-gen] codex exclusion reasons:', allCodex.map(c =>
+          `${(c.id || '').slice(0, 8)}: isActive=${c.isActive}, modelLock=${c['modelLock_gpt-5.4-image']}`
+        ).join('; '));
+      }
+    }
+    result.primary = cat.primary;
+    result.free = cat.free;
+  } catch (e) {
+    console.error('[image-gen] findAllImageConnectionIds error:', e.message);
+  }
   return result;
 }
 
@@ -168,6 +210,39 @@ function buildCodexRequest(prompt, assets, size, options = {}) {
   };
   if (options.toolChoice !== false) body.tool_choice = { type: 'image_generation' };
   return body;
+}
+
+function findConnectionIdsViaApi() {
+  return new Promise(resolve => {
+    const req = http.request({
+      hostname: '127.0.0.1', port: 20128,
+      path: '/api/providers', method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    }, res => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try {
+          const body = JSON.parse(data);
+          // API returns { connections: [...] } — different key from db.json's providerConnections
+          const conns = body.connections || body.providers || body.providerConnections || [];
+          const cat = categorizeCodexConnections(Array.isArray(conns) ? conns : []);
+          const ids = [...cat.primary, ...cat.free];
+          console.log(`[image-gen] API fallback found ${ids.length} codex connections`);
+          resolve(ids);
+        } catch (e) {
+          console.warn('[image-gen] API fallback parse error:', e.message);
+          resolve([]);
+        }
+      });
+    });
+    req.on('error', (e) => {
+      console.warn('[image-gen] API fallback request error:', e.message);
+      resolve([]);
+    });
+    req.setTimeout(5000, () => { req.destroy(); resolve([]); });
+    req.end();
+  });
 }
 
 function parseSSEForImage(rawData) {
@@ -227,8 +302,12 @@ function isImageToolChoiceUnsupported(err) {
 }
 
 async function callCodexAPIWithFallback(prompt, assets, size) {
-  const { primary, free } = findAllImageConnectionIds();
-  const allIds = [...primary, ...free];
+  let { primary, free } = findAllImageConnectionIds();
+  let allIds = [...primary, ...free];
+  if (allIds.length === 0) {
+    const apiIds = await findConnectionIdsViaApi();
+    allIds = apiIds;
+  }
   if (allIds.length === 0) throw new Error('No codex provider connection available for image generation');
 
   let lastErr = null;
@@ -295,7 +374,10 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
     if (onComplete) onComplete(err, imgPath);
   }
 
-  const assets = loadAssets(brandAssetsDir, assetNames || []);
+  const { loaded: assets, skipped: assetSkips } = loadAssets(brandAssetsDir, assetNames || []);
+  if (assetSkips.length > 0) {
+    job.assetWarnings = assetSkips;
+  }
 
   callCodexAPIWithFallback(prompt, assets, size).then(imgBuf => {
     return withGenLock(() => {
@@ -342,9 +424,10 @@ function startJob(jobId, prompt, brandAssetsDir, assetNames, size, onComplete) {
 function getJobStatus(jobId) {
   const job = _jobs.get(jobId);
   if (!job) return { status: 'not_found' };
-  if (job.status === 'done') return { status: 'done', imagePath: job.relPath || job.imagePath, mediaId: job.mediaId || null };
-  if (job.status === 'failed') return { status: 'failed', error: job.error };
-  return { status: 'generating' };
+  const warnings = job.assetWarnings?.length ? { assetWarnings: job.assetWarnings } : {};
+  if (job.status === 'done') return { status: 'done', imagePath: job.relPath || job.imagePath, mediaId: job.mediaId || null, ...warnings };
+  if (job.status === 'failed') return { status: 'failed', error: job.error, ...warnings };
+  return { status: 'generating', ...warnings };
 }
 
 function waitForJobResult(jobId, timeoutMs = 3000) {

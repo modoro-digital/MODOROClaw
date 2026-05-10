@@ -2642,9 +2642,9 @@
           <span>Gateway Token (login)</span>
           <button onclick="hideGatewayToken()" title="Ẩn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:14px;line-height:1">×</button>
         </div>
-        <div style="display:flex;gap:4px">
-          <input type="text" id="gateway-token" readonly style="flex:1;font-size:10px;padding:5px 7px;font-family:monospace;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)">
-          <button class="btn btn-secondary btn-small" onclick="copyGatewayToken()" style="padding:3px 10px;font-size:10px;width:auto">Copy</button>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="text" id="gateway-token" readonly style="flex:1;font-size:10px;padding:5px 7px;font-family:monospace;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);height:28px;box-sizing:border-box">
+          <button class="btn btn-secondary btn-small" onclick="copyGatewayToken()" style="padding:3px 10px;font-size:10px;width:auto;height:28px;display:inline-flex;align-items:center;box-sizing:border-box">Copy</button>
         </div>
       </div>
     </div>
@@ -3657,9 +3657,9 @@
           <div class="card" style="margin-bottom:20px">
             <h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:var(--text)">Kết nối Fanpage</h3>
             <div id="fb-status"></div>
-            <div style="display:flex;gap:8px;align-items:stretch;margin-top:12px">
-              <input type="password" id="fb-token-input" placeholder="Paste Page Access Token từ Meta Business Suite" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none">
-              <button id="fb-connect-btn" class="btn btn-primary btn-small" onclick="connectFbPage()" style="flex-shrink:0">Kết nối</button>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+              <input type="password" id="fb-token-input" placeholder="Paste Page Access Token từ Meta Business Suite" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;height:36px;box-sizing:border-box">
+              <button id="fb-connect-btn" class="btn btn-primary btn-small" onclick="connectFbPage()" style="flex-shrink:0;height:36px;display:inline-flex;align-items:center;box-sizing:border-box">Kết nối</button>
             </div>
             <details style="margin-top:14px">
               <summary style="font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;user-select:none">Hướng dẫn chi tiết lấy Page Access Token</summary>
@@ -3910,8 +3910,8 @@
         <div class="gw-panel" id="gw-drive" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
-              <input type="text" id="drive-search" placeholder="Tìm kiếm file..." style="flex:1;max-width:320px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')searchDriveFiles()" />
-              <button class="btn btn-secondary btn-small" onclick="searchDriveFiles()">Tìm</button>
+              <input type="text" id="drive-search" placeholder="Tìm kiếm file..." style="flex:1;max-width:320px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;height:36px;box-sizing:border-box" onkeydown="if(event.key==='Enter')searchDriveFiles()" />
+              <button class="btn btn-secondary btn-small" onclick="searchDriveFiles()" style="height:36px;display:inline-flex;align-items:center;box-sizing:border-box">Tìm</button>
             </div>
             <button class="btn btn-secondary btn-small" onclick="loadDriveFiles()">Làm mới</button>
           </div>
@@ -3972,8 +3972,8 @@
         <div class="gw-panel" id="gw-contacts" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <div style="display:flex;align-items:center;gap:8px;flex:1">
-              <input type="text" id="contacts-search" placeholder="Tìm liên hệ..." style="flex:1;max-width:320px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')searchContacts()" />
-              <button class="btn btn-secondary btn-small" onclick="searchContacts()">Tìm</button>
+              <input type="text" id="contacts-search" placeholder="Tìm liên hệ..." style="flex:1;max-width:320px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;height:36px;box-sizing:border-box" onkeydown="if(event.key==='Enter')searchContacts()" />
+              <button class="btn btn-secondary btn-small" onclick="searchContacts()" style="height:36px;display:inline-flex;align-items:center;box-sizing:border-box">Tìm</button>
             </div>
             <button class="btn btn-primary btn-small" onclick="showAddContactModal()">Thêm liên hệ</button>
           </div>
@@ -4126,9 +4126,9 @@
                 </div>
                 <div style="margin-bottom:4px">
                   <label style="font-size:13px;font-weight:500;color:var(--text);display:block;margin-bottom:6px">2. Email Google cần kết nối</label>
-                  <div style="display:flex;gap:8px;align-items:stretch">
-                    <input type="email" id="gw-email" placeholder="ceo@company.com" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none" />
-                    <button class="btn btn-primary btn-small" onclick="connectGoogle()" style="flex-shrink:0">Kết nối</button>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="email" id="gw-email" placeholder="ceo@company.com" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;height:36px;box-sizing:border-box" />
+                    <button class="btn btn-primary btn-small" onclick="connectGoogle()" style="flex-shrink:0;height:36px;display:inline-flex;align-items:center;box-sizing:border-box">Kết nối</button>
                   </div>
                   <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:8px">Khi bấm Kết nối, trình duyệt sẽ mở trang đăng nhập Google. Chọn cùng email đã nhập, cho phép quyền truy cập, rồi quay lại app.</div>
                 </div>
@@ -9074,7 +9074,7 @@
         view.innerHTML = html;
         empty.style.display = 'none';
       } catch (e) {
-        view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải lịch') + '</div>';
+        view.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(formatGoogleErrorMessage(e.message, 'Calendar')) + '</div>' + googleApiEnableButton(e.message, 'Calendar');
       }
     }
 
@@ -9235,7 +9235,7 @@
         if (empty) {
           empty.style.display = '';
           empty.style.color = 'var(--danger)';
-          empty.textContent = e.message || 'Lỗi tải lịch';
+          empty.innerHTML = esc(formatGoogleErrorMessage(e.message, 'Calendar')) + '<br>' + googleApiEnableButton(e.message, 'Calendar');
         }
       } finally {
         if (_fcLoadingKey === rangeKey) _fcLoadingKey = '';
@@ -9396,12 +9396,29 @@
       renderInlineState(el, Object.assign({ compact: false }, state || {}));
     }
 
+    var _googleApiUrls = {
+      'Calendar': 'https://console.cloud.google.com/apis/api/calendar-json.googleapis.com',
+      'Gmail': 'https://console.cloud.google.com/apis/api/gmail.googleapis.com',
+      'Drive': 'https://console.cloud.google.com/apis/api/drive.googleapis.com',
+      'Docs': 'https://console.cloud.google.com/apis/api/docs.googleapis.com',
+      'Sheets': 'https://console.cloud.google.com/apis/api/sheets.googleapis.com',
+      'Contacts': 'https://console.cloud.google.com/apis/api/people.googleapis.com',
+      'People': 'https://console.cloud.google.com/apis/api/people.googleapis.com',
+      'Tasks': 'https://console.cloud.google.com/apis/api/tasks.googleapis.com',
+    };
     function formatGoogleErrorMessage(message, service) {
       const raw = String(message || '').trim();
       if (/not connected|chưa kết nối|not authenticated/i.test(raw)) return 'Google Workspace chưa kết nối. Mở tab Cài đặt để kết nối lại.';
-      if (/has not been used|accessNotConfigured|API has not been used/i.test(raw)) return 'Google API cho ' + service + ' chưa được bật trong Google Cloud. Bật API tương ứng rồi thử lại.';
+      if (/has not been used|accessNotConfigured|API has not been used/i.test(raw)) return 'Google API cho ' + service + ' chưa được bật trong Google Cloud.';
       if (/permission|insufficient|forbidden|403/i.test(raw)) return 'Tài khoản Google chưa có quyền cho thao tác này hoặc OAuth thiếu scope.';
       return raw || 'Lỗi không xác định từ Google.';
+    }
+    function googleApiEnableButton(message, service) {
+      const raw = String(message || '').trim();
+      if (!/has not been used|accessNotConfigured|API has not been used/i.test(raw)) return '';
+      const url = _googleApiUrls[service];
+      if (!url) return '';
+      return '<button class="btn btn-primary btn-small" onclick="window.claw.openExternal(\'' + url + '\')" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">Bật ' + esc(service) + ' API</button>';
     }
 
     function showGmailInlineError(id, message) {
@@ -9446,7 +9463,7 @@
             '<span class="row-date">' + esc(dateStr) + '</span></div>';
         }).join('');
       } catch (e) {
-        renderGoogleListState(list, { type: 'error', title: 'Không tải được Gmail', detail: formatGoogleErrorMessage(e.message, 'Gmail'), action: '<button class="btn btn-secondary btn-small" onclick="loadGmailInbox()">Thử lại</button>' });
+        renderGoogleListState(list, { type: 'error', title: 'Không tải được Gmail', detail: formatGoogleErrorMessage(e.message, 'Gmail'), action: googleApiEnableButton(e.message, 'Gmail') || '<button class="btn btn-secondary btn-small" onclick="loadGmailInbox()">Thử lại</button>' });
       } finally {
         setBtnLoading(button, false);
       }
@@ -9550,7 +9567,7 @@
             '</div>';
         }).join('');
       } catch (e) {
-        renderGoogleListState(list, { type: 'error', title: 'Không tải được Drive', detail: formatGoogleErrorMessage(e.message, 'Drive'), action: '<button class="btn btn-secondary btn-small" onclick="loadDriveFiles()">Thử lại</button>' });
+        renderGoogleListState(list, { type: 'error', title: 'Không tải được Drive', detail: formatGoogleErrorMessage(e.message, 'Drive'), action: googleApiEnableButton(e.message, 'Drive') || '<button class="btn btn-secondary btn-small" onclick="loadDriveFiles()">Thử lại</button>' });
       }
     }
 
@@ -9604,7 +9621,7 @@
             '</button>';
         }).join('');
       } catch (e) {
-        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Docs', detail: formatGoogleErrorMessage(e.message, 'Docs') });
+        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Docs', detail: formatGoogleErrorMessage(e.message, 'Docs'), action: googleApiEnableButton(e.message, 'Docs') });
       }
     }
     async function loadDocInfo() {
@@ -9732,7 +9749,7 @@
         }).join('');
       } catch (e) {
         box.dataset.loaded = '';
-        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Sheets', detail: formatGoogleErrorMessage(e.message, 'Sheets') });
+        renderGoogleListState(box, { type: 'error', compact: true, title: 'Không tải được Sheets', detail: formatGoogleErrorMessage(e.message, 'Sheets'), action: googleApiEnableButton(e.message, 'Sheets') });
       }
     }
     async function loadSheetMetadata() {
@@ -9808,7 +9825,7 @@
             '<div class="gw-list-meta">' + esc([phone, email].filter(Boolean).join(' · ')) + '</div></div></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải liên hệ') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(formatGoogleErrorMessage(e.message, 'Contacts')) + '</div>' + googleApiEnableButton(e.message, 'Contacts');
       }
     }
     function searchContacts() { loadContactsList(document.getElementById('contacts-search').value.trim() || undefined); }
@@ -9856,7 +9873,7 @@
             '</div></div>';
         }).join('');
       } catch (e) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(e.message || 'Lỗi tải danh sách') + '</div>';
+        list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);font-size:13px">' + esc(formatGoogleErrorMessage(e.message, 'Tasks')) + '</div>' + googleApiEnableButton(e.message, 'Tasks');
       }
     }
     async function completeTaskItem(id) {
