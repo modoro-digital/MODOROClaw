@@ -95,6 +95,12 @@ function getWorkspace() {
       }
     }
     try { fs.mkdirSync(_workspaceCached, { recursive: true }); } catch {}
+    try {
+      const { guardWritable } = require('./preflight');
+      guardWritable('getWorkspace', _workspaceCached);
+    } catch (e) {
+      console.warn('[getWorkspace] guard failed:', e.message);
+    }
     return _workspaceCached;
   }
   // Dev mode: use source dir if writable
@@ -103,6 +109,12 @@ function getWorkspace() {
     _workspaceCached = ctx.resourceDir;
   } catch {
     _workspaceCached = ctx.userDataDir;
+  }
+  try {
+    const { guardWritable } = require('./preflight');
+    guardWritable('getWorkspace', _workspaceCached);
+  } catch (e) {
+    console.warn('[getWorkspace] guard failed:', e.message);
   }
   return _workspaceCached;
 }

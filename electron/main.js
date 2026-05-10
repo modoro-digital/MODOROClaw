@@ -176,6 +176,8 @@ const {
   verifyEmbedderModelSha,
   initEmbedder,
 } = require('./lib/knowledge');
+const { isModelDownloaded, downloadModels } = require('./lib/model-downloader');
+const { runPreflightChecks } = require('./lib/preflight');
 
 // Wire compilePersonaMix into workspace.js (used by seedWorkspace persona compilation)
 setCompilePersonaMix(compilePersonaMix);
@@ -646,7 +648,8 @@ app.whenReady().then(async () => {
 
     // Check if we need work BEFORE showing splash (fast subsequent launches = no splash)
     const preCheck = await runtimeInstaller.checkInstallation();
-    const needsWork = !preCheck.ready || (migration.isUpgradeFromV23() && !migration.isMigrationCompleted());
+    const needsRagModel = !isModelDownloaded();
+    const needsWork = !preCheck.ready || needsRagModel || (migration.isUpgradeFromV23() && !migration.isMigrationCompleted());
 
     // Show splash window ONLY if we have real work to do
     let _splashCancelRequested = false;
@@ -744,6 +747,20 @@ app.whenReady().then(async () => {
       console.log('[boot] Runtime installation already complete');
     }
 
+    // RAG embedding model: download if missing (upgrade from pre-RAG version or failed previous download)
+    if (!isModelDownloaded()) {
+      console.log('[boot] RAG model missing — downloading on splash...');
+      try {
+        await downloadModels({
+          onProgress: (p) => sendSplashProgress({ step: 'model', percent: p.percent, message: p.message }),
+        });
+        console.log('[boot] RAG model download complete');
+      } catch (e) {
+        console.warn('[boot] RAG model download failed (non-fatal):', e?.message);
+        sendSplashProgress({ step: 'model', percent: 100, message: 'Tải mô hình AI thất bại — sẽ thử lại sau' });
+      }
+    }
+
     // Close splash window
     if (splashWindow && !splashWindow.isDestroyed()) {
       try {
@@ -794,7 +811,7 @@ app.whenReady().then(async () => {
     }
     try {
       const { dialog } = require('electron');
-      dialog.showErrorBox('Lỗi cài đặt', 'Không thể cài đặt 9BizClaw.\n\n' + String(e?.message || e));
+      dialog.showErrorBox('Môi trường cài đặt chưa sẵn sàng', 'Máy tính của bạn cần một số điều kiện để chạy 9BizClaw.\n\nVui lòng kiểm tra kết nối Internet, quyền ghi thư mục, và dung lượng ổ đĩa.\n\nChi tiết kỹ thuật:\n' + String(e?.message || e));
     } catch {}
     app.exit(1);
     return;
@@ -807,6 +824,17 @@ app.whenReady().then(async () => {
   // we need to debug "why didn't cron work?". MUST run after ctx.userDataDir update
   // so the file goes to the right workspace.
   try { bootDiagRunFullCheck(); } catch (e) { console.error('[boot-diag] error:', e?.message || e); }
+
+  try {
+    const pf = await runPreflightChecks();
+    if (!pf.allCriticalPass) {
+      const failMsgs = pf.criticalFailures.map(f => `${f.name}: ${f.message}`).join('\n');
+      console.error('[boot] CRITICAL preflight failures:\n' + failMsgs);
+      try { auditLog('preflight_critical_failure', { failures: pf.criticalFailures }); } catch {}
+    }
+  } catch (e) {
+    console.warn('[boot] preflight error (non-fatal):', e?.message || e);
+  }
 
   installEmbedHeaderStripper(); // BEFORE createWindow so first iframe load is unblocked
   createWindow();

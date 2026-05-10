@@ -295,6 +295,10 @@ function writeOpenClawConfigIfChanged(configPath, config) {
     // Callers get the cleaned version written even if they forgot to sanitize.
     sanitizeOpenClawConfigInPlace(config);
     const serialized = JSON.stringify(config, null, 2) + '\n';
+    try { JSON.parse(serialized); } catch (e) {
+      console.error('[preflight] writeOpenClawConfigIfChanged: serialized config is invalid JSON:', e.message);
+      return false;
+    }
     if (fs.existsSync(configPath)) {
       const existing = fs.readFileSync(configPath, 'utf-8');
       // Exact byte match — skip

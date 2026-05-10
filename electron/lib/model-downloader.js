@@ -18,7 +18,7 @@ const MODEL_CONFIG = {
     'special_tokens_map.json',
     'onnx/model_quantized.onnx',
   ],
-  destSubdir: 'models/Xenova/multilingual-e5-small',
+  destSubdir: 'vendor/models/Xenova/multilingual-e5-small',
 };
 
 // Expected file sizes (for progress estimation)
@@ -39,11 +39,41 @@ const TOTAL_SIZE = Object.values(EXPECTED_SIZES).reduce((a, b) => a + b, 0); // 
 const { getUserDataDir } = require('./workspace');
 
 function getModelDir() {
-  return path.join(getUserDataDir(), MODEL_CONFIG.destSubdir);
+  const dest = path.join(getUserDataDir(), MODEL_CONFIG.destSubdir);
+  // Migrate from old path (userData/models/...) to new path (userData/vendor/models/...)
+  if (!fs.existsSync(dest)) {
+    const oldDir = path.join(getUserDataDir(), 'models', 'Xenova', 'multilingual-e5-small');
+    if (fs.existsSync(oldDir)) {
+      try {
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.renameSync(oldDir, dest);
+        console.log('[model-downloader] migrated model from', oldDir, 'to', dest);
+      } catch (e) {
+        console.warn('[model-downloader] migration failed, will re-download:', e.message);
+      }
+    }
+  }
+  try {
+    if (app && app.isPackaged) {
+      const { guardPath } = require('./preflight');
+      guardPath('getModelDir', dest, getUserDataDir());
+    }
+  } catch (e) {
+    console.error(e.message);
+  }
+  return dest;
 }
 
 function getModelFilePath(filename) {
-  return path.join(getModelDir(), filename);
+  const dir = getModelDir();
+  const full = path.join(dir, filename);
+  try {
+    const { guardPath } = require('./preflight');
+    guardPath('getModelFilePath', full, dir);
+  } catch (e) {
+    console.error(e.message);
+  }
+  return full;
 }
 
 // =====================================================================
@@ -159,29 +189,13 @@ async function downloadFile(url, destPath, options = {}) {
   const { onProgress, timeout = 600000 } = options; // 10 min default
 
   return new Promise((resolve, reject) => {
-    // Use curl for Unix, PowerShell for Windows
     const isWin = process.platform === 'win32';
 
-    let client;
-    if (isWin) {
-      // Windows: use PowerShell with progress
-      const psScript = `
-        $ErrorActionPreference = 'Stop'
-        $ProgressPreference = 'SilentlyContinue'
-        $webClient = New-Object System.Net.WebClient
-        $webClient.DownloadFile('${url.replace(/'/g, "''")}', '${destPath.replace(/'/g, "''")}')
-      `;
-      client = spawn('powershell', ['-NoProfile', '-Command', psScript], {
-        stdio: 'pipe',
-        timeout,
-      });
-    } else {
-      // Unix: use curl with progress
-      client = spawn('curl', ['-fSL', '-o', destPath, '--progress-bar', url], {
-        stdio: 'pipe',
-        timeout,
-      });
-    }
+    const curlBin = isWin ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'curl.exe') : 'curl';
+    const client = spawn(curlBin, ['-fSL', '-o', destPath, '--progress-bar', url], {
+      stdio: 'pipe',
+      timeout,
+    });
 
     let stderr = '';
     client.stderr?.on('data', (d) => { stderr += String(d); });
@@ -263,6 +277,7 @@ async function downloadModels(options = {}) {
     const expectedSize = EXPECTED_SIZES[filename] || 0;
 
     try {
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
       await downloadWithFallback(filename, destPath, {
         onProgress: (fileProg) => {
           if (onFileProgress) {

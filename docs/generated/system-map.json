@@ -1,7 +1,7 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 92,
+    "apiRoutes": 93,
     "ipcHandlers": 155,
     "preloadBridges": 147,
     "dashboardPages": 14,
@@ -208,6 +208,15 @@
     },
     {
       "path": "/api/fb/schedule/reject",
+      "sources": [
+        "electron/lib/fb-schedule.js"
+      ],
+      "kinds": [
+        "fb-schedule-api"
+      ]
+    },
+    {
+      "path": "/api/fb/schedule/telegram-command",
       "sources": [
         "electron/lib/fb-schedule.js"
       ],
@@ -2284,11 +2293,11 @@
   "largeSourceFiles": [
     {
       "path": "electron/ui/dashboard.html",
-      "bytes": 521291
+      "bytes": 521488
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 230253
+      "bytes": 230043
     },
     {
       "path": "electron/lib/cron-api.js",
@@ -2296,11 +2305,11 @@
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 99232
+      "bytes": 99464
     },
     {
       "path": "electron/ui/wizard.html",
-      "bytes": 86567
+      "bytes": 86863
     },
     {
       "path": "electron/lib/channels.js",
@@ -2312,7 +2321,7 @@
     },
     {
       "path": "electron/lib/gateway.js",
-      "bytes": 69303
+      "bytes": 69976
     },
     {
       "path": "electron/lib/runtime-installer.js",
@@ -2320,19 +2329,19 @@
     },
     {
       "path": "electron/lib/config.js",
-      "bytes": 45424
+      "bytes": 45610
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 44688
+      "bytes": 45092
+    },
+    {
+      "path": "electron/lib/fb-schedule.js",
+      "bytes": 39478
     },
     {
       "path": "electron/lib/nine-router.js",
       "bytes": 38508
-    },
-    {
-      "path": "electron/lib/fb-schedule.js",
-      "bytes": 38463
     },
     {
       "path": "electron/lib/zalo-plugin.js",
@@ -2340,7 +2349,7 @@
     },
     {
       "path": "electron/lib/boot.js",
-      "bytes": 34637
+      "bytes": 35084
     },
     {
       "path": "electron/lib/vendor-patches.js",
@@ -2355,12 +2364,12 @@
       "bytes": 29327
     },
     {
-      "path": "electron/lib/conversation.js",
-      "bytes": 22020
+      "path": "electron/ui/splash.html",
+      "bytes": 24601
     },
     {
-      "path": "electron/ui/splash.html",
-      "bytes": 20515
+      "path": "electron/lib/conversation.js",
+      "bytes": 22020
     }
   ]
 }

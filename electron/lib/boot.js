@@ -40,7 +40,13 @@ function getBundledVendorDir() {
 
   try {
     const userDataVendor = path.join(app.getPath('userData'), 'vendor');
-    if (fs.existsSync(userDataVendor)) return userDataVendor;
+    if (fs.existsSync(userDataVendor)) {
+      const nm = path.join(userDataVendor, 'node_modules');
+      if (!fs.existsSync(nm)) {
+        console.warn('[preflight] getBundledVendorDir: vendor/ exists but node_modules missing');
+      }
+      return userDataVendor;
+    }
   } catch {}
 
   return null;
@@ -555,6 +561,10 @@ async function spawnOpenClawSafe(args, { timeoutMs = 600000, cwd, allowCmdShellF
     cmd = nodeBin;
     spawnArgs = [cliJs, ...args];
     useShell = false;
+    if (!fs.existsSync(nodeBin)) {
+      console.error('[preflight] spawnOpenClawSafe: nodeBin does not exist:', nodeBin);
+      return { code: -1, stdout: '', stderr: `Node binary not found at ${nodeBin}`, viaCmdShell: false };
+    }
   } else {
     if (!allowCmdShellFallback) {
       const why = !nodeBin ? 'node binary not found on this system' : 'openclaw.mjs not found';
