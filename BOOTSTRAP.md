@@ -16,7 +16,6 @@ Chào mừng! Đây là hướng dẫn chạy lần đầu.
 
 Đọc:
 - `AGENTS.md` — Quy tắc vận hành và giao thức
-- `HEARTBEAT.md` — Hệ thống kiểm tra tự động
 - `MEMORY.md` — Cách tổ chức bộ nhớ
 
 ## Bước 4: Kiểm tra ngữ cảnh gần

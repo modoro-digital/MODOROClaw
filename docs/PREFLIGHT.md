@@ -55,7 +55,7 @@
   ```
 - [ ] Kiểm tra tổng 8 file < 150K (bootstrap total limit)
   ```bash
-  wc -c AGENTS.md SOUL.md TOOLS.md IDENTITY.md USER.md HEARTBEAT.md BOOTSTRAP.md MEMORY.md
+  wc -c AGENTS.md SOUL.md TOOLS.md IDENTITY.md USER.md BOOTSTRAP.md MEMORY.md
   ```
 - [ ] Rule mới có conflict với rule cũ không? Grep keyword trong tất cả 8 file
 - [ ] Nếu thêm defense row: cập nhật số thứ tự `#` liên tục
@@ -115,7 +115,7 @@
 cd electron && npm run smoke
 
 # 2. Kiểm tra kích thước bootstrap files
-wc -c ../AGENTS.md ../SOUL.md ../TOOLS.md ../IDENTITY.md ../USER.md ../HEARTBEAT.md ../BOOTSTRAP.md ../MEMORY.md
+wc -c ../AGENTS.md ../SOUL.md ../TOOLS.md ../IDENTITY.md ../USER.md ../BOOTSTRAP.md ../MEMORY.md
 
 # 3. Kiểm tra IPC parity
 echo "dashboard-ipc.js handlers:" && grep -c "ipcMain.handle(" lib/dashboard-ipc.js
