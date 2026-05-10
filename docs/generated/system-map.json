@@ -2291,12 +2291,12 @@
       "bytes": 230253
     },
     {
-      "path": "electron/lib/cron.js",
-      "bytes": 105482
-    },
-    {
       "path": "electron/lib/cron-api.js",
       "bytes": 101999
+    },
+    {
+      "path": "electron/lib/cron.js",
+      "bytes": 99232
     },
     {
       "path": "electron/ui/wizard.html",
@@ -2324,7 +2324,7 @@
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 44748
+      "bytes": 44688
     },
     {
       "path": "electron/lib/nine-router.js",

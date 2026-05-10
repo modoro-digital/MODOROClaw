@@ -8,7 +8,7 @@ const { findOpenClawCliJs, spawnOpenClawSafe } = require('./boot');
 const { healOpenClawConfigInline, setJournalCronRun } = require('./config');
 const {
   sendTelegram, sendCeoAlert, sendZaloTo,
-  isChannelPaused, isZaloListenerAlive, findOpenzcaListenerPid,
+  isZaloListenerAlive,
   getTelegramConfigWithRecovery, getCeoSessionKey, sendToGatewaySession,
 } = require('./channels');
 const { extractConversationHistory, writeDailyMemoryJournal } = require('./conversation');
@@ -1641,119 +1641,11 @@ function _startCronJobsInner() {
         break;
       }
       case 'heartbeat': {
-        const timeStr = (s.time || '').toLowerCase();
-        const m = timeStr.match(/(\d+)\s*ph[uú]t/);
-        const everyMin = m ? Math.max(5, parseInt(m[1], 10)) : 10;
-        cronExpr = `*/${everyMin} * * * *`;
-        handler = async () => {
-          try {
-            if (_getSaveZaloManagerInFlight() || ctx.startOpenClawInFlight) {
-              console.log('[heartbeat] skipping — user-triggered restart in progress');
-              return;
-            }
-            const sinceGatewayStart = Date.now() - (global._gatewayStartedAt || 0);
-            if (global._gatewayStartedAt && sinceGatewayStart < 360_000) {
-              console.log(`[heartbeat] skipping — gateway only ${Math.round(sinceGatewayStart/1000)}s old (<6min grace)`);
-              return;
-            }
-            const { isGatewayAlive, startOpenClaw, stopOpenClaw } = getGateway();
-            const alive1 = await isGatewayAlive(30000);
-            if (alive1) {
-              try {
-                const cfgPath = path.join(ctx.HOME, '.openclaw', 'openclaw.json');
-                const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-                if ((cfg?.channels?.['modoro-zalo'] || cfg?.channels?.openzalo)?.enabled === true && !isChannelPaused('zalo')) {
-                  const lpid = findOpenzcaListenerPid();
-                  if (lpid) {
-                    global._zaloListenerMissStreak = 0;
-                  } else {
-                    global._zaloListenerMissStreak = (global._zaloListenerMissStreak || 0) + 1;
-                    const streak = global._zaloListenerMissStreak;
-                    console.log(`[zalo-watchdog] listener missing — streak=${streak}`);
-                    if (streak < 3) { return; }
-                    if (ctx.gatewayRestartInFlight || ctx.startOpenClawInFlight) {
-                      console.log('[zalo-watchdog] restart already in-flight — skipping');
-                      return;
-                    }
-                    const sinceBoot = Date.now() - (ctx.gatewayLastStartedAt || 0);
-                    if (sinceBoot < 60_000) {
-                      console.log(`[zalo-watchdog] gateway only ${sinceBoot}ms old — too fresh to restart`);
-                      return;
-                    }
-                    const lastRestart = global._zaloListenerLastRestartAt || 0;
-                    const sinceRestart = Date.now() - lastRestart;
-                    if (lastRestart > 0 && sinceRestart < 10 * 60_000) {
-                      console.log(`[zalo-watchdog] last restart ${Math.round(sinceRestart/1000)}s ago — waiting out 10min cooldown`);
-                      return;
-                    }
-                    global._zaloListenerRestartHistory = (global._zaloListenerRestartHistory || []).filter(ts => (Date.now() - ts) < 2 * 60 * 60_000);
-                    if (global._zaloListenerGaveUp) {
-                      console.log('[zalo-watchdog] already gave up after 3 restarts in 2h — waiting for manual Save/resume');
-                      return;
-                    }
-                    if (global._zaloListenerRestartHistory.length >= 3) {
-                      console.log('[zalo-watchdog] 3 restarts in 2h — giving up, alerting CEO');
-                      global._zaloListenerGaveUp = true;
-                      const _fwAlertAge = Date.now() - (global._zaloListenerAlertSentAt || 0);
-                      if (global._zaloListenerAlertSentAt && _fwAlertAge < 15 * 60 * 1000) {
-                        console.log(`[zalo-watchdog] skipping CEO alert — fast watchdog already alerted ${Math.round(_fwAlertAge/1000)}s ago`);
-                      } else {
-                        try { await sendCeoAlert('Listener Zalo đang không ổn định, vui lòng kiểm tra kết nối mạng'); } catch {}
-                        global._zaloListenerAlertSentAt = Date.now();
-                      }
-                      return;
-                    }
-                    console.log('[zalo-watchdog] gateway alive but Zalo listener dead (3 misses) — hard-restart');
-                    global._zaloListenerLastRestartAt = Date.now();
-                    global._zaloListenerRestartHistory.push(Date.now());
-                    global._zaloListenerMissStreak = 0;
-                    if (ctx.gatewayRestartInFlight) return;
-                    ctx.gatewayRestartInFlight = true;
-                    try {
-                      try { await stopOpenClaw(); } catch {}
-                      await new Promise(r => setTimeout(r, 5000));
-                      try { await startOpenClaw({ silent: true }); } catch (e) { console.error('[zalo-watchdog] zalo restart failed:', e.message); }
-                    } finally {
-                      ctx.gatewayRestartInFlight = false;
-                    }
-                  }
-                }
-              } catch {}
-              return;
-            }
-            await new Promise(r => setTimeout(r, 5000));
-            const alive2 = await isGatewayAlive(30000);
-            if (alive2) {
-              console.log('[heartbeat] gateway slow but alive — skipping restart');
-              return;
-            }
-            await new Promise(r => setTimeout(r, 5000));
-            const alive3 = await isGatewayAlive(30000);
-            if (alive3) {
-              console.log('[heartbeat] gateway slow but alive (3rd probe) — skipping restart');
-              return;
-            }
-            if (ctx.gatewayRestartInFlight || ctx.startOpenClawInFlight) {
-              console.log('[heartbeat] restart already in-flight — skipping gateway-dead restart');
-              return;
-            }
-            console.log('[heartbeat] Gateway not responding (3 consecutive failures) — auto-restarting');
-            ctx.gatewayRestartInFlight = true;
-            try {
-              try { await stopOpenClaw(); } catch {}
-              await new Promise(r => setTimeout(r, 5000));
-              try { await startOpenClaw({ silent: true }); } catch (e) {
-                console.error('[heartbeat] restart failed:', e.message);
-              }
-            } finally {
-              ctx.gatewayRestartInFlight = false;
-            }
-          } catch (e) {
-            console.error('[heartbeat] error:', e.message);
-            try { await sendCeoAlert(`[Heartbeat] Lỗi: ${String(e?.message || e).slice(0, 200)}`); } catch {}
-            try { auditLog('heartbeat_error', { error: String(e?.message || e).slice(0, 200) }); } catch {}
-          }
-        };
+        // Removed — fast watchdog (gateway.js, 20s interval) covers all health
+        // checks with better latency and safety. Heartbeat was redundant and
+        // caused restart loops + HEARTBEAT_OK leak to customers.
+        cronExpr = null;
+        handler = null;
         break;
       }
       case 'meditation': {
