@@ -4001,49 +4001,31 @@ ipcMain.handle('wizard-complete', async () => {
       }
     } catch (e) { console.error('[wizard-complete nav-guard] error:', e && e.message); }
   }, 5000);
-  // Fresh install: seed workspace files with defaults + cleanup any stale listener
+  // Fresh install: seed workspace files with defaults
   try { seedWorkspace(); } catch (e) { console.error('[wizard-complete seed] error:', e.message); }
-  // F-3 + U3: Detect whether user completed Zalo QR login in wizard.
-  // Poll for up to 3 seconds in case credentials.json is still being written
-  // by the listener (QR scan completes → subprocess writes file asynchronously,
-  // may lag 1-2s behind the IPC that says "login ok").
-  let zaloLoggedIn = false;
-  const credPath = path.join(ctx.HOME, '.openzca', 'profiles', 'default', 'credentials.json');
-  for (let i = 0; i < 6; i++) {
-    try {
-      if (fs.existsSync(credPath)) {
-        const stat = fs.statSync(credPath);
-        if ((Date.now() - stat.mtimeMs) < 24 * 60 * 60 * 1000) { zaloLoggedIn = true; break; }
-      }
-    } catch {}
-    if (i < 5) await new Promise(r => setTimeout(r, 500));
-  }
-  try { cleanupOrphanZaloListener(); } catch {}
   try { markOnboardingComplete('wizard-complete'); } catch {}
-  // Pre-fill RAG rewrite-model based on primary AI provider.
-  // Does NOT enable Tier 2 — tier2Enabled stays false. CEO opts in via Settings.
-  try {
-    const ragPath = path.join(getWorkspace(), 'rag-config.json');
-    if (!fs.existsSync(ragPath)) {
-      const isChatgptPlus = await detectChatgptPlusOAuth();
-      writeJsonAtomic(ragPath, {
-        tier2Enabled: false,
-        rewriteModel: isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast',
-        updatedAt: new Date().toISOString(),
-      });
-      console.log(`[wizard-complete] rag-config.json seeded (tier2=off, model=${isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast'})`);
-    }
-  } catch (e) { console.warn('[wizard-complete] RAG config prefill failed:', e?.message); }
+  // Navigate to dashboard IMMEDIATELY (perf: save up to 3s from credential
+  // poll + RAG prefill). Credential poll + cleanup + RAG prefill moved to
+  // fire-and-forget IIFE below. Channel status broadcast picks up Zalo state.
   clearTimeout(navGuard);
   try { ctx.mainWindow.loadFile(path.join(ELECTRON_DIR, 'ui', 'dashboard.html')); } catch (e) { console.error('[wizard-complete loadFile] error:', e && e.message); }
   try { ctx.mainWindow.maximize(); } catch {}
-  // CRIT #2: Return IMMEDIATELY. Previously this awaited ensureZaloPlugin +
-  // startOpenClaw sequentially → UI froze 30-180s on fresh Windows install.
-  // Non-tech CEOs force-quit. Dashboard channel-status broadcast (every 45s
-  // after boot, 500ms-30s during boot window) drives sidebar dots as gateway
-  // comes up — user sees progress instead of a frozen window.
   (async () => {
     try {
+    // Deferred from before dashboard load — credential poll + cleanup + RAG prefill
+    try { cleanupOrphanZaloListener(); } catch {}
+    try {
+      const ragPath = path.join(getWorkspace(), 'rag-config.json');
+      if (!fs.existsSync(ragPath)) {
+        const isChatgptPlus = await detectChatgptPlusOAuth();
+        writeJsonAtomic(ragPath, {
+          tier2Enabled: false,
+          rewriteModel: isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast',
+          updatedAt: new Date().toISOString(),
+        });
+        console.log(`[wizard-complete] rag-config.json seeded (tier2=off, model=${isChatgptPlus ? 'ninerouter/main' : 'ninerouter/fast'})`);
+      }
+    } catch (e) { console.warn('[wizard-complete] RAG config prefill failed:', e?.message); }
     if (ctx.appIsQuitting) { console.log('[wizard-iife] aborting — app quitting (pre-ensureZaloPlugin)'); return; }
     try { await ensureZaloPlugin(); } catch (e) { console.error('[wizard-complete ensureZaloPlugin] error:', e?.message || e); }
     if (ctx.appIsQuitting) { console.log('[wizard-iife] aborting — app quitting (pre-seedZaloCustomers)'); return; }

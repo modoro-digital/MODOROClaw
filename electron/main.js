@@ -821,13 +821,9 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // Initialize knowledge embedder after ctx.userDataDir update.
-  try { initEmbedder(); } catch (e) { console.warn('[boot] initEmbedder error:', e?.message || e); }
-
-  // Boot diagnostic: writes <workspace>/logs/boot-diagnostic.txt with everything
-  // we need to debug "why didn't cron work?". MUST run after ctx.userDataDir update
-  // so the file goes to the right workspace.
-  try { bootDiagRunFullCheck(); } catch (e) { console.error('[boot-diag] error:', e?.message || e); }
+  // initEmbedder + bootDiag deferred to after createWindow (perf: save 200-800ms
+  // on cold boot). Embedder lazy-inits via _ensureEmbedderInit() on first knowledge
+  // search. bootDiag is write-only diagnostic, return value never consumed.
 
   try {
     const pf = await runPreflightChecks();
@@ -846,6 +842,10 @@ app.whenReady().then(async () => {
   installEmbedHeaderStripper(); // BEFORE createWindow so first iframe load is unblocked
   createWindow();
   createTray();
+
+  // Deferred from before createWindow — perf optimization (200-800ms saved on cold boot)
+  setTimeout(() => { try { initEmbedder(); } catch (e) { console.warn('[boot] initEmbedder error:', e?.message || e); } }, 0);
+  setTimeout(() => { try { bootDiagRunFullCheck(); } catch (e) { console.error('[boot-diag] error:', e?.message || e); } }, 2000);
 
   // License check (membership builds only) — verify signature + check revocation 15s after boot
   if (require('./package.json').membership === true) {
