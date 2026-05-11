@@ -337,6 +337,30 @@ function macHasXcodeCLT() {
   return _macHasCLT;
 }
 
+async function ensureXcodeCLT(onProgress) {
+  if (process.platform !== 'darwin' || macHasXcodeCLT()) return;
+  console.log('[runtime-installer] Mac: Xcode CLT missing — triggering install dialog');
+  if (onProgress) onProgress({ step: 'packages', percent: 2, message: 'Cài Xcode Command Line Tools...', subStep: 'Nhấn "Install" trong hộp thoại macOS' });
+  try {
+    require('child_process').execSync('xcode-select --install', { timeout: 10000, stdio: 'ignore' });
+  } catch {}
+  const maxWaitMs = 10 * 60 * 1000;
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise(r => setTimeout(r, 5000));
+    _macCLTChecked = false;
+    if (macHasXcodeCLT()) {
+      console.log('[runtime-installer] Mac: Xcode CLT installed after', Math.round((Date.now() - start) / 1000), 's');
+      if (onProgress) onProgress({ step: 'packages', percent: 5, message: 'Xcode CLT đã sẵn sàng' });
+      return;
+    }
+    const elapsed = Math.round((Date.now() - start) / 1000);
+    if (onProgress) onProgress({ step: 'packages', percent: 2, message: 'Chờ cài Xcode Command Line Tools...', subStep: `Nhấn "Install" (${elapsed}s)` });
+  }
+  console.log('[runtime-installer] Mac: Xcode CLT timed out after 10min — falling back to git shim');
+  forceNeutralizeGitShim();
+}
+
 function forceNeutralizeGitShim() {
   _macCLTChecked = true;
   _macHasCLT = false;
@@ -1202,6 +1226,7 @@ async function installNpmPackages(versions, onProgress) {
     const isGitError = msg.includes('spawn git') ||
       (msg.includes('git') && msg.includes('ENOENT')) ||
       msg.includes('xcode-select') ||
+      msg.includes('git-clone') ||
       msg.includes('.git');
     if (isGitError) {
       console.log('[runtime-installer] npm failed with git-related error:', msg.slice(-200));
@@ -1209,7 +1234,11 @@ async function installNpmPackages(versions, onProgress) {
         if (onProgress) onProgress({ step: 'packages', message: 'Đang tải Git (cần cho npm)...', subStep: 'MinGit' });
         await ensurePortableGit(onProgress);
       } else if (process.platform === 'darwin') {
-        forceNeutralizeGitShim();
+        if (!macHasXcodeCLT()) {
+          await ensureXcodeCLT(onProgress);
+        } else {
+          forceNeutralizeGitShim();
+        }
       }
     }
   };
