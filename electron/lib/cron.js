@@ -142,14 +142,33 @@ function parseAgentJsonOutput(stdout) {
 // Uses sendZaloTo directly (same-process, same-permissions as the bot).
 // This is the reliable path: no HTTP, no auth token needed.
 
+const _processAckLineRe = /^\s*(?:dạ\s+)?(?:vâng\s*[,.]?\s*)?(?:dạ\s*[,.]?\s*)?em\s+(?:sẽ\s+)?(?:xử\s*lý|thực\s*hiện|làm|chạy)\s+(?:luôn|ngay|liền|rồi)\s*[.!ạ]*\s*$/i;
+const _processStatusLineRe = /^\s*(?:dạ\s+)?em\s+đang\s+(?:xử\s*lý|thực\s*hiện|chạy)\s*[.!ạ]*\s*$/i;
+const _bareAckLineRe = /^\s*(?:dạ|vâng|dạ vâng)\s*[,.]?\s*(?:ạ\s*[.!]?)?\s*$/i;
+
+function _stripProcessAcks(text) {
+  const lines = text.split('\n');
+  const cleaned = lines.filter(line => {
+    const t = line.trim();
+    if (!t) return true;
+    return !_processAckLineRe.test(t) && !_processStatusLineRe.test(t) && !_bareAckLineRe.test(t);
+  });
+  return cleaned.join('\n').trim();
+}
+
 async function deliverCronResultToZalo(replyText, zaloTarget, label) {
   if (!replyText) return true;
+  const cleaned = _stripProcessAcks(String(replyText));
+  if (!cleaned || cleaned.length < 5) {
+    console.log(`[cron-agent] Zalo delivery for "${label}" skipped — reply was process ack only`);
+    return true;
+  }
   const target = zaloTarget || {};
   const targetId = target.id;
   const isGroup = target.isGroup === true;
   const targetLabel = target.label || targetId;
   try {
-    const result = await sendZaloTo({ id: String(targetId), isGroup }, String(replyText).slice(0, 5000));
+    const result = await sendZaloTo({ id: String(targetId), isGroup }, cleaned.slice(0, 5000));
     if (result && result.ok) {
       console.log(`[cron-agent] Zalo delivery OK → ${isGroup ? 'group' : 'user'} ${targetLabel}`);
       return true;

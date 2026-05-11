@@ -394,6 +394,12 @@ function seedWorkspace() {
     } catch {}
   }
 
+  // Seed CEO-MEMORY.md (hot tier for Hermes-style memory)
+  const ceoMemPath = path.join(ws, 'CEO-MEMORY.md');
+  if (!fs.existsSync(ceoMemPath)) {
+    try { fs.writeFileSync(ceoMemPath, '# Bộ nhớ bot\n\n_Chưa có gì. Bot sẽ tự học từ cuộc hội thoại với sếp._\n', 'utf-8'); } catch {}
+  }
+
   // Re-apply Zalo mode from config/zalo-mode.txt into the fresh AGENTS.md.
   // Must run AFTER template copy (above) so AGENTS.md exists.
   if (_agentsUpgraded) {

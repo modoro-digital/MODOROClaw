@@ -278,6 +278,39 @@ async function writeDailyMemoryJournal({ date = new Date() } = {}) {
       }
     }
 
+    // 4. Cross-customer pattern detection for CEO memory
+    try {
+      const collected = extractConversationHistoryRaw({ sinceMs, maxMessages: 500, channels: ['modoro-zalo'] });
+      const bySender = new Map();
+      for (const m of collected || []) {
+        if (m.role !== 'user') continue;
+        const idMatch = (m.sender || '').match(/id:(\d+)/);
+        if (idMatch) {
+          if (!bySender.has(idMatch[1])) bySender.set(idMatch[1], []);
+          bySender.get(idMatch[1]).push((m.text || '').slice(0, 200));
+        }
+      }
+      if (bySender.size >= 3) {
+        const allMsgs = [];
+        for (const msgs of bySender.values()) allMsgs.push(...msgs);
+        const cleanedForDedup = allMsgs.join(' ').replace(/\[\d{2}:\d{2}\]/g, '').replace(/\d{4}-\d{2}-\d{2}/g, '').slice(0, 800);
+        const { searchMemory, writeMemory } = require('./ceo-memory');
+        const existing = await searchMemory(cleanedForDedup, { limit: 1, bumpRelevance: false });
+        if (existing.length > 0 && existing[0].score > 0.85) {
+          const db = require('./ceo-memory').getMemoryDb();
+          if (db) db.prepare('UPDATE ceo_memories SET relevance_score = MIN(relevance_score + 0.1, 5.0), updated_at = ? WHERE id = ?').run(new Date().toISOString(), existing[0].id);
+          console.log('[ceo-memory] evening pattern already stored, relevance boosted for ' + existing[0].id);
+        } else {
+          const topMsgs = allMsgs.slice(0, 10).join('; ').slice(0, 300);
+          const content = `${bySender.size} khách hỏi hôm nay. Nội dung: ${topMsgs}`;
+          await writeMemory({ type: 'pattern', content: content.slice(0, 500), source: 'evening_summary' });
+          console.log('[ceo-memory] evening pattern written from ' + bySender.size + ' customers');
+        }
+      }
+    } catch (e) {
+      console.warn('[ceo-memory] evening pattern detection failed:', e?.message);
+    }
+
     return file;
   } catch (e) {
     console.error('[writeDailyMemoryJournal] error:', e?.message || e);

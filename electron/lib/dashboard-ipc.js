@@ -3053,7 +3053,7 @@ ipcMain.handle('get-fb-recent-posts', async () => {
 // The IPC handler itself simply writes immediately — it only appends, never overwrites.
 ipcMain.handle('queue-follow-up', async (_event, { channel, recipientId, recipientName, question, prompt, delayMinutes }) => {
   try {
-    const id = 'fu_' + Date.now();
+    const id = 'fu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     const fireAt = new Date(Date.now() + (delayMinutes || 15) * 60 * 1000).toISOString();
     await queueFollowUpSafe({ id, channel: channel || 'zalo', recipientId, recipientName, question, prompt, fireAt });
     console.log('[follow-up] Queued:', id, 'fire at', fireAt);
@@ -5045,6 +5045,30 @@ ipcMain.handle('download-and-install-update', async () => {
     try {
       return getAllSessionStats();
     } catch (e) { return []; }
+  });
+
+  // ============================================
+  //  CEO MEMORY (Hermes-style learned knowledge)
+  // ============================================
+
+  ipcMain.handle('get-ceo-memories', async () => {
+    try {
+      const { listMemories, getMemoryCount, getLastMemoryAt } = require('./ceo-memory');
+      return { memories: listMemories({ limit: 100 }), count: getMemoryCount(), lastAt: getLastMemoryAt() };
+    } catch (e) {
+      console.error('[ceo-memory] list error:', e?.message);
+      return { memories: [], count: 0, lastAt: null };
+    }
+  });
+
+  ipcMain.handle('delete-ceo-memory', async (_event, { id }) => {
+    try {
+      const { deleteMemory } = require('./ceo-memory');
+      return deleteMemory(id);
+    } catch (e) {
+      console.error('[ceo-memory] delete error:', e?.message);
+      return { deleted: false, reason: e?.message };
+    }
   });
 
 } // end registerAllIpcHandlers

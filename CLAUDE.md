@@ -502,3 +502,12 @@ node generate-license.js customer@co.com 12 --machine-id <id>  # pre-bound key
 - `~/.claw-license-gist.json` — GitHub Gist config (token + gist ID)
 - `%APPDATA%/9bizclaw/license.json` — activated license on end-user PC (APPDATA, not workspace)
 - `%APPDATA%/9bizclaw/.machine-id` — machine fingerprint on end-user PC
+
+### Process ack leak to Zalo group — Layer K output filter + cron strip (CRITICAL)
+**Bug:** Bot's CEO-directed process acknowledgment "Em xử lý luôn." leaked to a Zalo customer group. When a cron agent fires with a Zalo group target, `deliverCronResultToZalo()` sends the agent's entire text reply to the group raw. If the agent used tools (web_fetch) to deliver the real content and its text reply was just a process ack, the ack leaks to the group.
+**Fix (3-layer defense):**
+1. **cron.js `_stripProcessAcks()`**: Strips Vietnamese bare process ack lines from agent replies before Zalo group delivery. If nothing substantial remains (<5 chars), skips delivery entirely (real content was delivered via tool calls). Patterns: `Em xử lý luôn/ngay/liền/rồi`, `Em đang xử lý/thực hiện/chạy`, bare `Dạ`/`Vâng`. Does NOT strip legitimate CS replies with objects ("Em xử lý đơn hàng cho mình ngay nhé").
+2. **channels.js Layer K**: Two new patterns `process-ack-bare-vi` + `process-status-bare-vi` in `_outputFilterPatterns`. Full-message match only (no `m` flag) — catches standalone ack messages at `sendZaloTo`/`sendTelegram` level. Defense-in-depth for all non-cron paths.
+3. **send.ts Layer K**: Same two patterns mirrored in the gateway-side `__ofBlockPatterns` array. Primary defense for live Zalo chat replies.
+**Files:** `electron/lib/cron.js` (strip + skip), `electron/lib/channels.js` (Layer K), `electron/packages/modoro-zalo/src/send.ts` (Layer K mirror).
+**Verify:** Create agent cron targeting Zalo group → cron fires → if agent reply is only "Em xử lý luôn.", console shows `[cron-agent] Zalo delivery skipped — reply was process ack only`. Real content (image, text) delivered via tool call reaches group normally. Direct Zalo reply of "Em xử lý luôn." → output filter blocks → safe message sent instead.

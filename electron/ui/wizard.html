@@ -1747,20 +1747,22 @@
     }
 
     // ===== Step 4: Zalo QR login =====
+    let _refreshQRPoll = null;
     async function refreshZaloQR() {
+      if (_refreshQRPoll) { clearInterval(_refreshQRPoll); _refreshQRPoll = null; }
       const btn = document.getElementById('refresh-qr-btn');
       btn.disabled = true; btn.classList.add('loading');
       await window.claw.setupZalo();
       btn.disabled = false; btn.classList.remove('loading');
       let attempts = 0;
-      const poll = setInterval(async () => {
+      _refreshQRPoll = setInterval(async () => {
         attempts++;
         const qrPath = await window.claw.findZaloQR();
         if (qrPath) {
-          clearInterval(poll);
+          clearInterval(_refreshQRPoll); _refreshQRPoll = null;
           document.getElementById('zalo-qr-img').src = qrPath;
         }
-        if (attempts > 30) clearInterval(poll);
+        if (attempts > 30) { clearInterval(_refreshQRPoll); _refreshQRPoll = null; }
       }, 1000);
     }
     let _zaloPollInterval = null;

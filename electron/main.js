@@ -190,6 +190,8 @@ const {
 } = require('./lib/cron');
 
 const { startCronApi, cleanupCronApi } = require('./lib/cron-api');
+const { startCeoMessageWatcher, startNudgeTimer, cleanupNudgeTimers } = require('./lib/ceo-nudge');
+const { cleanupCeoMemoryTimers } = require('./lib/ceo-memory');
 const fbSchedule = require('./lib/fb-schedule');
 const { registerAllIpcHandlers } = require('./lib/dashboard-ipc');
 const { compactAllSessions, compactSession, getAllSessionStats, parseCompactCommand, setAutoCompactTrigger, autoCompactIfNeeded } = require('./lib/compact');
@@ -394,6 +396,8 @@ function startRuntimeSidecars(source) {
   try { watchCustomCrons(); } catch (e) { console.error(prefix, 'watchCustomCrons error:', e?.message || e); }
   try { startZaloCacheAutoRefresh(); } catch (e) { console.error(prefix, 'startZaloCacheAutoRefresh error:', e?.message || e); }
   try { startAppointmentDispatcher(); } catch (e) { console.error(prefix, 'startAppointmentDispatcher error:', e?.message || e); }
+  try { startCeoMessageWatcher(); } catch (e) { console.error(prefix, 'startCeoMessageWatcher error:', e?.message || e); }
+  try { startNudgeTimer(); } catch (e) { console.error(prefix, 'startNudgeTimer error:', e?.message || e); }
   // Auto-compact fires inside Zalo inbound handler (triggerAutoCompact in inbound.ts)
   // triggered before every LLM call — no separate interval needed
 }
@@ -1028,6 +1032,8 @@ function _beforeQuitCleanup() {
   try { cleanupChannelTimers(); } catch (e2) { console.warn('[before-quit] cleanupChannelTimers:', e2?.message); }
   try { cleanupGatewayTimers(); } catch (e2) { console.warn('[before-quit] cleanupGatewayTimers:', e2?.message); }
   try { cleanupEscalationTimers(); } catch (e2) { console.warn('[before-quit] cleanupEscalationTimers:', e2?.message); }
+  try { cleanupNudgeTimers(); } catch (e2) { console.warn('[before-quit] cleanupNudgeTimers:', e2?.message); }
+  try { cleanupCeoMemoryTimers(); } catch (e2) { console.warn('[before-quit] cleanupCeoMemoryTimers:', e2?.message); }
   try { cleanupKnowledgeServer(); } catch (e2) { console.warn('[before-quit] cleanupKnowledgeServer:', e2?.message); }
 
   // (2) Stop all cron jobs + watchers + pollers

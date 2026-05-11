@@ -102,6 +102,10 @@ contextBridge.exposeInMainWorld('claw', {
   getRagConfig: () => ipcRenderer.invoke('get-rag-config'),
   setRagConfig: (cfg) => ipcRenderer.invoke('set-rag-config', cfg),
 
+  // CEO Memory
+  getCeoMemories: () => ipcRenderer.invoke('get-ceo-memories'),
+  deleteCeoMemory: (id) => ipcRenderer.invoke('delete-ceo-memory', { id }),
+
   // Document Library
   indexDocument: (opts) => ipcRenderer.invoke('index-document', opts),
   searchDocuments: (query) => ipcRenderer.invoke('search-documents', query),

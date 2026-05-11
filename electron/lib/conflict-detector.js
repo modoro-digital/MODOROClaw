@@ -10,6 +10,23 @@ let app;
 try { ({ app } = require('electron')); } catch {}
 
 const { PINNED_VERSIONS, MIN_NODE_VERSION, compareVersions, satisfiesMinVersion } = require('./runtime-installer');
+const { enumerateNodeManagerBinDirs } = require('./boot');
+
+function findNpmBin() {
+  const isWin = process.platform === 'win32';
+  const name = isWin ? 'npm.cmd' : 'npm';
+  try {
+    const cmd = isWin ? 'where npm.cmd' : 'command -v npm';
+    const out = execSync(cmd, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000, shell: !isWin }).trim();
+    const first = out.split(/\r?\n/)[0]?.trim();
+    if (first && fs.existsSync(first)) return first;
+  } catch {}
+  for (const dir of enumerateNodeManagerBinDirs()) {
+    const p = path.join(dir, name);
+    try { if (fs.existsSync(p)) return p; } catch {}
+  }
+  return name;
+}
 
 // =====================================================================
 // Conflict Detection
@@ -33,24 +50,13 @@ const DETECTION_MATRIX = [
  */
 async function wouldNeedSudo() {
   const isWin = process.platform === 'win32';
-  if (isWin) {
-    // Windows: check if npm global install to Program Files
-    try {
-      const npmCmd = isWin ? 'npm.cmd' : 'npm';
-      const out = execSync(npmCmd + ' config get prefix', { encoding: 'utf-8', timeout: 5000, shell: true }).trim();
-      // If prefix contains Program Files, would need admin
-      return out.includes('Program Files');
-    } catch {
-      return false;
-    }
-  } else {
-    // Unix: check if npm global is in protected path
-    try {
-      const out = execSync('npm config get prefix', { encoding: 'utf-8', timeout: 5000 }).trim();
-      return out === '/usr' || out === '/usr/local';
-    } catch {
-      return false;
-    }
+  const npmBin = findNpmBin();
+  try {
+    const out = execSync(npmBin + ' config get prefix', { encoding: 'utf-8', timeout: 5000, shell: isWin }).trim();
+    if (isWin) return out.includes('Program Files');
+    return out === '/usr' || out === '/usr/local';
+  } catch {
+    return false;
   }
 }
 
@@ -138,7 +144,7 @@ function hasOtherNodeProjects() {
 async function getPackageConflict(pkgName) {
   try {
     const isWin = process.platform === 'win32';
-    const npmBin = isWin ? 'npm.cmd' : 'npm';
+    const npmBin = findNpmBin();
     const { stdout } = await execFilePromise(
       npmBin,
       ['view', pkgName, 'version'],

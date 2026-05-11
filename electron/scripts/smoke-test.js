@@ -1243,6 +1243,25 @@ function checkModuleContracts() {
       if (typeof conv[fn] !== 'function') errors.push(`conversation.js missing export: ${fn}`);
     }
   } catch (e) { errors.push(`conversation.js failed to load: ${e.message}`); }
+  // Wave 2: ceo-memory.js
+  try {
+    const ceoMem = require('../lib/ceo-memory');
+    const required = ['writeMemory', 'deleteMemory', 'searchMemory', 'listMemories',
+      'getMemoryCount', 'getLastMemoryAt', 'regenerateCeoMemoryFile'];
+    for (const fn of required) {
+      if (typeof ceoMem[fn] !== 'function') errors.push(`ceo-memory.js missing export: ${fn}`);
+    }
+    if (!Array.isArray(ceoMem.VALID_TYPES) || ceoMem.VALID_TYPES.length !== 5) errors.push('ceo-memory.js VALID_TYPES wrong');
+    if (!Array.isArray(ceoMem.VALID_SOURCES) || ceoMem.VALID_SOURCES.length !== 4) errors.push('ceo-memory.js VALID_SOURCES wrong');
+  } catch (e) { errors.push(`ceo-memory.js failed to load: ${e.message}`); }
+  // Wave 2: ceo-nudge.js
+  try {
+    const nudge = require('../lib/ceo-nudge');
+    const required = ['startCeoMessageWatcher', 'startNudgeTimer', 'cleanupNudgeTimers'];
+    for (const fn of required) {
+      if (typeof nudge[fn] !== 'function') errors.push(`ceo-nudge.js missing export: ${fn}`);
+    }
+  } catch (e) { errors.push(`ceo-nudge.js failed to load: ${e.message}`); }
   // Wave 2: updates.js
   try {
     const upd = require('../lib/updates');
@@ -1589,7 +1608,7 @@ try {
     pass(`output filter patterns: ${patternCount} (>=${MIN_PATTERNS})`);
   }
   // Verify critical categories exist
-  const criticalCategories = ['file-path', 'api-key', 'pii-cccd', 'pii-bank', 'cot-en', 'brand-', 'fake-order', 'jailbreak', 'list-all-customers'];
+  const criticalCategories = ['file-path', 'api-key', 'pii-cccd', 'pii-bank', 'cot-en', 'brand-', 'fake-order', 'jailbreak', 'list-all-customers', 'process-ack'];
   const missingCats = criticalCategories.filter(cat => !chSrc.includes(`name: '${cat}`) && !new RegExp(`name:\\s*'${cat.replace('-', '\\-')}`).test(chSrc));
   // More lenient check — just see if the string appears in the filter section at all
   const missingCatsLoose = criticalCategories.filter(cat => !chSrc.includes(cat));

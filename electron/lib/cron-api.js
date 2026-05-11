@@ -585,6 +585,52 @@ function startCronApi() {
       if (fbSchedule.registerRoutes(urlPath, params, jsonResp, res)) return;
     }
 
+    // === CEO Memory API ===
+    if (urlPath === '/api/memory/write') {
+      if (req.method !== 'POST') return jsonResp(res, 405, { error: 'POST required' });
+      const { writeMemory, VALID_TYPES } = require('./ceo-memory');
+      const type = String(params.type || '').trim();
+      const content = String(params.content || '').trim();
+      const source = String(params.source || 'manual').trim();
+      if (!type) return jsonResp(res, 400, { error: 'type required. Valid: ' + VALID_TYPES.join(', ') });
+      if (!content) return jsonResp(res, 400, { error: 'content required' });
+      try {
+        const result = await writeMemory({ type, content, source });
+        console.log('[cron-api] memory/write:', result.id, type);
+        return jsonResp(res, 200, result);
+      } catch (e) {
+        return jsonResp(res, 400, { error: e.message });
+      }
+    }
+
+    if (urlPath === '/api/memory/search') {
+      if (req.method !== 'POST' && req.method !== 'GET') return jsonResp(res, 405, { error: 'POST or GET required' });
+      const { searchMemory } = require('./ceo-memory');
+      const query = String(params.query || '').trim();
+      const limit = Math.min(Math.max(parseInt(params.limit) || 5, 1), 20);
+      if (!query) return jsonResp(res, 400, { error: 'query required' });
+      try {
+        const results = await searchMemory(query, { limit, bumpRelevance: false });
+        return jsonResp(res, 200, { results });
+      } catch (e) {
+        return jsonResp(res, 500, { error: e.message });
+      }
+    }
+
+    if (urlPath === '/api/memory/delete') {
+      if (req.method !== 'POST' && req.method !== 'DELETE') return jsonResp(res, 405, { error: 'POST or DELETE required' });
+      const { deleteMemory } = require('./ceo-memory');
+      const id = String(params.id || '').trim();
+      if (!id) return jsonResp(res, 400, { error: 'id required' });
+      try {
+        const result = deleteMemory(id);
+        if (result.deleted) console.log('[cron-api] memory/delete:', id);
+        return jsonResp(res, 200, result);
+      } catch (e) {
+        return jsonResp(res, 500, { error: e.message });
+      }
+    }
+
     if (urlPath === '/api/cron/create') {
       const { label, cronExpr, oneTimeAt, groupId, groupIds, groupName, targetId: rawTargetId, friendName, isGroup, content, mode, prompt: rawPrompt } = params;
       const isAgentMode = mode === 'agent';

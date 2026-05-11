@@ -402,6 +402,12 @@ const _outputFilterPatterns = [
   { name: 'generic-error-prefix', re: /^(?:Error|error|ERROR):\s/m },
   { name: 'signing-reset-prompt', re: /(?:try\s+signing\s+i|sign\s*(?:ing)?\s*(?:in|up)\s+(?:again|to\s+reset))/i },
   { name: 'http-status-bracket', re: /\[\d{3}\]\s*[:{]/  },
+  // Layer K: Vietnamese bot process acknowledgments — internal CEO-directed
+  // acks that MUST NEVER reach customers. "Em xử lý luôn." leaked to Zalo
+  // customer group. Full-message match only (no `m` flag) to avoid blocking
+  // legitimate CS replies that contain real content after an ack line.
+  { name: 'process-ack-bare-vi', re: /^\s*(?:dạ\s+)?(?:vâng\s*[,.]?\s*)?(?:dạ\s*[,.]?\s*)?em\s+(?:sẽ\s+)?(?:xử\s*lý|thực\s*hiện|làm|chạy)\s+(?:luôn|ngay|liền|rồi)\s*[.!ạ]*\s*$/is },
+  { name: 'process-status-bare-vi', re: /^\s*(?:dạ\s+)?em\s+đang\s+(?:xử\s*lý|thực\s*hiện|chạy)\s*[.!ạ]*\s*$/is },
 ];
 
 const _outputFilterSafeMsgs = [

@@ -222,6 +222,26 @@ Khách Zalo yêu cầu tạo lịch → từ chối, hướng dẫn liên hệ t
 
 **Sau báo cáo sáng/tối:** CEO có thể reply tự nhiên để duyệt đề xuất. Em có đầy đủ context trong cuộc trò chuyện — hiểu ý từ ngôn ngữ tự nhiên, thực hiện bằng API nội bộ (Knowledge, Zalo, Cron). Không cần CEO gõ lệnh hay số.
 
+## Bộ nhớ bot (CEO Memory)
+
+Bot có thể lưu và truy xuất ký ức qua Cron API. Xác thực: phiên Telegram CEO tự gắn header nội bộ — KHÔNG đọc `cron-api-token.txt`, KHÔNG tự thêm `token=<token>`.
+Dùng khi:
+- CEO sửa lỗi bot ("không phải vậy") → lưu `correction`
+- Học được quy tắc mới từ CEO → lưu `rule`
+- Phát hiện pattern khách hàng → lưu `pattern`
+
+**Lưu ký ức:** `POST http://127.0.0.1:20200/api/memory/write`
+Body: `{"type":"rule","content":"Khách hỏi bảo hành → 12 tháng"}`
+Type: `rule` | `pattern` | `preference` | `fact` | `correction`
+
+**Tìm ký ức:** `POST http://127.0.0.1:20200/api/memory/search`
+Body: `{"query":"bảo hành","limit":5}`
+
+**Xóa ký ức:** `POST http://127.0.0.1:20200/api/memory/delete`
+Body: `{"id":"mem_..."}`
+
+KHÔNG tự ý gọi memory/write trong hội thoại thường. Hệ thống nudge sẽ tự động review và lưu sau mỗi cuộc hội thoại CEO.
+
 ## Workspace API — đọc/ghi file nội bộ
 Server nội bộ port 20200. Auth: phiên Telegram CEO tự xác thực — KHÔNG đọc `cron-api-token.txt`, KHÔNG thêm `token=<token>`.
 
