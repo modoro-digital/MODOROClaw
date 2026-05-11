@@ -2416,7 +2416,7 @@
     },
     {
       "path": "electron/lib/knowledge.js",
-      "bytes": 74937
+      "bytes": 77313
     },
     {
       "path": "electron/lib/runtime-installer.js",
@@ -2424,15 +2424,15 @@
     },
     {
       "path": "electron/lib/gateway.js",
-      "bytes": 69976
-    },
-    {
-      "path": "electron/lib/config.js",
-      "bytes": 45610
+      "bytes": 70235
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 45406
+      "bytes": 45825
+    },
+    {
+      "path": "electron/lib/config.js",
+      "bytes": 45718
     },
     {
       "path": "electron/lib/fb-schedule.js",

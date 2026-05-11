@@ -138,11 +138,11 @@ Large Source Files
 - electron/lib/cron.js: 100403 bytes
 - electron/ui/wizard.html: 87052 bytes
 - electron/lib/channels.js: 84587 bytes
-- electron/lib/knowledge.js: 74937 bytes
+- electron/lib/knowledge.js: 77313 bytes
 - electron/lib/runtime-installer.js: 73846 bytes
-- electron/lib/gateway.js: 69976 bytes
-- electron/lib/config.js: 45610 bytes
-- electron/lib/workspace.js: 45406 bytes
+- electron/lib/gateway.js: 70235 bytes
+- electron/lib/workspace.js: 45825 bytes
+- electron/lib/config.js: 45718 bytes
 - electron/lib/fb-schedule.js: 39478 bytes
 - electron/lib/nine-router.js: 38508 bytes
 - electron/lib/zalo-plugin.js: 35090 bytes
