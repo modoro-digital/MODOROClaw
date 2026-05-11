@@ -1,6 +1,6 @@
 name = "modoroclaw-license"
 main = "worker.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-01-01"
 
 [vars]
 # ADMIN_SECRET is set via: wrangler secret put ADMIN_SECRET

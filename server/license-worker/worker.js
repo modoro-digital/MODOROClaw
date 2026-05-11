@@ -1,11 +1,8 @@
 // 9BizClaw License Server — Cloudflare Worker
-// KV binding: LICENSE_KV, Secret: ADMIN_SECRET
+// KV binding: LICENSE_KV, Secrets: ADMIN_SECRET, ED25519_PRIVATE_KEY_B64
 
-const KEY_CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
-const KEY_SEGMENT_LEN = 4;
-const KEY_SEGMENTS = 3;
 const VALID_DAYS = 90;
-const KEY_FORMAT_RE = /^CLAW-[23456789A-HJKMNP-Z]{4}-[23456789A-HJKMNP-Z]{4}-[23456789A-HJKMNP-Z]{4}$/;
+const DEFAULT_MONTHS = 12;
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -34,27 +31,57 @@ async function checkRateLimit(env, ip, endpoint, maxPerMinute) {
   return true;
 }
 
-function generateKey() {
-  // Rejection sampling to avoid modulo bias (31 chars, 31*8=248)
-  const totalChars = KEY_SEGMENT_LEN * KEY_SEGMENTS; // 12
-  const bytes = new Uint8Array(totalChars * 2); // extra bytes for rejections
-  crypto.getRandomValues(bytes);
-  let result = 'CLAW-';
-  let ri = 0;
-  for (let i = 0; i < totalChars; i++) {
-    if (i > 0 && i % KEY_SEGMENT_LEN === 0) result += '-';
-    let b;
-    do {
-      if (ri >= bytes.length) {
-        // Extremely unlikely: ran out of bytes, refill
-        crypto.getRandomValues(bytes);
-        ri = 0;
-      }
-      b = bytes[ri++];
-    } while (b >= 248); // 248 = 31 * 8, reject to eliminate bias
-    result += KEY_CHARSET[b % 31];
+function base64urlEncode(buf) {
+  const bytes = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function sha256hex(str) {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+    .then(buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''));
+}
+
+async function importEd25519PrivateKey(b64) {
+  const clean = b64.replace(/[\r\n\s]/g, '');
+  const der = Uint8Array.from(atob(clean), c => c.charCodeAt(0));
+  // Try native Ed25519 first (compatibility_date >= 2024-09-23), fallback to NODE-ED25519
+  try {
+    return await crypto.subtle.importKey('pkcs8', der, { name: 'Ed25519' }, false, ['sign']);
+  } catch {
+    return await crypto.subtle.importKey('pkcs8', der,
+      { name: 'NODE-ED25519', namedCurve: 'NODE-ED25519' }, false, ['sign']);
   }
-  return result;
+}
+
+async function signEd25519(privateKey, data) {
+  try {
+    return await crypto.subtle.sign('Ed25519', privateKey, data);
+  } catch {
+    return await crypto.subtle.sign('NODE-ED25519', privateKey, data);
+  }
+}
+
+async function generateEd25519Key(env, email, months) {
+  const now = new Date();
+  const expiry = new Date(now);
+  expiry.setMonth(expiry.getMonth() + (months || DEFAULT_MONTHS));
+  const payload = {
+    e: email,
+    p: 'premium',
+    i: now.toISOString().slice(0, 10),
+    v: expiry.toISOString().slice(0, 10),
+  };
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+  const privateKey = await importEd25519PrivateKey(env.ED25519_PRIVATE_KEY_B64);
+  const signature = await signEd25519(privateKey, payloadBytes);
+  const combined = new Uint8Array(payloadBytes.length + signature.byteLength);
+  combined.set(payloadBytes, 0);
+  combined.set(new Uint8Array(signature), payloadBytes.length);
+  const key = 'CLAW-' + base64urlEncode(combined);
+  const keyHash = (await sha256hex(key)).slice(0, 16);
+  return { key, keyHash, payload };
 }
 
 function validUntilFromNow() {
@@ -66,8 +93,8 @@ function validUntilFromNow() {
 
 function isAdmin(request, env) {
   const auth = request.headers.get('Authorization') || '';
-  const token = auth.replace(/^Bearer\s+/i, '');
-  return verifyAdmin(token, env.ADMIN_SECRET);
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  return verifyAdmin(token, (env.ADMIN_SECRET || '').trim());
 }
 
 // --- Handlers ---
@@ -181,6 +208,109 @@ async function handleAdminGenerate(body, env) {
   return jsonResponse({ ok: true, keys });
 }
 
+async function handleAdminCreateClient(body, env) {
+  const name = (body.name || '').trim();
+  if (!name) return jsonResponse({ ok: false, error: 'missing_client_name' }, 400);
+  const keysPerClient = Math.min(Math.max(parseInt(body.keysPerClient, 10) || 3, 1), 10);
+  const months = Math.max(parseInt(body.months, 10) || DEFAULT_MONTHS, 1);
+  const note = body.note || '';
+
+  if (!env.ED25519_PRIVATE_KEY_B64) {
+    return jsonResponse({ ok: false, error: 'signing_key_not_configured' }, 500);
+  }
+
+  try {
+    const clientId = 'cl_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+    const now = new Date().toISOString();
+    const keys = [];
+
+    for (let i = 0; i < keysPerClient; i++) {
+      const email = name + (i + 1) + '@gmail.com';
+      const { key, keyHash, payload } = await generateEd25519Key(env, email, months);
+      const record = {
+        key,
+        keyHash,
+        clientId,
+        clientName: name,
+        createdAt: now,
+        maxMachines: 1,
+        machines: [],
+        note: note || (email + ' | ' + payload.p + ' | ' + payload.i + ' to ' + payload.v),
+      };
+      await env.LICENSE_KV.put(`key:${keyHash}`, JSON.stringify(record));
+      keys.push(key);
+    }
+
+    const client = { id: clientId, name, createdAt: now, keys, keysPerClient, maxMachines: 1, note };
+    await env.LICENSE_KV.put(`client:${clientId}`, JSON.stringify(client));
+
+    return jsonResponse({ ok: true, client });
+  } catch (e) {
+    return jsonResponse({ ok: false, error: 'keygen_failed', detail: e.message }, 500);
+  }
+}
+
+async function handleAdminListClients(env) {
+  const allKeys = [];
+  let cursor = undefined;
+  while (true) {
+    const list = await env.LICENSE_KV.list({ prefix: 'key:', cursor });
+    for (const item of list.keys) {
+      const record = await env.LICENSE_KV.get(item.name, 'json');
+      if (record) allKeys.push(record);
+    }
+    if (list.list_complete) break;
+    cursor = list.cursor;
+  }
+
+  const clients = new Map();
+  const ungrouped = [];
+
+  for (const k of allKeys) {
+    if (k.clientId) {
+      if (!clients.has(k.clientId)) {
+        clients.set(k.clientId, { id: k.clientId, name: k.clientName || k.clientId, keys: [] });
+      }
+      clients.get(k.clientId).keys.push(k);
+    } else {
+      ungrouped.push(k);
+    }
+  }
+
+  const clientList = Array.from(clients.values());
+  clientList.sort((a, b) => {
+    const aDate = Math.max(...a.keys.map(k => new Date(k.createdAt).getTime()));
+    const bDate = Math.max(...b.keys.map(k => new Date(k.createdAt).getTime()));
+    return bDate - aDate;
+  });
+
+  return jsonResponse({ ok: true, clients: clientList, ungrouped });
+}
+
+async function handleAdminRevokeClient(body, env) {
+  const { clientId } = body;
+  if (!clientId) return jsonResponse({ ok: false, error: 'missing_client_id' }, 400);
+
+  let cursor = undefined;
+  let revokedCount = 0;
+  const now = new Date().toISOString();
+  while (true) {
+    const list = await env.LICENSE_KV.list({ prefix: 'key:', cursor });
+    for (const item of list.keys) {
+      const record = await env.LICENSE_KV.get(item.name, 'json');
+      if (record && record.clientId === clientId && !record.revokedAt) {
+        record.revokedAt = now;
+        await env.LICENSE_KV.put(item.name, JSON.stringify(record));
+        revokedCount++;
+      }
+    }
+    if (list.list_complete) break;
+    cursor = list.cursor;
+  }
+
+  return jsonResponse({ ok: true, revokedCount });
+}
+
 async function handleAdminList(env) {
   const allKeys = [];
   let cursor = undefined;
@@ -280,6 +410,9 @@ export default {
       } else if (path === '/api/admin/generate') response = await handleAdminGenerate(body, env);
       else if (path === '/api/admin/list') response = await handleAdminList(env);
       else if (path === '/api/admin/revoke') response = await handleAdminRevoke(body, env);
+      else if (path === '/api/admin/create-client') response = await handleAdminCreateClient(body, env);
+      else if (path === '/api/admin/list-clients') response = await handleAdminListClients(env);
+      else if (path === '/api/admin/revoke-client') response = await handleAdminRevokeClient(body, env);
       else response = jsonResponse({ ok: false, error: 'not_found' }, 404);
     } else {
       response = jsonResponse({ ok: false, error: 'not_found' }, 404);

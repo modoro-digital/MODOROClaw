@@ -2,7 +2,7 @@
 name: zalo-post-workflow
 description: Tạo ảnh AI rồi gửi vào nhóm Zalo hoặc Zalo cá nhân — CHỈ CEO Telegram
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   replaces: facebook-image.md (phần Zalo)
 ---
 
@@ -173,18 +173,36 @@ Khi ảnh tạo xong nhưng gửi Zalo thất bại (`done_not_delivered`), resp
 
 ---
 
+## Hỏi CEO 5 câu trước khi tạo ảnh — BẮT BUỘC (trừ cron tự động)
+
+**Nếu CEO tương tác trực tiếp (Telegram):** BẮT BUỘC hỏi 5 câu ABCDE trước khi soạn prompt. Xem format câu hỏi tại `skills/operations/facebook-image.md` bước 5.
+
+**Nếu cron tự động (không có CEO trả lời):** Đọc preference đã lưu:
+```
+web_fetch url="http://127.0.0.1:20200/api/image/preferences" method=GET
+```
+Dùng preference trả về. Nếu chưa có preference → dùng default A cho tất cả.
+
+**Sau khi CEO trả lời 5 câu:** Lưu preference qua POST `/api/image/preferences` (xem facebook-image.md bước 5).
+
+---
+
 ## Prompt ảnh — TIẾNG ANH, SUY NGHĨ, KHÔNG COPY TEMPLATE
 
-**Soạn prompt TIẾNG ANH chi tiết.** KHÔNG copy template cố định. Mỗi ảnh là duy nhất — BẠN PHẢI SUY NGHĨ dựa trên ngữ cảnh.
+**Soạn prompt TIẾNG ANH chi tiết (min 150 ký tự, server reject ngắn hơn).** KHÔNG copy template cố định. Mỗi ảnh là duy nhất — BẠN PHẢI SUY NGHĨ dựa trên ngữ cảnh + đáp án 5 câu hỏi.
 
 **Khi dùng brand asset, prompt PHẢI bắt đầu bằng:**
 `IMPORTANT: The attached reference image is a brand asset. Reproduce it EXACTLY as-is — same colors, same shapes, same text, same proportions, same style. Do NOT reinterpret, redesign, redraw, or reimagine it in any way. Place the EXACT original image into the composition.`
 
-**Prompt guidelines:**
-- Màu sắc cụ thể: dùng mã HEX (VD: "dark navy gradient from #0f172a to purple #7c3aed")
-- Typography hierarchy: heading large bold, subtitle smaller light, CTA prominent
-- Lighting and depth: volumetric, rim light, cinematic, blur/shadow/layering
-- MỌI CHỮ TIẾNG VIỆT TRONG ẢNH PHẢI CÓ DẤU ĐẦY ĐỦ — viết đúng trong prompt thì ảnh sẽ đúng
+**Prompt PHẢI bao gồm:**
+- Subject chi tiết (vật liệu, tư thế, context)
+- Scene/environment cụ thể
+- Lighting cụ thể (KHÔNG "good lighting" — phải nói rõ loại: soft key, rim, volumetric...)
+- Color palette dùng mã HEX
+- Composition (góc, rule of thirds, depth of field)
+- Style/medium rõ ràng (từ đáp án câu 1)
+- Typography nếu có text (từ đáp án câu 5)
+- MỌI CHỮ TIẾNG VIỆT TRONG ẢNH PHẢI CÓ DẤU ĐẦY ĐỦ
 
 **Size phù hợp:**
 - Banner/quảng cáo → `1792x1024`

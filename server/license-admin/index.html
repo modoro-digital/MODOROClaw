@@ -56,21 +56,46 @@
   .header-right { display: flex; gap: 8px; align-items: center; }
   .section { margin-bottom: 40px; }
 
-  /* Generate form */
+  /* Create client form */
   .gen-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
   .gen-row .form-group { margin-bottom: 0; flex: 1; min-width: 120px; }
-  .gen-row .form-group:last-child { min-width: 200px; flex: 2; }
+  .gen-row .form-group.fg-name { min-width: 200px; flex: 2; }
 
-  /* Table */
-  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 10px 14px; background: var(--surface); color: var(--text-muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
-  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
+  /* Stats */
+  .stats { display: flex; gap: 24px; margin-bottom: 24px; }
+  .stat { font-size: 13px; color: var(--text-muted); }
+  .stat strong { color: var(--text); font-size: 18px; font-weight: 600; margin-right: 4px; }
 
-  .key-code { font-family: var(--mono); font-size: 13px; letter-spacing: 0.02em; cursor: pointer; }
-  .key-code:hover { color: var(--accent); }
+  /* Client card */
+  .client-card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .client-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; background: var(--surface); cursor: pointer;
+    transition: background 0.1s; gap: 12px;
+  }
+  .client-header:hover { background: #1f1f23; }
+  .client-name { font-weight: 600; font-size: 14px; flex: 1; }
+  .client-meta { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-muted); }
+  .client-body { border-top: 1px solid var(--border); display: none; }
+  .client-card.open .client-body { display: block; }
+  .client-card.open .client-chevron { transform: rotate(180deg); }
+  .client-chevron { transition: transform 0.15s; color: var(--text-muted); font-size: 11px; }
+
+  /* Key row inside client */
+  .key-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 18px;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .key-row:last-child { border-bottom: none; }
+  .key-code { font-family: var(--mono); font-size: 13px; letter-spacing: 0.02em; flex: 1; display: flex; align-items: center; gap: 8px; }
+  .key-text { cursor: pointer; }
+  .key-text:hover { color: var(--accent); }
+  .key-toggle { cursor: pointer; color: var(--text-muted); font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; user-select: none; }
+  .key-toggle:hover { color: var(--text); }
+  .key-masked { letter-spacing: 0.15em; color: var(--text-muted); }
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.04em;
@@ -78,11 +103,14 @@
   .badge-active { background: rgba(34,197,94,0.15); color: var(--success); }
   .badge-unused { background: rgba(161,161,170,0.15); color: var(--text-muted); }
   .badge-revoked { background: rgba(239,68,68,0.15); color: var(--danger); }
-  .machines { font-size: 12px; color: var(--text-secondary); }
-  .machines div { padding: 2px 0; }
-  .machines .hostname { color: var(--text); font-weight: 500; }
-  .note { font-size: 12px; color: var(--text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
-  .date { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+  .machines-inline { font-size: 12px; color: var(--text-secondary); }
+  .machines-inline .hostname { color: var(--text); font-weight: 500; }
+
+  .client-actions {
+    display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
 
   /* Toast */
   .toast {
@@ -94,31 +122,40 @@
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.error { border-color: var(--danger); color: var(--danger); }
 
-  /* Stats */
-  .stats { display: flex; gap: 24px; margin-bottom: 24px; }
-  .stat { font-size: 13px; color: var(--text-muted); }
-  .stat strong { color: var(--text); font-size: 18px; font-weight: 600; margin-right: 4px; }
+  /* Generated output */
+  .generated-output {
+    margin-top: 16px; padding: 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .generated-output .client-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .generated-output .key-list { font-family: var(--mono); font-size: 13px; line-height: 2; word-break: break-all; }
+  .generated-output .key-list span { cursor: pointer; }
+  .generated-output .key-list span:hover { color: var(--accent); }
+  .generated-output .actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* Table for ungrouped */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 14px; background: var(--surface); color: var(--text-muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .note { font-size: 12px; color: var(--text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  .date { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
 
   /* Responsive */
   @media (max-width: 640px) {
     .gen-row { flex-direction: column; }
     .gen-row .form-group { min-width: 0; }
     .stats { flex-wrap: wrap; gap: 16px; }
+    .client-meta { flex-wrap: wrap; gap: 8px; }
+    .key-row { flex-wrap: wrap; gap: 8px; }
   }
 
-  /* Hidden */
   .hidden { display: none !important; }
-
-  /* Generated keys output */
-  .generated-keys {
-    margin-top: 16px; padding: 14px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); font-family: var(--mono); font-size: 13px; line-height: 2;
-    word-break: break-all;
-  }
-  .generated-keys .copy-all { margin-top: 10px; }
-
-  /* Loading */
-  .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -145,40 +182,42 @@
     <div class="header">
       <h1>9BizClaw License Admin</h1>
       <div class="header-right">
-        <button class="btn btn-sm" onclick="loadKeys()">Refresh</button>
+        <button class="btn btn-sm" onclick="loadClients()">Refresh</button>
         <button class="btn btn-sm" onclick="doLogout()">Disconnect</button>
       </div>
     </div>
 
-    <!-- Generate -->
+    <!-- Create client -->
     <div class="section">
-      <h2>Generate Keys</h2>
+      <h2>New Client</h2>
       <div class="gen-row">
-        <div class="form-group">
-          <label>Count</label>
-          <input id="gen-count" type="number" value="1" min="1" max="100">
-        </div>
-        <div class="form-group">
-          <label>Max Machines</label>
-          <input id="gen-machines" type="number" value="2" min="1" max="10">
+        <div class="form-group fg-name">
+          <label>Client Name</label>
+          <input id="gen-name" type="text" placeholder="Company or person name">
         </div>
         <div class="form-group">
           <label>Note</label>
-          <input id="gen-note" type="text" placeholder="Optional note">
+          <input id="gen-note" type="text" placeholder="Optional">
         </div>
         <div class="form-group" style="flex:0">
           <label>&nbsp;</label>
-          <button class="btn btn-primary" id="gen-btn" onclick="generateKeys()">Generate</button>
+          <button class="btn btn-primary" id="gen-btn" onclick="createClient()">Create</button>
         </div>
       </div>
       <div id="gen-output" class="hidden"></div>
     </div>
 
-    <!-- List -->
+    <!-- Client list -->
     <div class="section">
-      <h2>All Keys</h2>
+      <h2>Clients</h2>
       <div class="stats" id="stats"></div>
-      <div id="keys-container"><div class="loading">Loading...</div></div>
+      <div id="clients-container"><div class="loading">Loading...</div></div>
+    </div>
+
+    <!-- Ungrouped keys (legacy) -->
+    <div class="section hidden" id="ungrouped-section">
+      <h2>Ungrouped Keys (Legacy)</h2>
+      <div id="ungrouped-container"></div>
     </div>
   </div>
 </div>
@@ -218,7 +257,7 @@ function doLogin() {
   sessionStorage.setItem('lk_secret', secret);
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('dash-view').classList.remove('hidden');
-  loadKeys();
+  loadClients();
 }
 
 function doLogout() {
@@ -233,26 +272,66 @@ function doLogout() {
 (function() {
   const u = sessionStorage.getItem('lk_url');
   const s = sessionStorage.getItem('lk_secret');
-  if (u && s) { API_URL = u; API_SECRET = s; document.getElementById('login-view').classList.add('hidden'); document.getElementById('dash-view').classList.remove('hidden'); loadKeys(); }
+  if (u && s) { API_URL = u; API_SECRET = s; document.getElementById('login-view').classList.add('hidden'); document.getElementById('dash-view').classList.remove('hidden'); loadClients(); }
 })();
 
-async function generateKeys() {
+async function createClient() {
   const btn = document.getElementById('gen-btn');
   btn.disabled = true;
   try {
-    const count = parseInt(document.getElementById('gen-count').value) || 1;
-    const maxMachines = parseInt(document.getElementById('gen-machines').value) || 2;
+    const name = document.getElementById('gen-name').value.trim();
+    if (!name) { toast('Enter a client name', true); btn.disabled = false; return; }
+    const maxMachines = 1;
     const note = document.getElementById('gen-note').value.trim();
-    const data = await api('/api/admin/generate', { count, maxMachines, note });
+
+    const data = await api('/api/admin/create-client', { name, keysPerClient: 3, maxMachines, note });
+    const client = data.client;
+
     const out = document.getElementById('gen-output');
     out.classList.remove('hidden');
-    out.innerHTML = '<div class="generated-keys">' +
-      data.keys.map(k => '<span class="key-code" onclick="copyKey(this)">' + esc(k) + '</span>').join('<br>') +
-      '<div class="copy-all"><button class="btn btn-sm" onclick="copyAll()">Copy all</button></div></div>';
-    toast(data.keys.length + ' key(s) generated');
-    loadKeys();
+    out.innerHTML = '<div class="generated-output">' +
+      '<div class="client-label">' + esc(client.name) + ' (' + client.keys.length + ' keys)</div>' +
+      '<div class="key-list">' + client.keys.map(k =>
+        '<div class="key-code">' +
+          '<span class="key-toggle" onclick="toggleKeyVis(this)">&#9679;</span>' +
+          '<span class="key-text key-masked" data-key="' + esc(k) + '" onclick="copyKeyFromData(this)">' + maskKeyStr(k) + '</span>' +
+        '</div>'
+      ).join('') + '</div>' +
+      '<div class="actions">' +
+        '<button class="btn btn-sm" onclick="copyAllGen()">Copy all</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="downloadGen(\'' + esc(client.name) + '\')">Download .txt</button>' +
+      '</div></div>';
+
+    document.getElementById('gen-name').value = '';
+    document.getElementById('gen-note').value = '';
+    toast(client.name + ' created with ' + client.keys.length + ' keys');
+    loadClients();
   } catch (e) { toast(e.message, true); }
   btn.disabled = false;
+}
+
+function maskKeyStr(key) {
+  if (!key || key.length < 10) return '••••••••';
+  return key.slice(0, 5) + '•'.repeat(Math.min(key.length - 9, 20)) + key.slice(-4);
+}
+
+function toggleKeyVis(toggle) {
+  const textEl = toggle.nextElementSibling;
+  const realKey = textEl.dataset.key;
+  if (textEl.classList.contains('key-masked')) {
+    textEl.textContent = realKey;
+    textEl.classList.remove('key-masked');
+    toggle.innerHTML = '&#9675;';
+  } else {
+    textEl.textContent = maskKeyStr(realKey);
+    textEl.classList.add('key-masked');
+    toggle.innerHTML = '&#9679;';
+  }
+}
+
+function copyKeyFromData(el) {
+  navigator.clipboard.writeText(el.dataset.key);
+  toast('Copied');
 }
 
 function copyKey(el) {
@@ -260,85 +339,209 @@ function copyKey(el) {
   toast('Copied');
 }
 
-function copyAll() {
-  const keys = document.querySelectorAll('#gen-output .key-code');
-  const text = Array.from(keys).map(k => k.textContent).join('\n');
-  navigator.clipboard.writeText(text);
+function copyAllGen() {
+  const keys = document.querySelectorAll('#gen-output .key-text');
+  navigator.clipboard.writeText(Array.from(keys).map(k => k.dataset.key).join('\n'));
   toast('All keys copied');
 }
 
-async function loadKeys() {
-  const container = document.getElementById('keys-container');
+function downloadGen(clientName) {
+  const keys = document.querySelectorAll('#gen-output .key-text');
+  const text = '9BizClaw License Keys\nClient: ' + clientName + '\nGenerated: ' + new Date().toLocaleString() + '\n' +
+    '----------------------------------------\n\n' +
+    Array.from(keys).map((k, i) => 'Key ' + (i + 1) + ': ' + k.dataset.key).join('\n') +
+    '\n\n----------------------------------------\nEach key activates on 1 machine.\n';
+  downloadTextFile(clientName.replace(/[^a-zA-Z0-9_-]/g, '_') + '-licenses.txt', text);
+}
+
+function downloadClientKeys(clientId) {
+  const card = document.querySelector('[data-client-id="' + clientId + '"]');
+  if (!card) return;
+  const name = card.dataset.clientName;
+  const keyEls = card.querySelectorAll('.key-text');
+  const lines = [];
+  keyEls.forEach((el, i) => {
+    const status = el.closest('.key-row').querySelector('.badge').textContent.trim();
+    lines.push('Key ' + (i + 1) + ': ' + el.dataset.key + '  [' + status + ']');
+  });
+  const text = '9BizClaw License Keys\nClient: ' + name + '\nExported: ' + new Date().toLocaleString() + '\n' +
+    '----------------------------------------\n\n' + lines.join('\n') + '\n';
+  downloadTextFile(name.replace(/[^a-zA-Z0-9_-]/g, '_') + '-licenses.txt', text);
+}
+
+function downloadTextFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+function toggleCard(el) {
+  el.closest('.client-card').classList.toggle('open');
+}
+
+async function loadClients() {
+  const container = document.getElementById('clients-container');
   container.innerHTML = '<div class="loading">Loading...</div>';
   try {
-    const data = await api('/api/admin/list');
-    renderKeys(data.keys);
+    const data = await api('/api/admin/list-clients');
+    renderClients(data.clients, data.ungrouped);
   } catch (e) {
     container.innerHTML = '<div class="loading" style="color:var(--danger)">Failed: ' + esc(e.message) + '</div>';
   }
 }
 
-function renderKeys(keys) {
-  keys.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  const total = keys.length;
-  const active = keys.filter(k => !k.revokedAt && k.machines?.length > 0).length;
-  const revoked = keys.filter(k => k.revokedAt).length;
-  const unused = total - active - revoked;
-
-  document.getElementById('stats').innerHTML =
-    '<div class="stat"><strong>' + total + '</strong>Total</div>' +
-    '<div class="stat"><strong>' + active + '</strong>Active</div>' +
-    '<div class="stat"><strong>' + unused + '</strong>Unused</div>' +
-    '<div class="stat"><strong>' + revoked + '</strong>Revoked</div>';
-
-  if (keys.length === 0) {
-    document.getElementById('keys-container').innerHTML = '<div class="loading">No keys yet. Generate some above.</div>';
-    return;
+function renderClients(clients, ungrouped) {
+  // Stats
+  let totalKeys = 0, activeKeys = 0, revokedKeys = 0, unusedKeys = 0;
+  for (const c of clients) {
+    for (const k of c.keys) {
+      totalKeys++;
+      if (k.revokedAt) revokedKeys++;
+      else if (k.machines?.length > 0) activeKeys++;
+      else unusedKeys++;
+    }
+  }
+  for (const k of (ungrouped || [])) {
+    totalKeys++;
+    if (k.revokedAt) revokedKeys++;
+    else if (k.machines?.length > 0) activeKeys++;
+    else unusedKeys++;
   }
 
-  let html = '<div class="table-wrap"><table><thead><tr>' +
-    '<th>Key</th><th>Status</th><th>Machines</th><th>Note</th><th>Created</th><th></th>' +
-    '</tr></thead><tbody>';
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><strong>' + clients.length + '</strong>Clients</div>' +
+    '<div class="stat"><strong>' + totalKeys + '</strong>Keys</div>' +
+    '<div class="stat"><strong>' + activeKeys + '</strong>Active</div>' +
+    '<div class="stat"><strong>' + unusedKeys + '</strong>Unused</div>' +
+    '<div class="stat"><strong>' + revokedKeys + '</strong>Revoked</div>';
 
-  for (const k of keys) {
-    const status = k.revokedAt ? 'revoked' : (k.machines?.length > 0 ? 'active' : 'unused');
-    const statusLabel = k.revokedAt ? 'Revoked' : (k.machines?.length > 0 ? k.machines.length + '/' + (k.maxMachines || 1) : 'Unused');
-    const badgeClass = k.revokedAt ? 'badge-revoked' : (k.machines?.length > 0 ? 'badge-active' : 'badge-unused');
+  // Client cards
+  const container = document.getElementById('clients-container');
+  if (clients.length === 0) {
+    container.innerHTML = '<div class="loading">No clients yet. Create one above.</div>';
+  } else {
+    container.innerHTML = clients.map(c => renderClientCard(c)).join('');
+  }
 
-    let machinesHtml = '';
+  // Ungrouped legacy keys
+  const ugSection = document.getElementById('ungrouped-section');
+  if (ungrouped && ungrouped.length > 0) {
+    ugSection.classList.remove('hidden');
+    document.getElementById('ungrouped-container').innerHTML = renderUngroupedTable(ungrouped);
+  } else {
+    ugSection.classList.add('hidden');
+  }
+}
+
+function renderClientCard(client) {
+  const keys = client.keys || [];
+  const active = keys.filter(k => !k.revokedAt && k.machines?.length > 0).length;
+  const revoked = keys.filter(k => k.revokedAt).length;
+  const unused = keys.length - active - revoked;
+  const allRevoked = keys.length > 0 && revoked === keys.length;
+  const created = keys.length > 0 ? fmtDate(keys[0].createdAt) : '';
+
+  let statusSummary = '';
+  if (allRevoked) statusSummary = '<span class="badge badge-revoked">All revoked</span>';
+  else if (active > 0) statusSummary = '<span class="badge badge-active">' + active + ' active</span>';
+  else statusSummary = '<span class="badge badge-unused">' + unused + ' unused</span>';
+
+  let keyRows = keys.map(k => {
+    const st = k.revokedAt ? 'revoked' : (k.machines?.length > 0 ? 'active' : 'unused');
+    const stLabel = k.revokedAt ? 'Revoked' : (k.machines?.length > 0 ? 'Active' : 'Unused');
+    const badgeCls = k.revokedAt ? 'badge-revoked' : (k.machines?.length > 0 ? 'badge-active' : 'badge-unused');
+
+    let machineInfo = '';
     if (k.machines?.length > 0) {
-      machinesHtml = '<div class="machines">' + k.machines.map(m =>
-        '<div><span class="hostname">' + esc(m.hostname || 'unknown') + '</span> ' +
-        '<span style="color:var(--text-muted)">' + esc(m.appVersion || '') + '</span>' +
-        '<br><span style="font-size:11px">seen ' + relTime(m.lastSeen) + '</span></div>'
-      ).join('') + '</div>';
+      machineInfo = '<span class="machines-inline">' +
+        k.machines.map(m => '<span class="hostname">' + esc(m.hostname || '?') + '</span> ' + relTime(m.lastSeen)).join(', ') +
+        '</span>';
     }
 
+    return '<div class="key-row">' +
+      '<span class="key-code">' +
+        '<span class="key-toggle" onclick="toggleKeyVis(this)">&#9679;</span>' +
+        '<span class="key-text key-masked" data-key="' + esc(k.key) + '" onclick="copyKeyFromData(this)">' + maskKeyStr(k.key) + '</span>' +
+      '</span>' +
+      '<span class="badge ' + badgeCls + '">' + stLabel + '</span>' +
+      machineInfo +
+      (k.revokedAt ? '' : '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();revokeKey(\'' + esc(k.key) + '\')">Revoke</button>') +
+      '</div>';
+  }).join('');
+
+  return '<div class="client-card" data-client-id="' + esc(client.id) + '" data-client-name="' + esc(client.name) + '">' +
+    '<div class="client-header" onclick="toggleCard(this)">' +
+      '<span class="client-name">' + esc(client.name) + '</span>' +
+      '<div class="client-meta">' +
+        statusSummary +
+        '<span>' + keys.length + ' keys</span>' +
+        '<span>' + created + '</span>' +
+        '<span class="client-chevron">&#9660;</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="client-body">' +
+      keyRows +
+      '<div class="client-actions">' +
+        '<button class="btn btn-sm" onclick="downloadClientKeys(\'' + esc(client.id) + '\')">Download .txt</button>' +
+        '<button class="btn btn-sm" onclick="copyClientKeys(\'' + esc(client.id) + '\')">Copy all keys</button>' +
+        (allRevoked ? '' : '<button class="btn btn-danger btn-sm" onclick="revokeClient(\'' + esc(client.id) + '\', \'' + esc(client.name) + '\')">Revoke all</button>') +
+      '</div>' +
+    '</div></div>';
+}
+
+function renderUngroupedTable(keys) {
+  keys.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  let html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Key</th><th>Status</th><th>Note</th><th>Created</th><th></th>' +
+    '</tr></thead><tbody>';
+  for (const k of keys) {
+    const badgeCls = k.revokedAt ? 'badge-revoked' : (k.machines?.length > 0 ? 'badge-active' : 'badge-unused');
+    const stLabel = k.revokedAt ? 'Revoked' : (k.machines?.length > 0 ? 'Active' : 'Unused');
     html += '<tr>' +
       '<td><span class="key-code" onclick="copyKey(this)">' + esc(k.key) + '</span></td>' +
-      '<td><span class="badge ' + badgeClass + '">' + statusLabel + '</span></td>' +
-      '<td>' + machinesHtml + '</td>' +
+      '<td><span class="badge ' + badgeCls + '">' + stLabel + '</span></td>' +
       '<td><span class="note">' + esc(k.note || '') + '</span></td>' +
       '<td><span class="date">' + fmtDate(k.createdAt) + '</span></td>' +
       '<td>' + (k.revokedAt ? '' : '<button class="btn btn-danger btn-sm" onclick="revokeKey(\'' + esc(k.key) + '\')">Revoke</button>') + '</td>' +
       '</tr>';
   }
-
   html += '</tbody></table></div>';
-  document.getElementById('keys-container').innerHTML = html;
+  return html;
+}
+
+function copyClientKeys(clientId) {
+  const card = document.querySelector('[data-client-id="' + clientId + '"]');
+  if (!card) return;
+  const keys = Array.from(card.querySelectorAll('.key-text')).map(el => el.dataset.key);
+  navigator.clipboard.writeText(keys.join('\n'));
+  toast(keys.length + ' keys copied');
 }
 
 async function revokeKey(key) {
-  if (!confirm('Revoke ' + key + '? This cannot be undone.')) return;
+  if (!confirm('Revoke ' + key + '?\nThis cannot be undone.')) return;
   try {
     await api('/api/admin/revoke', { key });
     toast('Key revoked');
-    loadKeys();
+    loadClients();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function revokeClient(clientId, clientName) {
+  if (!confirm('Revoke ALL keys for ' + clientName + '?\nThis cannot be undone.')) return;
+  try {
+    const data = await api('/api/admin/revoke-client', { clientId });
+    toast(data.revokedCount + ' keys revoked for ' + clientName);
+    loadClients();
   } catch (e) { toast(e.message, true); }
 }
 
 function esc(s) {
+  if (!s) return '';
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;

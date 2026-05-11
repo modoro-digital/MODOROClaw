@@ -1648,6 +1648,24 @@ function startCronApi() {
         return jsonResp(res, 200, { ok: true, name: safeName, sizeBytes: buf.length });
       } catch (e) { return jsonResp(res, 500, { error: e.message }); }
 
+    // ─── Image Preferences API ─────────────────────────────────
+    } else if (urlPath === '/api/image/preferences') {
+      const prefsPath = path.join(getWorkspace(), 'image-preferences.json');
+      if (req.method === 'POST') {
+        try {
+          const { style, colorTone, composition, lighting, text, custom } = params;
+          const prefs = { style, colorTone, composition, lighting, text, custom: custom || {}, updatedAt: new Date().toISOString() };
+          writeJsonAtomic(prefsPath, prefs);
+          return jsonResp(res, 200, { ok: true, preferences: prefs });
+        } catch (e) { return jsonResp(res, 500, { error: e.message }); }
+      } else {
+        try {
+          if (!fs.existsSync(prefsPath)) return jsonResp(res, 200, { preferences: null });
+          const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf8'));
+          return jsonResp(res, 200, { preferences: prefs });
+        } catch (e) { return jsonResp(res, 200, { preferences: null }); }
+      }
+
     // ─── Image Generation API ────────────────────────────────────
     } else if (urlPath === '/api/media/list') {
       try {
@@ -1716,7 +1734,9 @@ function startCronApi() {
       // The response tells the agent the truthful status so it can report to CEO accurately.
       const { prompt, assets, size, caption, groupId, groupName, targetId, friendName, isGroup } = params;
       if (!prompt) return jsonResp(res, 400, { error: 'prompt required' });
-      if (String(prompt).length > 5000) return jsonResp(res, 400, { error: 'prompt too long (max 5000)' });
+      const promptZStr = String(prompt);
+      if (promptZStr.length > 5000) return jsonResp(res, 400, { error: 'prompt too long (max 5000)' });
+      if (promptZStr.length < 150) return jsonResp(res, 400, { error: `prompt too short (${promptZStr.length} chars, min 150). Write a detailed prompt with subject, scene, lighting, colors, composition, and style.` });
       const delivery = resolveCronZaloTarget({ groupId, groupName, targetId, friendName, isGroup }, { allowMultipleGroups: false });
       if (!delivery) return jsonResp(res, 400, { error: 'groupId, groupName, targetId, hoặc friendName cần được cung cấp để gửi Zalo. Nếu đã cung cấp groupId nhưng bị lỗi — thử dùng groupName thay vì groupId.' });
       if (delivery.error) return jsonResp(res, 400, { error: delivery.error });
@@ -1799,7 +1819,9 @@ function startCronApi() {
       const { prompt, assets, size, targetId, isGroup, caption, autoSendTelegram } = params;
       console.log(`[cron-api] /api/image/generate — assets param: ${JSON.stringify(assets)}, size: ${size}, autoSendTelegram: ${autoSendTelegram}`);
       if (!prompt) return jsonResp(res, 400, { error: 'prompt required' });
-      if (String(prompt).length > 5000) return jsonResp(res, 400, { error: 'prompt too long (max 5000)' });
+      const promptStr = String(prompt);
+      if (promptStr.length > 5000) return jsonResp(res, 400, { error: 'prompt too long (max 5000)' });
+      if (promptStr.length < 150) return jsonResp(res, 400, { error: `prompt too short (${promptStr.length} chars, min 150). Write a detailed prompt with subject, scene, lighting, colors, composition, and style. Short prompts produce bad images.` });
       const imageGen = require('./image-gen');
       const jobId = imageGen.generateJobId();
       const brandDir = getBrandAssetsDir();

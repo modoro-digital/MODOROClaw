@@ -122,6 +122,8 @@ function loadAssets(brandAssetsDir, assetNames) {
 
 const BRAND_ASSET_PREFIX = 'CRITICAL INSTRUCTION: The attached reference image(s) are brand assets. You MUST reproduce them EXACTLY as they appear — preserve every detail: exact colors, exact shapes, exact text/typography, exact proportions, exact art style. Do NOT redraw, reinterpret, reimagine, or stylize them. Composite the ORIGINAL image unchanged into the scene.\n\n';
 
+const MIN_PROMPT_LENGTH = 150;
+
 function get9RouterApiKey() {
   try {
     const home = process.env.HOME || process.env.USERPROFILE || '';
