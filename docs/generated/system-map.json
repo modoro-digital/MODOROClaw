@@ -2411,7 +2411,7 @@
     },
     {
       "path": "electron/lib/runtime-installer.js",
-      "bytes": 73531
+      "bytes": 73846
     },
     {
       "path": "electron/lib/gateway.js",
