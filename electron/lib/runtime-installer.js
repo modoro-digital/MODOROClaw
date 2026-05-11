@@ -393,6 +393,7 @@ function buildEnvWithGitPath(extra) {
   if (process.platform === 'darwin') {
     const shimGit = findGitBin();
     env.npm_config_git = shimGit || '/usr/bin/false';
+    console.log('[runtime-installer] npm_config_git =', env.npm_config_git);
   } else if (!macHasXcodeCLT()) {
     const shimGit = findGitBin();
     env.npm_config_git = shimGit || '/usr/bin/false';
@@ -1546,6 +1547,11 @@ async function runInstallation({ onProgress } = {}) {
 
     // Step 1.5: Ensure portable git on Windows (non-fatal)
     await ensurePortableGit(onProgress);
+
+    // Step 1.6: Ensure Xcode CLT on Mac (required for npm git dependencies)
+    if (process.platform === 'darwin' && !macHasXcodeCLT()) {
+      await ensureXcodeCLT(onProgress);
+    }
 
     // Step 2: Install npm packages
     if (status.needsPackageInstall) {
