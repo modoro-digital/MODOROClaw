@@ -631,6 +631,25 @@ function startCronApi() {
       }
     }
 
+    if (urlPath === '/api/memory/list') {
+      const { listMemories } = require('./ceo-memory');
+      const limit = Math.min(Math.max(parseInt(params.limit) || 100, 1), 500);
+      try {
+        return jsonResp(res, 200, { memories: listMemories({ limit }) });
+      } catch (e) {
+        return jsonResp(res, 500, { error: e.message });
+      }
+    }
+
+    if (urlPath === '/api/memory/count') {
+      const { getMemoryCount } = require('./ceo-memory');
+      try {
+        return jsonResp(res, 200, { count: getMemoryCount() });
+      } catch (e) {
+        return jsonResp(res, 500, { error: e.message });
+      }
+    }
+
     if (urlPath === '/api/cron/create') {
       const { label, cronExpr, oneTimeAt, groupId, groupIds, groupName, targetId: rawTargetId, friendName, isGroup, content, mode, prompt: rawPrompt } = params;
       const isAgentMode = mode === 'agent';

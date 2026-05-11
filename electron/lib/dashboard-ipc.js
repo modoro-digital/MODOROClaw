@@ -5071,6 +5071,35 @@ ipcMain.handle('download-and-install-update', async () => {
     }
   });
 
+  ipcMain.handle('write-ceo-memory', async (_event, { type, content, source }) => {
+    try {
+      const { writeMemory } = require('./ceo-memory');
+      return await writeMemory({ type, content, source: source || 'manual' });
+    } catch (e) {
+      console.error('[ceo-memory] write error:', e?.message);
+      return { error: e?.message };
+    }
+  });
+
+  ipcMain.handle('search-ceo-memories', async (_event, { query, limit }) => {
+    try {
+      const { searchMemory } = require('./ceo-memory');
+      return await searchMemory(query, { limit: limit || 5, bumpRelevance: false });
+    } catch (e) {
+      console.error('[ceo-memory] search error:', e?.message);
+      return [];
+    }
+  });
+
+  ipcMain.handle('get-ceo-memory-count', async () => {
+    try {
+      const { getMemoryCount } = require('./ceo-memory');
+      return getMemoryCount();
+    } catch (e) {
+      return 0;
+    }
+  });
+
 } // end registerAllIpcHandlers
 
 module.exports = { registerAllIpcHandlers };

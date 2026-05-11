@@ -297,8 +297,12 @@ async function writeDailyMemoryJournal({ date = new Date() } = {}) {
         const { searchMemory, writeMemory } = require('./ceo-memory');
         const existing = await searchMemory(cleanedForDedup, { limit: 1, bumpRelevance: false });
         if (existing.length > 0 && existing[0].score > 0.85) {
-          const db = require('./ceo-memory').getMemoryDb();
-          if (db) db.prepare('UPDATE ceo_memories SET relevance_score = MIN(relevance_score + 0.1, 5.0), updated_at = ? WHERE id = ?').run(new Date().toISOString(), existing[0].id);
+          const ceoMem = require('./ceo-memory');
+          const db = ceoMem.getMemoryDb();
+          if (db) {
+            db.prepare('UPDATE ceo_memories SET relevance_score = MIN(relevance_score + 0.1, 5.0), updated_at = ? WHERE id = ?').run(new Date().toISOString(), existing[0].id);
+            ceoMem.scheduleRegeneration();
+          }
           console.log('[ceo-memory] evening pattern already stored, relevance boosted for ' + existing[0].id);
         } else {
           const topMsgs = allMsgs.slice(0, 10).join('; ').slice(0, 300);

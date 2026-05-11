@@ -166,12 +166,13 @@ async function searchMemory(query, { limit = 5, bumpRelevance = true } = {}) {
   scored.sort((a, b) => b.score - a.score);
   const results = scored.slice(0, limit).filter(r => r.score > 0);
 
-  if (bumpRelevance) {
+  if (bumpRelevance && results.length > 0) {
     const bumpStmt = db.prepare('UPDATE ceo_memories SET relevance_score = MIN(relevance_score + 0.1, 5.0), updated_at = ? WHERE id = ?');
     const nowIso = new Date().toISOString();
     for (const r of results) {
       bumpStmt.run(nowIso, r.id);
     }
+    _scheduleRegeneration();
   }
 
   return results;
@@ -295,6 +296,7 @@ module.exports = {
   getMemoryCount,
   getLastMemoryAt,
   regenerateCeoMemoryFile,
+  scheduleRegeneration: _scheduleRegeneration,
   cleanupCeoMemoryTimers,
   CURRENT_MODEL_VERSION,
   MAX_CONTENT_LENGTH,

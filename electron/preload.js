@@ -105,6 +105,9 @@ contextBridge.exposeInMainWorld('claw', {
   // CEO Memory
   getCeoMemories: () => ipcRenderer.invoke('get-ceo-memories'),
   deleteCeoMemory: (id) => ipcRenderer.invoke('delete-ceo-memory', { id }),
+  writeCeoMemory: (type, content, source) => ipcRenderer.invoke('write-ceo-memory', { type, content, source }),
+  searchCeoMemories: (query, limit) => ipcRenderer.invoke('search-ceo-memories', { query, limit }),
+  getCeoMemoryCount: () => ipcRenderer.invoke('get-ceo-memory-count'),
 
   // Document Library
   indexDocument: (opts) => ipcRenderer.invoke('index-document', opts),

@@ -1,9 +1,9 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 96,
-    "ipcHandlers": 157,
-    "preloadBridges": 149,
+    "apiRoutes": 98,
+    "ipcHandlers": 160,
+    "preloadBridges": 152,
     "dashboardPages": 14,
     "capabilityContracts": 5
   },
@@ -765,7 +765,25 @@
       ]
     },
     {
+      "path": "/api/memory/count",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
       "path": "/api/memory/delete",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/list",
       "sources": [
         "electron/lib/cron-api.js"
       ],
@@ -1004,6 +1022,10 @@
     },
     {
       "channel": "get-ceo-memories",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-ceo-memory-count",
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
@@ -1415,6 +1437,10 @@
       "source": "electron/lib/dashboard-ipc.js"
     },
     {
+      "channel": "search-ceo-memories",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
       "channel": "search-documents",
       "source": "electron/lib/dashboard-ipc.js"
     },
@@ -1500,6 +1526,10 @@
     },
     {
       "channel": "wizard-complete",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "write-ceo-memory",
       "source": "electron/lib/dashboard-ipc.js"
     }
   ],
@@ -1652,6 +1682,11 @@
     {
       "name": "getCeoMemories",
       "channel": "get-ceo-memories",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getCeoMemoryCount",
+      "channel": "get-ceo-memory-count",
       "source": "electron/preload.js"
     },
     {
@@ -2150,6 +2185,11 @@
       "source": "electron/preload.js"
     },
     {
+      "name": "searchCeoMemories",
+      "channel": "search-ceo-memories",
+      "source": "electron/preload.js"
+    },
+    {
       "name": "searchDocuments",
       "channel": "search-documents",
       "source": "electron/preload.js"
@@ -2248,6 +2288,11 @@
       "name": "wizardComplete",
       "channel": "wizard-complete",
       "source": "electron/preload.js"
+    },
+    {
+      "name": "writeCeoMemory",
+      "channel": "write-ceo-memory",
+      "source": "electron/preload.js"
     }
   ],
   "dashboardPages": [
@@ -2342,11 +2387,11 @@
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 230957
+      "bytes": 231855
     },
     {
       "path": "electron/lib/cron-api.js",
-      "bytes": 104133
+      "bytes": 104757
     },
     {
       "path": "electron/lib/cron.js",
@@ -2414,7 +2459,7 @@
     },
     {
       "path": "electron/lib/conversation.js",
-      "bytes": 23921
+      "bytes": 24023
     }
   ]
 }

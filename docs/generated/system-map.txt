@@ -1,9 +1,9 @@
 9BizClaw Generated System Map
 
 Counts
-- apiRoutes: 96
-- ipcHandlers: 157
-- preloadBridges: 149
+- apiRoutes: 98
+- ipcHandlers: 160
+- preloadBridges: 152
 - dashboardPages: 14
 - capabilityContracts: 5
 
@@ -99,7 +99,9 @@ API Routes
 - /api/media/list [local-api]
 - /api/media/search [local-api]
 - /api/media/upload [local-api]
+- /api/memory/count [local-api]
 - /api/memory/delete [local-api]
+- /api/memory/list [local-api]
 - /api/memory/search [local-api]
 - /api/memory/write [local-api]
 - /api/system/info [local-api]
@@ -130,8 +132,8 @@ Dashboard Pages
 
 Large Source Files
 - electron/ui/dashboard.html: 524791 bytes
-- electron/lib/dashboard-ipc.js: 230957 bytes
-- electron/lib/cron-api.js: 104133 bytes
+- electron/lib/dashboard-ipc.js: 231855 bytes
+- electron/lib/cron-api.js: 104757 bytes
 - electron/lib/cron.js: 100374 bytes
 - electron/ui/wizard.html: 87052 bytes
 - electron/lib/channels.js: 84542 bytes
@@ -148,4 +150,4 @@ Large Source Files
 - electron/lib/media-library.js: 30376 bytes
 - electron/lib/google-api.js: 29327 bytes
 - electron/ui/splash.html: 24709 bytes
-- electron/lib/conversation.js: 23921 bytes
+- electron/lib/conversation.js: 24023 bytes
