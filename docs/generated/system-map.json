@@ -2410,12 +2410,12 @@
       "bytes": 74912
     },
     {
-      "path": "electron/lib/gateway.js",
-      "bytes": 69976
+      "path": "electron/lib/runtime-installer.js",
+      "bytes": 70597
     },
     {
-      "path": "electron/lib/runtime-installer.js",
-      "bytes": 69562
+      "path": "electron/lib/gateway.js",
+      "bytes": 69976
     },
     {
       "path": "electron/lib/config.js",

@@ -349,11 +349,14 @@ function buildEnvWithGitPath(extra) {
   delete env.Path;
   delete env.path;
   env.PATH = gitPath;
-  // On Mac without Xcode CLT, /usr/bin/git is a shim that pops up a system
-  // dialog (xcode-select) instead of running git. Use our curl-based git shim
-  // if available, otherwise fall back to /usr/bin/false (fails git deps but
-  // prevents the dialog).
-  if (!macHasXcodeCLT()) {
+  // Runtime install never needs real git — all packages are on npm registry.
+  // Always neutralize git to prevent Xcode CLT dialog popup, git auth prompts,
+  // or any other git-related hang. Use our curl-based shim (handles git+https
+  // URLs if a transitive dep has one), fall back to /usr/bin/false.
+  if (process.platform === 'darwin') {
+    const shimGit = findGitBin();
+    env.npm_config_git = shimGit || '/usr/bin/false';
+  } else if (!macHasXcodeCLT()) {
     const shimGit = findGitBin();
     env.npm_config_git = shimGit || '/usr/bin/false';
   }
@@ -1090,9 +1093,11 @@ async function installNpmPackages(versions, onProgress) {
         }
       );
       let settled = false;
-      const settle = (fn, arg) => { if (settled) return; settled = true; fn(arg); };
+      const settle = (fn, arg) => { if (settled) return; settled = true; clearInterval(npmTimer); clearTimeout(killTimer); clearInterval(activityWd); fn(arg); };
       let stderr = '';
       let lastSubStep = '';
+      let lastActivityAt = Date.now();
+      const ACTIVITY_TIMEOUT_MS = 90000;
       // spawn() ignores the timeout option — implement manually via kill timer
       const killTimer = setTimeout(() => {
         console.error('[runtime-installer] npm install timed out after ' + (NPM_INSTALL_TIMEOUT_MS / 1000) + 's — killing');
@@ -1101,10 +1106,22 @@ async function installNpmPackages(versions, onProgress) {
         settle(reject, new Error('npm install timed out after ' + (NPM_INSTALL_TIMEOUT_MS / 1000) + 's'));
       }, NPM_INSTALL_TIMEOUT_MS);
       killTimer.unref();
+      // Activity watchdog: kill if npm produces no output for 90s (likely hung)
+      const activityWd = setInterval(() => {
+        if (Date.now() - lastActivityAt > ACTIVITY_TIMEOUT_MS) {
+          console.error('[runtime-installer] npm install silent for ' + (ACTIVITY_TIMEOUT_MS / 1000) + 's — killing (hung?)');
+          console.error('[runtime-installer] last npm stderr:', stderr.slice(-300));
+          try { child.kill('SIGTERM'); } catch {}
+          setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 3000).unref();
+          settle(reject, new Error('npm install hung — no output for ' + (ACTIVITY_TIMEOUT_MS / 1000) + 's'));
+        }
+      }, 10000);
+      activityWd.unref();
       // Parse npm output lines for package-level progress
       const parseNpmLine = (line) => {
         const trimmed = String(line).trim();
         if (!trimmed) return;
+        lastActivityAt = Date.now();
         // npm outputs "added N packages in Xs" at the end
         const addedMatch = trimmed.match(/added (\d+) packages? in/i);
         if (addedMatch) {
@@ -1124,8 +1141,9 @@ async function installNpmPackages(versions, onProgress) {
           return;
         }
       };
-      child.stdout?.on('data', (d) => { String(d).split('\n').forEach(parseNpmLine); });
+      child.stdout?.on('data', (d) => { lastActivityAt = Date.now(); String(d).split('\n').forEach(parseNpmLine); });
       child.stderr?.on('data', (d) => {
+        lastActivityAt = Date.now();
         const chunk = String(d);
         stderr += chunk;
         chunk.split('\n').forEach(parseNpmLine);
@@ -1141,10 +1159,8 @@ async function installNpmPackages(versions, onProgress) {
         }
       }, 3000);
       const npmStartTime = Date.now();
-      child.on('error', (e) => { clearInterval(npmTimer); clearTimeout(killTimer); settle(reject, e); });
+      child.on('error', (e) => { settle(reject, e); });
       child.on('close', (code) => {
-        clearInterval(npmTimer);
-        clearTimeout(killTimer);
         if (code === 0) settle(resolve);
         else settle(reject, new Error(`npm install exited ${code}: ${stderr.slice(-500)}`));
       });
