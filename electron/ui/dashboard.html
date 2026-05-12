@@ -1099,71 +1099,55 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .ov-customer-row {
+    .ov-mem-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       padding: 10px 4px;
       border-bottom: 1px solid var(--border);
     }
-    .ov-customer-row:last-child { border-bottom: none; }
-    .ov-customer-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .ov-customer-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ov-customer-time {
+    .ov-mem-row:last-child { border-bottom: none; }
+    .ov-mem-badge {
+      flex-shrink: 0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--surface-2, #f0f0f0);
       font-size: 11px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .ov-customer-summary {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 3px;
+      color: var(--text-2, #888);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.4;
     }
-
-    .ov-actions { display: flex; flex-direction: column; gap: 8px; }
-    .ov-action-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--text-muted);
-      border-radius: 10px;
+    .ov-mem-content {
+      flex: 1;
       font-size: 13px;
-    }
-    .ov-action-row[data-sev="high"] { border-left-color: #ef4444; background: rgba(239,68,68,0.05); }
-    .ov-action-row[data-sev="medium"] { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
-    .ov-action-row[data-sev="low"] { border-left-color: var(--accent, #4ea1ff); }
-    .ov-action-text { flex: 1; color: var(--text); }
-    .ov-action-cta {
-      background: var(--surface);
-      border: 1px solid var(--border);
       color: var(--text);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
+      line-height: 1.45;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .ov-mem-del {
       flex-shrink: 0;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-3, #aaa);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 6px;
       transition: all 0.15s;
     }
-    .ov-action-cta:hover { border-color: var(--accent, #4ea1ff); color: var(--accent, #4ea1ff); }
-
+    .ov-mem-del:hover {
+      color: #ef4444;
+      border-color: rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.06);
+    }
+    .ov-mem-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
     .ov-schedule-timeline {
       position: relative;
       padding-left: 20px;
@@ -2675,11 +2659,6 @@
           </div>
         </div>
 
-        <!-- Memory badge -->
-        <div id="ov-memory-badge" style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:6px;background:var(--surface-2, #f5f5f5);font-size:13px;cursor:pointer;margin-bottom:12px" onclick="showMemoryModal()">
-          <span style="color:var(--text-2, #666)">Bot đã học:</span>
-          <span id="ov-memory-count" style="font-weight:600">0</span>
-        </div>
 
         <!-- Stat cards -->
         <div class="ov-stats" id="ov-stats">
@@ -2697,17 +2676,15 @@
           </div>
         </div>
 
-        <!-- 2-column: Alerts + Recent customers -->
-        <div class="ov-grid">
-          <!-- Recent Zalo customers (full width now that "Cần xử lý" is removed) -->
-          <div class="ov-card" style="grid-column:1/-1">
-            <div class="ov-card-head">
-              <h3>Khách Zalo gần đây</h3>
-              <button class="ov-card-action" onclick="switchPage('zalo')" title="Mở trang Zalo"><span data-icon="message-circle" data-icon-size="14"></span></button>
-            </div>
-            <div id="ov-customers">
-              <div class="ov-list-empty">Chưa có khách nào</div>
-            </div>
+        <!-- Memory list -->
+        <div class="ov-card" style="margin-bottom:16px">
+          <div class="ov-card-head">
+            <h3>Bot đã học</h3>
+            <span id="ov-mem-count-label" style="font-size:12px;color:var(--text-muted);margin-left:8px"></span>
+            <button class="ov-card-action" onclick="showMemoryModal()" title="Xem tất cả" style="margin-left:auto"><span data-icon="maximize-2" data-icon-size="14"></span></button>
+          </div>
+          <div id="ov-mem-list">
+            <div class="ov-mem-empty">Bot sẽ tự học từ cuộc hội thoại</div>
           </div>
         </div>
 
@@ -2720,12 +2697,6 @@
           <div id="ov-schedule">
             <div class="ov-list-empty">Không có lịch nào</div>
           </div>
-        </div>
-
-        <!-- Action items / alerts -->
-        <div class="ov-card" id="ov-actions-card" style="display:none">
-          <div class="ov-card-head"><h3>Cần anh để ý</h3></div>
-          <div class="ov-actions" id="ov-actions"></div>
         </div>
 
         <div id="error-display" style="display:none;font-size:11px;font-family:monospace;color:var(--danger);background:rgba(239,68,68,0.1);padding:8px 12px;border-radius:8px;white-space:pre-wrap;max-height:80px;overflow-y:auto;margin-top:12px"></div>
@@ -5470,23 +5441,8 @@
           heroEl.style.display = 'none';
         }
 
-        // === RECENT ZALO CUSTOMERS ===
-        const custEl = document.getElementById('ov-customers');
-        if (!data.recentCustomers || data.recentCustomers.length === 0) {
-          custEl.innerHTML = '<div class="ov-list-empty">Chưa có khách nào</div>';
-        } else {
-          custEl.innerHTML = data.recentCustomers.map(c => {
-            const time = _formatRelativeTime(c.lastSeen);
-            const summary = c.summary || '';
-            return '<div class="ov-customer-row">'
-              + '<div class="ov-customer-top">'
-              +   '<span class="ov-customer-name">' + _esc(c.name) + '</span>'
-              +   '<span class="ov-customer-time">' + _esc(time) + '</span>'
-              + '</div>'
-              + (summary ? '<div class="ov-customer-summary">' + _esc(summary) + '</div>' : '')
-              + '</div>';
-          }).join('');
-        }
+        // === MEMORY LIST (inline on overview) ===
+        loadOverviewMemories();
 
         // === SCHEDULE TODAY (timeline view) ===
         const schedEl = document.getElementById('ov-schedule');
@@ -5519,25 +5475,8 @@
           schedEl.innerHTML = '<div class="ov-schedule-timeline">' + rows + '</div>';
         }
 
-        // === ACTIONS / ALERTS ===
-        const actCard = document.getElementById('ov-actions-card');
-        const actEl = document.getElementById('ov-actions');
-        const acts = data.actions || [];
-        if (acts.length === 0) {
-          actCard.style.display = 'none';
-        } else {
-          actCard.style.display = '';
-          const sevColors = { high: 'var(--danger, #ef4444)', medium: '#f59e0b', low: 'var(--text-secondary)' };
-          actEl.innerHTML = acts.map(a => {
-            const dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (sevColors[a.severity] || sevColors.low) + ';margin-right:8px;flex-shrink:0"></span>';
-            const cta = a.cta && a.ctaPage ? ' <a href="#" onclick="switchPage(\'' + escJs(a.ctaPage) + '\');return false" style="color:var(--accent);font-weight:500;margin-left:8px;white-space:nowrap">' + _esc(a.cta) + '</a>' : '';
-            return '<div class="ov-action-row" style="display:flex;align-items:center;padding:6px 0">' + dot + '<span class="ov-action-text">' + _esc(a.text) + '</span>' + cta + '</div>';
-          }).join('');
-        }
-
         // Re-render lucide icons in dynamically inserted markup
         if (typeof mountIcons === 'function') mountIcons();
-        loadMemoryBadge();
       } catch (e) {
         console.error('[overview] load error', e);
         const el = document.getElementById('ov-greeting');
@@ -5552,27 +5491,50 @@
         .replace(/'/g, '&#39;');
     }
 
-    async function loadMemoryBadge() {
+    const _memTypeLabels = { correction: 'Sửa lỗi', rule: 'Quy tắc', preference: 'Sở thích', pattern: 'Mẫu', fact: 'Sự kiện' };
+
+    function _renderMemRow(m) {
+      const badge = '<span class="ov-mem-badge">' + _esc(_memTypeLabels[m.type] || m.type) + '</span>';
+      const content = '<span class="ov-mem-content">' + _esc(m.content) + '</span>';
+      const del = '<button class="ov-mem-del" data-mem-id="' + _esc(m.id) + '" title="Xóa">Xóa</button>';
+      return '<div class="ov-mem-row">' + badge + content + del + '</div>';
+    }
+
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.ov-mem-del[data-mem-id]');
+      if (btn) deleteCeoMemory(btn.dataset.memId);
+    });
+
+    async function loadOverviewMemories() {
       try {
         const data = await window.claw.getCeoMemories();
-        const el = document.getElementById('ov-memory-count');
-        if (el) el.textContent = String(data.count || 0);
-      } catch {}
+        const listEl = document.getElementById('ov-mem-list');
+        const countEl = document.getElementById('ov-mem-count-label');
+        const count = data.count || 0;
+        countEl.textContent = count > 0 ? (count + ' mục') : '';
+        if (!data.memories?.length) {
+          listEl.innerHTML = '<div class="ov-mem-empty">Bot sẽ tự học từ cuộc hội thoại</div>';
+        } else {
+          const show = data.memories.slice(0, 8);
+          listEl.innerHTML = show.map(_renderMemRow).join('')
+            + (count > 8 ? '<div style="padding:8px 4px;text-align:center"><button class="ov-card-action" onclick="showMemoryModal()" style="font-size:12px;color:var(--accent);border:none;background:none;cursor:pointer">Xem tất cả ' + count + ' mục</button></div>' : '');
+        }
+      } catch (e) { console.error('[overview] memory load error', e); }
     }
 
     async function showMemoryModal() {
-      const data = await window.claw.getCeoMemories();
-      const list = document.getElementById('memory-list');
-      if (!data.memories?.length) {
-        list.innerHTML = '<p style="color:var(--text-2, #666);padding:16px">Chưa có ký ức nào. Bot sẽ tự học từ cuộc hội thoại với sếp.</p>';
-      } else {
-        const typeLabels = { correction: 'Sửa lỗi', rule: 'Quy tắc', preference: 'Sở thích', pattern: 'Pattern', fact: 'Sự kiện' };
-        list.innerHTML = data.memories.map(m => {
-          const badge = '<span style="flex-shrink:0;padding:2px 8px;border-radius:4px;background:var(--surface-2, #f0f0f0);font-size:11px;color:var(--text-2, #888)">' + _esc(typeLabels[m.type] || m.type) + '</span>';
-          const content = '<span style="flex:1;font-size:13px">' + _esc(m.content) + '</span>';
-          const del = '<button style="flex-shrink:0;background:none;border:none;color:var(--text-3, #aaa);cursor:pointer;font-size:16px;padding:0 4px" onclick="deleteCeoMemory(\'' + _esc(m.id) + '\')" title="Xóa">&times;</button>';
-          return '<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid var(--border, #eee)">' + badge + content + del + '</div>';
-        }).join('');
+      try {
+        const data = await window.claw.getCeoMemories();
+        const list = document.getElementById('memory-list');
+        if (!data.memories?.length) {
+          list.innerHTML = '<div class="ov-mem-empty">Chưa có ký ức nào. Bot sẽ tự học từ cuộc hội thoại.</div>';
+        } else {
+          list.innerHTML = data.memories.map(_renderMemRow).join('');
+        }
+      } catch (e) {
+        console.error('[overview] memory modal error', e);
+        const list = document.getElementById('memory-list');
+        list.innerHTML = '<div class="ov-mem-empty">Không tải được bộ nhớ</div>';
       }
       document.getElementById('memory-modal-overlay').style.display = 'flex';
     }
@@ -5582,9 +5544,11 @@
     }
 
     async function deleteCeoMemory(id) {
-      await window.claw.deleteCeoMemory(id);
-      await showMemoryModal();
-      await loadMemoryBadge();
+      try {
+        await window.claw.deleteCeoMemory(id);
+        await showMemoryModal();
+        await loadOverviewMemories();
+      } catch (e) { console.error('[overview] memory delete error', e); }
     }
 
     function startOverviewAutoRefresh() {
