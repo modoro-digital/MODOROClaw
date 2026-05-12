@@ -1,7 +1,7 @@
 {
   "generatedBy": "electron/scripts/generate-system-map.js",
   "counts": {
-    "apiRoutes": 99,
+    "apiRoutes": 100,
     "ipcHandlers": 160,
     "preloadBridges": 152,
     "dashboardPages": 14,
@@ -703,6 +703,15 @@
     },
     {
       "path": "/api/image/preferences",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/skills",
       "sources": [
         "electron/lib/cron-api.js"
       ],
@@ -2400,11 +2409,11 @@
     },
     {
       "path": "electron/lib/cron-api.js",
-      "bytes": 106362
+      "bytes": 112191
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 100403
+      "bytes": 100692
     },
     {
       "path": "electron/ui/wizard.html",
@@ -2428,7 +2437,7 @@
     },
     {
       "path": "electron/lib/workspace.js",
-      "bytes": 45825
+      "bytes": 45923
     },
     {
       "path": "electron/lib/config.js",

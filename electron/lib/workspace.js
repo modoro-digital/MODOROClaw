@@ -32,7 +32,7 @@ const DEFAULT_SCHEDULES_JSON = [
 ];
 
 // --- AGENTS.md versioning (private) ---
-const CURRENT_AGENTS_MD_VERSION = 96;
+const CURRENT_AGENTS_MD_VERSION = 98;
 const AGENTS_MD_VERSION_RE = /<!--\s*modoroclaw-agents-version:\s*(\d+)\s*-->/;
 
 // ─── User data dir (Electron/APPDATA level) ─────────────────────
@@ -561,6 +561,7 @@ function seedWorkspace() {
   for (const mediaType of ['brand', 'product', 'generated', 'knowledge_image', 'pdf_page']) {
     try { fs.mkdirSync(path.join(ws, 'media-assets', mediaType), { recursive: true }); } catch {}
   }
+  try { fs.mkdirSync(path.join(ws, 'skills', 'image-templates'), { recursive: true }); } catch {}
   try {
     const agentWs = getOpenclawAgentWorkspace();
     if (agentWs && agentWs !== ws) {

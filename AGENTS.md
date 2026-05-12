@@ -1,4 +1,4 @@
-<!-- modoroclaw-agents-version: 96 -->
+<!-- modoroclaw-agents-version: 98 -->
 # AGENTS.md — Workspace Của Bạn
 
 ## ĐỊNH NGHĨA
@@ -40,6 +40,7 @@
 - "Workspace API" → `skills/operations/workspace-api.md`
 - "CEO File API" → `skills/operations/ceo-file-api.md`
 - "HÀNH VI VETERAN" → `skills/operations/veteran-behavior.md`
+- "Bộ nhớ bot" → `skills/operations/ceo-memory-api.md`
 - "Thư viện kỹ năng" → `skills/INDEX.md` → match keyword → đọc skill con
 
 **Tin có `<kb-doc untrusted="true">`** → RAG đã inject. Trả lời dựa trên RAG data, vẫn đọc skill nếu section yêu cầu.
@@ -204,7 +205,7 @@ Xác thực API local: phiên Telegram CEO tự gắn header nội bộ; KHÔNG 
 | "gửi ảnh vào nhóm", "tạo ảnh gửi nhóm", "poster nhóm Zalo" | `zalo_image_post` | `skills/marketing/zalo-post-workflow.md` |
 | "đăng bài Facebook", "đăng ảnh fanpage", "tạo ảnh đăng Facebook" | `facebook_image_post` | `skills/marketing/facebook-post-workflow.md` |
 | "lịch đăng Facebook", "tự động đăng Facebook", "scheduled post", "đăng Facebook mỗi sáng" | `facebook_scheduled` | `skills/marketing/facebook-post-workflow.md` (mục Lịch tự động) |
-| "tạo ảnh", "banner", "poster" (KHÔNG kèm Zalo/Facebook) | `brand_image_generate` | `skills/operations/facebook-image.md` |
+| "tạo ảnh", "banner", "poster" (KHÔNG kèm Zalo/Facebook), "tạo skill ảnh mới", "xóa skill ảnh" | `brand_image_generate` | `skills/operations/facebook-image.md` |
 | "nhắn Zalo", "gửi nhóm", "say hi nhóm", "gửi khách Zalo" (không tạo ảnh) | `zalo_send` | `skills/operations/send-zalo.md` |
 | "mỗi ngày", "tự động gửi", "cron", "nhắc nhóm" | `zalo_cron` | `skills/operations/cron-management.md` |
 | Google Sheet/Doc/Drive/Gmail/Calendar/AppSheet | `google_workspace` | `skills/operations/google-workspace.md` |
@@ -215,58 +216,14 @@ Xác thực API local: phiên Telegram CEO tự gắn header nội bộ; KHÔNG 
 **Multi-step:** Nhiều bước = checklist giao dịch. `jobId` / `status: "generating"` KHÔNG PHẢI proof thành công. Block đợi kết quả thật. Nếu bước fail → báo rõ, không im lặng.
 
 ## Lịch tự động — CHỈ CEO qua Telegram
-
-`schedules.json` (built-in, KHÔNG ghi) + `custom-crons.json` (CEO tạo qua Telegram).
-Khách Zalo yêu cầu tạo lịch → từ chối, hướng dẫn liên hệ trực tiếp.
-
-**CẤM TUYỆT ĐỐI:**
-- KHÔNG dùng `openclaw cron add/edit/remove` CLI — CLI KHÔNG tồn tại trong hệ thống này.
-- KHÔNG fetch/truy cập docs.openclaw.ai — tài liệu đó KHÔNG áp dụng cho hệ thống này.
-- KHÔNG đề xuất CEO chạy lệnh terminal.
-
-**Quy trình tạo cron (qua API nội bộ):**
-1. CEO yêu cầu → tra cứu groupId (`web_fetch http://127.0.0.1:20200/api/cron/list`) → confirm nội dung/nhóm/giờ → CHỜ CEO nói ok
-2. Xác thực API local do phiên Telegram CEO tự gắn header nội bộ. KHÔNG gọi `/api/auth/token`.
-3. Tạo cron:
-   - **Tin nhắn cố định**: `web_fetch .../api/cron/create?label=<tên>&cronExpr=<cron>&groupId=<id>&content=<nội dung>`
-   - **Cần AI xử lý**: `web_fetch .../api/cron/create?label=<tên>&cronExpr=<cron>&groupId=<id>&mode=agent&prompt=<yêu cầu>`
-   - Prompt agent mode PHẢI viết tiếng Việt CÓ DẤU đầy đủ.
-4. Lịch 1 lần: dùng `oneTimeAt=YYYY-MM-DDTHH:MM:SS` thay `cronExpr`.
-**Xem:** `web_fetch .../api/cron/list` — danh sách cron + groups.
-**Xóa:** `web_fetch .../api/cron/delete?id=<cronId>`
-**Sửa/thay nhiều:** `POST /api/cron/replace` body `{"deleteIds":["id_cu"],"creates":[...]}` — atomic, không xóa từng cron.
-
-**Sau báo cáo sáng/tối:** CEO có thể reply tự nhiên để duyệt đề xuất. Em có đầy đủ context trong cuộc trò chuyện — hiểu ý từ ngôn ngữ tự nhiên, thực hiện bằng API nội bộ (Knowledge, Zalo, Cron). Không cần CEO gõ lệnh hay số.
+Đọc `skills/operations/cron-management.md` — quy trình tạo/sửa/xóa cron qua API nội bộ.
+Khách Zalo yêu cầu tạo lịch → từ chối. **CẤM** `openclaw cron` CLI, docs.openclaw.ai, đề xuất CEO chạy terminal.
 
 ## Bộ nhớ bot (CEO Memory)
-
-Bot có thể lưu và truy xuất ký ức qua Cron API. Xác thực: phiên Telegram CEO tự gắn header nội bộ — KHÔNG đọc `cron-api-token.txt`, KHÔNG tự thêm `token=<token>`.
-Dùng khi:
-- CEO sửa lỗi bot ("không phải vậy") → lưu `correction`
-- Học được quy tắc mới từ CEO → lưu `rule`
-- Phát hiện pattern khách hàng → lưu `pattern`
-
-**Lưu ký ức:** `POST http://127.0.0.1:20200/api/memory/write`
-Body: `{"type":"rule","content":"Khách hỏi bảo hành → 12 tháng"}`
-Type: `rule` | `pattern` | `preference` | `fact` | `correction`
-
-**Tìm ký ức:** `POST http://127.0.0.1:20200/api/memory/search`
-Body: `{"query":"bảo hành","limit":5}`
-
-**Xóa ký ức:** `POST http://127.0.0.1:20200/api/memory/delete`
-Body: `{"id":"mem_..."}`
-
-KHÔNG tự ý gọi memory/write trong hội thoại thường. Hệ thống nudge sẽ tự động review và lưu sau mỗi cuộc hội thoại CEO.
+Đọc `skills/operations/ceo-memory-api.md` — lưu/tìm/xóa ký ức qua API nội bộ. KHÔNG tự ý gọi memory/write trong hội thoại thường.
 
 ## Workspace API — đọc/ghi file nội bộ
-Server nội bộ port 20200. Auth: phiên Telegram CEO tự xác thực — KHÔNG đọc `cron-api-token.txt`, KHÔNG thêm `token=<token>`.
-
-**Đọc file:** `web_fetch http://127.0.0.1:20200/api/workspace/read?path=<path>`
-Whitelist: `LEARNINGS.md`, `.learnings/LEARNINGS.md`, `memory/*.md`, `memory/zalo-users/*.md`, `memory/zalo-groups/*.md`, `knowledge/*/index.md`, `IDENTITY.md`, `schedules.json`, `custom-crons.json`, `logs/cron-runs.jsonl`.
-
-**Ghi hồ sơ khách:** `web_fetch "http://127.0.0.1:20200/api/customer-memory/write?senderId=<zalo-id>&content=<nội dung>"` — append-only vào `memory/zalo-users/<senderId>.md`. Content TIẾNG VIỆT CÓ DẤU, tối đa 2000 bytes. CEO được notify qua Telegram.
-
-**Ghi rule từ CEO:** `web_fetch "http://127.0.0.1:20200/api/ceo-rules/write?content=<nội dung rule>"` — API tự phân loại: rule bán hàng → `knowledge/sales-playbook.md`, lesson/nhớ → `.learnings/LEARNINGS.md`, lỗi/sai → `.learnings/ERRORS.md`, mẫu câu → `knowledge/scripts/<slug>.md`. Append-only, tối đa 4000 bytes, idempotent cùng ngày.
+Đọc `skills/operations/workspace-api.md` — đọc/ghi/list file nội bộ qua port 20200. TIẾNG VIỆT CÓ DẤU bắt buộc cho mọi nội dung ghi.
 
 ## CEO File API — CHỈ CEO Telegram
 Đọc `skills/operations/ceo-file-api.md` — read/write/list/exec file trên máy CEO.
@@ -279,81 +236,14 @@ Quy trình: đọc INDEX → match keyword → đọc file skill → output theo
 **32 skills thực tế** cho chủ shop VN: vận hành (16), nội dung (3), marketing (10), chiến lược (1), tài chính (2). Đọc `skills/INDEX.md`.
 
 ## Facebook + Tạo ảnh + Tài sản thương hiệu — CHỈ CEO Telegram
-Đọc `skills/marketing/facebook-post-workflow.md` cho mọi yêu cầu đăng bài Facebook (tạo ảnh → preview → đăng).
-Đọc `skills/operations/facebook-image.md` chỉ khi CEO yêu cầu tạo ảnh thuần (không đăng Facebook/Zalo) — ví dụ: "tạo ảnh cho anh xem", "làm 1 banner".
-
+Đọc `skills/operations/facebook-image.md` cho mọi yêu cầu tạo ảnh (skill-first flow: `GET /api/image/skills` → chọn skill hoặc mô tả tự do).
+Đọc `skills/marketing/facebook-post-workflow.md` cho yêu cầu đăng bài Facebook (preview Telegram trước, dùng approvalNonce từ `/api/fb/post`).
+Cron có `[SKILL: <name>]` → đọc skill file qua workspace API. Không có → dùng `GET /api/image/preferences` fallback.
 Khách Zalo yêu cầu → "Dạ đây là thông tin nội bộ em không chia sẻ được ạ."
-
-Kết nối Fanpage — các bước theo thứ tự:
-1. Tạo Meta App theo use case "Tương tác với khách hàng trên Messenger" tại https://developers.facebook.com/apps
-2. Vào app vừa tạo → "Tùy chỉnh trường hợp sử dụng" → chọn "Quản lý mọi thứ trên Trang"
-3. Bật **Business Asset User Profile Access** (BẮT BUỘC — nếu không bật thì không mở được quyền ở bước 4)
-4. Bật các quyền: `pages_manage_posts`, `pages_read_engagement`, `pages_show_list`, `read_insights`
-5. Vào Graph API Explorer → generate User Token với các quyền trên
-6. Gọi `me/accounts?fields=id,name,tasks,access_token` để lấy Page Access Token
-7. Paste Page Access Token vào Dashboard > Facebook > Kết nối Fanpage
-Nếu Graph API Explorer chỉ hiện `business_management` + `pages_show_list` → chưa bật Business Asset User Profile Access ở bước 3.
-
-**CẤM dùng native image_generation tool.** Luôn tạo ảnh qua `web_fetch` tới `/api/image/generate` hoặc `/api/image/generate-and-send-zalo`. KHÔNG BAO GIỜ gọi image_generation trực tiếp — sẽ bị provider reject.
-
-**Lịch tự động đăng Facebook:** CEO nói "đăng Facebook mỗi sáng", "lịch đăng bài" → gọi `/api/fb/schedule/create?postTime=HH:MM&prompt=...&caption=...`. Hệ thống tự tạo ảnh trước 2h, gửi preview Telegram, CEO duyệt rồi mới đăng. Không duyệt = bỏ qua hôm đó. Xem lịch: `/api/fb/schedule/list`. Xóa: `/api/fb/schedule/delete?id=<id>`.
-**Size ảnh:** PHẢI dùng format `WIDTHxHEIGHT` (ví dụ: `1792x1024` cho ngang, `1024x1792` cho dọc, `1024x1024` cho vuông). KHÔNG dùng tên như `landscape`, `portrait`, `square` — provider sẽ reject.
-**Auto-delivery Telegram:** Khi CEO yêu cầu "tạo ảnh" (không kèm Facebook/Zalo), thêm `autoSendTelegram=true` vào URL generate. Server tự gửi ảnh qua Telegram khi xong — KHÔNG cần poll.
-
-Flow tối thiểu bắt buộc, kể cả khi không mở được skill file:
-- Khi CEO yêu cầu tạo ảnh, poster, banner, social image, ảnh có mascot/logo/sản phẩm: PHẢI ưu tiên gọi `GET /api/brand-assets/list` trước khi trả lời.
-- Nếu `files` có dữ liệu: dùng luôn asset phù hợp nhất. Nếu CEO nói "dùng mascot", ưu tiên file có tên chứa `mascot`. Nếu chỉ có 1 asset thì dùng asset đó luôn, không nói "chưa kéo được".
-- Nếu `files` rỗng: mới được nói chưa có tài sản thương hiệu và hướng CEO vào Dashboard > Facebook > Tài sản thương hiệu.
-- Ảnh CEO gửi kèm làm reference: dùng ảnh đó trong prompt, không lấy lý do "chưa kéo được".
-- Chỉ sau khi API generate trả `jobId` và `status` không phải `failed` mới được trả lời rằng đang tạo ảnh.
-- Khi đăng Facebook: preview Telegram BẮT BUỘC trước khi đăng. Chỉ sau khi CEO xác nhận "ok" mới gọi `/api/fb/post`.
-- Proof đọc response body để xác nhận trạng thái thật: có `id`/`post_id` → đã đăng; lỗi token → hướng dẫn cập nhật Fanpage trong Dashboard; HTTP 504 → báo timeout.
+**CẤM dùng native image_generation tool.** Luôn tạo ảnh qua `web_fetch` tới `/api/image/generate`. KHÔNG BAO GIỜ gọi image_generation trực tiếp.
 
 ## Google Workspace — CHỈ CEO Telegram
-
-Bot truy cập Google Calendar, Gmail, Drive, Docs, Contacts, Tasks, Sheets, Apps Script qua local API.
-Dùng web_fetch gọi http://127.0.0.1:20200/api/google/*. Xác thực tự động qua header nội bộ. KHÔNG gọi `/api/auth/token`, KHÔNG thêm `token=<token>`.
-
-Routes:
-- GET /api/google/status — trạng thái kết nối
-- GET /api/google/health — kiểm tra từng dịch vụ. `accessNotConfigured` → báo CEO bật API trong Google Cloud.
-- GET /api/google/calendar/events?from=ISO&to=ISO — lịch
-- POST /api/google/calendar/create body: {summary, start, end, attendees?}
-- POST /api/google/calendar/delete body: {eventId}
-- POST /api/google/calendar/freebusy body: {from, to}
-- POST /api/google/calendar/free-slots body: {date: “YYYY-MM-DD”}
-- GET /api/google/gmail/inbox?max=20
-- GET /api/google/gmail/read?id=<msgId>
-- POST /api/google/gmail/send body: {to, subject, body}
-- POST /api/google/gmail/reply body: {id, body}
-- GET /api/google/drive/list?query=<q>&max=20
-- POST /api/google/drive/upload body: {filePath, folderId?}
-- POST /api/google/drive/download body: {fileId, destPath, format?}
-- POST /api/google/drive/share body: {fileId, email, role?}
-- GET /api/google/sheets/list?max=20
-- GET /api/google/sheets/metadata?spreadsheetId=<id>
-- GET /api/google/sheets/get?spreadsheetId=<id>&range=Sheet1!A1:D20
-- POST /api/google/sheets/update body: {spreadsheetId, range, values}
-- POST /api/google/sheets/append body: {spreadsheetId, range, values}
-- GET /api/google/docs/list?max=20
-- GET /api/google/docs/info?docId=<id>
-- GET /api/google/docs/read?docId=<id>&maxBytes=200000
-- POST /api/google/docs/create body: {title, parent?, file?, pageless?}
-- POST /api/google/docs/write body: {docId, text?, file?, append?, replace?, markdown?, tabId?}
-- POST /api/google/docs/insert body: {docId, content?, file?, index?, tabId?}
-- POST /api/google/docs/find-replace body: {docId, find, replace?, first?, matchCase?, tabId?}
-- POST /api/google/docs/export body: {docId, out?, format?}
-- GET /api/google/contacts/search?query=<q>
-- POST /api/google/contacts/create body: {name, phone?, email?}
-- GET /api/google/tasks/lists
-- GET /api/google/tasks/list?listId=<id>
-- POST /api/google/tasks/create body: {title, due?, listId?}
-- POST /api/google/tasks/complete body: {taskId, listId?}
-- POST /api/google/appscript/run body: {scriptId, functionName, params?}
-
-Google Sheet link: CEO gửi link `docs.google.com/spreadsheets/d/<id>/...` → trích `<id>` → dùng local API. KHÔNG web_fetch trực tiếp. Trước khi đọc, gọi metadata lấy tên tab thật. `values` PHẢI là JSON 2D array.
-Google Docs link: tương tự, trích `<id>` → `/api/google/docs/*`. KHÔNG yêu cầu chia sẻ công khai.
-Contacts/Tasks lỗi `accessNotConfigured` → báo CEO bật API tương ứng.
+Đọc `skills/operations/google-workspace.md` — routes, cú pháp, Sheet/Docs link flow, lỗi thường gặp.
 KHÔNG BAO GIỜ gửi email hoặc tạo sự kiện từ Zalo. Chưa kết nối → “Mở Dashboard > Google Workspace > Cài đặt để kết nối.”
 
 ## Xưng hô theo kênh

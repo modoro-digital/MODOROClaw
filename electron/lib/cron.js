@@ -1420,10 +1420,13 @@ function loadCustomCrons() {
     const schedKey = c.cronExpr ? c.cronExpr.trim().replace(/\s+/g, ' ') : (c.oneTimeAt || '');
     if (!schedKey) { deduped.push(c); continue; }
     const targetKey = c.zaloTarget?.id || c.groupId || '';
-    if (!targetKey) { deduped.push(c); continue; }
-    const fp = schedKey + '|' + targetKey;
+    const promptFp = (c.prompt || '').length > 0
+      ? require('crypto').createHash('md5').update(c.prompt).digest('hex').slice(0, 8)
+      : '';
+    const fp = schedKey + '|' + (targetKey || promptFp);
+    if (!targetKey && !promptFp) { deduped.push(c); continue; }
     if (seen.has(fp)) {
-      console.warn(`[custom-crons] DEDUP: skipping "${c.label || c.id}" — duplicate schedule+target: ${fp}`);
+      console.warn(`[custom-crons] DEDUP: skipping "${c.label || c.id}" — duplicate schedule+target/prompt: ${fp}`);
       continue;
     }
     seen.add(fp);
@@ -1920,12 +1923,13 @@ function _startCronJobsInner() {
           journalCronRun({ phase: 'skip', label: c.label || c.id, reason: 'previous-still-in-flight' });
           return;
         }
-        const dedupTarget = c.zaloTarget?.id || c.groupId || '';
-        if (dedupTarget && c.cronExpr) {
-          const minuteKey = c.cronExpr.trim().replace(/\s+/g, ' ') + '|' + dedupTarget + '|' + new Date().toISOString().slice(0, 16);
+        if (c.cronExpr) {
+          const promptFp = require('crypto').createHash('md5').update(c.prompt || '').digest('hex').slice(0, 8);
+          const target = c.zaloTarget?.id || c.groupId || '';
+          const minuteKey = c.cronExpr.trim().replace(/\s+/g, ' ') + '|' + promptFp + '|' + target + '|' + new Date().toISOString().slice(0, 16);
           const lastFire = global._cronFireDedup.get(minuteKey);
           if (lastFire) {
-            console.warn(`[cron] Custom "${c.label || c.id}" SKIPPED — same cronExpr+target already fired this minute (by ${lastFire})`);
+            console.warn(`[cron] Custom "${c.label || c.id}" SKIPPED — same cronExpr+prompt already fired this minute (by ${lastFire})`);
             journalCronRun({ phase: 'skip', label: c.label || c.id, reason: 'duplicate-fire-same-minute' });
             return;
           }

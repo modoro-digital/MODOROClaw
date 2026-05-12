@@ -59,6 +59,10 @@ Bot TU DONG doc INDEX nay va chon skill phu hop MOI KHI CEO yeu cau.
 | Phan tich tai chinh | `finance-bundle.md` | Bao cao tai chinh, chi phi, loi nhuan |
 | Quan ly dong tien | `finance-lead.md` | Runway, burn rate, P&L co ban |
 
+## Mau anh (CEO tao) — `skills/image-templates/`
+
+CEO tao skill anh qua Telegram ("tao skill anh moi"). Goi `GET /api/image/skills` de xem danh sach.
+
 ---
-**Tong: 32 skills thuc te** cho chu shop Viet Nam.
+**Tong: 32 skills thuc te + mau anh CEO tao** cho chu shop Viet Nam.
 Skills cu (advisory, board, SOC2, Twitter, v.v.) da chuyen vao `skills/_archived/` — van truy cap duoc neu can.

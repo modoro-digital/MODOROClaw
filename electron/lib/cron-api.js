@@ -712,6 +712,16 @@ function startCronApi() {
           return await withWriteLock(async () => {
             const crons = loadCustomCrons();
             if (crons.length >= 20) return jsonResp(res, 400, { error: 'too many crons (max 20). Delete some first.' });
+            const entrySchedKey = entry.cronExpr || entry.oneTimeAt || '';
+            const entryTarget = entry.zaloTarget?.id || entry.groupId || '';
+            if (entrySchedKey && entryTarget) {
+              const dup = crons.find(c => c && c.enabled !== false &&
+                (c.cronExpr || c.oneTimeAt || '').replace(/\s+/g, ' ') === entrySchedKey.replace(/\s+/g, ' ') &&
+                (c.zaloTarget?.id || c.groupId || '') === entryTarget);
+              if (dup) {
+                return jsonResp(res, 409, { error: `duplicate: existing cron "${dup.label || dup.id}" already has same schedule+target`, existingId: dup.id });
+              }
+            }
             crons.push(entry);
             writeJsonAtomic(getCustomCronsPath(), crons);
             try { restartCronJobs(); } catch {}
@@ -765,6 +775,15 @@ function startCronApi() {
         return await withWriteLock(async () => {
           const crons = loadCustomCrons();
           if (crons.length >= 20) return jsonResp(res, 400, { error: 'too many crons (max 20). Delete some first.' });
+          const entrySchedKey = entry.cronExpr || entry.oneTimeAt || '';
+          if (entrySchedKey && targetStr) {
+            const dup = crons.find(c => c && c.enabled !== false &&
+              (c.cronExpr || c.oneTimeAt || '').replace(/\s+/g, ' ') === entrySchedKey.replace(/\s+/g, ' ') &&
+              (c.prompt || '').includes(targetStr));
+            if (dup) {
+              return jsonResp(res, 409, { error: `duplicate: existing cron "${dup.label || dup.id}" already has same schedule+target`, existingId: dup.id });
+            }
+          }
           crons.push(entry);
           writeJsonAtomic(getCustomCronsPath(), crons);
           try { restartCronJobs(); } catch {}
@@ -1666,6 +1685,101 @@ function startCronApi() {
         } catch (e) { return jsonResp(res, 200, { preferences: null }); }
       }
 
+    // ─── Image Skill Templates API ───────────────────────────────
+    } else if (urlPath === '/api/image/skills') {
+      const skillsDir = path.join(getWorkspace(), 'skills', 'image-templates');
+      try { fs.mkdirSync(skillsDir, { recursive: true }); } catch {}
+
+      if (req.method === 'DELETE') {
+        const name = String(params.name || '').trim();
+        if (!name || !/^[a-z0-9-]+$/.test(name)) return jsonResp(res, 400, { error: 'name required (a-z0-9 and hyphens only)' });
+        const filePath = path.join(skillsDir, name + '.md');
+        if (!fs.existsSync(filePath)) return jsonResp(res, 404, { error: `skill "${name}" not found` });
+        try { fs.unlinkSync(filePath); } catch (e) { return jsonResp(res, 500, { error: e.message }); }
+        return jsonResp(res, 200, { ok: true, deleted: name });
+
+      } else if (req.method === 'POST') {
+        const name = String(params.name || '').trim();
+        if (!name || !/^[a-z0-9-]+$/.test(name)) return jsonResp(res, 400, { error: 'name required (a-z0-9 and hyphens only)' });
+        if (name.length > 60) return jsonResp(res, 400, { error: 'name too long (max 60 chars)' });
+        const description = String(params.description || '').trim().replace(/[\r\n]+/g, ' ');
+        if (!description) return jsonResp(res, 400, { error: 'description required' });
+        const filePath = path.join(skillsDir, name + '.md');
+        if (fs.existsSync(filePath)) return jsonResp(res, 409, { error: `skill "${name}" already exists. Delete first to replace.` });
+
+        const style = String(params.style || 'A');
+        const colorTone = String(params.colorTone || 'A');
+        const composition = String(params.composition || 'A');
+        const lighting = String(params.lighting || 'A');
+        const text = String(params.text || 'A');
+        const captionTemplate = String(params.captionTemplate || '').trim();
+        const customNotes = String(params.customNotes || '').trim().replace(/[\r\n]+/g, ' ');
+
+        const md = [
+          '---',
+          `name: ${name}`,
+          `description: ${description}`,
+          'type: image-template',
+          `createdAt: ${new Date().toISOString().slice(0, 10)}`,
+          '---',
+          '',
+          '## Style',
+          `- style: ${style}`,
+          `- colorTone: ${colorTone}`,
+          `- composition: ${composition}`,
+          `- lighting: ${lighting}`,
+          `- text: ${text}`,
+          customNotes ? `- notes: ${customNotes}` : null,
+          '',
+          '## Caption template',
+          captionTemplate || '(no template)',
+          '',
+        ].filter(line => line !== null).join('\n') + '\n';
+
+        try { fs.writeFileSync(filePath, md, 'utf-8'); } catch (e) { return jsonResp(res, 500, { error: e.message }); }
+        return jsonResp(res, 201, { ok: true, name, path: `skills/image-templates/${name}.md` });
+
+      } else {
+        try {
+          const files = fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'));
+          const skills = [];
+          for (const f of files) {
+            try {
+              const content = fs.readFileSync(path.join(skillsDir, f), 'utf-8');
+              const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+              if (!fmMatch) continue;
+              const fm = {};
+              for (const line of fmMatch[1].split('\n')) {
+                const m = line.match(/^(\w+):\s*(.+)$/);
+                if (m) fm[m[1]] = m[2].trim();
+              }
+              if (fm.type !== 'image-template') continue;
+
+              const styleMatch = content.match(/## Style\n([\s\S]*?)(?=\n## |$)/);
+              const styleLines = {};
+              if (styleMatch) {
+                for (const sl of styleMatch[1].split('\n')) {
+                  const sm = sl.match(/^- (\w+):\s*(.+)$/);
+                  if (sm) styleLines[sm[1]] = sm[2].trim();
+                }
+              }
+
+              const captionMatch = content.match(/## Caption template\n([\s\S]*?)$/);
+              const caption = captionMatch ? captionMatch[1].trim() : '';
+
+              skills.push({
+                name: fm.name || f.replace('.md', ''),
+                description: fm.description || '',
+                createdAt: fm.createdAt || '',
+                style: styleLines,
+                captionTemplate: caption === '(no template)' ? '' : caption,
+              });
+            } catch {}
+          }
+          return jsonResp(res, 200, { skills });
+        } catch (e) { return jsonResp(res, 200, { skills: [] }); }
+      }
+
     // ─── Image Generation API ────────────────────────────────────
     } else if (urlPath === '/api/media/list') {
       try {
@@ -2060,7 +2174,7 @@ function startCronApi() {
       }
 
     } else {
-      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/replace', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/zalo/send-media', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/customer-memory/write', '/api/ceo-rules/write', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/media/list', '/api/media/search', '/api/media/upload', '/api/media/describe', '/api/image/generate', '/api/image/generate-and-send-zalo', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent'] });
+      return jsonResp(res, 404, { error: 'not found', endpoints: ['/api/cron/create', '/api/cron/replace', '/api/cron/list', '/api/cron/delete', '/api/cron/toggle', '/api/zalo/send', '/api/zalo/send-media', '/api/knowledge/add', '/api/workspace/read', '/api/workspace/append', '/api/workspace/list', '/api/customer-memory/write', '/api/ceo-rules/write', '/api/file/read', '/api/file/write', '/api/file/list', '/api/file/search', '/api/file/open', '/api/file/rename', '/api/file/copy', '/api/file/delete', '/api/file/download', '/api/system/info', '/api/exec', '/api/brand-assets/list', '/api/brand-assets/save', '/api/media/list', '/api/media/search', '/api/media/upload', '/api/media/describe', '/api/image/generate', '/api/image/generate-and-send-zalo', '/api/image/status', '/api/telegram/send-photo', '/api/fb/post', '/api/fb/recent', '/api/image/skills'] });
     }
   });
 

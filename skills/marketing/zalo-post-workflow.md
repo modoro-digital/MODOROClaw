@@ -173,17 +173,13 @@ Khi ảnh tạo xong nhưng gửi Zalo thất bại (`done_not_delivered`), resp
 
 ---
 
-## Hỏi CEO 5 câu trước khi tạo ảnh — BẮT BUỘC (trừ cron tự động)
+## Chọn style ảnh — theo skill hoặc free-form
 
-**Nếu CEO tương tác trực tiếp (Telegram):** BẮT BUỘC hỏi 5 câu ABCDE trước khi soạn prompt. Xem format câu hỏi tại `skills/operations/facebook-image.md` bước 5.
+**Xem quy trình đầy đủ tại `skills/operations/facebook-image.md` bước 5 (skill-first flow).**
 
-**Nếu cron tự động (không có CEO trả lời):** Đọc preference đã lưu:
-```
-web_fetch url="http://127.0.0.1:20200/api/image/preferences" method=GET
-```
-Dùng preference trả về. Nếu chưa có preference → dùng default A cho tất cả.
+Tóm tắt: gọi `GET /api/image/skills` → CEO chọn skill hoặc mô tả tự do. KHÔNG hỏi 5 câu ABCDE trừ khi CEO đang tạo skill mới.
 
-**Sau khi CEO trả lời 5 câu:** Lưu preference qua POST `/api/image/preferences` (xem facebook-image.md bước 5).
+**Cron tự động:** Nếu prompt có `[SKILL: name]` → đọc skill. Không có → đọc `GET /api/image/preferences`. Không có preference → default A.
 
 ---
 
