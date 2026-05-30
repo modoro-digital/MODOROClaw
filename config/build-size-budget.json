@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "artifacts": {
+    "windowsInstaller": {
+      "path": "dist/9BizClaw Setup 2.4.5.exe",
+      "baselineBytes": 570965364,
+      "maxGrowthBytes": 35000000,
+      "maxBytes": 625000000
+    },
+    "vendorBundle": {
+      "path": "electron/vendor-bundle.tar",
+      "baselineBytes": 2151279616,
+      "maxGrowthBytes": 75000000,
+      "maxBytes": 2250000000
+    },
+    "embeddingModel": {
+      "path": "electron/vendor/models/Xenova/multilingual-e5-small",
+      "baselineBytes": 135392183,
+      "maxGrowthBytes": 25000000,
+      "maxBytes": 165000000
+    }
+  }
+}

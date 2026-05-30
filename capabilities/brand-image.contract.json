@@ -1,0 +1,72 @@
+{
+  "id": "brand-image",
+  "title": "Generate brand-aware images with uploaded assets",
+  "ownerSource": [
+    "electron/lib/cron-api.js",
+    "electron/lib/dashboard-ipc.js",
+    "skills/operations/image-generation.md",
+    "AGENTS.md"
+  ],
+  "triggerExamples": [
+    "tạo ảnh với mascot",
+    "làm banner có logo",
+    "tạo poster dựa vào tài sản doanh nghiệp"
+  ],
+  "allowedChannels": [
+    "telegram-ceo",
+    "dashboard"
+  ],
+  "blockedChannels": [
+    "zalo-customer"
+  ],
+  "requiresConfirmation": false,
+  "sideEffects": [
+    "creates-image-file",
+    "may-send-telegram-photo"
+  ],
+  "tokenSource": "Telegram CEO web_fetch automatically attaches internal bearer auth for localhost API; no model-visible token",
+  "apiCalls": [
+    {
+      "method": "GET",
+      "path": "/api/brand-assets/list",
+      "purpose": "list uploaded logo, product, and mascot assets before generation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/image/generate",
+      "purpose": "start image generation job"
+    },
+    {
+      "method": "GET",
+      "path": "/api/image/generate-and-send-zalo",
+      "purpose": "atomically generate an image and deliver it to a CEO-approved Zalo target when the image is ready"
+    },
+    {
+      "method": "GET",
+      "path": "/api/image/status",
+      "purpose": "poll image generation job when needed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/telegram/send-photo",
+      "purpose": "send generated preview to CEO Telegram"
+    }
+  ],
+  "externalPermissions": [
+    "configured image provider",
+    "brand-assets directory"
+  ],
+  "successProofs": [
+    "successful generate response contains jobId and non-failed status",
+    "multi-step generate-and-send-Zalo response contains success:true and delivery.status",
+    "asset list is checked before claiming no brand assets",
+    "generated image path/mediaId is returned before any separate send/post step uses the image"
+  ],
+  "negativeTests": [
+    "must not say brand assets are unavailable before calling /api/brand-assets/list",
+    "must not say image generation started when /api/image/generate returns error",
+    "must prioritize mascot-named file when CEO asks for mascot",
+    "must not perform this from Zalo customer channel",
+    "must not treat status=generating as proof that the image is ready for Zalo delivery"
+  ]
+}

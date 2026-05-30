@@ -1,0 +1,7 @@
+{
+  "openclaw": "2026.4.14",
+  "openzca": "0.1.59",
+  "nineRouter": "0.4.63",
+  "node": "22.22.2",
+  "note": "Canonical version file. Both runtime-installer.js and prebuild-vendor.js load from this. PINNING.md is the human-readable source. When bumping node, also update NODE_SHA256 in runtime-installer.js (download from https://nodejs.org/dist/v<version>/SHASUMS256.txt)."
+}

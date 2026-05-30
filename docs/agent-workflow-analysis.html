@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>9BizClaw — Agent Workflow Analysis</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 9px;
+    line-height: 1.4;
+    color: #1a1a2e;
+    background: #fff;
+    padding: 0;
+  }
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+    color: #fff;
+    padding: 40px;
+  }
+  .cover h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .cover .subtitle {
+    font-size: 16px;
+    color: #a0a0c0;
+    margin-bottom: 32px;
+  }
+  .cover .meta {
+    font-size: 11px;
+    color: #7070a0;
+    margin-top: 40px;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: rgba(99,102,241,0.2);
+    border: 1px solid rgba(99,102,241,0.4);
+    color: #a5b4fc;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    margin-bottom: 24px;
+  }
+
+  .agent-page {
+    page-break-before: always;
+    padding: 16px 0;
+  }
+  .agent-page:first-of-type { page-break-before: avoid; }
+
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .agent-num {
+    background: #1a1a2e;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .agent-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+  .agent-tagline {
+    font-size: 9px;
+    color: #6b7280;
+    margin-left: 8px;
+  }
+  .agent-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 8.5px;
+  }
+  .summary-pill {
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .summary-pill .val { font-weight: 700; color: #1a1a2e; }
+  .summary-pill.green { background: #ecfdf5; color: #065f46; }
+  .summary-pill.amber { background: #fffbeb; color: #92400e; }
+  .summary-pill.red { background: #fef2f2; color: #991b1b; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5px;
+  }
+  thead th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: top;
+  }
+  tbody tr:hover { background: #f9fafb; }
+
+  .tier {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 7.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tier.cb { background: #dbeafe; color: #1e40af; }
+  .tier.nc { background: #fef3c7; color: #92400e; }
+  .tier.cs { background: #ede9fe; color: #5b21b6; }
+
+  .diff {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 7.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .diff.easy { background: #ecfdf5; color: #065f46; }
+  .diff.medium { background: #fffbeb; color: #92400e; }
+  .diff.hard { background: #fef2f2; color: #991b1b; }
+  .diff.vhard { background: #991b1b; color: #fff; }
+  .diff.done { background: #065f46; color: #fff; }
+
+  .cust {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 7.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .cust.low { background: #ecfdf5; color: #065f46; }
+  .cust.med { background: #fffbeb; color: #92400e; }
+  .cust.high { background: #fef2f2; color: #991b1b; }
+
+  .plugin-tag {
+    display: inline-block;
+    background: #eef2ff;
+    color: #3730a3;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 7px;
+    font-weight: 500;
+    margin: 1px 0;
+    white-space: nowrap;
+  }
+  .plugin-tag.has { background: #ecfdf5; color: #065f46; }
+  .plugin-tag.none { background: #f3f4f6; color: #9ca3af; }
+
+  .skills-list {
+    color: #4b5563;
+    font-size: 7.5px;
+    line-height: 1.3;
+  }
+
+  .summary-page {
+    page-break-before: always;
+    padding: 16px 0;
+  }
+  .summary-page h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .summary-page h3 {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    color: #374151;
+  }
+
+  .footer {
+    position: fixed;
+    bottom: 8px;
+    right: 16px;
+    font-size: 7px;
+    color: #9ca3af;
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="badge">INTERNAL — PRICING REFERENCE</div>
+  <h1>Agent Workflow Analysis</h1>
+  <div class="subtitle">9 Agents &middot; 67 Workflows &middot; 20 Plugins</div>
+  <div style="margin-top:24px; font-size:13px; color:#c0c0e0; max-width:600px;">
+    Phân tích mức độ customization, độ khó build, và plugin dependency<br>
+    cho từng workflow để định giá sản phẩm 9BizClaw
+  </div>
+  <div class="meta">
+    MODORO Tech Corp &middot; 9bizclaw.com &middot; Tháng 5/2026<br>
+    Tài liệu nội bộ — Không phân phối
+  </div>
+</div>
+
+<!-- ==================== AGENT 1: BAN HANG ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">1</div>
+    <div class="agent-title">Agent Bán Hàng</div>
+    <div class="agent-tagline">Không có doanh thu = không có doanh nghiệp</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">7</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">3</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">10</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1.1</td>
+        <td><span class="tier cb">Cơ bản</span></td>
+        <td>Soạn báo giá &amp; proposal</td>
+        <td class="skills-list">Prompt template + knowledge injection (product catalog, giá) + format output (PDF/text)</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Cần template báo giá per ngành</td>
+      </tr>
+      <tr>
+        <td>1.2</td>
+        <td><span class="tier cb">Cơ bản</span></td>
+        <td>Tư vấn bán hàng</td>
+        <td class="skills-list">Chatbot role-play + product knowledge lookup + objection detection + upsell suggestion</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Chatbot role, dễ nhất</td>
+      </tr>
+      <tr>
+        <td>1.3</td>
+        <td><span class="tier cb">Cơ bản</span></td>
+        <td>Lên kịch bản bán hàng</td>
+        <td class="skills-list">Scenario analysis + persona matching + script generation + A/B variant</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Sales script generation</td>
+      </tr>
+      <tr>
+        <td>1.4</td>
+        <td><span class="tier nc">Nâng cao</span></td>
+        <td>Follow-up tự động qua Zalo</td>
+        <td class="skills-list">Trigger detection (deal stage) + sequence builder (D+1,3,7) + cron schedule + Zalo send + stop condition</td>
+        <td><span class="plugin-tag has">Zalo Personal (đã có)</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff medium">TB</span></td>
+        <td>Sequence: D+1, D+3, D+7</td>
+      </tr>
+      <tr>
+        <td>1.5</td>
+        <td><span class="tier nc">Nâng cao</span></td>
+        <td>Cập nhật KH lên CRM</td>
+        <td class="skills-list">Contact parse + field mapping + API call + conflict resolution + sync status report</td>
+        <td><span class="plugin-tag">CRM plugin (1/4)</span></td>
+        <td><span class="cust high">Cao</span></td>
+        <td><span class="diff hard">Khó</span></td>
+        <td>Mỗi CRM = connector riêng</td>
+      </tr>
+      <tr>
+        <td>1.6</td>
+        <td><span class="tier nc">Nâng cao</span></td>
+        <td>Kết nối gọi điện tự động</td>
+        <td class="skills-list">Call trigger + script injection + call scheduling + recording link + outcome logging</td>
+        <td><span class="plugin-tag">VoIP (StringeeX)</span></td>
+        <td><span class="cust high">Cao</span></td>
+        <td><span class="diff vhard">Rất khó</span></td>
+        <td>Chưa có connector nao</td>
+      </tr>
+      <tr>
+        <td>1.7</td>
+        <td><span class="tier nc">Nâng cao</span></td>
+        <td>Cập nhật báo cáo doanh số</td>
+        <td class="skills-list">Data pull + aggregation + trend analysis + visualization text + scheduled delivery</td>
+        <td><span class="plugin-tag">CRM/POS/Sheets</span></td>
+        <td><span class="cust high">Cao</span></td>
+        <td><span class="diff hard">Khó</span></td>
+        <td>Phụ thuộc hệ thống khách</td>
+      </tr>
+      <tr>
+        <td>1.8</td>
+        <td><span class="tier cs">Chuyên sâu</span></td>
+        <td>Soạn tài liệu bán hàng</td>
+        <td class="skills-list">Template select + knowledge fill + tone adjust + multi-format output</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Brochure, proposal, one-pager</td>
+      </tr>
+      <tr>
+        <td>1.9</td>
+        <td><span class="tier cs">Chuyên sâu</span></td>
+        <td>Thiết kế chương trình ưu đãi</td>
+        <td class="skills-list">Margin analysis prompt + promo structure + timeline + T&amp;C generation</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Promotion planning</td>
+      </tr>
+      <tr>
+        <td>1.10</td>
+        <td><span class="tier cs">Chuyên sâu</span></td>
+        <td>Xử lý từ chối KH</td>
+        <td class="skills-list">Objection classify + counter-argument lookup + response generation + escalation trigger</td>
+        <td><span class="plugin-tag none">Không cần</span></td>
+        <td><span class="cust med">TB</span></td>
+        <td><span class="diff easy">Dễ</span></td>
+        <td>Objection handling playbook</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 2: MARKETING ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">2</div>
+    <div class="agent-title">Agent Marketing &amp; Content</div>
+    <div class="agent-tagline">Content là máy tạo leads 24/7</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">9</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">3</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">12</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>2.1</td><td><span class="tier cb">Cơ bản</span></td><td>Viết content MXH</td><td class="skills-list">Brand voice inject + platform format adapt (FB/TikTok/Zalo) + hashtag suggest + image prompt</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Core skill, demand cao nhất</td></tr>
+      <tr><td>2.2</td><td><span class="tier cb">Cơ bản</span></td><td>Nghiên cứu từ khóa</td><td class="skills-list">web_search + volume estimation + competitor keyword extract + keyword grouping</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust low">Thấp</span></td><td><span class="diff easy">Dễ</span></td><td>Generic, ít customize</td></tr>
+      <tr><td>2.3</td><td><span class="tier cb">Cơ bản</span></td><td>Đăng bài chuẩn SEO</td><td class="skills-list">Keyword target inject + title/meta generation + content structure + internal linking suggest</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>SEO content generation</td></tr>
+      <tr><td>2.4</td><td><span class="tier cb">Cơ bản</span></td><td>Lịch content tháng</td><td class="skills-list">Theme planning + platform allocation + frequency scheduling + holiday/event mapping</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Content calendar generator</td></tr>
+      <tr><td>2.5</td><td><span class="tier nc">Nâng cao</span></td><td>Kịch bản gửi email</td><td class="skills-list">Sequence design + subject line variants + body template + CTA optimization + send timing</td><td><span class="plugin-tag">Email/SMTP</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Email sequence planning</td></tr>
+      <tr><td>2.6</td><td><span class="tier nc">Nâng cao</span></td><td>Thiết kế landing page</td><td class="skills-list">Wireframe prompt + HTML/CSS generation + copy writing + CTA placement + mobile responsive</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Output = HTML file</td></tr>
+      <tr><td>2.7</td><td><span class="tier nc">Nâng cao</span></td><td>Quản lý quảng cáo</td><td class="skills-list">Campaign create + audience targeting + budget allocation + bid strategy + performance report + optimization</td><td><span class="plugin-tag">FB Ads + Google Ads</span></td><td><span class="cust high">Cao</span></td><td><span class="diff vhard">Rất khó</span></td><td>OAuth + budget mgmt + policy</td></tr>
+      <tr><td>2.8</td><td><span class="tier nc">Nâng cao</span></td><td>Tư vấn phễu marketing</td><td class="skills-list">Funnel stage mapping + touchpoint identify + conversion bottleneck analysis + recommendation</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Strategy advice</td></tr>
+      <tr><td>2.9</td><td><span class="tier nc">Nâng cao</span></td><td>Nhận diện thương hiệu</td><td class="skills-list">Brand audit + visual identity guidelines + tone of voice doc + naming convention + style guide</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Brand guidelines doc</td></tr>
+      <tr><td>2.10</td><td><span class="tier cs">Chuyên sâu</span></td><td>Chiến dịch marketing</td><td class="skills-list">Campaign brief + channel mix + budget split + timeline + KPI targets + content plan</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Campaign planning doc</td></tr>
+      <tr><td>2.11</td><td><span class="tier cs">Chuyên sâu</span></td><td>Nghiên cứu đối thủ</td><td class="skills-list">web_search + web_fetch + SWOT per competitor + positioning map + gap analysis</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Competitor research</td></tr>
+      <tr><td>2.12</td><td><span class="tier cs">Chuyên sâu</span></td><td>Tổng hợp báo cáo</td><td class="skills-list">Multi-source data pull + KPI aggregate + trend + insight generation + recommendation</td><td><span class="plugin-tag">MXH analytics plugins</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Cần data source</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 3: CSKH ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">3</div>
+    <div class="agent-title">Agent Chăm Sóc Khách Hàng</div>
+    <div class="agent-tagline">Giữ 1 KH cũ rẻ hơn 5x tìm KH mới</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">5</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">4</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">9</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>3.1</td><td><span class="tier cb">Cơ bản</span></td><td>Chatbot Zalo</td><td class="skills-list">Intent detect + knowledge lookup + response generate + escalation detect + memory per customer</td><td><span class="plugin-tag has">Zalo Personal (đã có)</span></td><td><span class="cust med">TB</span></td><td><span class="diff done">Da co 80%</span></td><td>MODOROClaw core</td></tr>
+      <tr><td>3.2</td><td><span class="tier cb">Cơ bản</span></td><td>Chatbot Messenger</td><td class="skills-list">Same as 3.1 + Facebook webhook handler + page token mgmt + message type adapt</td><td><span class="plugin-tag">FB Messenger</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>OAuth + webhook + page token</td></tr>
+      <tr><td>3.3</td><td><span class="tier cb">Cơ bản</span></td><td>Xây dựng bộ hỏi đáp FAQ</td><td class="skills-list">FAQ extraction from docs + Q&amp;A pair generation + knowledge indexing + gap detection</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>FAQ generation + injection</td></tr>
+      <tr><td>3.4</td><td><span class="tier nc">Nâng cao</span></td><td>Quản lý yêu cầu feedback</td><td class="skills-list">Feedback intake classify + priority assign + routing + response template + resolution tracking</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Feedback collection workflow</td></tr>
+      <tr><td>3.5</td><td><span class="tier nc">Nâng cao</span></td><td>Lộ trình chăm sóc KH mới</td><td class="skills-list">Onboarding sequence design (D+0 tới D+90) + cron schedule + content per stage + completion tracking</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Drip sequence, cron đã có</td></tr>
+      <tr><td>3.6</td><td><span class="tier nc">Nâng cao</span></td><td>Khảo sát đánh giá KH</td><td class="skills-list">Survey question generate + NPS/CSAT format + cron delivery + response collect + analysis report</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>NPS/CSAT survey</td></tr>
+      <tr><td>3.7</td><td><span class="tier cs">Chuyên sâu</span></td><td>Theo dõi điểm thưởng KH</td><td class="skills-list">Point balance check + redemption rules + tier calculation + notification trigger</td><td><span class="plugin-tag">POS/Loyalty</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Cần data source loyalty</td></tr>
+      <tr><td>3.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Chương trình affiliate/referral</td><td class="skills-list">Referral link generate + tracking + commission calculate + payout queue + performance report</td><td><span class="plugin-tag">Tracking + Payment</span></td><td><span class="cust high">Cao</span></td><td><span class="diff vhard">Rất khó</span></td><td>Multi-system integration</td></tr>
+      <tr><td>3.9</td><td><span class="tier cs">Chuyên sâu</span></td><td>Chỉ số vòng đời KH</td><td class="skills-list">LTV calculation + churn prediction + cohort analysis + retention report + intervention suggest</td><td><span class="plugin-tag">CRM/POS</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Analytics heavy</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 4: TAI CHINH ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">4</div>
+    <div class="agent-title">Agent Tài Chính</div>
+    <div class="agent-tagline">80% DN nhỏ chết vì hết tiền, không phải hết khách</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">3</span> Pure AI</div>
+    <div class="summary-pill red"><span class="val">6</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">9</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>4.1</td><td><span class="tier cb">Cơ bản</span></td><td>Tổng hợp thu chi hàng ngày</td><td class="skills-list">Data source connect + transaction categorize + daily summary + anomaly flag</td><td><span class="plugin-tag">Google Sheets</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Mỗi khách khác schema</td></tr>
+      <tr><td>4.2</td><td><span class="tier cb">Cơ bản</span></td><td>Tạo hóa đơn &amp; bao gia</td><td class="skills-list">Template fill + line item calculate + tax compute + format output + numbering</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Invoice text generation</td></tr>
+      <tr><td>4.3</td><td><span class="tier cb">Cơ bản</span></td><td>Báo cáo tài chính qua tin nhắn</td><td class="skills-list">Data pull + KPI compute + natural language summary + cron schedule + deliver</td><td><span class="plugin-tag">Sheets/Accounting</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Daily summary via Telegram</td></tr>
+      <tr><td>4.4</td><td><span class="tier nc">Nâng cao</span></td><td>Phân tích doanh thu chi phí</td><td class="skills-list">Revenue breakdown + cost categorize + margin analysis + trend compare + recommendation</td><td><span class="plugin-tag">Accounting</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>MISA/Fast API</td></tr>
+      <tr><td>4.5</td><td><span class="tier nc">Nâng cao</span></td><td>Báo cáo P&amp;L</td><td class="skills-list">Income/expense aggregate + P&amp;L format + period compare + variance analysis</td><td><span class="plugin-tag">Accounting</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Structured financial report</td></tr>
+      <tr><td>4.6</td><td><span class="tier nc">Nâng cao</span></td><td>Nhắc nhở KPI</td><td class="skills-list">KPI target store + progress check + cron remind + gap alert</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Simple cron reminder</td></tr>
+      <tr><td>4.7</td><td><span class="tier nc">Nâng cao</span></td><td>Theo dõi công nợ</td><td class="skills-list">AR/AP data pull + aging analysis + overdue alert + collection remind + cron</td><td><span class="plugin-tag">Accounting/CRM</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Receivables tracking</td></tr>
+      <tr><td>4.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Tax estimate</td><td class="skills-list">Revenue aggregate + tax rule apply + quarterly estimate + deadline remind</td><td><span class="plugin-tag">Sheets/Accounting</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Rủi ro nếu tính sai</td></tr>
+      <tr><td>4.9</td><td><span class="tier cs">Chuyên sâu</span></td><td>Financial model</td><td class="skills-list">DCF template + projection build + scenario analysis + sensitivity table + summary</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Pure prompt, cao customize</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 5: TRUYEN THONG ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">5</div>
+    <div class="agent-title">Agent Truyền Thông Đa Kênh</div>
+    <div class="agent-tagline">Tự động cross-post, không cần đăng bài tay</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">1</span> Pure AI</div>
+    <div class="summary-pill red"><span class="val">9</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">10</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>5.1</td><td><span class="tier cb">Cơ bản</span></td><td>TikTok Auto Post</td><td class="skills-list">Content adapt + hashtag + scheduling + upload + review status check</td><td><span class="plugin-tag">TikTok Content</span></td><td><span class="cust med">TB</span></td><td><span class="diff vhard">Rất khó</span></td><td>Content review strict</td></tr>
+      <tr><td>5.2</td><td><span class="tier cb">Cơ bản</span></td><td>Facebook Page Auto Post</td><td class="skills-list">Content adapt + image attach + schedule + publish + engagement monitor</td><td><span class="plugin-tag">FB Page (1 phần có)</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>FB schedule đã có</td></tr>
+      <tr><td>5.3</td><td><span class="tier cb">Cơ bản</span></td><td>YouTube/Reels Auto</td><td class="skills-list">Video metadata + title/desc + tags + thumbnail prompt + upload + publish</td><td><span class="plugin-tag">YouTube Data</span></td><td><span class="cust med">TB</span></td><td><span class="diff vhard">Rất khó</span></td><td>Upload flow complex</td></tr>
+      <tr><td>5.4</td><td><span class="tier nc">Nâng cao</span></td><td>LinkedIn Auto</td><td class="skills-list">Content adapt (professional tone) + schedule + publish + engagement track</td><td><span class="plugin-tag">LinkedIn Marketing</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>Restricted access</td></tr>
+      <tr><td>5.5</td><td><span class="tier nc">Nâng cao</span></td><td>X Auto</td><td class="skills-list">Content adapt (280 char) + thread builder + schedule + publish</td><td><span class="plugin-tag">X API v2</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>Rate limits aggressive</td></tr>
+      <tr><td>5.6</td><td><span class="tier nc">Nâng cao</span></td><td>FB Group nurture</td><td class="skills-list">Group-appropriate content + schedule + post + comment engage + member analysis</td><td><span class="plugin-tag">FB Groups</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>Posting restrictions</td></tr>
+      <tr><td>5.7</td><td><span class="tier nc">Nâng cao</span></td><td>Zalo OA</td><td class="skills-list">OA content format + broadcast + template message + follower segment</td><td><span class="plugin-tag">Zalo OA</span></td><td><span class="cust med">TB</span></td><td><span class="diff hard">Khó</span></td><td>OA account required</td></tr>
+      <tr><td>5.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Báo cáo chỉ số kênh</td><td class="skills-list">Multi-platform data pull + KPI normalize + cross-channel compare + trend + recommendation</td><td><span class="plugin-tag">All MXH plugins</span></td><td><span class="cust high">Cao</span></td><td><span class="diff vhard">Rất khó</span></td><td>Aggregate N platforms</td></tr>
+      <tr><td>5.9</td><td><span class="tier cs">Chuyên sâu</span></td><td>Phân tích nội dung đề xuất</td><td class="skills-list">Performance data analyze + content ranking + optimal timing + topic suggest</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Duy nhất 1 WF không cần plugin</td></tr>
+      <tr><td>5.10</td><td><span class="tier cs">Chuyên sâu</span></td><td>Cập nhật báo cáo CRM</td><td class="skills-list">Cross-channel engagement sync + contact enrichment + activity log</td><td><span class="plugin-tag">CRM + MXH</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Cross-system sync</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 6: VAN HANH ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">6</div>
+    <div class="agent-title">Agent Vận Hành</div>
+    <div class="agent-tagline">Hệ thống hóa để CEO không là bottleneck</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">6</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">2</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">8</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>6.1</td><td><span class="tier cb">Cơ bản</span></td><td>Viết quy trình SOP</td><td class="skills-list">Process interview prompt + step-by-step generation + role assignment + exception handling + format</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>SOP document generation</td></tr>
+      <tr><td>6.2</td><td><span class="tier cb">Cơ bản</span></td><td>Checklist vận hành</td><td class="skills-list">Task decompose + daily/weekly/monthly split + role assign + completion tracking template</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Daily/weekly checklists</td></tr>
+      <tr><td>6.3</td><td><span class="tier cb">Cơ bản</span></td><td>Nhắc nhở cuộc họp</td><td class="skills-list">Calendar parse + cron schedule + attendee notify + agenda suggest + minutes template</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust low">Thấp</span></td><td><span class="diff easy">Dễ</span></td><td>Cron đã có</td></tr>
+      <tr><td>6.4</td><td><span class="tier nc">Nâng cao</span></td><td>Chăm sóc nhân sự mới</td><td class="skills-list">30-60-90 plan generate + task sequence + mentor assign + cron drip + feedback collect</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Onboarding drip</td></tr>
+      <tr><td>6.5</td><td><span class="tier nc">Nâng cao</span></td><td>Báo cáo tổng thể DN</td><td class="skills-list">Multi-source KPI pull + department summary + health score + alert + recommendation</td><td><span class="plugin-tag">Sheets + CRM/POS</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>Multi-source data</td></tr>
+      <tr><td>6.6</td><td><span class="tier nc">Nâng cao</span></td><td>Đánh giá rủi ro</td><td class="skills-list">Risk category framework + likelihood/impact scoring + mitigation suggest + priority matrix</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Risk assessment framework</td></tr>
+      <tr><td>6.7</td><td><span class="tier nc">Nâng cao</span></td><td>Khảo sát nhân sự</td><td class="skills-list">Survey design + cron distribute + response collect + sentiment analysis + summary report</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Employee satisfaction</td></tr>
+      <tr><td>6.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Inventory tracker</td><td class="skills-list">Stock level pull + reorder point alert + movement trend + supplier suggest + cron report</td><td><span class="plugin-tag">POS (KiotViet/Sapo)</span></td><td><span class="cust high">Cao</span></td><td><span class="diff vhard">Rất khó</span></td><td>Real-time stock tracking</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 7: NHAN SU ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">7</div>
+    <div class="agent-title">Agent Nhân Sự</div>
+    <div class="agent-tagline">Tuyển sai 1 người = mất 3-6 tháng</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">7</span> Pure AI</div>
+    <div class="summary-pill"><span class="val">0</span> Cần plugin</div>
+    <div class="summary-pill"><span class="val">7</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>7.1</td><td><span class="tier cb">Cơ bản</span></td><td>JD writer</td><td class="skills-list">Role analysis + responsibility list + requirement generate + benefit section + format output</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust low">Thấp</span></td><td><span class="diff easy">Dễ</span></td><td>Generic, rất dễ</td></tr>
+      <tr><td>7.2</td><td><span class="tier cb">Cơ bản</span></td><td>Interview questions</td><td class="skills-list">Role-specific Q generate + competency mapping + scoring rubric + behavioral Q + technical Q</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust low">Thấp</span></td><td><span class="diff easy">Dễ</span></td><td>Generic</td></tr>
+      <tr><td>7.3</td><td><span class="tier nc">Nâng cao</span></td><td>Onboarding plan</td><td class="skills-list">Role-based task sequence + timeline + resource list + buddy assign + milestone check</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Plan generation</td></tr>
+      <tr><td>7.4</td><td><span class="tier nc">Nâng cao</span></td><td>KPI setup</td><td class="skills-list">Role analysis + metric selection + target setting + measurement method + review cycle</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>KPI framework</td></tr>
+      <tr><td>7.5</td><td><span class="tier nc">Nâng cao</span></td><td>Performance review</td><td class="skills-list">KPI data input + achievement assess + strength/weakness + development plan + rating</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Review template</td></tr>
+      <tr><td>7.6</td><td><span class="tier nc">Nâng cao</span></td><td>Training plan</td><td class="skills-list">Skill gap analysis + learning path + resource recommend + timeline + assessment method</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>L&amp;D planning</td></tr>
+      <tr><td>7.7</td><td><span class="tier cs">Chuyên sâu</span></td><td>Org chart</td><td class="skills-list">Department structure + reporting line + headcount + role description + visual format</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Org structure doc</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 8: CHIEN LUOC ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">8</div>
+    <div class="agent-title">Agent Chiến Lược</div>
+    <div class="agent-tagline">Không có chiến lược = chạy nhanh nhưng không biết đi đâu</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">7</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">1</span> Cần plugin (optional)</div>
+    <div class="summary-pill"><span class="val">8</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>8.1</td><td><span class="tier cb">Cơ bản</span></td><td>SWOT analysis</td><td class="skills-list">Internal strength/weakness audit + external opportunity/threat scan + prioritize + action items</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Framework fill</td></tr>
+      <tr><td>8.2</td><td><span class="tier cb">Cơ bản</span></td><td>Competitor analysis</td><td class="skills-list">web_search + competitor profile build + feature compare + positioning map + gap identify</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Research + analysis</td></tr>
+      <tr><td>8.3</td><td><span class="tier cb">Cơ bản</span></td><td>BMC Canvas</td><td class="skills-list">9 blocks fill + value proposition focus + revenue model + cost structure + channel strategy</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Canvas generation</td></tr>
+      <tr><td>8.4</td><td><span class="tier nc">Nâng cao</span></td><td>Porter 5 Forces</td><td class="skills-list">Industry analysis + force scoring + barrier assess + supplier/buyer power + substitution risk</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Framework fill</td></tr>
+      <tr><td>8.5</td><td><span class="tier nc">Nâng cao</span></td><td>OKR builder</td><td class="skills-list">Company objective toi team objectives toi key results + alignment check + scoring method</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>OKR generation</td></tr>
+      <tr><td>8.6</td><td><span class="tier nc">Nâng cao</span></td><td>Roadmap chien luoc</td><td class="skills-list">Goal decompose + initiative prioritize + quarterly milestone + resource allocation + dependency</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Strategy roadmap</td></tr>
+      <tr><td>8.7</td><td><span class="tier cs">Chuyên sâu</span></td><td>Business plan</td><td class="skills-list">Executive summary + market analysis + operations + financials + growth strategy + risk</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Comprehensive doc</td></tr>
+      <tr><td>8.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Quarterly review</td><td class="skills-list">KPI vs target + variance analysis + root cause + next quarter adjustment + action items</td><td><span class="plugin-tag">Sheets (optional)</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Needs metrics data</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== AGENT 9: TANG TRUONG ==================== -->
+<div class="agent-page">
+  <div class="agent-header">
+    <div class="agent-num">9</div>
+    <div class="agent-title">Agent Tăng Trưởng</div>
+    <div class="agent-tagline">Mở rộng thế nào mà không vỡ?</div>
+  </div>
+  <div class="agent-summary">
+    <div class="summary-pill green"><span class="val">8</span> Pure AI</div>
+    <div class="summary-pill amber"><span class="val">1</span> Cần plugin (optional)</div>
+    <div class="summary-pill"><span class="val">9</span> workflows</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:60px">Gói</th>
+        <th style="width:160px">Workflow</th>
+        <th style="width:300px">Skills bên trong</th>
+        <th style="width:120px">Plugin cần</th>
+        <th style="width:55px">Custom</th>
+        <th style="width:60px">Độ khó</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>9.1</td><td><span class="tier cb">Cơ bản</span></td><td>Growth checklist</td><td class="skills-list">Growth readiness audit + prerequisite check + blocker identify + action plan</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust low">Thấp</span></td><td><span class="diff easy">Dễ</span></td><td>Generic framework</td></tr>
+      <tr><td>9.2</td><td><span class="tier cb">Cơ bản</span></td><td>Partnership brief</td><td class="skills-list">Partner profile + value proposition + synergy analysis + deal structure + pitch draft</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff easy">Dễ</span></td><td>Partner pitch</td></tr>
+      <tr><td>9.3</td><td><span class="tier nc">Nâng cao</span></td><td>Pitch deck</td><td class="skills-list">Story arc + slide content (10-15 slides) + data points + ask slide + appendix</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Investor-ready doc</td></tr>
+      <tr><td>9.4</td><td><span class="tier nc">Nâng cao</span></td><td>Investment memo</td><td class="skills-list">Market sizing + business model + traction + team + financials + risk + ask</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>VC-style memo</td></tr>
+      <tr><td>9.5</td><td><span class="tier nc">Nâng cao</span></td><td>Market expansion</td><td class="skills-list">Market research (web_search) + entry strategy + competitive landscape + go-to-market plan</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust med">TB</span></td><td><span class="diff medium">TB</span></td><td>Market research</td></tr>
+      <tr><td>9.6</td><td><span class="tier cs">Chuyên sâu</span></td><td>Business packaging</td><td class="skills-list">Operations document + playbook + training manual + brand guide + franchise-ready</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Franchise-ready docs</td></tr>
+      <tr><td>9.7</td><td><span class="tier cs">Chuyên sâu</span></td><td>Franchise model</td><td class="skills-list">Unit economics + fee structure + territory plan + support model + legal framework</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Franchise blueprint</td></tr>
+      <tr><td>9.8</td><td><span class="tier cs">Chuyên sâu</span></td><td>Valuation</td><td class="skills-list">Financial data input + DCF model + comparable analysis + multiple method + range estimate</td><td><span class="plugin-tag">Sheets (optional)</span></td><td><span class="cust high">Cao</span></td><td><span class="diff hard">Khó</span></td><td>DCF + comparable</td></tr>
+      <tr><td>9.9</td><td><span class="tier cs">Chuyên sâu</span></td><td>Exit strategy</td><td class="skills-list">Exit option analysis + timeline + valuation trigger + buyer profile + preparation</td><td><span class="plugin-tag none">Không cần</span></td><td><span class="cust high">Cao</span></td><td><span class="diff medium">TB</span></td><td>Strategic planning</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== SUMMARY PAGES ==================== -->
+<div class="summary-page">
+  <h2>Tổng Hợp — Pricing Intelligence</h2>
+
+  <h3>Phân bổ kỹ thuật toàn bộ 67 workflows</h3>
+  <table>
+    <thead>
+      <tr><th>Loại</th><th>Số workflows</th><th>%</th><th>Mô tả</th><th>Gợi ý pricing</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="diff easy">Pure AI</span></td><td><strong>42</strong></td><td>63%</td><td>Chỉ cần prompt + knowledge, không plugin</td><td>Margin cao, giá competitive</td></tr>
+      <tr><td><span class="diff medium">AI + Cron/Tool</span></td><td><strong>10</strong></td><td>15%</td><td>Dùng cron/web_search đã có sẵn</td><td>Margin cao, giá nhỉnh hơn</td></tr>
+      <tr><td><span class="diff hard">AI + 1 Plugin</span></td><td><strong>10</strong></td><td>15%</td><td>Cần 1 connector cụ thể</td><td>Giá = workflow + plugin fee</td></tr>
+      <tr><td><span class="diff vhard">AI + Multi-Plugin</span></td><td><strong>5</strong></td><td>7%</td><td>Cần nhiều plugin phối hợp</td><td>Giá cao nhất, consulting</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Agent ranking cho go-to-market</h3>
+  <table>
+    <thead>
+      <tr><th>Rank</th><th>Agent</th><th>Pure AI</th><th>Can Plugin</th><th>Lý do</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>Nhân Sự</td><td>7/7 (100%)</td><td>0</td><td>Dễ nhất, zero dependency. Bán kèm tăng bundle value</td></tr>
+      <tr><td><strong>2</strong></td><td>Chiến Lược</td><td>7/8 (88%)</td><td>1 optional</td><td>Dễ, perceived value cao cho CEO</td></tr>
+      <tr><td><strong>3</strong></td><td>Tăng Trưởng</td><td>8/9 (89%)</td><td>1 optional</td><td>Dễ, niche nhưng high-ticket</td></tr>
+      <tr><td><strong>4</strong></td><td>Vận Hành</td><td>6/8 (75%)</td><td>2</td><td>Cơ bản de, upsell inventory can plugin</td></tr>
+      <tr><td><strong>5</strong></td><td>Marketing</td><td>9/12 (75%)</td><td>3</td><td>Demand cao nhất, cơ bản = gold</td></tr>
+      <tr><td><strong>6</strong></td><td>CSKH</td><td>5/9 (56%)</td><td>4</td><td>Core đã có (Zalo), mo rong can plugins</td></tr>
+      <tr><td><strong>7</strong></td><td>Bán Hàng</td><td>7/10 (70%)</td><td>3</td><td>Cơ bản de, CRM/VoIP nang cao ton effort</td></tr>
+      <tr><td><strong>8</strong></td><td>Tài Chính</td><td>3/9 (33%)</td><td>6</td><td>Plugin-heavy, mỗi khách khác hệ thống</td></tr>
+      <tr><td><strong>9</strong></td><td>Truyền Thông</td><td>1/10 (10%)</td><td>9</td><td>Gần như 100% plugin, mỗi platform = project riêng</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Plugin dependency map — workflows bị block nếu chưa có plugin</h3>
+  <table>
+    <thead>
+      <tr><th>Plugin</th><th>Status</th><th>WFs bị block</th><th>Agents</th><th>Priority build</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Google Sheets</td><td><span class="diff hard">Chưa có</span></td><td>4.1, 4.3, 4.8, 6.5, 8.8, 9.8</td><td>Tài Chính, Vận Hành, Chiến Lược, Tăng Trưởng</td><td><strong>Cao nhất</strong> — unblock nhiều WF nhất</td></tr>
+      <tr><td>CRM (KiotViet/Sapo)</td><td><span class="diff hard">Chưa có</span></td><td>1.5, 1.7, 3.7, 3.9, 5.10, 6.5</td><td>Bán Hàng, CSKH, Truyền Thông, Vận Hành</td><td><strong>Cao</strong> — retail/ecom VN</td></tr>
+      <tr><td>FB Page</td><td><span class="diff medium">1 phần</span></td><td>5.2</td><td>Truyền Thông</td><td>Cao — đã có 1 phần</td></tr>
+      <tr><td>FB Messenger</td><td><span class="diff hard">Chưa có</span></td><td>3.2</td><td>CSKH</td><td>TB</td></tr>
+      <tr><td>Email/SMTP</td><td><span class="diff hard">Chưa có</span></td><td>2.5</td><td>Marketing</td><td>TB — generic, dễ build</td></tr>
+      <tr><td>Accounting (MISA/Fast)</td><td><span class="diff hard">Chưa có</span></td><td>4.4, 4.5, 4.7</td><td>Tài Chính</td><td>TB — API kem, effort cao</td></tr>
+      <tr><td>TikTok/YouTube/LinkedIn/X</td><td><span class="diff vhard">Chưa có</span></td><td>5.1, 5.3, 5.4, 5.5</td><td>Truyền Thông</td><td>Thấp — effort rất cao</td></tr>
+      <tr><td>VoIP (StringeeX)</td><td><span class="diff vhard">Chưa có</span></td><td>1.6</td><td>Bán Hàng</td><td>Thấp — niche</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">9BizClaw Agent Workflow Analysis — MODORO Tech Corp — Internal Document — 05/2026</div>
+
+</body>
+</html>

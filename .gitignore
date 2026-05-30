@@ -1,0 +1,191 @@
+# Secrets
+.env
+*.session
+scripts/test-telegram-session/
+cron-api-token.txt
+
+# Node + build outputs
+node_modules/
+dist/
+*.log
+electron/logs/
+electron/vendor/
+electron/vendor/models/
+electron/vendor-bundle.tar
+electron/vendor-meta.json
+modoro-claw-plugin/dist/
+
+# Runtime state — re-created by seedWorkspace() / wizard on first run
+logs/
+.openclaw/
+.openzca/
+schedules.json
+custom-crons.json
+zalo-blocklist.json
+workspace-state.json
+zalo-mode.txt
+heartbeat-state.json
+config/zalo-mode.txt
+memory.db
+meditations.md
+
+# Daily memory files (regenerated each day by the bot)
+memory/20*.md
+memory/heartbeat-state.json
+
+# Personalized active configs (wizard re-creates)
+skills/active.md
+industry/active.md
+prompts/sop/active.md
+prompts/training/active.md
+
+# Knowledge tab uploads (per-user, not template)
+knowledge/cong-ty/files/
+knowledge/san-pham/files/
+knowledge/nhan-vien/files/
+knowledge/cong-ty/index.md
+knowledge/san-pham/index.md
+knowledge/nhan-vien/index.md
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Claude Code per-developer settings (not project code)
+.claude/
+.openclaude/
+.openzca/
+
+# License private key — NEVER commit (stays on Peter's machine only)
+*license*private*
+.claw-license-*
+
+# Build-time secrets + obfuscation backup (never commit)
+electron/.update-secrets.json
+electron/.obfuscate-backup/
+
+# Apple signing certs — NEVER commit (secrets live in GitHub Secrets only)
+mac/
+*.p12
+*.cer
+*.certSigningRequest
+cert-base64.txt
+
+# Zalo QR codes — may contain valid session
+qr.png
+*-qr.png
+zalo-qr*.png
+
+# Old build artifacts at repo root
+modoroclaw-mac.zip
+modoroclaw-mac-portable*.zip
+Huong-dan-cai-9BizClaw-Mac.docx
+
+# Screenshots + non-code files
+dashboard-*.png
+wizard-*.png
+screenshot-*.png
+*.png
+!electron/build/icon.png
+!electron/ui/tray-icon.png
+!electron/ui/9bizclaw-mascot.png
+*.xlsx
+*.dmp
+*.py
+
+# Temp/test files — may contain credentials
+temp-*.js
+temp-*.ps1
+test-*.js
+test-*.ps1
+test-*.bat
+CLEAR-ALL*.bat
+
+# Dev scripts — not part of app
+RESET.bat
+RESET.command
+RUN.bat
+RUN.command
+SOFT-RESET.bat
+USER-RESET.bat
+push-to-mac-repo.bat
+release-windows.bat
+scripts/backup.sh
+scripts/setup.sh
+
+# Dev docs — not part of app
+DESIGN-SYSTEM.md
+RELEASE-STRATEGY.md
+SECURITY-PLAN.md
+README-MAC.md
+Hierarchical-Memory-System.txt
+reflections/
+
+# Session handovers + ephemeral root files
+HANDOVER-*.md
+HEARTBEAT.md
+release-v*.md
+
+# Stale root-level copies (real files live in electron/)
+/splash.html
+/runtime-installer.js
+
+# Generated demo artifacts (scripts output)
+scripts/demo-*
+
+# Misc temp
+/fb-graph-test.js
+/test-pdf.pdf
+docs/agent-workflow-analysis.pdf
+
+# Tool caches
+graphify-out/
+.graphify_python
+.graphifyignore
+.playwright-mcp/
+.superpowers/
+
+# Root package.json (app is in electron/)
+/package.json
+/package-lock.json
+.vercel
+app/.next/
+
+# Client data — contains real tokens/secrets
+client zalo/
+client*/
+
+# Workspace runtime files — not source code
+CEO-MEMORY.md
+active-persona.json
+shop-state.json
+zalo-allowlist.json
+
+# Free-edition hygiene — build output, scratch, runtime logs (never commit)
+/.next/
+.tmp-*
+.test-*
+.run-tests.*
+.commit-msg.txt
+.git-commit-msg.txt
+.python-binary.txt
+audit*.jsonl
+log-client/
+.obsidian/
+user-skills/
+/demo-*.docx
+/demo-*.pptx
+*-Discovery-Kit.docx
+
+# License-server / web portal — not part of the free desktop app
+/app/
+/server/
+/next.config.js
+/next-env.d.ts
+/tailwind.config.js
+/postcss.config.js
+/tsconfig.json
+/.vercelignore

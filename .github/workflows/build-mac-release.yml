@@ -1,0 +1,378 @@
+name: Build Mac .dmg (Release)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a GitHub Release with the .dmg files'
+        required: false
+        default: 'false'
+        type: boolean
+      unsigned:
+        description: 'Build unsigned DMG artifacts when signing cert/password is unavailable'
+        required: false
+        default: 'false'
+        type: boolean
+      arch:
+        description: 'Which macOS build to run'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - arm64
+          - x64
+          - both
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(github.event_name == 'workflow_dispatch' && github.event.inputs.arch == 'arm64' && '{"include":[{"arch":"arm64","runner":"macos-14"}]}' || github.event_name == 'workflow_dispatch' && github.event.inputs.arch == 'x64' && '{"include":[{"arch":"x64","runner":"macos-14"}]}' || '{"include":[{"arch":"arm64","runner":"macos-14"},{"arch":"x64","runner":"macos-14"}]}') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Print env
+        run: |
+          echo "node=$(node --version)"
+          echo "npm=$(npm --version)"
+          echo "arch=$(uname -m)"
+          echo "TARGET_ARCH=${{ matrix.arch }}"
+
+      - name: Fix Python 3.12+ distutils (needed by node-gyp)
+        run: pip3 install --break-system-packages setuptools
+
+      - name: Install dependencies
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_target_platform: darwin
+        run: npm install --no-audit --no-fund
+
+      - name: Verify better-sqlite3 arch matches target
+        working-directory: electron
+        run: |
+          node -e "
+            const fs=require('fs'),
+                  p='node_modules/better-sqlite3/build/Release/better_sqlite3.node';
+            if (!fs.existsSync(p)) { console.error('FAIL: binary missing'); process.exit(1); }
+            const fd=fs.openSync(p,'r'),buf=Buffer.alloc(16);
+            fs.readSync(fd,buf,0,16,0);fs.closeSync(fd);
+            const magicBE=buf.readUInt32BE(0),magicLE=buf.readUInt32LE(0);
+            if (magicBE!==0xfeedfacf&&magicLE!==0xfeedfacf){console.error('FAIL: not Mach-O 64');process.exit(1);}
+            const cpu=buf.readUInt32LE(4);
+            const detected=cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown';
+            const want='${{ matrix.arch }}';
+            console.log('better-sqlite3 binary arch:',detected,'target:',want);
+            if (detected!==want){console.error('FAIL: arch mismatch');process.exit(1);}
+            console.log('OK');
+          "
+
+      - name: Import signing certificate
+        env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ALLOW_UNSIGNED: ${{ inputs.unsigned == true && 'true' || 'false' }}
+        run: |
+          IS_RELEASE_TAG=false
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            IS_RELEASE_TAG=true
+          fi
+          if [ "$ALLOW_UNSIGNED" = "true" ]; then
+            echo "Manual unsigned build requested"
+            echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          if [ "$IS_RELEASE_TAG" = "true" ]; then
+            missing=""
+            for var_name in MAC_CERT_P12_BASE64 MAC_CERT_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+              if [ -z "${!var_name}" ]; then
+                missing="$missing $var_name"
+              fi
+            done
+            if [ -n "$missing" ]; then
+              echo "::error::Release tags require macOS signing and notarization secrets:$missing"
+              exit 1
+            fi
+          fi
+          if [ -z "$MAC_CERT_P12_BASE64" ]; then
+            echo "No signing cert — building unsigned"
+            echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+          else
+            CERT_PATH="$RUNNER_TEMP/cert.p12"
+            if ! echo "$MAC_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH" 2>/dev/null || [ ! -s "$CERT_PATH" ]; then
+              echo "MAC_CERT_P12_BASE64 decode failed — building unsigned"
+              if [ "$IS_RELEASE_TAG" = "true" ]; then
+                echo "::error::MAC_CERT_P12_BASE64 decode failed; refusing to publish unsigned release"
+                exit 1
+              fi
+              echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+              rm -f "$CERT_PATH"
+            else
+              KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+              KEYCHAIN_PASS="ci-$(openssl rand -hex 12)"
+              security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+              security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+              security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+              if ! security import "$CERT_PATH" -P "$MAC_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"; then
+                if [ "$IS_RELEASE_TAG" = "true" ]; then
+                  echo "::error::Failed to import Developer ID certificate"
+                  exit 1
+                fi
+                echo "Signing cert import failed — building unsigned"
+                echo "SIGN_AVAILABLE=false" >> $GITHUB_ENV
+                rm -f "$CERT_PATH"
+                exit 0
+              fi
+              security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+              security list-keychains -d user -s "$KEYCHAIN_PATH" "$(security default-keychain -d user | xargs)"
+              security find-identity -v "$KEYCHAIN_PATH"
+              rm -f "$CERT_PATH"
+              echo "SIGN_AVAILABLE=true" >> $GITHUB_ENV
+              echo "Signing cert imported"
+            fi
+          fi
+
+      - name: Prebuild models
+        working-directory: electron
+        run: npm run prebuild:models
+
+      - name: Prebuild vendor bundle
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: npm run prebuild:vendor
+
+      - name: Prebuild modoro-zalo plugin
+        working-directory: electron
+        run: npm run prebuild:modoro-zalo
+
+      - name: Run smoke guards
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: npm run smoke
+
+      - name: Build .dmg
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_target_platform: darwin
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.SIGN_AVAILABLE == 'true' && 'true' || 'false' }}
+          NOTARIZE_AFTER_DMG: "true"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ulimit -n 65536 2>/dev/null || ulimit -n 10240 2>/dev/null || true
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            npx electron-builder --mac --arm64 --publish never
+          else
+            npx electron-builder --mac --x64 --publish never
+          fi
+
+      - name: Verify + fix better-sqlite3 arch in final build
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+        run: |
+          BINARY=$(find "$(pwd)/../dist" -name "better_sqlite3.node" -path "*/app.asar.unpacked/*" 2>/dev/null | head -1)
+          if [ -z "$BINARY" ]; then
+            echo "WARN: better_sqlite3.node not found in dist — listing dist structure:"
+            find "$(pwd)/../dist" -name "*.node" 2>/dev/null || true
+            echo "Skipping arch verify (binary may be inside asar)"
+            exit 0
+          fi
+          echo "Found binary: $BINARY"
+          DETECTED=$(node -e "
+            const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);
+            fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
+            const cpu=b.readUInt32LE(4);
+            console.log(cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown');
+          " "$BINARY")
+          echo "Final binary arch: $DETECTED, target: ${{ matrix.arch }}"
+          if [ "$DETECTED" = "${{ matrix.arch }}" ]; then
+            echo "OK — arch matches"
+            exit 0
+          fi
+          echo "MISMATCH — fetching correct binary for ${{ matrix.arch }}"
+          BSQL_DIR="$(pwd)/node_modules/better-sqlite3"
+          ELECTRON_VER=$(node -p "require('./package.json').devDependencies.electron")
+          npx --yes prebuild-install -r electron -t $ELECTRON_VER --arch ${{ matrix.arch }} --platform darwin --cwd "$BSQL_DIR" || true
+          FIXED="$BSQL_DIR/build/Release/better_sqlite3.node"
+          PREBUILD_OK=false
+          if [ -f "$FIXED" ]; then
+            PARCH=$(node -e "const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);fs.readSync(fd,b,0,16,0);fs.closeSync(fd);console.log(b.readUInt32LE(4)===0x0100000c?'arm64':'x64');" "$FIXED")
+            if [ "$PARCH" = "${{ matrix.arch }}" ]; then PREBUILD_OK=true; fi
+          fi
+          if [ "$PREBUILD_OK" = "false" ]; then
+            echo "prebuild-install failed — trying electron-rebuild"
+            npx --yes @electron/rebuild -f -w better-sqlite3 -v $ELECTRON_VER --arch ${{ matrix.arch }}
+          fi
+          if [ ! -f "$FIXED" ]; then
+            echo "FATAL: no binary produced at $FIXED"
+            ls -la "$BSQL_DIR/build/Release/" 2>/dev/null || true
+            exit 1
+          fi
+          if [ "$FIXED" != "$BINARY" ]; then
+            cp -f "$FIXED" "$BINARY" 2>/dev/null || true
+          fi
+          VERIFY=$(node -e "
+            const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);
+            fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
+            const cpu=b.readUInt32LE(4);
+            console.log(cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown');
+          " "$BINARY")
+          echo "Verified: $VERIFY"
+          if [ "$VERIFY" != "${{ matrix.arch }}" ]; then
+            echo "FATAL: still mismatched after fix"
+            exit 1
+          fi
+          echo "FIXED — ${{ matrix.arch }} binary in place"
+
+      - name: Verify better-sqlite3 arch inside dmg
+        working-directory: electron
+        run: |
+          DMG=$(find "$(pwd)/../dist" -maxdepth 1 -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "FATAL: no DMG found"
+            exit 1
+          fi
+          MOUNT_DIR="$RUNNER_TEMP/9bizclaw-dmg-${{ matrix.arch }}"
+          mkdir -p "$MOUNT_DIR"
+          hdiutil attach "$DMG" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          BINARY=$(find "$MOUNT_DIR" -name "better_sqlite3.node" -path "*/app.asar.unpacked/*" 2>/dev/null | head -1)
+          if [ -z "$BINARY" ]; then
+            hdiutil detach "$MOUNT_DIR" -quiet || true
+            echo "FATAL: better_sqlite3.node not found inside DMG"
+            exit 1
+          fi
+          DETECTED=$(node -e "
+            const fs=require('fs'),fd=fs.openSync(process.argv[1],'r'),b=Buffer.alloc(16);
+            fs.readSync(fd,b,0,16,0);fs.closeSync(fd);
+            const cpu=b.readUInt32LE(4);
+            console.log(cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown');
+          " "$BINARY")
+          hdiutil detach "$MOUNT_DIR" -quiet
+          echo "DMG better-sqlite3 arch: $DETECTED, target: ${{ matrix.arch }}"
+          if [ "$DETECTED" != "${{ matrix.arch }}" ]; then
+            echo "FATAL: DMG better_sqlite3.node arch mismatch"
+            exit 1
+          fi
+
+      - name: Notarize .dmg
+        if: env.SIGN_AVAILABLE == 'true'
+        working-directory: electron
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG=$(find "$(pwd)/../dist" -maxdepth 1 -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "FATAL: no DMG found to notarize"
+            exit 1
+          fi
+          SUBMIT_JSON="$RUNNER_TEMP/notary-submit-${{ matrix.arch }}.json"
+          LOG_JSON="$RUNNER_TEMP/notary-log-${{ matrix.arch }}.json"
+          echo "Submitting DMG for notarization: $DMG"
+          set +e
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json > "$SUBMIT_JSON"
+          SUBMIT_EXIT=$?
+          set -e
+          SUBMISSION_ID=$(python3 -c "import json,sys; print((json.load(open(sys.argv[1])).get('id') or '').strip())" "$SUBMIT_JSON" 2>/dev/null || true)
+          STATUS=$(python3 -c "import json,sys; print((json.load(open(sys.argv[1])).get('status') or '').strip())" "$SUBMIT_JSON" 2>/dev/null || true)
+          if [ -n "$SUBMISSION_ID" ]; then
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json > "$LOG_JSON" || true
+          fi
+          if [ "$SUBMIT_EXIT" -ne 0 ] || [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization failed with status: ${STATUS:-unknown}"
+            cat "$SUBMIT_JSON" || true
+            exit 1
+          fi
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
+      - name: List dist output
+        run: ls -lh dist/ || true
+
+      - name: Upload .dmg artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: 9BizClaw-mac-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.dmg.blockmap
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.dmg" -o -name "*.dmg.blockmap" \) -exec cp {} release/ \;
+          ls -lh release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          body: |
+            ## 9BizClaw Premium — macOS Release
+
+            **Tải file `.dmg` phù hợp với máy Mac của bạn:**
+            - **Apple Silicon (M1/M2/M3/M4)**: file có chữ `arm64`
+            - **Intel Mac (cũ hơn 2020)**: file có chữ `x64`
+
+            **Cài đặt:**
+            1. Double-click file `.dmg`
+            2. Kéo icon **9BizClaw** vào thư mục **Applications**
+            3. Mở Launchpad hoặc Applications → click 9BizClaw
+            4. Lần đầu macOS có thể hỏi "bạn có muốn mở app tải từ internet?" → click **Open**
+
+            **Lần đầu chạy:** App sẽ tự động tải Node.js và các packages cần thiết (~165MB). Chỉ cần đợi vài phút là xong.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

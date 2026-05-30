@@ -1,0 +1,68 @@
+[
+  {"type": "h1",      "text": "Báo Cáo Tổng Kết Quý I Năm 2026"},
+  {"type": "body",
+    "text": "Công ty TNHH Minh Phát xin trân trọng gửi đến quý đối tác và khách hàng báo cáo tổng kết hoạt động kinh doanh quý I năm 2026. Báo cáo này tổng hợp các số liệu tài chính, kết quả kinh doanh và kế hoạch phát triển trong thời gian tới."
+  },
+  {"type": "callout", "text": "Doanh thu quý I đạt 12.5 tỷ đồng, tăng 18% so với cùng kỳ năm ngoái. Lợi nhuận ròng đạt 2.1 tỷ đồng, vượt kế hoạch 7%."},
+
+  {"type": "h2",      "text": "Tình Hình Kinh Doanh"},
+  {"type": "body",
+    "text": "Trong quý I, công ty đã tập trung vào mảng sản phẩm cao cấp và dịch vụ sau bán hàng. Chiến lược này đã mang lại hiệu quả rõ rệt, với tỷ lệ khách hàng quay lại đạt 68%, cao nhất trong 5 năm gần đây."
+  },
+  {"type": "bullet",  "text": "Doanh thu từ sản phẩm cao cấp tăng 32% so với quý trước"},
+  {"type": "bullet",  "text": "Dịch vụ bảo hành và sửa chữa đóng góp 15% tổng doanh thu"},
+  {"type": "bullet",  "text": "Mở rộng thị trường miền Trung và miền Nam với 3 chi nhánh mới"},
+  {"type": "bullet",  "text": "Ra mắt chương trình khách hàng thân thiết 'Minh Phát VIP'"},
+  {"type": "numbered","text": "Hoàn thành kiểm toán nội bộ và tái cấu trúc bộ phận tài chính"},
+  {"type": "numbered","text": "Triển khai hệ thống ERP mới tại chi nhánh Hồ Chí Minh"},
+  {"type": "numbered","text": "Đào tạo 24 nhân viên bán hàng theo tiêu chuẩn quốc tế"},
+
+  {"type": "h2",      "text": "Bảng Số Liệu Tài Chính"},
+  {"type": "table",
+    "headers": ["Chỉ tiêu",       "Quý I 2026", "Quý I 2025", "Tăng trưởng"],
+    "rows": [
+      ["Doanh thu",          "12.5 tỷ",   "10.6 tỷ",   "+18%"],
+      ["Lợi nhuận gộp",     "4.8 tỷ",    "3.9 tỷ",    "+23%"],
+      ["Chi phí vận hành",   "2.1 tỷ",    "2.0 tỷ",    "+5%"],
+      ["Lợi nhuận ròng",    "2.1 tỷ",    "1.6 tỷ",    "+31%"],
+      ["Số lượng khách hàng","1,247",     "1,089",     "+14.5%"]
+    ],
+    "caption": "Đơn vị: tỷ đồng (VNĐ)"
+  },
+
+  {"type": "pagebreak"},
+
+  {"type": "h1",      "text": "Kế Hoạch Phát Triển Quý II"},
+  {"type": "body",
+    "text": "Quý II năm 2026, công ty đặt mục tiêu mở rộng danh mục sản phẩm và nâng cao chất lượng dịch vụ. Cụ thể, chúng tôi sẽ ra mắt dòng sản phẩm mới mang thương hiệu 'Én Việt' và hoàn thành hệ thống phân phối tại 5 tỉnh thành mới."
+  },
+  {"type": "h2",      "text": "Sản Phẩm Mới: Dòng Én Việt"},
+  {"type": "body",
+    "text": "Sau 18 tháng nghiên cứu và phát triển, công ty sẽ chính thức ra mắt dòng sản phẩm 'Én Việt' vào ngày 15/04/2026. Đây là dòng sản phẩm được thiết kế riêng cho thị trường Việt Nam, với vật liệu cao cấp và công nghệ sản xuất tiên tiến nhất hiện nay."
+  },
+
+  {"type": "h2",      "text": "Các Chỉ Số Mục Tiêu"},
+  {"type": "bullet",  "text": "Doanh thu quý II: 14 tỷ đồng (tăng 12% so với quý I)"},
+  {"type": "bullet",  "text": "Khách hàng mới: 400 khách hàng"},
+  {"type": "bullet",  "text": "Tỷ lệ hài lòng khách hàng: 92% trở lên"},
+  {"type": "bullet",  "text": "Hoàn thành ISO 9001:2015 cho nhà máy sản xuất"},
+
+  {"type": "callout",
+    "text": "Lưu ý quan trọng: Tất cả số liệu trong báo cáo này đã được kiểm toán bởi công ty TNHH Kiểm Toán Phát Triển. Báo cáo chỉ có giá trị tham khảo và không thay thế cho các tài liệu pháp lý chính thức."
+  },
+
+  {"type": "h2",      "text": "Cam Kết Của Ban Lãnh Đạo"},
+  {"type": "body",
+    "text": "Chúng tôi cam kết tiếp tục nỗ lực mang đến những sản phẩm và dịch vụ tốt nhất cho khách hàng. Mọi ý kiến đóng góp xin gửi về địa chỉ email: lienhe@minhphat.vn hoặc qua tổng đài 1900-1234."
+  },
+  {"type": "divider"},
+
+  {"type": "bibliography",
+    "title": "Tài Liệu Tham Khảo",
+    "items": [
+      {"id": "1", "text": "Báo cáo tài chính quý I/2026 — Công ty TNHH Minh Phát (nội bộ)."},
+      {"id": "2", "text": "Chiến lược kinh doanh 2026-2030 — Ban lãnh đạo Công ty TNHH Minh Phát."},
+      {"id": "3", "text": "Báo cáo ngành hàng tiêu dùng Việt Nam Q1/2026 — Viện Nghiên cứu Thị trường VN."}
+    ]
+  }
+]

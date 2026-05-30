@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Chuẩn Bị Họp — Sprint 1 Kickoff — 13/05/2026</title>
+<style>
+  @page { margin: 16mm 14mm 16mm 14mm; size: A4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5px; line-height: 1.5; color: #1a1a1a; background: #fff;
+  }
+  h1 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .subtitle {
+    font-size: 11px; color: #666; margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 2px solid #111;
+  }
+  h2 {
+    font-size: 13px; font-weight: 700; color: #111;
+    margin-top: 16px; margin-bottom: 6px;
+    padding-bottom: 3px; border-bottom: 1px solid #ddd;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 11.5px; font-weight: 600; color: #333; margin-top: 10px; margin-bottom: 4px; }
+  p { margin-bottom: 5px; }
+  ul, ol { margin-left: 16px; margin-bottom: 5px; }
+  li { margin-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px; }
+  th {
+    background: #f5f5f5; font-weight: 600; text-align: left;
+    padding: 4px 5px; border: 1px solid #ddd;
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.3px; color: #555;
+  }
+  td { padding: 3px 5px; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .tag {
+    display: inline-block; font-size: 8.5px; font-weight: 600;
+    padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+  }
+  .tag-ok { background: #e8f5e9; color: #2e7d32; }
+  .tag-high { background: #fce4ec; color: #c62828; }
+  .tag-med { background: #fff3e0; color: #e65100; }
+  .tag-dead { background: #f5f5f5; color: #999; }
+  .section-num {
+    display: inline-block; width: 20px; height: 20px; line-height: 20px;
+    text-align: center; background: #111; color: #fff; border-radius: 4px;
+    font-size: 10px; font-weight: 700; margin-right: 5px; vertical-align: middle;
+  }
+  .sidebar-mock {
+    font-family: 'Consolas', 'SF Mono', monospace; font-size: 9.5px;
+    background: #f7f7f7; border: 1px solid #e0e0e0; border-radius: 4px;
+    padding: 8px 12px; margin-bottom: 8px; line-height: 1.65; color: #333;
+  }
+  .sidebar-mock .coming { color: #bbb; font-style: italic; }
+  .note-box {
+    background: #fffde7; border-left: 3px solid #fbc02d;
+    padding: 5px 8px; margin: 6px 0; font-size: 10px; border-radius: 0 4px 4px 0;
+  }
+  .action-box {
+    background: #e8f5e9; border-left: 3px solid #43a047;
+    padding: 5px 8px; margin: 6px 0; font-size: 10px; border-radius: 0 4px 4px 0;
+  }
+  .metric { font-weight: 700; color: #1565c0; }
+  code {
+    font-family: 'Consolas', 'SF Mono', monospace; font-size: 9.5px;
+    background: #f5f5f5; padding: 1px 3px; border-radius: 2px;
+  }
+  .page-break { page-break-before: always; }
+  .two-col { display: flex; gap: 14px; }
+  .two-col > div { flex: 1; }
+  .summary-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 12px;
+  }
+  .summary-card {
+    background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 6px;
+    padding: 6px 8px; text-align: center;
+  }
+  .summary-card .num { font-size: 18px; font-weight: 700; color: #111; }
+  .summary-card .lbl { font-size: 8.5px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+  .footer {
+    margin-top: 16px; padding-top: 6px; border-top: 1px solid #ddd;
+    font-size: 8.5px; color: #999; text-align: center;
+  }
+  .skill-table td:first-child { white-space: nowrap; font-weight: 500; }
+  .dead { color: #aaa; }
+</style>
+</head>
+<body>
+
+<h1>Chuẩn Bị Họp — Sprint 1 Kickoff</h1>
+<div class="subtitle">13/05/2026 &middot; 9BizClaw v2.4.3 &middot; MODORO Digital</div>
+
+<div class="summary-grid">
+  <div class="summary-card"><div class="num">~20</div><div class="lbl">Skills thật sự dùng</div></div>
+  <div class="summary-card"><div class="num">~22</div><div class="lbl">Skills chưa ai xài</div></div>
+  <div class="summary-card"><div class="num">33</div><div class="lbl">Skills cần tạo thêm</div></div>
+</div>
+
+<!-- #1 -->
+<h2><span class="section-num">1</span> Đơn giản hoá cài đặt</h2>
+<p>Hiện tại wizard 6 bước, trong đó bước 2 (15 trait), bước 3 (9Router + OAuth qua 3 cửa sổ), bước 4 (Telegram nhảy 3+ lần) gây khó cho CEO.</p>
+<div class="action-box">
+  <strong>Đề xuất:</strong>
+  <ul>
+    <li>Bước 2: Gộp 15 trait thành 3-5 preset ("Thân thiện", "Chuyên nghiệp", "Năng động") — chọn 1 là xong</li>
+    <li>Bước 3: Ẩn 9Router, tự khởi động ngầm. Chỉ thấy nút "Kết nối ChatGPT" &rarr; OAuth &rarr; xong</li>
+    <li>Bước 4: Tự động hoá /start hoặc video hướng dẫn 30 giây</li>
+    <li>Gộp bước 1+2 &rarr; giảm từ 6 xuống 4-5 bước</li>
+  </ul>
+</div>
+
+<!-- #2 -->
+<h2><span class="section-num">2</span> Sắp xếp lại menu sidebar</h2>
+<div class="two-col">
+  <div>
+    <h3>Hiện tại</h3>
+    <div class="sidebar-mock">
+      Điều khiển: Tổng quan, Chat, Lịch tự động, Tài liệu, Hình ảnh, Tính cách bot<br>
+      Kênh: Telegram, Zalo, Facebook, Google<br>
+      Cài đặt: AI Models, Nâng cao, Giao diện, Tray, Cập nhật
+    </div>
+  </div>
+  <div>
+    <h3>Đề xuất mới</h3>
+    <div class="sidebar-mock">
+      Tổng quan &middot; Chat<br>
+      Kênh: Telegram, Zalo, <span class="coming">WhatsApp (sắp có)</span><br>
+      Tích hợp: Facebook, Google, <span class="coming">Shopee, Lazada, TikTok Shop, CRM</span><br>
+      Tự động hoá: Lịch tự động, <strong>Khả năng (MỚI)</strong><br>
+      Kiến thức: Tài liệu, Hình ảnh, Cá nhân hoá<br>
+      Cài đặt: AI Models, Cập nhật, Giao diện
+    </div>
+  </div>
+</div>
+<div class="note-box">WhatsApp, Shopee, Lazada, TikTok Shop, CRM chưa có code. Hiển thị "Sắp có" để tạo kỳ vọng khi bán hàng.</div>
+
+<!-- #3 -->
+<h2><span class="section-num">3</span> Cửa sổ Chat độc lập</h2>
+<p>Tách Chat thành cửa sổ riêng (BrowserWindow), CEO mở song song với Dashboard. Cùng partition <code>persist:embed-openclaw</code>, khoảng 4 file, 1-2 ngày.</p>
+
+<!-- #4 -->
+<h2><span class="section-num">4</span> Tạo tài khoản MODORO trên ClawHub</h2>
+<p>ClawHub (clawhub.ai) — <span class="metric">52.7K tools</span>, <span class="metric">180K users</span>. Publish skill miễn phí bằng <code>clawhub skill publish</code>. Có thể publish 10-15 skill để tăng nhận diện thương hiệu MODORO.</p>
+
+<!-- #5 -->
+<h2><span class="section-num">5</span> Chuẩn hoá Bộ não, Skill, Plugin</h2>
+<p>Bộ não (9 brain files): đầy đủ. Plugin lõi: đầy đủ. Thiếu: Google Calendar (0 endpoint), Gmail (một phần), WhatsApp/Shopee/Lazada/TikTok/CRM (0 code). Chi tiết skills xem bên dưới.</p>
+
+<!-- #7 -->
+<h2><span class="section-num">7</span> Hướng dẫn cài đặt định kỳ cho Premium</h2>
+<p>Zoom/Google Meet, 30-45 phút, 2 lần/tháng (thứ 3 + thứ 5 tuần 2 và 4). Người làm: Huy hoặc Tài.</p>
+<table>
+  <tr><th>Phần</th><th>Nội dung</th><th>Thời gian</th></tr>
+  <tr><td>1</td><td>Demo cài đặt từ đầu đến xong</td><td>10 phút</td></tr>
+  <tr><td>2</td><td>CEO tự cài trên máy, có hỗ trợ trực tuyến</td><td>15 phút</td></tr>
+  <tr><td>3</td><td>Hỏi đáp</td><td>10 phút</td></tr>
+  <tr><td>4</td><td>Hướng dẫn bước tiếp (upload tài liệu, bật tự động hoá)</td><td>5 phút</td></tr>
+</table>
+<p>Công cụ: Google Calendar invite tự động khi mua Premium. Link Zoom cố định.</p>
+
+<!-- #9 -->
+<h2><span class="section-num">9</span> Chương trình chia sẻ Skill định kỳ</h2>
+<p>Livestream hoặc Zoom, 30 phút, 2 lần/tháng. Mỗi buổi demo 2-3 skill mới, use case thực tế, Q&A. Mục đích: tăng giá trị cho Premium + thu hút khách mới.</p>
+
+<!-- #10 -->
+<h2><span class="section-num">10</span> Đào tạo Installer</h2>
+<p>Đào tạo đội ngũ cài đặt 9BizClaw cho khách hàng. 5 module:</p>
+<table>
+  <tr><th>Module</th><th>Nội dung</th><th>Thời gian</th></tr>
+  <tr><td>1</td><td>Cài đặt + wizard</td><td>1h</td></tr>
+  <tr><td>2</td><td>Cá nhân hoá theo ngành</td><td>1h</td></tr>
+  <tr><td>3</td><td>Xử lý lỗi thường gặp (EBUSY, 9Router 500, Zalo QR)</td><td>1h</td></tr>
+  <tr><td>4</td><td>Demo cho khách — flow "tạo ảnh + bài viết"</td><td>1h</td></tr>
+  <tr><td>5</td><td>Handover + báo cáo</td><td>30 phút</td></tr>
+</table>
+
+<!-- Các mục còn lại -->
+<h2>Các mục còn lại (không phải task của mình)</h2>
+<table>
+  <tr><th>#</th><th>Hạng mục</th><th>Ai làm</th><th>Ghi chú</th></tr>
+  <tr><td>6</td><td>Video hướng dẫn sử dụng (5 video)</td><td>Huy/Tài</td><td>OBS/Loom, 3-5 phút/video</td></tr>
+  <tr><td>11</td><td>Tự động duyệt đơn 99k + trợ lý riêng</td><td>Chờ phân công</td><td>Payment gateway + license tier</td></tr>
+  <tr><td>12</td><td>CRM tập trung</td><td>Chờ phân công</td><td>Chọn CRM + export dữ liệu</td></tr>
+  <tr><td>13</td><td>Buổi trao đổi CRM cho bên anh Phúc</td><td>Lâm + Tài</td><td>Demo import + phân quyền</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<!-- SKILL CATALOG -->
+<h2>Danh sách Skills — Đánh giá thực tế</h2>
+
+<div class="note-box">
+  <strong>Thực trạng:</strong> Trên giấy có 42 skill active, nhưng thực tế chỉ khoảng <span class="metric">20 skill</span> được hệ thống tự động kích hoạt qua AGENTS.md. Còn lại hoặc là lazy-load (CEO phải chủ động hỏi đúng keyword) hoặc không ai xài bao giờ. Skill theo ngành và nhiều skill marketing tải từ ClawHub thực tế không có khách nào sử dụng.
+</div>
+
+<h3>Dùng hàng ngày — tự động kích hoạt qua AGENTS.md (19 skills)</h3>
+<p>Đây là những skill thật sự chạy trong production, có trigger rõ ràng trong Capability Router.</p>
+<table class="skill-table">
+  <tr><th>Skill</th><th>Mô tả</th></tr>
+  <tr><td>zalo-customer-care</td><td>Chăm sóc khách Zalo: trả lời, hỗ trợ mua hàng, tiếp nhận khiếu nại</td></tr>
+  <tr><td>zalo-group</td><td>Quản lý nhóm Zalo: 3 chế độ (mention, all, silent)</td></tr>
+  <tr><td>zalo-reply-rules</td><td>Quy tắc reply Zalo: 19 trigger phòng thủ, format, checklist</td></tr>
+  <tr><td>send-zalo</td><td>CEO gửi tin Zalo cho khách/nhóm từ Telegram</td></tr>
+  <tr><td>telegram-ceo</td><td>Kênh CEO Telegram: cố vấn, điều khiển Zalo từ Telegram</td></tr>
+  <tr><td>follow-up</td><td>Tự động quét khách Zalo chưa được phản hồi</td></tr>
+  <tr><td>channel-control</td><td>Tạm dừng/tiếp tục kênh, danh sách chặn</td></tr>
+  <tr><td>veteran-behavior</td><td>Persona, playbook, tier khách, tone match tự động</td></tr>
+  <tr><td>knowledge-base</td><td>Tra cứu kiến thức công ty/sản phẩm trả lời khách</td></tr>
+  <tr><td>facebook-image</td><td>Tạo ảnh qua gpt-image-2, đăng bài Facebook</td></tr>
+  <tr><td>facebook-post-workflow</td><td>Tạo ảnh + bài Facebook, CEO duyệt Telegram, tự động đăng</td></tr>
+  <tr><td>zalo-post-workflow</td><td>Tạo ảnh + nội dung Zalo, gửi nhóm theo lịch</td></tr>
+  <tr><td>google-sheet</td><td>Đọc Google Sheet qua CSV</td></tr>
+  <tr><td>workflow-chains</td><td>Kết hợp nhiều khả năng theo chuỗi</td></tr>
+  <tr><td>cron-management</td><td>Tạo/sửa/xoá lịch tự động qua API</td></tr>
+  <tr><td>ceo-file-api</td><td>Đọc/ghi file trên máy CEO qua API local</td></tr>
+  <tr><td>ceo-memory-api</td><td>Lưu/tìm/xoá ký ức bot</td></tr>
+  <tr><td>workspace-api</td><td>Đọc/ghi file nội bộ workspace</td></tr>
+</table>
+
+<h3>Thỉnh thoảng dùng — CEO phải chủ động hỏi đúng keyword (5 skills)</h3>
+<p>Lazy-load qua skills/INDEX.md. Có giá trị khi CEO biết hỏi, nhưng không tự kích hoạt.</p>
+<table class="skill-table">
+  <tr><th>Skill</th><th>Mô tả</th></tr>
+  <tr><td>content-humanizer</td><td>Biến nội dung AI thành giọng tự nhiên</td></tr>
+  <tr><td>content-production</td><td>Viết bài hoàn chỉnh từ chủ đề, tối ưu SEO</td></tr>
+  <tr><td>brand-guidelines</td><td>Duy trì nhất quán bộ nhận dạng thương hiệu</td></tr>
+  <tr><td>finance-bundle</td><td>Phân tích tài chính, định giá DCF, dự báo ngân sách</td></tr>
+  <tr><td>finance-lead</td><td>CFO startup: mô hình tài chính, burn rate</td></tr>
+</table>
+
+<h3>Không ai xài — nên xem xét dọn dẹp hoặc gộp (18 skills)</h3>
+
+<p><strong>Skill theo ngành (8):</strong> Copy vào <code>skills/active.md</code> lúc wizard, nhưng thực tế CEO không bao giờ tương tác trực tiếp. Nội dung quá chung chung, chưa rõ routing vào agent.</p>
+<table class="skill-table">
+  <tr><th>Skill</th><th>Ghi chú</th></tr>
+  <tr><td class="dead">fnb.md</td><td class="dead">F&B — copy vào active.md lúc wizard, chưa ai dùng thực tế</td></tr>
+  <tr><td class="dead">bat-dong-san.md</td><td class="dead">Bất động sản — tương tự</td></tr>
+  <tr><td class="dead">thuong-mai.md</td><td class="dead">Thương mại — tương tự</td></tr>
+  <tr><td class="dead">dich-vu.md</td><td class="dead">Dịch vụ — tương tự</td></tr>
+  <tr><td class="dead">giao-duc.md</td><td class="dead">Giáo dục — tương tự</td></tr>
+  <tr><td class="dead">cong-nghe.md</td><td class="dead">Công nghệ — tương tự</td></tr>
+  <tr><td class="dead">san-xuat.md</td><td class="dead">Sản xuất — tương tự</td></tr>
+  <tr><td class="dead">tong-quat.md</td><td class="dead">Tổng quát — tương tự</td></tr>
+</table>
+
+<p><strong>Skill marketing tải từ ClawHub (8):</strong> Có sẵn nội dung hay nhưng CEO SMB Việt Nam không bao giờ tự hỏi "tư vấn copywriting" hay "pricing strategy". Phù hợp để publish lên ClawHub cho cộng đồng hơn là dùng nội bộ.</p>
+<table class="skill-table">
+  <tr><th>Skill</th><th>Ghi chú</th></tr>
+  <tr><td class="dead">copywriting</td><td class="dead">Viết copy marketing — CEO không hỏi kiểu này</td></tr>
+  <tr><td class="dead">copy-editing</td><td class="dead">Chỉnh sửa copy — tương tự</td></tr>
+  <tr><td class="dead">content-strategy</td><td class="dead">Kế hoạch content — tương tự</td></tr>
+  <tr><td class="dead">social-content</td><td class="dead">Nội dung mạng xã hội — tương tự</td></tr>
+  <tr><td class="dead">email-sequence</td><td class="dead">Chuỗi email — tương tự</td></tr>
+  <tr><td class="dead">paid-ads</td><td class="dead">Quảng cáo PPC — tương tự</td></tr>
+  <tr><td class="dead">launch-strategy</td><td class="dead">Chiến lược ra mắt — tương tự</td></tr>
+  <tr><td class="dead">pricing-strategy</td><td class="dead">Chiến lược giá — tương tự</td></tr>
+</table>
+
+<p><strong>Khác (2):</strong></p>
+<table class="skill-table">
+  <tr><th>Skill</th><th>Ghi chú</th></tr>
+  <tr><td class="dead">change-management</td><td class="dead">Framework ADKAR — quá lý thuyết cho CEO SMB</td></tr>
+  <tr><td class="dead">appointments</td><td class="dead">Lịch hẹn — có code riêng nhưng skill file ít ai đọc</td></tr>
+</table>
+
+<div class="note-box">
+  <strong>Tổng kết thực tế:</strong> 42 skill trên giấy, nhưng chỉ <span class="metric">19 skill</span> chạy tự động hàng ngày + <span class="metric">5 skill</span> thỉnh thoảng dùng = <strong>24 skill có giá trị thật</strong>. 18 skill còn lại nên publish lên ClawHub cho cộng đồng hoặc archive. Ngoài ra còn 46 skill đã archive trong <code>skills/_archived/</code>.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Skills cần tạo -->
+<h2>33 Skills cần tạo thêm (theo Template Gallery)</h2>
+
+<h3>Khách hàng & Chăm sóc (+2)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>customer-satisfaction-survey</td><td>Gửi form khảo sát hài lòng sau 3 ngày mua hàng</td></tr>
+  <tr><td>repeated-request-detection</td><td>Phát hiện yêu cầu lặp lại, escalate CEO + đánh dấu urgent</td></tr>
+</table>
+
+<h3>Nội dung & Marketing (+2)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>competitor-analysis</td><td>Phân tích đối thủ, so sánh điểm mạnh/yếu</td></tr>
+  <tr><td>seo-analysis</td><td>Phân tích SEO, gợi ý từ khoá, tối ưu nội dung</td></tr>
+</table>
+
+<h3>Bán hàng & Báo giá (+6)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>auto-quotation</td><td>Tạo báo giá tự động từ bảng giá + thông tin khách</td></tr>
+  <tr><td>sales-report</td><td>Tổng hợp doanh thu, báo cáo trend bán hàng</td></tr>
+  <tr><td>lead-scoring</td><td>Chấm điểm lead dựa trên tần suất liên hệ + lịch sử</td></tr>
+  <tr><td>sales-pipeline</td><td>Theo dõi deal: mới &rarr; đàm phán &rarr; chốt &rarr; mất</td></tr>
+  <tr><td>quotation-follow-up</td><td>Nhắc tự động sau 3 ngày gửi báo giá chưa phản hồi</td></tr>
+  <tr><td>revenue-forecast</td><td>Dự báo doanh thu dựa trên data 3 tháng</td></tr>
+</table>
+
+<h3>Tài chính & Kế toán (+5)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>payroll-calculation</td><td>Tính lương = cơ bản + phụ cấp + thưởng - khấu trừ</td></tr>
+  <tr><td>invoice-reminder</td><td>Nhắc hạn thanh toán hoá đơn trước 3 ngày</td></tr>
+  <tr><td>expense-anomaly</td><td>Cảnh báo chi phí vượt 120% tháng trước</td></tr>
+  <tr><td>tax-preparation</td><td>Tổng hợp số liệu, nhắc deadline nộp thuế</td></tr>
+  <tr><td>product-pnl</td><td>Phân tích lãi/lỗ theo sản phẩm/dịch vụ</td></tr>
+</table>
+
+<h3>Nhân sự & Đội ngũ (+6)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>payroll-hr</td><td>Tính lương cơ bản + OT + phụ cấp + BHXH + thuế TNCN</td></tr>
+  <tr><td>leave-management</td><td>Theo dõi ngày phép, tự động trừ khi duyệt</td></tr>
+  <tr><td>job-description</td><td>Tạo JD chuyên nghiệp theo vị trí + ngành</td></tr>
+  <tr><td>onboarding-checklist</td><td>Checklist onboarding 30/60/90 ngày</td></tr>
+  <tr><td>kpi-evaluation</td><td>Tổng hợp KPI, đánh giá hiệu suất đội ngũ</td></tr>
+  <tr><td>training-plan</td><td>Kế hoạch đào tạo theo vị trí + kỹ năng</td></tr>
+</table>
+
+<h3>Vận hành & Quy trình (+5)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>sop-generator</td><td>Viết SOP tự động theo mô tả công việc</td></tr>
+  <tr><td>process-flowchart</td><td>Tạo sơ đồ quy trình dạng text</td></tr>
+  <tr><td>inventory-alert</td><td>Cảnh báo tồn kho dưới mức tối thiểu</td></tr>
+  <tr><td>supplier-tracking</td><td>Theo dõi giao hàng, nhắc khi trễ hạn</td></tr>
+  <tr><td>quality-checklist</td><td>Bảng kiểm chất lượng theo sản phẩm/dịch vụ</td></tr>
+</table>
+
+<h3>Chiến lược & Phát triển (+7)</h3>
+<table class="skill-table">
+  <tr><th>Tên</th><th>Mô tả</th></tr>
+  <tr><td>swot-analysis</td><td>Phân tích SWOT, gợi ý hành động</td></tr>
+  <tr><td>market-research</td><td>Phân tích thị trường, xu hướng, cơ hội</td></tr>
+  <tr><td>business-plan</td><td>Business plan theo chuẩn ngân hàng</td></tr>
+  <tr><td>expansion-analysis</td><td>Phân tích mở rộng: chi phí, rủi ro, hoà vốn</td></tr>
+  <tr><td>franchise-model</td><td>Mô hình franchise: phí, điều kiện, quy trình</td></tr>
+  <tr><td>pitch-deck</td><td>Pitch deck: vấn đề, giải pháp, thị trường, tài chính</td></tr>
+  <tr><td>partner-evaluation</td><td>Phân tích đối tác: tài chính, uy tín, rủi ro</td></tr>
+</table>
+
+<div class="footer">
+  9BizClaw v2.4.3 &middot; MODORO Digital &middot; Sprint 1 Kickoff &middot; 13/05/2026
+</div>
+
+</body>
+</html>

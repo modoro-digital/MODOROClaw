@@ -1,0 +1,75 @@
+{
+  "id": "zalo-cron",
+  "title": "Create scheduled Zalo group messages or agent jobs",
+  "ownerSource": [
+    "electron/lib/cron-api.js",
+    "electron/lib/cron.js",
+    "AGENTS.md"
+  ],
+  "triggerExamples": [
+    "mỗi sáng gửi báo cáo vào nhóm",
+    "tạo lịch nhắc nhóm Zalo",
+    "cron mỗi ngày tìm tin rồi gửi nhóm"
+  ],
+  "allowedChannels": [
+    "telegram-ceo",
+    "dashboard"
+  ],
+  "blockedChannels": [
+    "zalo-customer"
+  ],
+  "requiresConfirmation": true,
+  "sideEffects": [
+    "creates-cron",
+    "may-send-zalo-message"
+  ],
+  "tokenSource": "Telegram CEO web_fetch automatically attaches internal bearer auth for localhost API; no model-visible token",
+  "apiCalls": [
+    {
+      "method": "GET",
+      "path": "/api/cron/list",
+      "purpose": "list existing cron entries and available Zalo groups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron/create",
+      "purpose": "create fixed-message or agent-mode cron"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cron/replace",
+      "purpose": "atomically delete old cron entries and create replacements so partial updates cannot lose schedules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron/delete",
+      "purpose": "delete cron by id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cron/toggle",
+      "purpose": "enable or disable cron"
+    },
+    {
+      "method": "GET",
+      "path": "/api/zalo/send",
+      "purpose": "agent-mode delivery target after cron finishes"
+    }
+  ],
+  "externalPermissions": [
+    "Zalo listener running",
+    "known Zalo group id"
+  ],
+  "successProofs": [
+    "create response contains id",
+    "replace response contains success:true, transactional:true, and createdIds",
+    "custom-crons.json entry is enabled and schedulable",
+    "safe openzca parser accepts fixed-message prompt"
+  ],
+  "negativeTests": [
+    "must reject unknown groupId",
+    "must reject every-minute cron frequency",
+    "must not delete existing cron entries when replacement create validation fails",
+    "must refresh embedded internal tokens after app restart"
+  ]
+}

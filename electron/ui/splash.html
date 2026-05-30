@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>9BizClaw — Đang cài đặt</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --surface: #131317;
+    --surface-raised: #1a1a20;
+    --border: rgba(255, 255, 255, 0.08);
+    --text-primary: #f5f5f7;
+    --text-secondary: rgba(245, 245, 247, 0.7);
+    --text-tertiary: rgba(245, 245, 247, 0.4);
+    --accent: #e86a5a;
+    --accent-dim: rgba(232, 106, 90, 0.15);
+    --accent-glow: rgba(232, 106, 90, 0.4);
+    --success: #4ade80;
+    --success-dim: rgba(74, 222, 128, 0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    overflow-y: auto;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Title bar ── */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 0 16px;
+    height: 38px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-app-region: drag;
+  }
+  .titlebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+  }
+  .titlebar-brand .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: pulse-dot 1.6s ease-in-out infinite;
+  }
+  .titlebar-brand .dot.done {
+    background: var(--success);
+    animation: none;
+  }
+  .titlebar-brand .brand-name {
+    color: var(--text-primary);
+  }
+  .titlebar-controls {
+    display: flex;
+    gap: 6px;
+    -webkit-app-region: no-drag;
+  }
+  .ctrl-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 150ms, color 150ms;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .ctrl-btn.close:hover { background: #e53e3e; color: #fff; }
+  .ctrl-btn svg { width: 12px; height: 12px; }
+
+  /* ── Content ── */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px 16px;
+    overflow: hidden;
+    min-height: 0;
+  }
+  body.error-state .content {
+    overflow: visible;
+    overflow-y: auto;
+  }
+
+  /* Logo */
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .logo {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 300ms ease;
+  }
+  .logo.pulsing {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+    animation: logo-pulse 2s ease-out infinite;
+  }
+  .logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .logo-fallback {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #e86a5a 0%, #d14432 100%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .logo-title { flex: 1; min-width: 0; }
+  .logo-title h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+    margin-bottom: 2px;
+  }
+  .logo-title p {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* ── Overall Progress ── */
+  .progress-wrap {
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .progress-label-left {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .progress-label-right {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    transition: color 300ms;
+  }
+  .progress-label-right.complete { color: var(--success); }
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e86a5a, #f08378);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35));
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  .progress-fill.complete {
+    background: linear-gradient(90deg, #4ade80, #86efac);
+  }
+  .progress-sub {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    min-height: 14px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    letter-spacing: 0.2px;
+    opacity: 0.7;
+  }
+
+  /* ── Steps ── */
+  .steps {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    min-height: 0;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background 200ms;
+    background: transparent;
+  }
+  .step.active { background: var(--accent-dim); }
+  .step.done { background: var(--success-dim); }
+  .step-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-tertiary);
+    transition: background 250ms, color 250ms, box-shadow 250ms;
+  }
+  .step.active .step-icon {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 0 14px var(--accent-glow);
+  }
+  .step.done .step-icon {
+    background: var(--success);
+    color: white;
+  }
+  .step-content { flex: 1; min-width: 0; }
+  .step-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: color 200ms;
+  }
+  .step.active .step-title { color: var(--text-primary); font-weight: 600; }
+  .step.done .step-title { color: var(--success); }
+  .step-desc {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Spinner for active step */
+  .step.active .step-desc::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-left: 5px;
+    animation: spin 0.7s linear infinite;
+    position: relative;
+    top: -1px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding-bottom: 4px;
+  }
+
+  /* ── Animations ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+  }
+  @keyframes logo-pulse {
+    0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+    70%  { box-shadow: 0 0 0 12px rgba(232,106,90,0); }
+    100% { box-shadow: 0 0 0 0 rgba(232,106,90,0); }
+  }
+
+  /* ── Error state ── */
+  .progress-label-right.error { color: #f87171; }
+  .step.error-state .step-icon { background: #f87171; color: white; }
+
+  /* ── Environment error panel ── */
+  .env-error-panel {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: var(--surface-raised);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 10px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .env-error-headline {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f87171;
+    margin-bottom: 4px;
+  }
+  .env-error-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .env-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .env-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .env-checklist li .chk {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .env-checklist li .chk.ok {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+  .env-checklist li .chk.fail {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+  }
+  .env-detail-toggle {
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .env-detail-toggle:hover { color: var(--text-secondary); }
+  .env-detail-toggle .arrow { transition: transform 150ms; }
+  .env-detail-toggle .arrow.open { transform: rotate(90deg); }
+  .env-detail-box {
+    display: none;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    font-size: 10px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    color: var(--text-tertiary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow-y: auto;
+    line-height: 1.5;
+  }
+  .env-detail-box.open { display: block; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+  body.error-state ::-webkit-scrollbar-thumb { background: rgba(248,113,113,0.4); }
+  body.error-state ::-webkit-scrollbar-thumb:hover { background: rgba(248,113,113,0.6); }
+</style>
+</head>
+<body>
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="titlebar-brand">
+      <div class="dot" id="titlebar-dot"></div>
+      <span class="brand-name">9BizClaw</span>
+      <span>— Đang cài đặt</span>
+    </div>
+    <div class="titlebar-controls">
+      <!-- Minimize -->
+      <button class="ctrl-btn" id="btn-minimize" title="Thu nhỏ" onclick="window.splash.minimize()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <line x1="2" y1="6" x2="10" y2="6"/>
+        </svg>
+      </button>
+      <!-- Close (cancels install, exits) -->
+      <button class="ctrl-btn close" id="btn-close" title="Đóng — cài đặt sẽ dừng lại"
+        onclick="window.splash.cancelInstall()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <line x1="2" y1="2" x2="10" y2="10"/>
+          <line x1="10" y1="2" x2="2" y2="10"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <!-- Logo + heading row -->
+    <div class="logo-row">
+      <div class="logo" id="logo">
+        <img src="9bizclaw-mascot.png" alt="9BizClaw"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback">9B</div>
+      </div>
+      <div class="logo-title">
+        <h2 id="title">Đang cài đặt 9BizClaw</h2>
+        <p id="subtitle">Quá trình này chỉ diễn ra một lần duy nhất.</p>
+      </div>
+    </div>
+
+    <!-- Overall progress -->
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span class="progress-label-left" id="progress-label">Tiến độ</span>
+        <span class="progress-label-right" id="percent">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="fill"></div>
+      </div>
+      <div class="progress-sub" id="substep"></div>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step" id="step-node">
+        <div class="step-icon" id="icon-node">1</div>
+        <div class="step-content">
+          <div class="step-title">Trình chạy Node.js</div>
+          <div class="step-desc" id="desc-node">Đang kiểm tra...</div>
+        </div>
+      </div>
+      <div class="step" id="step-packages">
+        <div class="step-icon" id="icon-packages">2</div>
+        <div class="step-content">
+          <div class="step-title">Cài đặt gói phần mềm</div>
+          <div class="step-desc" id="desc-packages">OpenClaw, 9Router, OpenZCA</div>
+        </div>
+      </div>
+      <div class="step" id="step-python">
+        <div class="step-icon" id="icon-python">3</div>
+        <div class="step-content">
+          <div class="step-title">Python helper</div>
+          <div class="step-desc" id="desc-python">Script đọc và sửa file</div>
+        </div>
+      </div>
+      <div class="step" id="step-plugin">
+        <div class="step-icon" id="icon-plugin">4</div>
+        <div class="step-content">
+          <div class="step-title">Plugin Zalo</div>
+          <div class="step-desc" id="desc-plugin">modoro-zalo (kết nối Zalo)</div>
+        </div>
+      </div>
+      <div class="step" id="step-model">
+        <div class="step-icon" id="icon-model">5</div>
+        <div class="step-content">
+          <div class="step-title">Mô hình AI</div>
+          <div class="step-desc" id="desc-model">Mô hình nhúng (~450 MB)</div>
+        </div>
+      </div>
+      <div class="step" id="step-complete">
+        <div class="step-icon" id="icon-complete">6</div>
+        <div class="step-content">
+          <div class="step-title">Hoàn tất</div>
+          <div class="step-desc" id="desc-complete">Sẵn sàng sử dụng</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">9Biz</div>
+  </div>
+
+<script>
+  const fill         = document.getElementById('fill');
+  const percentEl    = document.getElementById('percent');
+  const substepEl    = document.getElementById('substep');
+  const title        = document.getElementById('title');
+  const subtitle     = document.getElementById('subtitle');
+  const progressLabel = document.getElementById('progress-label');
+  const titlebarDot  = document.getElementById('titlebar-dot');
+  const logo         = document.getElementById('logo');
+
+  const steps = {
+    node:     { el: document.getElementById('step-node'),     icon: document.getElementById('icon-node'),     desc: document.getElementById('desc-node') },
+    packages: { el: document.getElementById('step-packages'), icon: document.getElementById('icon-packages'), desc: document.getElementById('desc-packages') },
+    python:   { el: document.getElementById('step-python'),   icon: document.getElementById('icon-python'),   desc: document.getElementById('desc-python') },
+    plugin:   { el: document.getElementById('step-plugin'),   icon: document.getElementById('icon-plugin'),   desc: document.getElementById('desc-plugin') },
+    model:    { el: document.getElementById('step-model'),    icon: document.getElementById('icon-model'),    desc: document.getElementById('desc-model') },
+    complete: { el: document.getElementById('step-complete'), icon: document.getElementById('icon-complete'), desc: document.getElementById('desc-complete') },
+  };
+
+  function setStepDone(stepName) {
+    const s = steps[stepName];
+    if (!s) return;
+    s.el.classList.remove('active');
+    s.el.classList.add('done');
+    s.icon.textContent = '✓';
+  }
+
+  function setStepActive(stepName) {
+    const s = steps[stepName];
+    if (!s) return;
+    Object.values(steps).forEach(x => x.el.classList.remove('active'));
+    s.el.classList.add('active');
+    s.icon.textContent = steps[stepName].icon.textContent;
+    // Logo pulses while any step is active
+    logo.classList.add('pulsing');
+    titlebarDot.classList.remove('done');
+  }
+
+  function setStepPending(stepName) {
+    const s = steps[stepName];
+    if (!s) return;
+    s.el.classList.remove('active', 'done');
+  }
+
+  // Easing: cubic ease-out for smooth but not sluggish feel
+  let _targetPercent = 0;
+  let _animFrame = null;
+  function animateTo(target) {
+    _targetPercent = target;
+    if (_animFrame) cancelAnimationFrame(_animFrame);
+    function frame() {
+      const current = parseFloat(fill.style.width) || 0;
+      const diff = _targetPercent - current;
+      if (Math.abs(diff) < 0.15) {
+        fill.style.width = _targetPercent + '%';
+        percentEl.textContent = Math.round(_targetPercent) + '%';
+        return;
+      }
+      fill.style.width = (current + diff * 0.12) + '%';
+      percentEl.textContent = Math.round(parseFloat(fill.style.width)) + '%';
+      _animFrame = requestAnimationFrame(frame);
+    }
+    _animFrame = requestAnimationFrame(frame);
+  }
+
+  window.splash.onProgress((data) => {
+    if (!data) return;
+
+    if (data.step === 'check') {
+      setStepActive('node');
+      steps.node.desc.textContent = 'Đang kiểm tra hệ thống...';
+    }
+    else if (data.step === 'node') {
+      setStepActive('node');
+      steps.node.desc.textContent = data.message || 'Đang tải Node.js...';
+      if (typeof data.percent === 'number') animateTo(data.percent);
+    }
+    else if (data.step === 'node-done') {
+      setStepDone('node');
+      setStepActive('packages');
+      steps.packages.desc.textContent = 'Đang cài OpenClaw, 9Router, OpenZCA...';
+      animateTo(15);
+    }
+    else if (data.step === 'git') {
+      setStepActive('packages');
+      steps.packages.desc.textContent = data.label || 'Đang tải Git...';
+      if (typeof data.pct === 'number') animateTo(13 + data.pct * 0.02);
+    }
+    else if (data.step === 'git-done') {
+      steps.packages.desc.textContent = data.label || 'Git đã sẵn sàng';
+    }
+    else if (data.step === 'packages') {
+      setStepActive('packages');
+      steps.packages.desc.textContent = data.subStep || data.message || 'Đang cài gói phần mềm...';
+      if (typeof data.percent === 'number') animateTo(15 + data.percent * 0.4);
+    }
+    else if (data.step === 'packages-done') {
+      setStepDone('packages');
+      setStepActive('python');
+      animateTo(50);
+    }
+    else if (data.step === 'python') {
+      setStepActive('python');
+      steps.python.desc.textContent = data.message || 'Đang chuẩn bị Python helper...';
+      if (typeof data.percent === 'number') animateTo(50 + data.percent * 0.1);
+    }
+    else if (data.step === 'python-done') {
+      setStepDone('python');
+      setStepActive('plugin');
+      animateTo(60);
+    }
+    else if (data.step === 'plugin') {
+      setStepActive('plugin');
+      steps.plugin.desc.textContent = data.message || 'Đang cài plugin Zalo...';
+      if (typeof data.percent === 'number') animateTo(60 + data.percent * 0.08);
+    }
+    else if (data.step === 'plugin-done') {
+      setStepDone('plugin');
+      setStepActive('model');
+      animateTo(68);
+    }
+    else if (data.step === 'model') {
+      setStepActive('model');
+      steps.model.desc.textContent = data.message || 'Đang tải mô hình AI...';
+      if (typeof data.percent === 'number') animateTo(78 + data.percent * 0.2);
+    }
+    else if (data.step === 'model-done') {
+      setStepDone('model');
+      setStepActive('complete');
+      animateTo(99);
+    }
+    else if (data.step === 'complete') {
+      setStepDone('complete');
+      title.textContent = 'Sẵn sàng!';
+      subtitle.textContent = '9BizClaw đã được cài đặt thành công.';
+      progressLabel.textContent = 'Hoàn tất';
+      percentEl.textContent = '100%';
+      percentEl.classList.add('complete');
+      fill.style.width = '100%';
+      fill.classList.add('complete');
+      logo.classList.remove('pulsing');
+      titlebarDot.classList.add('done');
+      // Hide close button — user will see main window soon
+      document.getElementById('btn-close').style.display = 'none';
+      document.getElementById('btn-minimize').style.display = 'none';
+    }
+    else if (data.step === 'migration') {
+      title.textContent = 'Đang cập nhật 9BizClaw';
+      subtitle.textContent = 'Đang chuyển dữ liệu từ phiên bản cũ...';
+      steps.node.desc.textContent = data.message || 'Đang sao lưu dữ liệu...';
+      setStepActive('node');
+      if (typeof data.percent === 'number') animateTo(data.percent);
+    }
+
+    if (data.subStep) {
+      substepEl.textContent = data.subStep;
+    } else {
+      substepEl.textContent = '';
+    }
+  });
+
+  function diagnoseError(msg) {
+    const m = (msg || '').toLowerCase();
+    return [
+      { label: 'Kết nối Internet',        fail: /enotfound|enetunreach|etimedout|network|fetch failed|socket hang up|getaddrinfo/i.test(m) },
+      { label: 'Quyền ghi thư mục',       fail: /eperm|eacces|permission denied|access is denied/i.test(m) },
+      { label: 'Dung lượng ổ đĩa',        fail: /enospc|no space|disk full/i.test(m) },
+      { label: 'Node.js runtime',          fail: /node.*not found|enoent.*node|spawn.*node|cannot find.*node/i.test(m) },
+      { label: 'Phần mềm diệt virus',     fail: /ebusy|locked|being used by another|resource busy/i.test(m) },
+      { label: 'Tường lửa / Proxy',        fail: /econnrefused|econnreset|ssl|certificate|proxy|407|403.*forbidden/i.test(m) },
+      { label: 'Xcode Command Line Tools', fail: /xcode-select|xcode_select|no developer tools/i.test(m) },
+    ];
+  }
+
+  window.splash.onError((message) => {
+    document.body.classList.add('error-state');
+    window.splash.resizeForError();
+    title.textContent = 'Cài đặt gặp lỗi';
+    title.style.color = '#f87171';
+    subtitle.textContent = 'Vui lòng kiểm tra mạng Internet hoặc thử lại.';
+    progressLabel.textContent = 'Lỗi';
+    percentEl.textContent = '!';
+    percentEl.classList.add('error');
+    fill.style.width = '100%';
+    fill.style.background = 'linear-gradient(90deg, #f87171, #fca5a5)';
+    logo.classList.remove('pulsing');
+    substepEl.textContent = '';
+    document.getElementById('btn-minimize').style.display = 'none';
+    document.getElementById('btn-close').style.display = 'none';
+
+    // Hide steps list — replace with env checklist
+    document.querySelector('.steps').style.display = 'none';
+
+    const checks = diagnoseError(message);
+    const hasKnownCause = checks.some(c => c.fail);
+
+    let panel = document.getElementById('env-error-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'env-error-panel';
+      panel.className = 'env-error-panel';
+      substepEl.parentElement.appendChild(panel);
+    }
+
+    panel.innerHTML = '<div class="env-error-headline">' +
+      (hasKnownCause ? 'Lỗi: Môi trường cài đặt không tương thích' : 'Lỗi: Quá trình cài đặt bị gián đoạn') +
+      '</div>' +
+      '<div class="env-error-sub">Vui lòng kiểm tra các mục bên dưới và thử lại.</div>' +
+      '<ul class="env-checklist">' +
+      checks.map(c =>
+        '<li><span class="chk ' + (c.fail ? 'fail' : 'ok') + '">' + (c.fail ? '✗' : '✓') + '</span>' + c.label + '</li>'
+      ).join('') +
+      '</ul>' +
+      '<div class="env-detail-toggle" onclick="var b=this.nextElementSibling;var a=this.querySelector(\'.arrow\');if(b.classList.contains(\'open\')){b.classList.remove(\'open\');a.classList.remove(\'open\')}else{b.classList.add(\'open\');a.classList.add(\'open\')}">' +
+        '<span class="arrow open">&#9654;</span> Chi tiết kỹ thuật' +
+      '</div>' +
+      '<div class="env-detail-box open">' + (message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+
+    // Retry / Quit buttons
+    let actions = document.getElementById('error-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.id = 'error-actions';
+      actions.style.cssText = 'display:flex;gap:12px;justify-content:center;margin-top:16px;';
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = 'Sao chép lỗi';
+      copyBtn.style.cssText = 'padding:8px 24px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.7);cursor:pointer;font-size:13px;';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(message || '').then(() => {
+          copyBtn.textContent = 'Đã sao chép!';
+          copyBtn.style.borderColor = '#4ade80';
+          copyBtn.style.color = '#4ade80';
+          setTimeout(() => { copyBtn.textContent = 'Sao chép lỗi'; copyBtn.style.borderColor = ''; copyBtn.style.color = ''; }, 2000);
+        }).catch(() => {});
+      };
+      const retryBtn = document.createElement('button');
+      retryBtn.textContent = 'Thử lại';
+      retryBtn.style.cssText = 'padding:8px 24px;border-radius:8px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;font-weight:600;';
+      retryBtn.onclick = () => window.splash.retry();
+      const quitBtn = document.createElement('button');
+      quitBtn.textContent = 'Thoát';
+      quitBtn.style.cssText = 'padding:8px 24px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.7);cursor:pointer;font-size:13px;';
+      quitBtn.onclick = () => window.splash.quit();
+      actions.appendChild(copyBtn);
+      actions.appendChild(retryBtn);
+      actions.appendChild(quitBtn);
+      panel.appendChild(actions);
+    }
+  });
+
+  // Watchdog: if install takes more than 5 minutes total, show timeout warning
+  setTimeout(() => {
+    // If progress hasn't reached 'complete', show a warning
+    if (!fill.classList.contains('complete') && !document.getElementById('timeout-warning')) {
+      const warn = document.createElement('div');
+      warn.id = 'timeout-warning';
+      warn.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.4);color:#fb923c;padding:10px 20px;border-radius:8px;font-size:13px;z-index:100;text-align:center;';
+      warn.textContent = 'Cài đặt quá lâu. Kiểm tra kết nối mạng hoặc thử lại.';
+      document.body.appendChild(warn);
+    }
+  }, 5 * 60 * 1000);
+</script>
+</body>
+</html>

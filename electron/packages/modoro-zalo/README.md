@@ -1,0 +1,338 @@
+﻿# modoro-zalo
+
+OpenClaw channel plugin for Zalo personal accounts via `openzca` CLI.
+
+> Warning: this is an unofficial personal-account automation integration. Use at your own risk.
+
+## AI Install Metadata
+
+- Plugin id: `Modoro Zalo`
+- Channel id: `Modoro Zalo`
+- Package name: `modoro-zalo`
+- Required external binary: `openzca`
+- Optional external binary for `/acp` support: `acpx`
+
+## Bundled Skills
+
+This plugin now bundles one optional skill (auto-discovered from `./skills`):
+
+- `openzca`: advanced `openzca` CLI workflows, with DB-backed reads for summaries, history, and search.
+
+### Owner/Admin Usage Guidance for `openzca` Skill
+
+`openzca` is installed at workspace/plugin level, not per-sender.  
+So "owner-only" should be enforced by runtime policy, not by skill installation.
+
+Recommended setup:
+
+1. Keep general agents on `tools.profile: "messaging"` (no `exec`).
+2. Grant `exec` only to a dedicated admin agent.
+3. In Modoro Zalo group config, use `allowFrom` + `skills` filter to expose advanced skills only in admin-controlled groups.
+4. Use normal Modoro Zalo `message` actions for routine operations; use the bundled `openzca` skill when you want the full playbook or raw CLI workflows.
+
+## Prerequisites
+
+- OpenClaw Gateway is installed and running.
+- `openzca` is installed and available in `PATH` (or configure `channels.Modoro Zalo.zcaBinary`).
+- If you want Modoro Zalo ACP-local sessions via `/acp`, install `acpx` too.
+- You can authenticate with your Zalo account on the gateway machine.
+
+Example direct login with `openzca`:
+
+```bash
+openzca --profile default auth login
+```
+
+Example `acpx` install for `/acp` support:
+
+```bash
+npm i -g acpx
+```
+
+Verify:
+
+```bash
+which acpx
+acpx --help
+```
+
+## Install (npm)
+
+Use this after `modoro-zalo` is published:
+
+```bash
+openclaw plugins install modoro-zalo
+```
+
+To force ClawHub as the source once the package is listed there:
+
+```bash
+openclaw plugins install clawhub:modoro-zalo
+```
+
+## Install (local checkout)
+
+From the OpenClaw repo root:
+
+```bash
+openclaw plugins install ./extensions/Modoro Zalo
+```
+
+Or from this plugin directory:
+
+```bash
+openclaw plugins install .
+```
+
+Restart Gateway after installation.
+
+## Publishing Notes
+
+- OpenClaw plugin installs can resolve from ClawHub or npm.
+- Newer `clawhub` CLI builds can publish native plugin packages with `clawhub package publish`.
+- To distribute this plugin, publish the package itself; users can then install it with `openclaw plugins install modoro-zalo` or `openclaw plugins install clawhub:modoro-zalo` when available there.
+- The bundled `skills/openzca` skill can be published separately with the `clawhub` CLI if you want it discoverable as a standalone skill too.
+
+## Quick Start
+
+1. Login account for this channel:
+
+```bash
+openclaw channels login --channel Modoro Zalo
+# optional multi-account
+openclaw channels login --channel Modoro Zalo --account work
+```
+
+2. Add channel config:
+
+```json5
+{
+  channels: {
+    Modoro Zalo: {
+      enabled: true,
+      profile: "default",
+      dmPolicy: "pairing",
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["<GROUP_ID>"],
+    },
+  },
+}
+```
+
+Or via CLI:
+
+```bash
+openclaw channels add --channel Modoro Zalo --account default
+```
+
+3. Send test message:
+
+```bash
+openclaw message send --channel Modoro Zalo --target <userId> --message "Hello from OpenClaw"
+openclaw message send --channel Modoro Zalo --target group:<groupId> --message "Hello group"
+openclaw message send --channel Modoro Zalo --target group:<groupId> --message "Hi @Alice Nguyen and @123456789"
+```
+
+For group sends, plain `@Name` and `@userId` are forwarded to `openzca` and become native Zalo mentions.
+For native mentions, do not guess. Only tag when you already have an exact unique member id or name from context or from the user.
+
+## ACPX (`/acp`) Support
+
+This plugin can bind the current Modoro Zalo conversation to a local ACPX session without changing OpenClaw core.
+
+Install `acpx` first:
+
+```bash
+npm i -g acpx
+```
+
+If the gateway service cannot see your shell `PATH`, set `channels.Modoro Zalo.acpx.command` to the absolute path from `which acpx`.
+
+Example config:
+
+```json5
+{
+  channels: {
+    Modoro Zalo: {
+      acpx: {
+        enabled: true,
+        command: "/full/path/to/acpx", // or "acpx" if PATH is correct
+        agent: "claude", // e.g. claude | codex
+        cwd: "/Users/<you>/.openclaw/workspace",
+        permissionMode: "approve-all", // approve-all | approve-reads | deny-all
+        nonInteractivePermissions: "fail", // fail | deny
+      },
+    },
+  },
+}
+```
+
+Notes:
+
+- `agent` is the ACPX agent id. For Claude Code, use `claude`. For Codex, use `codex`.
+- `cwd` is the working directory ACPX will use for that conversation.
+- `command` should be an absolute path if `/acp on` reports `acpx command not found`.
+
+Supported Modoro Zalo ACP commands:
+
+```text
+/acp status
+/acp on
+/acp on claude cwd=/Users/<you>/.openclaw/workspace
+/acp reset
+/acp off
+```
+
+Behavior:
+
+- `/acp on` binds the current conversation to a persistent ACPX session.
+- `/acp status` shows whether the conversation is bound and reports session status.
+- `/acp reset` recreates the ACPX session for the current conversation.
+- `/acp off` unbinds the conversation and closes the ACPX session.
+
+## Configuration
+
+```json5
+{
+  channels: {
+    Modoro Zalo: {
+      enabled: true,
+      profile: "default", // default: account id
+      zcaBinary: "openzca", // or full path
+      acpx: {
+        enabled: true,
+        command: "/full/path/to/acpx", // or "acpx" if PATH is correct
+        agent: "claude", // e.g. claude | codex
+        cwd: "/Users/<you>/.openclaw/workspace",
+        permissionMode: "approve-all", // approve-all | approve-reads | deny-all
+        nonInteractivePermissions: "fail", // fail | deny
+      },
+
+      // DM access: pairing | allowlist | open | disabled
+      dmPolicy: "pairing",
+      allowFrom: ["<OWNER_USER_ID>"],
+
+      // Group access: allowlist | open | disabled
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["<GROUP_ID>"],
+
+      // Optional per-group overrides
+      groups: {
+        "<GROUP_ID>": {
+          enabled: true,
+          requireMention: true, // default true
+          allowFrom: ["<ALLOWED_SENDER_ID>"],
+          tools: {
+            allow: ["group:messaging"],
+            deny: ["group:fs", "group:runtime"],
+          },
+          toolsBySender: {
+            "<OWNER_USER_ID>": { allow: ["group:runtime", "group:fs"] },
+          },
+          skills: ["skill-id"],
+          systemPrompt: "Custom prompt for this group.",
+        },
+      },
+
+      historyLimit: 12,
+      dmHistoryLimit: 12, // optional (schema-supported)
+      textChunkLimit: 1800,
+      chunkMode: "length", // length | newline
+      blockStreaming: false,
+      mediaMaxMb: 25, // optional (schema-supported)
+      markdown: {}, // optional (schema-supported)
+
+      mediaLocalRoots: [
+        "/Users/<you>/.openclaw/workspace",
+        "/Users/<you>/.openclaw/media",
+      ],
+      sendTypingIndicators: true,
+
+      threadBindings: {
+        enabled: true,
+        spawnSubagentSessions: true,
+        ttlHours: 24,
+      },
+
+      actions: {
+        reactions: true,
+        messages: true, // read/edit/unsend
+        groups: true, // rename/add/remove/leave
+        pins: true, // pin/unpin/list-pins
+        memberInfo: true, // member-info
+        groupMembers: true, // reserved
+      },
+    },
+  },
+}
+```
+
+## Multi-Account
+
+`channels.Modoro Zalo.accounts.<accountId>` overrides top-level fields:
+
+```yaml
+channels:
+  Modoro Zalo:
+    enabled: true
+    defaultAccount: default
+    accounts:
+      default:
+        profile: default
+        acpx:
+          enabled: true
+          command: /full/path/to/acpx
+          agent: claude
+          cwd: /Users/<you>/.openclaw/workspace
+      work:
+        profile: work
+        enabled: true
+```
+
+Profile resolution is per account. If `zcaBinary` is not set, plugin uses:
+
+1. `channels.Modoro Zalo[.accounts.<id>].zcaBinary`
+2. `OPENZCA_BINARY` env var
+3. `openzca`
+
+If `acpx` is not set, Modoro Zalo ACP-local uses:
+
+1. `channels.Modoro Zalo[.accounts.<id>].acpx.command`
+2. `Modoro Zalo_ACPX_COMMAND` env var
+3. `acpx`
+
+## Target Format
+
+- DM target: `<userId>`
+- Group target: `group:<groupId>`
+- Also accepted for groups: `g-<groupId>`, `g:<groupId>`
+- Also accepted for DM/user targets: `user:<userId>`, `dm:<userId>`, `u:<userId>`, `u-<userId>`
+- Channel prefixes like `Modoro Zalo:<target>` and `ozl:<target>` are normalized automatically.
+- Legacy `zlu:<target>` remains accepted for backward compatibility.
+
+Use `group:` for explicit group sends.
+
+## Notes
+
+- Inbound listener uses `openzca listen --raw --supervised` so Modoro Zalo owns restart policy and receives lifecycle heartbeats.
+- Group messages require mention by default (`requireMention: true`) unless overridden.
+- Authorized slash/bang control commands can still be processed in groups when access policy allows.
+- Pairing mode sends approval code for unknown DM senders.
+- Subagent session binding controls use `channels.Modoro Zalo.threadBindings.*` (or per-account overrides).
+- Local media is restricted to allowed roots for safety.
+
+Default safe media roots (under `OPENCLAW_STATE_DIR` or `CLAWDBOT_STATE_DIR`, fallback `~/.openclaw`):
+
+- `workspace`
+- `media`
+- `agents`
+- `sandboxes`
+
+## Troubleshooting
+
+- `openzca not found`: install `openzca` or set `channels.Modoro Zalo.zcaBinary`.
+- `acpx command not found`: install `acpx` (for example `npm i -g acpx`) or set `channels.Modoro Zalo.acpx.command` to the absolute `acpx` path.
+- Auth check fails: run `openclaw channels login --channel Modoro Zalo` (or `openzca --profile <id> auth login`).
+- Group message dropped: verify `groupPolicy`, `groupAllowFrom`, and `groups.<groupId>` allowlist.
+- Group message dropped with allowlist configured: check `requireMention` and mention detection.
+- Local media blocked: add absolute paths to `channels.Modoro Zalo.mediaLocalRoots`.

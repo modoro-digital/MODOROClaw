@@ -1,0 +1,278 @@
+{
+  "name": "9bizclaw",
+  "version": "3.0.0-free",
+  "edition": "free",
+  "membership": false,
+  "description": "9BizClaw — Trợ Lý AI Cho CEO (OpenClaw Desktop)",
+  "author": "9Biz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modoro-digital/9BizClaw.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "node scripts/fix-better-sqlite3.js",
+    "smoke": "node scripts/check-module-contracts.js && node scripts/smoke-test.js && node scripts/smoke-context-injection.js && node scripts/smoke-zalo-followup.js && node scripts/smoke-visibility.js && node scripts/smoke-skill-runtime.js && npm run guard:architecture",
+    "map:generate": "node scripts/generate-system-map.js",
+    "map:check": "node scripts/generate-system-map.js --check",
+    "guard:contracts": "node scripts/check-capability-contracts.js",
+    "guard:api-docs": "node scripts/check-api-doc-drift.js",
+    "guard:bundle": "node scripts/check-bundle-size.js",
+    "guard:anthropic-doc-runtime": "node scripts/check-anthropic-doc-runtime.js",
+    "guard:attachment-security": "node scripts/check-attachment-security-gateway.js",
+    "guard:openclaw-launchers": "node scripts/check-openclaw-launchers.js",
+    "guard:zalo-listener": "node scripts/check-zalo-listener-recovery.js",
+    "guard:zalo-account-settings": "node scripts/check-zalo-account-settings.js",
+    "guard:zalo-menu-dry-run": "node scripts/check-zalo-menu-dry-run.js",
+    "guard:qc-release": "node scripts/check-qc-release-gates.js",
+    "guard:dashboard-ux": "node scripts/check-dashboard-ux-qol.js",
+    "guard:9router-rtk": "node scripts/check-9router-rtk.js",
+    "guard:9router-0463": "node scripts/check-9router-0463-compat.js",
+    "guard:context-budget": "node scripts/check-context-budget.js",
+    "guard:image-generation": "node scripts/check-image-generation-route.js",
+    "guard:media-library": "node scripts/check-media-library-contract.js",
+    "guard:migration-safety": "node scripts/check-migration-safety.js",
+    "guard:runtime-install": "node scripts/check-runtime-install-contract.js",
+    "guard:obfuscation-residue": "node scripts/check-obfuscation-residue.js",
+    "guard:architecture": "npm run map:check && npm run guard:contracts && npm run guard:api-docs && npm run guard:anthropic-doc-runtime && npm run guard:attachment-security && npm run guard:openclaw-launchers && npm run guard:zalo-listener && npm run guard:zalo-account-settings && npm run guard:zalo-menu-dry-run && npm run guard:qc-release && npm run guard:dashboard-ux && npm run guard:9router-rtk && npm run guard:9router-0463 && npm run guard:context-budget && npm run guard:image-generation && npm run guard:media-library && npm run guard:migration-safety && npm run guard:runtime-install && npm run guard:obfuscation-residue && npm run guard:bundle",
+    "prebuild:models": "node scripts/prebuild-models.js",
+    "prebuild:vendor": "node scripts/prebuild-vendor.js",
+    "prebuild:modoro-zalo": "node scripts/prebuild-modoro-zalo.js",
+    "build:win": "node scripts/build-win.js",
+    "build:mac": "npm run prebuild:models && npm run prebuild:vendor && npm run prebuild:modoro-zalo && npm run smoke && electron-builder --mac",
+    "obfuscate": "node scripts/obfuscate.js",
+    "deobfuscate": "node scripts/obfuscate.js --restore",
+    "build:mac:arm": "TARGET_ARCH=arm64 npm run prebuild:models && TARGET_ARCH=arm64 npm run prebuild:vendor && TARGET_ARCH=arm64 npm run prebuild:modoro-zalo && TARGET_ARCH=arm64 npm run smoke && npm run obfuscate && electron-builder --mac --arm64; EXIT=$?; npm run deobfuscate; exit $EXIT",
+    "build:mac:intel": "TARGET_ARCH=x64 npm run prebuild:models && TARGET_ARCH=x64 npm run prebuild:vendor && TARGET_ARCH=x64 npm run prebuild:modoro-zalo && TARGET_ARCH=x64 npm run smoke && npm run obfuscate && electron-builder --mac --x64; EXIT=$?; npm run deobfuscate; exit $EXIT",
+    "build:mac:universal": "node scripts/build-mac-universal.js && npm run smoke && npm run obfuscate && electron-builder --mac --universal; EXIT=$?; npm run deobfuscate; exit $EXIT"
+  },
+  "build": {
+    "appId": "vn.9biz.claw",
+    "productName": "9BizClaw",
+    "copyright": "© 2026 9Biz",
+    "publish": null,
+    "afterSign": "scripts/notarize-mac.js",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash-preload.js",
+      "lib/**/*",
+      "ui/**/*",
+      "scripts/**/*",
+      "patches/**/*",
+      "data/**/*",
+      "hooks/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/{CHANGELOG.md,README.md,readme.md,changelog.md}",
+      "!node_modules/**/{test,tests,__tests__,*.test.js,*.spec.js}",
+      "!node_modules/**/{example,examples,demo,demos}",
+      "!node_modules/**/.bin",
+      "!**/*.{md,markdown}",
+      "!**/{.DS_Store,Thumbs.db,.git,.svn,.hg}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{.eslintrc,.editorconfig,.prettierrc}"
+    ],
+    "extraResources": [
+      {
+        "from": "../AGENTS.md",
+        "to": "workspace-templates/AGENTS.md"
+      },
+      {
+        "from": "../BOOTSTRAP.md",
+        "to": "workspace-templates/BOOTSTRAP.md"
+      },
+      {
+        "from": "../SOUL.md",
+        "to": "workspace-templates/SOUL.md"
+      },
+      {
+        "from": "../IDENTITY.md",
+        "to": "workspace-templates/IDENTITY.md"
+      },
+      {
+        "from": "../USER.md",
+        "to": "workspace-templates/USER.md"
+      },
+      {
+        "from": "../COMPANY.md",
+        "to": "workspace-templates/COMPANY.md"
+      },
+      {
+        "from": "../PRODUCTS.md",
+        "to": "workspace-templates/PRODUCTS.md"
+      },
+      {
+        "from": "../MEMORY.md",
+        "to": "workspace-templates/MEMORY.md"
+      },
+      {
+        "from": "../TOOLS.md",
+        "to": "workspace-templates/TOOLS.md"
+      },
+      {
+        "from": "../README.md",
+        "to": "workspace-templates/README.md"
+      },
+      {
+        "from": "../skills",
+        "to": "workspace-templates/skills",
+        "filter": [
+          "**/*",
+          "!**/{*.test.js,node_modules}"
+        ]
+      },
+      {
+        "from": "../personas",
+        "to": "workspace-templates/personas"
+      },
+      {
+        "from": "../industry",
+        "to": "workspace-templates/industry"
+      },
+      {
+        "from": "../prompts",
+        "to": "workspace-templates/prompts"
+      },
+      {
+        "from": "prompts",
+        "to": "prompts"
+      },
+      {
+        "from": "../memory",
+        "to": "workspace-templates/memory",
+        "filter": [
+          "**/*",
+          "!20*.md",
+          "!heartbeat-state.json"
+        ]
+      },
+      {
+        "from": "../tools",
+        "to": "workspace-templates/tools"
+      },
+      {
+        "from": "../docs",
+        "to": "workspace-templates/docs"
+      },
+      {
+        "from": "../config",
+        "to": "workspace-templates/config",
+        "filter": [
+          "**/*",
+          "!zalo-mode.txt"
+        ]
+      },
+      {
+        "from": "../.learnings",
+        "to": "workspace-templates/.learnings"
+      },
+      {
+        "from": "../knowledge",
+        "to": "workspace-templates/knowledge",
+        "filter": [
+          "**/*",
+          "!**/files/*",
+          "!**/index.md"
+        ]
+      },
+      {
+        "from": "../capabilities",
+        "to": "workspace-templates/capabilities"
+      },
+      {
+        "from": "dist/modoro-zalo",
+        "to": "modoro-zalo"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/better-sqlite3/**",
+      "**/sharp/**",
+      "**/pdf-parse/**",
+      "**/mammoth/**",
+      "scripts/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "strictVerify": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "type": "distribution",
+      "extendInfo": {
+        "NSHighResolutionCapable": true,
+        "LSMinimumSystemVersion": "11.0.0",
+        "NSAppleEventsUsageDescription": "9BizClaw spawns OpenClaw + 9Router subprocesses to power the AI assistant.",
+        "NSDesktopFolderUsageDescription": "9BizClaw stores workspace files (knowledge, schedules, logs) under your user data folder."
+      },
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "9BizClaw ${version}",
+      "icon": "build/icon.icns",
+      "background": null,
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "compression": "normal",
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "9BizClaw",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    }
+  },
+  "devDependencies": {
+    "@electron/notarize": "2.3.2",
+    "docx": "9.6.1",
+    "electron": "28.3.3",
+    "electron-builder": "25.0.0",
+    "javascript-obfuscator": "5.4.2"
+  },
+  "dependencies": {
+    "@xenova/transformers": "2.17.2",
+    "better-sqlite3": "11.10.0",
+    "dompurify": "3.4.3",
+    "fullcalendar": "6.1.20",
+    "mammoth": "1.12.0",
+    "marked": "15.0.12",
+    "node-cron": "4.2.1",
+    "pdf-parse": "1.1.1",
+    "pptxgenjs": "4.0.1",
+    "xlsx": "0.18.5"
+  }
+}

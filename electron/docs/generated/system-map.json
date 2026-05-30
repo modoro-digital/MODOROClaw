@@ -1,0 +1,2176 @@
+{
+  "generatedBy": "electron/scripts/generate-system-map.js",
+  "counts": {
+    "apiRoutes": 83,
+    "ipcHandlers": 144,
+    "preloadBridges": 137,
+    "dashboardPages": 12,
+    "capabilityContracts": 2
+  },
+  "apiRoutes": [
+    {
+      "path": "/api/attachments/analyze",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/auth/token",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/brand-assets/import",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/brand-assets/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/brand-assets/save",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/capabilities",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/ceo-rules/write",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/audit",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/create",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/delete",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/replace",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/cron/toggle",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/customer-memory/write",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/exec",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/copy",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/delete",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/download",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/open",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/read",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/rename",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/search",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/file/write",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/generate",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/generate-and-send-zalo",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/preferences",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/skills",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/image/status",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/internal/9router-redirect",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/internal/agent-deliver-zalo",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/inventory/adjust",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/inventory/alerts",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/inventory/check",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/inventory/set-min",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/knowledge/add",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/leave/approve",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/leave/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/leave/request",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/leave/summary",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/describe",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/search",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/media/upload",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/context",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/count",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/delete",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/events",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/prioritize",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/search",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/status",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/supersede",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/memory/write",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/order/create",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/order/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/order/status",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/order/summary",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/order/update",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/report/daily",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/skill/exec",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/skill/python-install",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/skill/python-status",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/skill/test-exec",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/system/info",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/telegram/send-photo",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/check-conflict",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/create",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/delete",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/restore",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/toggle",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/user-skills/update",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/workspace/append",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/workspace/list",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/workspace/read",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo-crm/export",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/friends",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/groups",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/ready",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/send",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    },
+    {
+      "path": "/api/zalo/send-media",
+      "sources": [
+        "electron/lib/cron-api.js"
+      ],
+      "kinds": [
+        "local-api"
+      ]
+    }
+  ],
+  "ipcHandlers": [
+    {
+      "channel": "add-cron",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "append-zalo-user-note",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "apply-zalo-menu-import",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "channel:config:get",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "channel:config:save",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "channel:pause",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "channel:pause-status",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "channel:resume",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-all-channels",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-for-updates",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-guide-needed",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-skill-conflict",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-telegram-ready",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-zalo-login",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "check-zalo-ready",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "compact-all-sessions",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "compact-session",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "create-appointment",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "create-backup",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "create-knowledge-folder",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "create-user-skill",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "cron-diagnostic",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-appointment",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-brand-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-ceo-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-document",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-knowledge-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-knowledge-folder",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-media-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-openclaw-cron",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-user-skill",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "delete-zalo-user-note",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "describe-media-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "download-and-install-update",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "download-zalo-menu-template",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "dry-run-zalo-menu-command",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "export-workspace",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "factory-reset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "find-zalo-qr",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-app-prefs",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-app-version",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-bot-status",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-ceo-memories",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-ceo-memory-count",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-ceo-memory-events",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-compact-stats",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-custom-crons",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-dashboard",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-diagnostic-log",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-gateway-token",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-inbound-debounce",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-knowledge-counts",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-overview-data",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-persona-mix",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-rag-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-schedules",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-shop-state",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-skill-detail",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-telegram-behavior",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-telegram-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-telegram-pause-status",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-group-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-group-summaries",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-manager-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-menu-catalog",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-mode",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "get-zalo-pause-status",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "import-workspace",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "index-document",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "install-openclaw",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "knowledge-search",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-all-skills",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-appointments",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-brand-assets",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-documents",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-knowledge-files",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-knowledge-folders",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-media-assets",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-zalo-friends",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-zalo-groups",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "list-zalo-user-memories",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "mark-guide-complete",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "open-backup-file-dialog",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "open-external",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "open-knowledge-folder",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "open-log-folder",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pause-telegram",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pause-zalo",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pick-brand-asset-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pick-knowledge-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pick-media-asset-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "pick-zalo-menu-import",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "preview-zalo-menu-import",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "prioritize-ceo-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "queue-follow-up",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "read-zalo-user-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "refresh-zalo-cache",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "relaunch",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "reset-zalo-user-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "resolve-zalo-target",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "restore-backup-apply",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "restore-backup-preview",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "restore-user-skill",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "resume-telegram",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "resume-zalo",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-business-profile",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-custom-crons",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-persona-mix",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-personalization",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-schedules",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-telegram-behavior",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-telegram-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-wizard-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-zalo-manager-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-zalo-menu-catalog",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "save-zalo-mode",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "search-ceo-memories",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "search-documents",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "seed-group-history-all",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "seed-group-history-now",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-app-prefs",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-batch-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-inbound-debounce",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-knowledge-enabled",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-knowledge-visibility",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-rag-config",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "set-shop-state",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "setup-9router-auto",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "setup-zalo",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "start-9router",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "supersede-ceo-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "telegram-self-test",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "test-cron",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "test-telegram",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "toggle-bot",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "toggle-user-skill",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "update-appointment",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "update-ceo-memory-status",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "update-user-skill",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "upload-brand-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "upload-knowledge-file",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "upload-media-asset",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "wizard-complete",
+      "source": "electron/lib/dashboard-ipc.js"
+    },
+    {
+      "channel": "write-ceo-memory",
+      "source": "electron/lib/dashboard-ipc.js"
+    }
+  ],
+  "preloadBridges": [
+    {
+      "name": "addCron",
+      "channel": "add-cron",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "appendZaloUserNote",
+      "channel": "append-zalo-user-note",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "applyZaloMenuImport",
+      "channel": "apply-zalo-menu-import",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "channelConfigGet",
+      "channel": "channel:config:get",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "channelConfigSave",
+      "channel": "channel:config:save",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "channelPause",
+      "channel": "channel:pause",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "channelPauseStatus",
+      "channel": "channel:pause-status",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "channelResume",
+      "channel": "channel:resume",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkAllChannels",
+      "channel": "check-all-channels",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkForUpdates",
+      "channel": "check-for-updates",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkGuideNeeded",
+      "channel": "check-guide-needed",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkSkillConflict",
+      "channel": "check-skill-conflict",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkTelegramReady",
+      "channel": "check-telegram-ready",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkZaloLogin",
+      "channel": "check-zalo-login",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "checkZaloReady",
+      "channel": "check-zalo-ready",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "createAppointment",
+      "channel": "create-appointment",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "createBackup",
+      "channel": "create-backup",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "createKnowledgeFolder",
+      "channel": "create-knowledge-folder",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "createUserSkill",
+      "channel": "create-user-skill",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteAppointment",
+      "channel": "delete-appointment",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteBrandAsset",
+      "channel": "delete-brand-asset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteCeoMemory",
+      "channel": "delete-ceo-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteDocument",
+      "channel": "delete-document",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteKnowledgeFile",
+      "channel": "delete-knowledge-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteKnowledgeFolder",
+      "channel": "delete-knowledge-folder",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteMediaAsset",
+      "channel": "delete-media-asset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteOpenclawCron",
+      "channel": "delete-openclaw-cron",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteUserSkill",
+      "channel": "delete-user-skill",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "deleteZaloUserNote",
+      "channel": "delete-zalo-user-note",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "describeMediaAsset",
+      "channel": "describe-media-asset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "downloadAndInstallUpdate",
+      "channel": "download-and-install-update",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "downloadZaloMenuTemplate",
+      "channel": "download-zalo-menu-template",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "dryRunZaloMenuCommand",
+      "channel": "dry-run-zalo-menu-command",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "exportWorkspace",
+      "channel": "export-workspace",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "factoryReset",
+      "channel": "factory-reset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "findZaloQR",
+      "channel": "find-zalo-qr",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getAppPrefs",
+      "channel": "get-app-prefs",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getAppVersion",
+      "channel": "get-app-version",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getBotStatus",
+      "channel": "get-bot-status",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getCeoMemories",
+      "channel": "get-ceo-memories",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getCeoMemoryCount",
+      "channel": "get-ceo-memory-count",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getCeoMemoryEvents",
+      "channel": "get-ceo-memory-events",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getCustomCrons",
+      "channel": "get-custom-crons",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getDashboard",
+      "channel": "get-dashboard",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getDiagnosticLog",
+      "channel": "get-diagnostic-log",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getGatewayToken",
+      "channel": "get-gateway-token",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getInboundDebounce",
+      "channel": "get-inbound-debounce",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getKnowledgeCounts",
+      "channel": "get-knowledge-counts",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getOverviewData",
+      "channel": "get-overview-data",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getPersonaMix",
+      "channel": "get-persona-mix",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getRagConfig",
+      "channel": "get-rag-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getSchedules",
+      "channel": "get-schedules",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getShopState",
+      "channel": "get-shop-state",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getSkillDetail",
+      "channel": "get-skill-detail",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getTelegramBehavior",
+      "channel": "get-telegram-behavior",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getTelegramConfig",
+      "channel": "get-telegram-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getTelegramPauseStatus",
+      "channel": "get-telegram-pause-status",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloGroupMemory",
+      "channel": "get-zalo-group-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloGroupSummaries",
+      "channel": "get-zalo-group-summaries",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloManagerConfig",
+      "channel": "get-zalo-manager-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloMenuCatalog",
+      "channel": "get-zalo-menu-catalog",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloMode",
+      "channel": "get-zalo-mode",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "getZaloPauseStatus",
+      "channel": "get-zalo-pause-status",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "importWorkspace",
+      "channel": "import-workspace",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "indexDocument",
+      "channel": "index-document",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "knowledgeSearch",
+      "channel": "knowledge-search",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listAllSkills",
+      "channel": "list-all-skills",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listAppointments",
+      "channel": "list-appointments",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listBrandAssets",
+      "channel": "list-brand-assets",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listDocuments",
+      "channel": "list-documents",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listKnowledgeFiles",
+      "channel": "list-knowledge-files",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listKnowledgeFolders",
+      "channel": "list-knowledge-folders",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listMediaAssets",
+      "channel": "list-media-assets",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listZaloFriends",
+      "channel": "list-zalo-friends",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listZaloGroups",
+      "channel": "list-zalo-groups",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "listZaloUserMemories",
+      "channel": "list-zalo-user-memories",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "markGuideComplete",
+      "channel": "mark-guide-complete",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "openBackupFileDialog",
+      "channel": "open-backup-file-dialog",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "openExternal",
+      "channel": "open-external",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "openKnowledgeFolder",
+      "channel": "open-knowledge-folder",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "openLogFolder",
+      "channel": "open-log-folder",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pauseTelegram",
+      "channel": "pause-telegram",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pauseZalo",
+      "channel": "pause-zalo",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pickBrandAssetFile",
+      "channel": "pick-brand-asset-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pickKnowledgeFile",
+      "channel": "pick-knowledge-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pickMediaAssetFile",
+      "channel": "pick-media-asset-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "pickZaloMenuImport",
+      "channel": "pick-zalo-menu-import",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "previewZaloMenuImport",
+      "channel": "preview-zalo-menu-import",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "prioritizeCeoMemory",
+      "channel": "prioritize-ceo-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "readZaloUserMemory",
+      "channel": "read-zalo-user-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "refreshZaloCache",
+      "channel": "refresh-zalo-cache",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "relaunch",
+      "channel": "relaunch",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "resetZaloUserMemory",
+      "channel": "reset-zalo-user-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "resolveZaloTarget",
+      "channel": "resolve-zalo-target",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "restoreBackupApply",
+      "channel": "restore-backup-apply",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "restoreBackupPreview",
+      "channel": "restore-backup-preview",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "restoreUserSkill",
+      "channel": "restore-user-skill",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "resumeTelegram",
+      "channel": "resume-telegram",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "resumeZalo",
+      "channel": "resume-zalo",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveBusinessProfile",
+      "channel": "save-business-profile",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveCustomCrons",
+      "channel": "save-custom-crons",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "savePersonalization",
+      "channel": "save-personalization",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "savePersonaMix",
+      "channel": "save-persona-mix",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveSchedules",
+      "channel": "save-schedules",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveTelegramBehavior",
+      "channel": "save-telegram-behavior",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveTelegramConfig",
+      "channel": "save-telegram-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveWizardConfig",
+      "channel": "save-wizard-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveZaloManagerConfig",
+      "channel": "save-zalo-manager-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveZaloMenuCatalog",
+      "channel": "save-zalo-menu-catalog",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "saveZaloMode",
+      "channel": "save-zalo-mode",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "searchCeoMemories",
+      "channel": "search-ceo-memories",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "searchDocuments",
+      "channel": "search-documents",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "seedGroupHistoryNow",
+      "channel": "seed-group-history-now",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setAppPrefs",
+      "channel": "set-app-prefs",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setBatchConfig",
+      "channel": "set-batch-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setInboundDebounce",
+      "channel": "set-inbound-debounce",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setKnowledgeEnabled",
+      "channel": "set-knowledge-enabled",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setKnowledgeVisibility",
+      "channel": "set-knowledge-visibility",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setRagConfig",
+      "channel": "set-rag-config",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setShopState",
+      "channel": "set-shop-state",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setup9RouterAuto",
+      "channel": "setup-9router-auto",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "setupZalo",
+      "channel": "setup-zalo",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "start9Router",
+      "channel": "start-9router",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "supersedeCeoMemory",
+      "channel": "supersede-ceo-memory",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "telegramSelfTest",
+      "channel": "telegram-self-test",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "testCron",
+      "channel": "test-cron",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "testTelegram",
+      "channel": "test-telegram",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "toggleBot",
+      "channel": "toggle-bot",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "toggleUserSkill",
+      "channel": "toggle-user-skill",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "updateAppointment",
+      "channel": "update-appointment",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "updateCeoMemoryStatus",
+      "channel": "update-ceo-memory-status",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "updateUserSkill",
+      "channel": "update-user-skill",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "uploadBrandAsset",
+      "channel": "upload-brand-asset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "uploadKnowledgeFile",
+      "channel": "upload-knowledge-file",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "uploadMediaAsset",
+      "channel": "upload-media-asset",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "wizardComplete",
+      "channel": "wizard-complete",
+      "source": "electron/preload.js"
+    },
+    {
+      "name": "writeCeoMemory",
+      "channel": "write-ceo-memory",
+      "source": "electron/preload.js"
+    }
+  ],
+  "dashboardPages": [
+    {
+      "id": "9router",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "calendar",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "image-assets",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "knowledge",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "openclaw",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "overview",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "persona-mix",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "schedules",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "shop-state",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "skills",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "telegram",
+      "source": "electron/ui/dashboard.html"
+    },
+    {
+      "id": "zalo",
+      "source": "electron/ui/dashboard.html"
+    }
+  ],
+  "capabilityContracts": [
+    {
+      "id": "brand-image",
+      "title": "Generate brand-aware images with uploaded assets",
+      "source": "capabilities/brand-image.contract.json"
+    },
+    {
+      "id": "zalo-cron",
+      "title": "Create scheduled Zalo group messages or agent jobs",
+      "source": "capabilities/zalo-cron.contract.json"
+    }
+  ],
+  "largeSourceFiles": [
+    {
+      "path": "electron/ui/dashboard.html",
+      "bytes": 488123
+    },
+    {
+      "path": "electron/lib/dashboard-ipc.js",
+      "bytes": 252425
+    },
+    {
+      "path": "electron/lib/cron-api.js",
+      "bytes": 168276
+    },
+    {
+      "path": "electron/lib/cron.js",
+      "bytes": 130591
+    },
+    {
+      "path": "electron/ui/wizard.html",
+      "bytes": 117791
+    },
+    {
+      "path": "electron/lib/knowledge.js",
+      "bytes": 96863
+    },
+    {
+      "path": "electron/lib/channels.js",
+      "bytes": 94626
+    },
+    {
+      "path": "electron/lib/gateway.js",
+      "bytes": 84305
+    },
+    {
+      "path": "electron/lib/runtime-installer.js",
+      "bytes": 71770
+    },
+    {
+      "path": "electron/ui/preview-telegram-redesign.html",
+      "bytes": 66621
+    },
+    {
+      "path": "electron/lib/config.js",
+      "bytes": 61589
+    },
+    {
+      "path": "electron/lib/workspace.js",
+      "bytes": 52556
+    },
+    {
+      "path": "electron/lib/vendor-patches.js",
+      "bytes": 49200
+    },
+    {
+      "path": "electron/lib/nine-router.js",
+      "bytes": 46625
+    },
+    {
+      "path": "electron/lib/skill-manager.js",
+      "bytes": 45003
+    },
+    {
+      "path": "electron/lib/zalo-plugin.js",
+      "bytes": 43403
+    },
+    {
+      "path": "electron/lib/boot.js",
+      "bytes": 37246
+    },
+    {
+      "path": "electron/lib/ceo-memory.js",
+      "bytes": 35886
+    },
+    {
+      "path": "electron/lib/media-library.js",
+      "bytes": 31821
+    },
+    {
+      "path": "electron/lib/conversation.js",
+      "bytes": 30749
+    },
+    {
+      "path": "electron/ui/splash.html",
+      "bytes": 26997
+    },
+    {
+      "path": "electron/lib/migration.js",
+      "bytes": 20613
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "memory-db",
+  "version": "1.0.0",
+  "description": "SQLite + FTS5 memory search for OpenClaw",
+  "main": "relevant-memory.js",
+  "dependencies": {
+    "better-sqlite3": "^9.0.0",
+    "glob": "^10.0.0"
+  }
+}

@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview — Telegram Connection Redesign v3</title>
+  <style>
+    :root, html[data-theme="dark"] {
+      --bg: #0A0A0F; --bg-elevated: #14141B; --surface: #14141B;
+      --surface-hover: #1C1C25; --surface-elevated: #1C1C25;
+      --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.14);
+      --text: #F5F5F7; --text-secondary: #A1A1A6; --text-tertiary: #6E6E73; --text-muted: #A1A1A6;
+      --accent: #E53935; --accent-hover: #F44336;
+      --accent-soft: rgba(229,57,53,0.12); --accent-glow: rgba(229,57,53,0.20);
+      --success: #4ADE80; --warning: #FBBF24; --danger: #F87171;
+      --gradient-brand: linear-gradient(135deg, #1A1A24 0%, #14141B 50%, #0F0F16 100%);
+      --gradient-accent: linear-gradient(135deg, #E53935 0%, #C62828 100%);
+      --shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    html[data-theme="light"] {
+      --bg: #F3F3F6; --bg-elevated: #FFFFFF; --surface: #FFFFFF;
+      --surface-hover: #F0F0F3; --surface-elevated: #FFFFFF;
+      --border: #E2E2E8; --border-strong: #C7C7CE;
+      --text: #1D1D1F; --text-secondary: #6E6E73; --text-tertiary: #A1A1A6; --text-muted: #6E6E73;
+      --accent: #C62828; --accent-hover: #B71C1C;
+      --accent-soft: rgba(198,40,40,0.08); --accent-glow: rgba(198,40,40,0.15);
+      --success: #16A34A; --warning: #D97706; --danger: #DC2626;
+      --gradient-brand: linear-gradient(135deg, #FFFFFF 0%, #F8F8F9 50%, #F0F0F3 100%);
+      --gradient-accent: linear-gradient(135deg, #C62828 0%, #B71C1C 100%);
+      --shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+      height: 100vh; overflow: hidden;
+    }
+
+    .wz-shell {
+      display: grid; grid-template-columns: minmax(320px, 36%) 1fr;
+      height: 100vh; overflow: hidden;
+    }
+
+    /* LEFT BRAND */
+    .wz-brand {
+      background: var(--gradient-brand); border-right: 1px solid var(--border);
+      padding: clamp(24px, 5vh, 64px) clamp(28px, 4vw, 56px);
+      display: flex; flex-direction: column; position: relative; overflow: hidden;
+    }
+    .wz-brand::before {
+      content: ''; position: absolute; top: -200px; right: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    html[data-theme="light"] .wz-brand { background: #fafafa; }
+    .wz-brand-mark {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: clamp(12px, 1.5vh, 20px); margin-bottom: clamp(24px, 5vh, 64px); position: relative;
+    }
+    .wz-brand-logo {
+      width: clamp(64px, 14vh, 140px); height: clamp(64px, 14vh, 140px);
+      border-radius: 28px; background: var(--surface-hover);
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(28px, 6vh, 56px);
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
+    }
+    .wz-brand-name { font-size: clamp(18px, 2vw, 24px); font-weight: 700; color: var(--text); }
+    .wz-brand-tag { font-size: 13px; color: var(--text-tertiary); margin-top: 4px; }
+    .wz-brand-content { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 360px; position: relative; }
+    .wz-eyebrow { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.3px; margin-bottom: 16px; }
+    .wz-headline { font-size: clamp(24px, 3.5vw, 38px); font-weight: 700; line-height: 1.15; letter-spacing: -1px; color: var(--text); margin-bottom: clamp(12px, 1.5vh, 20px); }
+    .wz-subhead { font-size: clamp(14px, 1.2vw, 16px); line-height: 1.6; color: var(--text-secondary); }
+    .wz-brand-foot { padding-top: clamp(16px, 2.5vh, 32px); border-top: 1px solid var(--border); font-size: 12px; color: var(--text-tertiary); line-height: 1.6; position: relative; }
+    @media (max-height: 680px) {
+      .wz-brand { padding: 20px 32px; }
+      .wz-brand-mark { margin-bottom: 16px; gap: 8px; }
+      .wz-brand-logo { width: 56px; height: 56px; font-size: 24px; border-radius: 16px; }
+      .wz-headline { font-size: 22px; margin-bottom: 8px; }
+    }
+    @media (max-width: 900px) {
+      .wz-shell { grid-template-columns: 1fr; }
+      .wz-brand { display: none; }
+      .wz-form-scroll { padding: 32px !important; }
+      .wz-progress { padding: 24px 32px 0 !important; }
+      .wz-footer { padding: 20px 32px !important; }
+    }
+
+    /* RIGHT FORM */
+    .wz-form-panel { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
+    .wz-progress { flex-shrink: 0; padding: 32px 64px 0; }
+    .wz-progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .wz-progress-fill { height: 100%; background: var(--gradient-accent); width: 75%; border-radius: 2px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .wz-progress-meta { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+    .wz-progress-step { color: var(--text-secondary); font-weight: 600; }
+    .wz-form-scroll { flex: 1; overflow-y: auto; padding: 40px 64px 32px; }
+    .wz-form-scroll::-webkit-scrollbar { width: 8px; }
+    .wz-form-scroll::-webkit-scrollbar-track { background: transparent; }
+    .wz-form-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .wz-form-content { max-width: 720px; }
+
+    .sub-screen { display: none; animation: wz-fade 0.4s ease; }
+    .sub-screen.active { display: block; }
+    @keyframes wz-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; margin: 0 0 12px; }
+    .step-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 32px; max-width: 580px; }
+
+    /* Trust bar */
+    .trust-bar {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 28px; font-size: 12px; color: var(--text-tertiary); font-weight: 500;
+    }
+    .trust-bar span { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+
+    /* Benefit rows */
+    .benefit-list { margin: 28px 0 32px; }
+    .benefit-row { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .benefit-row:last-child { border-bottom: none; }
+    .benefit-icon {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--accent-soft);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .benefit-text { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.5; padding-top: 10px; }
+
+    .trust-block {
+      display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px;
+      background: rgba(74, 222, 128, 0.06); border: 1px solid rgba(74, 222, 128, 0.15);
+      border-radius: 12px; margin: 24px 0;
+    }
+    .trust-block-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+    .trust-block-text strong { color: var(--text); }
+    .time-estimate { font-size: 13px; color: var(--text-tertiary); margin-bottom: 28px; display: flex; align-items: center; gap: 6px; }
+
+    /* Buttons */
+    .wz-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px 28px; font-size: 14px; font-weight: 600; border-radius: 10px;
+      border: none; cursor: pointer; transition: all 0.2s ease; font-family: inherit;
+    }
+    .wz-btn-primary { background: var(--gradient-accent); color: white; box-shadow: 0 4px 14px var(--accent-glow); }
+    .wz-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+    .wz-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .wz-btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .wz-btn-secondary:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+    .wz-btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .wz-btn-ghost:hover { border-color: var(--border-strong); color: var(--text); background: var(--surface-hover); }
+    .wz-btn.loading { position: relative; color: transparent; pointer-events: none; }
+    .wz-btn.loading::after { content: ''; position: absolute; width: 18px; height: 18px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: wz-spin 0.7s linear infinite; }
+    @keyframes wz-spin { to { transform: rotate(360deg); } }
+
+    /* DUAL CTA */
+    .dual-cta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .wz-btn-confirm {
+      background: var(--surface-hover); color: var(--text); border: 1px solid var(--border-strong);
+      padding: 12px 24px; font-size: 14px; font-weight: 600; border-radius: 10px;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .wz-btn-confirm:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+    .cta-or { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+
+    /* Progressive disclosure */
+    .pd-step {
+      border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px;
+      overflow: hidden; transition: border-color 0.3s, opacity 0.3s;
+    }
+    .pd-step.locked { opacity: 0.4; pointer-events: none; }
+    .pd-step.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 20px var(--accent-glow); }
+    .pd-step.done { border-color: rgba(74, 222, 128, 0.25); background: rgba(74, 222, 128, 0.03); }
+
+    .pd-header { display: flex; align-items: center; gap: 14px; padding: 18px 24px; }
+    .pd-num {
+      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0; background: var(--surface-hover); color: var(--text-tertiary);
+    }
+    .pd-step.active .pd-num { background: var(--accent-soft); color: var(--accent); }
+    .pd-step.done .pd-num { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+    .pd-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .pd-step.locked .pd-title { color: var(--text-tertiary); }
+    .pd-step.done .pd-title { color: var(--text-secondary); }
+    .pd-done-hint { margin-left: auto; font-size: 12px; color: var(--success); font-weight: 600; display: none; }
+    .pd-step.done .pd-done-hint { display: block; }
+
+    .pd-body { display: none; padding: 0 24px 24px 70px; }
+    .pd-step.active .pd-body { display: block; }
+    .pd-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+
+    /* Example box */
+    .example-box {
+      position: relative; background: var(--surface-hover);
+      border: 2px dashed rgba(251, 191, 36, 0.3); border-radius: 12px;
+      padding: 16px 18px; margin: 16px 0; user-select: none;
+    }
+    html[data-theme="light"] .example-box { background: #FFFBEB; border-color: rgba(217, 119, 6, 0.25); }
+    .example-badge {
+      position: absolute; top: -10px; right: 16px;
+      background: var(--warning); color: #1a1a1a;
+      font-size: 10px; font-weight: 800; padding: 2px 10px; border-radius: 99px; letter-spacing: 0.5px;
+    }
+    .example-sender { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+    .example-body { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+    .example-highlight {
+      display: inline-block; margin: 6px 0; padding: 6px 10px;
+      background: rgba(59, 130, 246, 0.12); border: 2px solid rgba(59, 130, 246, 0.35);
+      border-radius: 6px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px; color: #60a5fa; letter-spacing: 0.3px; word-break: break-all; position: relative;
+    }
+    .example-highlight.purple { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.35); color: #a855f7; }
+    .example-arrow {
+      display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700; color: #3b82f6;
+      background: rgba(59,130,246,0.12); padding: 1px 8px; border-radius: 99px; vertical-align: middle;
+    }
+
+    /* ===== TELEGRAM SIMULATOR (single frame) ===== */
+    .tg-sim {
+      position: relative; width: 100%; max-width: 520px; height: 460px;
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #0e1621;
+      margin: 16px 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    html[data-theme="light"] .tg-sim { background: #e7ebf0; border-color: #ccc; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+
+    .tg-sim-screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+    }
+
+    .tg-screen-bf { animation: screen-bf 6s ease-in-out infinite; z-index: 2; }
+    @keyframes screen-bf {
+      0%, 38% { opacity: 1; }
+      46%, 100% { opacity: 0; pointer-events: none; }
+    }
+
+    .tg-screen-bot { animation: screen-bot 6s ease-in-out infinite; z-index: 1; }
+    @keyframes screen-bot {
+      0%, 38% { opacity: 0; }
+      48%, 88% { opacity: 1; }
+      96%, 100% { opacity: 0; }
+    }
+
+    /* Sim header */
+    .tg-sim-hdr {
+      background: #1f2936; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04); flex-shrink: 0;
+    }
+    html[data-theme="light"] .tg-sim-hdr { background: #517da2; border-color: rgba(0,0,0,0.08); }
+    .tg-sim-back { color: #6ab2f2; font-size: 22px; font-weight: 300; line-height: 1; cursor: default; }
+    html[data-theme="light"] .tg-sim-back { color: #fff; }
+    .tg-sim-avatar {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .tg-sim-avatar.bf { background: #5a9ed6; }
+    .tg-sim-avatar.bot { background: #e53935; }
+    .tg-sim-name { font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 4px; }
+    .tg-sim-verified { color: #6ab2f2; display: inline-flex; }
+    .tg-sim-status { font-size: 12px; color: #6ab2f2; margin-top: 1px; }
+    html[data-theme="light"] .tg-sim-status { color: #cce4f7; }
+
+    /* Chat body */
+    .tg-sim-chat {
+      flex: 1; padding: 16px; overflow: hidden; position: relative;
+      background: #0e1621; display: flex; flex-direction: column;
+    }
+    html[data-theme="light"] .tg-sim-chat { background: #aebfc9; }
+
+    /* Message bubbles — authentic Telegram style */
+    .tg-msg {
+      max-width: 88%; margin-bottom: 6px; position: relative;
+    }
+    .tg-msg:has(.tg-msg-out) { align-self: flex-end; }
+    .tg-msg-in {
+      background: #182533; border-radius: 12px 12px 12px 4px; padding: 8px 12px;
+      font-size: 13px; color: #e8e8e8; line-height: 1.55;
+    }
+    html[data-theme="light"] .tg-msg-in { background: #fff; color: #222; }
+    .tg-msg-out {
+      background: #2b5278; border-radius: 12px 12px 4px 12px; padding: 8px 12px;
+      font-size: 13px; color: #e8e8e8; line-height: 1.55; text-align: right;
+    }
+    html[data-theme="light"] .tg-msg-out { background: #effdde; color: #222; }
+    .tg-msg-sender { font-size: 12px; font-weight: 600; color: #6ab2f2; margin-bottom: 3px; }
+    .tg-msg-time {
+      float: right; font-size: 10px; color: #5a6a78; margin-left: 8px; margin-top: 4px;
+    }
+    html[data-theme="light"] .tg-msg-time { color: #8a9aa8; }
+    .tg-msg-link {
+      color: #6ab2f2; text-decoration: none; cursor: default;
+      border-radius: 3px; padding: 0 2px; margin: 0 -2px;
+    }
+    .tg-msg-link.glow { animation: link-highlight 6s ease-in-out infinite; }
+    @keyframes link-highlight {
+      0%, 28% { background: none; text-shadow: none; }
+      34% { background: rgba(106,178,242,0.25); text-shadow: 0 0 10px rgba(106,178,242,0.6); }
+      42% { background: none; text-shadow: none; }
+      100% { background: none; text-shadow: none; }
+    }
+    .tg-msg-code {
+      display: inline-block; margin-top: 4px; padding: 4px 8px;
+      background: rgba(255,255,255,0.06); border-radius: 4px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px; color: #8ab4f8; word-break: break-all;
+    }
+    html[data-theme="light"] .tg-msg-code { background: rgba(0,0,0,0.05); color: #1a73e8; }
+
+    /* Input bar */
+    .tg-sim-input {
+      padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+      background: #17212b; border-top: 1px solid rgba(255,255,255,0.04); flex-shrink: 0;
+    }
+    html[data-theme="light"] .tg-sim-input { background: #e7ebf0; border-color: rgba(0,0,0,0.06); }
+    .tg-sim-input-field {
+      flex: 1; background: transparent; border: none; color: #5a6a78; font-size: 14px; outline: none;
+    }
+    .tg-sim-input-icon { color: #5a6a78; flex-shrink: 0; }
+
+    /* START button bar (bot screen) */
+    .tg-sim-start-bar {
+      padding: 10px 16px; display: flex; align-items: center; justify-content: center;
+      background: #17212b; border-top: 1px solid rgba(255,255,255,0.04); flex-shrink: 0;
+    }
+    html[data-theme="light"] .tg-sim-start-bar { background: #e7ebf0; border-color: rgba(0,0,0,0.06); }
+    .tg-start-pill {
+      color: #6ab2f2; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 10px 0; cursor: default; border-radius: 6px; transition: all 0.2s;
+    }
+    .tg-start-pill.glow { animation: start-highlight 6s ease-in-out infinite; }
+    @keyframes start-highlight {
+      0%, 68% { text-shadow: none; }
+      74% { text-shadow: 0 0 14px rgba(106,178,242,0.8); }
+      82% { text-shadow: none; }
+      100% { text-shadow: none; }
+    }
+
+    /* Bot intro center area */
+    .tg-bot-intro {
+      text-align: center; padding: 32px 24px;
+    }
+    .tg-bot-intro-icon {
+      width: 80px; height: 80px; border-radius: 50%; background: #e53935;
+      margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 32px; color: #fff; font-weight: 700;
+    }
+    .tg-bot-intro-name { font-size: 18px; font-weight: 700; color: #e8e8e8; margin-bottom: 4px; }
+    html[data-theme="light"] .tg-bot-intro-name { color: #222; }
+    .tg-bot-intro-tag { font-size: 12px; color: #5a6a78; margin-bottom: 12px; }
+    .tg-bot-intro-desc { font-size: 13px; color: #8a9aa8; line-height: 1.5; }
+
+    /* ===== ANIMATED CURSOR ===== */
+    .tg-cursor {
+      position: absolute; width: 24px; height: 24px;
+      pointer-events: none; z-index: 20;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+      opacity: 0;
+    }
+    .tg-cursor svg { width: 24px; height: 24px; }
+
+    /* Click ripple effects */
+    .tg-ripple {
+      position: absolute; width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(106, 178, 242, 0.35);
+      transform: scale(0); opacity: 0;
+      pointer-events: none; z-index: 19;
+    }
+
+    /* Token copy sim (step 3) */
+    .tg-sim-small {
+      position: relative; width: 100%; max-width: 520px; height: 260px;
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #0e1621;
+      margin: 16px 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    html[data-theme="light"] .tg-sim-small { background: #e7ebf0; border-color: #ccc; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+    .tg-sim-small .tg-sim-chat { flex: 1; padding: 12px 16px; overflow: hidden; background: #0e1621; }
+    html[data-theme="light"] .tg-sim-small .tg-sim-chat { background: #aebfc9; }
+    .tg-msg-code.clickable {
+      cursor: default; border-radius: 4px; padding: 4px 8px; transition: background 0.2s;
+    }
+    .tg-msg-code.clickable.glow-token, .tg-msg-code.clickable.glow-id { animation: token-highlight 2.5s ease-in-out infinite; }
+    @keyframes token-highlight {
+      0%, 38% { background: rgba(255,255,255,0.06); box-shadow: none; }
+      46% { background: rgba(106,178,242,0.2); box-shadow: 0 0 8px rgba(106,178,242,0.4); }
+      58% { background: rgba(255,255,255,0.06); box-shadow: none; }
+      100% { background: rgba(255,255,255,0.06); box-shadow: none; }
+    }
+    .tg-copied-tip {
+      position: absolute; padding: 5px 12px; border-radius: 6px;
+      background: rgba(74, 222, 128, 0.9); color: #000; font-size: 11px; font-weight: 700;
+      pointer-events: none; z-index: 21; opacity: 0; white-space: nowrap;
+    }
+
+    /* Callout */
+    .callout {
+      display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 13px; line-height: 1.6;
+    }
+    .callout.info {
+      background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15);
+      color: var(--text-secondary);
+    }
+    .callout-icon { flex-shrink: 0; margin-top: 1px; }
+
+    /* Input */
+    .wz-field { margin-bottom: 20px; }
+    .wz-label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .wz-input {
+      width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: all 0.2s;
+    }
+    .wz-input:hover { border-color: var(--border-strong); }
+    .wz-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+    .wz-input::placeholder { color: var(--text-tertiary); }
+    .wz-input.large { min-height: 56px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 15px; letter-spacing: 0.3px; }
+    .wz-input.valid { border-color: var(--success) !important; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15) !important; }
+    .wz-input.invalid { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important; }
+    .field-helper { font-size: 12px; margin-top: 8px; line-height: 1.5; display: flex; align-items: center; gap: 6px; }
+    .field-helper.success { color: var(--success); }
+    .field-helper.error { color: var(--danger); }
+
+    /* Test states */
+    .test-state { text-align: center; padding: 48px 0; }
+    .test-spinner { width: 48px; height: 48px; margin: 0 auto 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: wz-spin 0.8s linear infinite; }
+    .test-icon-success { width: 72px; height: 72px; margin: 0 auto 24px; background: rgba(74, 222, 128, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .test-icon-warning { width: 72px; height: 72px; margin: 0 auto 24px; background: rgba(251, 191, 36, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .test-headline { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .test-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 420px; margin: 0 auto 28px; }
+    .checklist { text-align: left; max-width: 420px; margin: 0 auto 28px; }
+    .checklist-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-size: 14px; color: var(--text-secondary); }
+    .checklist-item input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+
+    .wz-footer {
+      flex-shrink: 0; padding: 24px 64px 32px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--bg);
+    }
+
+    .theme-toggle {
+      position: absolute; top: 20px; right: 20px; width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface-hover); border: 1px solid var(--border);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); font-size: 16px; transition: all 0.2s;
+    }
+    .theme-toggle:hover { border-color: var(--border-strong); color: var(--text); }
+
+    .support-fab {
+      position: fixed; bottom: 100px; right: 32px; padding: 10px 18px; border-radius: 99px;
+      background: var(--surface-elevated); border: 1px solid var(--border);
+      color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow); z-index: 50; transition: all 0.2s;
+    }
+    .support-fab:hover { border-color: var(--border-strong); color: var(--text); transform: translateY(-2px); }
+
+    .wz-kbd {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: var(--surface-hover); padding: 2px 8px; border-radius: 6px;
+      font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="wz-shell">
+    <aside class="wz-brand">
+      <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">&#9788;</span></button>
+      <div class="wz-brand-mark">
+        <div class="wz-brand-logo">9</div>
+        <div>
+          <div class="wz-brand-name">9BizClaw</div>
+          <div class="wz-brand-tag">Trợ Lý AI Cho Doanh Nghiệp</div>
+        </div>
+      </div>
+      <div class="wz-brand-content">
+        <div class="wz-eyebrow" id="brand-eyebrow">Bước 3 / 4</div>
+        <h1 class="wz-headline" id="brand-headline">Kết nối Telegram</h1>
+        <p class="wz-subhead" id="brand-subhead">Telegram là kênh anh/chị nhận thông báo và điều khiển trợ lý.</p>
+      </div>
+      <div class="wz-brand-foot">Toàn bộ dữ liệu lưu local trên máy anh/chị, không gửi lên cloud.</div>
+    </aside>
+
+    <main class="wz-form-panel">
+      <div class="wz-progress">
+        <div class="wz-progress-bar"><div class="wz-progress-fill"></div></div>
+        <div class="wz-progress-meta">
+          <span class="wz-progress-step">Bước 3 trong 4</span>
+          <span>75%</span>
+        </div>
+      </div>
+
+      <div class="wz-form-scroll">
+        <div class="wz-form-content">
+
+          <!-- ===== 3.1 WHY CONNECT ===== -->
+          <section class="sub-screen active" id="screen-3-1">
+            <h2>Kết nối Telegram để dùng 9BizClaw mọi lúc, mọi nơi</h2>
+            <p class="step-desc">Telegram là kênh anh/chị nhận báo cáo và điều khiển trợ lý AI.</p>
+
+            <div class="benefit-list">
+              <div class="benefit-row">
+                <div class="benefit-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/></svg></div>
+                <div class="benefit-text">Nhận báo cáo doanh nghiệp hàng ngày trên điện thoại</div>
+              </div>
+              <div class="benefit-row">
+                <div class="benefit-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div>
+                <div class="benefit-text">Hỏi đáp với trợ lý ngay trên Telegram, không cần mở app</div>
+              </div>
+              <div class="benefit-row">
+                <div class="benefit-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+                <div class="benefit-text">Cảnh báo quan trọng gửi tức thì — khách mới, sự cố, cron</div>
+              </div>
+            </div>
+
+            <div class="trust-block">
+              <div class="trust-block-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+              <div class="trust-block-text"><strong>An toàn 100%</strong> — Toàn bộ dữ liệu lưu trên máy anh/chị, không gửi lên cloud.</div>
+            </div>
+
+            <div class="time-estimate">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Thiết lập mất khoảng 2 phút
+            </div>
+
+            <button class="wz-btn wz-btn-primary" onclick="goTo('3-2')">Bắt đầu kết nối &rarr;</button>
+          </section>
+
+          <!-- ===== 3.2 CREATE ASSISTANT ===== -->
+          <section class="sub-screen" id="screen-3-2">
+            <div class="trust-bar">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Dữ liệu local</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Còn ~1 phút</span>
+            </div>
+
+            <h2>Tạo Trợ Lý Telegram</h2>
+            <p class="step-desc">Chúng ta sẽ nhờ BotFather tạo một Trợ Lý riêng cho anh/chị.</p>
+
+            <!-- Step 1: Open BotFather -->
+            <div class="pd-step active" id="pd-3-2-1">
+              <div class="pd-header">
+                <div class="pd-num">1</div>
+                <div class="pd-title">Mở BotFather</div>
+                <div class="pd-done-hint">&#10003; Đã mở</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">BotFather là "người trợ giúp" chính thức của Telegram để tạo bot.</div>
+                <div class="dual-cta">
+                  <button class="wz-btn wz-btn-secondary" onclick="advancePD('3-2', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#29B6F6" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.28-.02-.12.03-2.02 1.28-5.69 3.77-.54.37-1.03.55-1.47.54-.48-.01-1.41-.27-2.1-.5-.85-.28-1.52-.43-1.46-.91.03-.25.38-.51 1.05-.78 4.12-1.79 6.87-2.97 8.26-3.54 3.93-1.62 4.75-1.9 5.28-1.91.12 0 .37.03.54.17.14.12.18.28.2.45-.01.06.01.24 0 .38z"/></svg>
+                    Mở trong App
+                  </button>
+                  <button class="wz-btn wz-btn-secondary" onclick="advancePD('3-2', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Mở trên Web
+                  </button>
+                  <span class="cta-or">hoặc</span>
+                  <button class="wz-btn-confirm" onclick="advancePD('3-2', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Tôi đã mở rồi
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: /newbot + name -->
+            <div class="pd-step locked" id="pd-3-2-2">
+              <div class="pd-header">
+                <div class="pd-num">2</div>
+                <div class="pd-title">Gõ <span class="wz-kbd" style="font-size:12px">/newbot</span> và đặt tên</div>
+                <div class="pd-done-hint">&#10003; Đã xong</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">Gõ <span class="wz-kbd">/newbot</span> trong BotFather. BotFather sẽ hỏi 2 thứ:</div>
+                <ol style="margin: 0 0 16px 20px; font-size: 14px; color: var(--text-secondary); line-height: 2;">
+                  <li><strong style="color:var(--text)">Tên hiển thị</strong> — đặt bất kỳ (VD: <em>"Trợ Lý của Anh Tuấn"</em>)</li>
+                  <li><strong style="color:var(--text)">Username</strong> — phải kết thúc bằng <span class="wz-kbd">bot</span> (VD: <span class="wz-kbd">troly_anh_tuan_bot</span>)</li>
+                </ol>
+
+                <div class="example-box">
+                  <div class="example-badge">VÍ DỤ</div>
+                  <div class="example-sender">BotFather</div>
+                  <div class="example-body">
+                    Done! Congratulations on your new bot.<br>
+                    You will find it at <span style="color:#6ab2f2">t.me/TroLyAnhTuanBot</span><br><br>
+                    Use this token to access the HTTP API:<br>
+                    <span class="example-highlight">
+                      7104958362:BBHxR93kLmNpQwErTyUiOp
+                      <span class="example-arrow">&larr; SAO CHÉP DÒNG NÀY</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="dual-cta">
+                  <button class="wz-btn wz-btn-secondary" onclick="advancePD('3-2', 2)">BotFather đã gửi Mã kết nối &rarr;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Copy token + Paste -->
+            <div class="pd-step locked" id="pd-3-2-3">
+              <div class="pd-header">
+                <div class="pd-num">3</div>
+                <div class="pd-title">Sao chép và dán Mã kết nối</div>
+                <div class="pd-done-hint">&#10003; Hợp lệ</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">Nhấn vào dòng mã trong tin nhắn BotFather để copy, rồi dán vào ô bên dưới.</div>
+
+                <!-- Token copy animated demo -->
+                <div class="tg-sim-small" style="display:flex;flex-direction:column;">
+                  <div class="tg-sim-hdr">
+                    <span class="tg-sim-back">&#8249;</span>
+                    <div class="tg-sim-avatar bf">B</div>
+                    <div>
+                      <div class="tg-sim-name">BotFather <span class="tg-sim-verified"><svg width="14" height="14" viewBox="0 0 24 24" fill="#6ab2f2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span></div>
+                      <div class="tg-sim-status">bot</div>
+                    </div>
+                  </div>
+                  <div class="tg-sim-chat">
+                    <div class="tg-msg">
+                      <div class="tg-msg-in">
+                        <div class="tg-msg-sender">BotFather</div>
+                        Use this token to access the HTTP API:<br>
+                        <span class="tg-msg-code clickable glow-token" id="token-copy-target">7104958362:BBHxR93kLmNpQwErTyUiOp</span><br>
+                        Keep your token secure and store it safely.
+                        <span class="tg-msg-time">10:23</span>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Cursor -->
+                  <div class="tg-cursor" id="token-cursor">
+                    <svg viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z"/><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z" fill="none" stroke="#333" stroke-width="0.5"/></svg>
+                  </div>
+                  <div class="tg-ripple" id="token-ripple"></div>
+                  <div class="tg-copied-tip" id="token-copied-tip">Copied!</div>
+                </div>
+
+                <div class="wz-field" style="margin-top:12px">
+                  <label class="wz-label">Dán Mã kết nối (Bot Token) vào đây</label>
+                  <input type="text" class="wz-input large" id="token-input"
+                         placeholder="Dán Mã kết nối từ BotFather..."
+                         oninput="validateToken(this)">
+                  <div class="field-helper" id="token-helper" style="display:none"></div>
+                  <button class="wz-btn wz-btn-primary" id="btn-token-next" disabled
+                          onclick="advanceTokenStep()" style="margin-top:12px; width:100%">
+                    Tiếp tục &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4: Activate bot — single-frame animated Telegram simulator -->
+            <div class="pd-step locked" id="pd-3-2-4">
+              <div class="pd-header">
+                <div class="pd-num">4</div>
+                <div class="pd-title">Kích hoạt Trợ Lý</div>
+                <div class="pd-done-hint">&#10003; Đã kích hoạt</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">Nhấn vào <strong>link Trợ Lý</strong> trong tin nhắn BotFather, rồi nhấn <strong>Start</strong>.</div>
+
+                <!-- ===== SINGLE-FRAME TELEGRAM SIMULATOR ===== -->
+                <div class="tg-sim">
+                  <!-- SCREEN 1: BotFather chat -->
+                  <div class="tg-sim-screen tg-screen-bf">
+                    <div class="tg-sim-hdr">
+                      <span class="tg-sim-back">&#8249;</span>
+                      <div class="tg-sim-avatar bf">B</div>
+                      <div>
+                        <div class="tg-sim-name">
+                          BotFather
+                          <span class="tg-sim-verified"><svg width="14" height="14" viewBox="0 0 24 24" fill="#6ab2f2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+                        </div>
+                        <div class="tg-sim-status">bot</div>
+                      </div>
+                    </div>
+                    <div class="tg-sim-chat">
+                      <div class="tg-msg">
+                        <div class="tg-msg-in">
+                          <div class="tg-msg-sender">BotFather</div>
+                          Done! Congratulations on your new bot. You will find it at <span class="tg-msg-link glow">t.me/TroLyCuaBan</span>. You can now add a description, about section and profile picture for your bot, see /help for a list of commands.<br><br>
+                          Use this token to access the HTTP API:<br>
+                          <span class="tg-msg-code">7104958362:BBHxR93kLmNpQwErTyUiOp</span><br>
+                          Keep your token secure and store it safely, it can be used by anyone to control your bot.
+                          <span class="tg-msg-time">10:23</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tg-sim-input">
+                      <svg class="tg-sim-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a6a78" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                      <span class="tg-sim-input-field">Message</span>
+                      <svg class="tg-sim-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a6a78" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                    </div>
+                  </div>
+
+                  <!-- SCREEN 2: Bot profile + START -->
+                  <div class="tg-sim-screen tg-screen-bot">
+                    <div class="tg-sim-hdr">
+                      <span class="tg-sim-back">&#8249;</span>
+                      <div class="tg-sim-avatar bot">T</div>
+                      <div>
+                        <div class="tg-sim-name">Trợ Lý Của Bạn</div>
+                        <div class="tg-sim-status">bot</div>
+                      </div>
+                    </div>
+                    <div class="tg-sim-chat" style="display:flex;align-items:center;justify-content:center;">
+                      <div class="tg-bot-intro">
+                        <div class="tg-bot-intro-icon">T</div>
+                        <div class="tg-bot-intro-name">Trợ Lý Của Bạn</div>
+                        <div class="tg-bot-intro-tag">bot</div>
+                        <div class="tg-bot-intro-desc">Trợ Lý AI cho doanh nghiệp của bạn</div>
+                      </div>
+                    </div>
+                    <div class="tg-sim-start-bar">
+                      <div class="tg-start-pill glow">START</div>
+                    </div>
+                  </div>
+
+                  <!-- ANIMATED CURSOR (traverses both screens) -->
+                  <div class="tg-cursor">
+                    <svg viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z"/><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z" fill="none" stroke="#333" stroke-width="0.5"/></svg>
+                  </div>
+
+                  <!-- CLICK RIPPLES -->
+                  <div class="tg-ripple tg-ripple-link"></div>
+                  <div class="tg-ripple tg-ripple-start"></div>
+                </div>
+
+                <div class="callout info" style="margin-top:16px">
+                  <div class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ab2f2" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg></div>
+                  <div>Nhấn Start xong sẽ <strong>không có phản hồi</strong> — đúng rồi, đừng lo. Quay lại đây và nhấn tiếp.</div>
+                </div>
+
+                <div class="dual-cta" style="margin-top:20px">
+                  <button class="wz-btn wz-btn-primary" onclick="goTo('3-3')">
+                    Đã nhấn Start, tiếp tục &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== 3.3 GET USER ID ===== -->
+          <section class="sub-screen" id="screen-3-3">
+            <div class="trust-bar">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Dữ liệu local</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Gần xong</span>
+            </div>
+
+            <h2>Cho phép Trợ Lý nhận diện anh/chị</h2>
+            <p class="step-desc">Trợ Lý cần biết tài khoản nào là của anh/chị để gửi tin đúng người.</p>
+
+            <!-- Step 1: Open userinfobot -->
+            <div class="pd-step active" id="pd-3-3-1">
+              <div class="pd-header">
+                <div class="pd-num">1</div>
+                <div class="pd-title">Lấy Mã nhận diện</div>
+                <div class="pd-done-hint">&#10003; Đã mở</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">Mở @userinfobot — bot này cho anh/chị xem Mã nhận diện của mình.</div>
+                <div class="dual-cta">
+                  <button class="wz-btn wz-btn-secondary" onclick="advancePD('3-3', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#29B6F6" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.28-.02-.12.03-2.02 1.28-5.69 3.77-.54.37-1.03.55-1.47.54-.48-.01-1.41-.27-2.1-.5-.85-.28-1.52-.43-1.46-.91.03-.25.38-.51 1.05-.78 4.12-1.79 6.87-2.97 8.26-3.54 3.93-1.62 4.75-1.9 5.28-1.91.12 0 .37.03.54.17.14.12.18.28.2.45-.01.06.01.24 0 .38z"/></svg>
+                    Mở trong App
+                  </button>
+                  <button class="wz-btn wz-btn-secondary" onclick="advancePD('3-3', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Mở trên Web
+                  </button>
+                  <span class="cta-or">hoặc</span>
+                  <button class="wz-btn-confirm" onclick="advancePD('3-3', 1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Tôi đã mở rồi
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: /start + copy — animated simulator -->
+            <div class="pd-step locked" id="pd-3-3-2">
+              <div class="pd-header">
+                <div class="pd-num">2</div>
+                <div class="pd-title">Gõ <span class="wz-kbd" style="font-size:12px">/start</span> rồi copy dãy số</div>
+                <div class="pd-done-hint">&#10003; Đã xong</div>
+              </div>
+              <div class="pd-body">
+                <div class="pd-desc">Gõ <span class="wz-kbd">/start</span> — bot sẽ trả về thông tin của anh/chị. Nhấn vào dãy số <strong>Id</strong> để copy.</div>
+
+                <div class="tg-sim-small" id="id-sim" style="display:flex;flex-direction:column;">
+                  <div class="tg-sim-hdr">
+                    <span class="tg-sim-back">&#8249;</span>
+                    <div class="tg-sim-avatar" style="background:#5a6abf;font-size:11px;">&#9881;</div>
+                    <div>
+                      <div class="tg-sim-name">User Info <span style="color:var(--text-tertiary);font-weight:400">&bull; Get ID &bull; idbot</span></div>
+                      <div class="tg-sim-status">bot</div>
+                    </div>
+                  </div>
+                  <div class="tg-sim-chat">
+                    <div class="tg-msg">
+                      <div class="tg-msg-out">/start<span class="tg-msg-time" style="margin-left:8px;">3:53 PM</span></div>
+                    </div>
+                    <div class="tg-msg">
+                      <div class="tg-msg-in" style="line-height:1.7;">
+                        @NguyenVanA<br>
+                        Id: <span class="tg-msg-code clickable glow-id" id="id-copy-target">5738291046</span><br>
+                        First: Nguyen Van A<br>
+                        Lang: vi
+                        <span class="tg-msg-time">3:53 PM</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tg-cursor" id="id-cursor">
+                    <svg viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z"/><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L5.85 2.36a.5.5 0 0 0-.35-.15z" fill="none" stroke="#333" stroke-width="0.5"/></svg>
+                  </div>
+                  <div class="tg-ripple" id="id-ripple"></div>
+                  <div class="tg-copied-tip" id="id-copied-tip">Copied!</div>
+                </div>
+
+                <button class="wz-btn-confirm" onclick="advancePD('3-3', 2)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Tôi đã copy dãy số
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Paste -->
+            <div class="pd-step locked" id="pd-3-3-3">
+              <div class="pd-header">
+                <div class="pd-num">3</div>
+                <div class="pd-title">Dán Mã nhận diện</div>
+                <div class="pd-done-hint">&#10003; Hợp lệ</div>
+              </div>
+              <div class="pd-body">
+                <div class="wz-field">
+                  <label class="wz-label">Mã nhận diện Telegram (User ID)</label>
+                  <input type="text" class="wz-input large" id="userid-input"
+                         placeholder="Dán dãy số (VD: 5738291046)"
+                         inputmode="numeric"
+                         oninput="validateUserId(this)">
+                  <div class="field-helper" id="userid-helper" style="display:none"></div>
+                </div>
+                <button class="wz-btn wz-btn-primary" id="btn-to-3-4" disabled onclick="goTo('3-4')">
+                  Kiểm tra kết nối &rarr;
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== 3.4 TEST ===== -->
+          <section class="sub-screen" id="screen-3-4">
+            <div class="test-state" id="test-loading">
+              <div class="test-spinner"></div>
+              <div class="test-headline">Đang gửi tin nhắn thử...</div>
+              <div class="test-body">Đang gửi tới Telegram của anh/chị để xác nhận kết nối.</div>
+            </div>
+            <div class="test-state" id="test-success" style="display:none">
+              <div class="test-icon-success"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="test-headline">Kết nối thành công!</div>
+              <div class="test-body">Em vừa gửi tin vào Telegram của anh/chị. Mở Telegram xem nhé.</div>
+              <button class="wz-btn wz-btn-primary" onclick="alert('Step 4: Hoàn tất')">Hoàn tất thiết lập &rarr;</button>
+            </div>
+            <div class="test-state" id="test-failure" style="display:none">
+              <div class="test-icon-warning"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg></div>
+              <div class="test-headline">Chưa nhận được tin?</div>
+              <div class="test-body">Kiểm tra vài điều rồi thử lại:</div>
+              <div class="checklist">
+                <label class="checklist-item"><input type="checkbox"> Đã nhấn <strong>Start</strong> trong Trợ Lý chưa?</label>
+                <label class="checklist-item"><input type="checkbox"> Mã kết nối có thể bị thiếu ký tự</label>
+                <label class="checklist-item"><input type="checkbox"> Mã nhận diện có thể không đúng</label>
+              </div>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                <button class="wz-btn wz-btn-primary" onclick="simulateTest('success')">Thử lại</button>
+                <button class="wz-btn wz-btn-ghost" onclick="goTo('3-2')">Quay lại sửa</button>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <div class="wz-footer">
+        <div><button class="wz-btn wz-btn-ghost" onclick="navBack()">Quay lại</button></div>
+        <div id="footer-right"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="support-fab" onclick="alert('Mở Zalo hỗ trợ')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+    Cần hỗ trợ?
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const cur = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+      document.getElementById('theme-icon').textContent = cur === 'dark' ? '☾' : '☆';
+    }
+
+    const screenOrder = ['3-1', '3-2', '3-3', '3-4'];
+    let currentScreen = '3-1';
+    const brandMeta = {
+      '3-1': { eyebrow: 'Bước 3 / 4', headline: 'Kết nối Telegram', subhead: 'Telegram là kênh anh/chị nhận thông báo và điều khiển trợ lý.' },
+      '3-2': { eyebrow: 'Bước 3 / 4', headline: 'Tạo Trợ Lý Telegram', subhead: 'Nhờ BotFather tạo Trợ Lý riêng cho anh/chị.' },
+      '3-3': { eyebrow: 'Bước 3 / 4', headline: 'Nhận diện chủ doanh nghiệp', subhead: 'Trợ Lý cần biết ai là CEO để gửi đúng người.' },
+      '3-4': { eyebrow: 'Bước 3 / 4', headline: 'Kiểm tra kết nối', subhead: 'Xác nhận Trợ Lý có thể gửi tin cho anh/chị.' },
+    };
+
+    function goTo(screen) {
+      document.querySelectorAll('.sub-screen').forEach(el => el.classList.remove('active'));
+      document.getElementById('screen-' + screen)?.classList.add('active');
+      currentScreen = screen;
+      const meta = brandMeta[screen];
+      if (meta) {
+        document.getElementById('brand-eyebrow').textContent = meta.eyebrow;
+        document.getElementById('brand-headline').textContent = meta.headline;
+        document.getElementById('brand-subhead').textContent = meta.subhead;
+      }
+      document.querySelector('.wz-form-scroll').scrollTop = 0;
+      if (screen === '3-4') simulateTest('loading');
+    }
+
+    function navBack() {
+      const idx = screenOrder.indexOf(currentScreen);
+      if (idx > 0) goTo(screenOrder[idx - 1]);
+    }
+
+    function advancePD(screen, fromStep) {
+      const cur = document.getElementById('pd-' + screen + '-' + fromStep);
+      const nxt = document.getElementById('pd-' + screen + '-' + (fromStep + 1));
+      if (cur) { cur.classList.remove('active'); cur.classList.add('done'); }
+      if (nxt) {
+        nxt.classList.remove('locked'); nxt.classList.add('active');
+        if (nxt.id === 'pd-3-2-3') setTimeout(setupTokenCopyAnim, 100);
+        if (nxt.id === 'pd-3-2-4') setTimeout(setupSimAnimation, 100);
+        if (nxt.id === 'pd-3-3-2') setTimeout(setupIdCopyAnim, 100);
+      }
+    }
+
+    function validateToken(input) {
+      const val = input.value.trim();
+      const helper = document.getElementById('token-helper');
+      const btn = document.getElementById('btn-token-next');
+      if (!val) { input.classList.remove('valid', 'invalid'); helper.style.display = 'none'; btn.disabled = true; return; }
+      const valid = /^\d{8,12}:[A-Za-z0-9_-]{35}$/.test(val);
+      helper.style.display = 'flex';
+      if (valid) {
+        input.classList.add('valid'); input.classList.remove('invalid');
+        helper.className = 'field-helper success';
+        helper.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Mã hợp lệ.';
+        btn.disabled = false;
+      } else {
+        input.classList.add('invalid'); input.classList.remove('valid');
+        helper.className = 'field-helper error';
+        helper.textContent = 'Mã này không đúng định dạng. Anh/chị copy lại từ BotFather giúp em.';
+        btn.disabled = true;
+      }
+    }
+
+    function advanceTokenStep() {
+      const s3 = document.getElementById('pd-3-2-3');
+      const s4 = document.getElementById('pd-3-2-4');
+      if (s3 && !s3.classList.contains('done')) { s3.classList.remove('active'); s3.classList.add('done'); }
+      if (s4) { s4.classList.remove('locked'); s4.classList.add('active'); setTimeout(setupSimAnimation, 100); }
+    }
+
+    function validateUserId(input) {
+      const val = input.value.trim();
+      const helper = document.getElementById('userid-helper');
+      const btn = document.getElementById('btn-to-3-4');
+      if (!val) { input.classList.remove('valid', 'invalid'); helper.style.display = 'none'; btn.disabled = true; return; }
+      const valid = /^\d{7,12}$/.test(val);
+      helper.style.display = 'flex';
+      if (valid) {
+        input.classList.add('valid'); input.classList.remove('invalid');
+        helper.className = 'field-helper success';
+        helper.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Mã hợp lệ.';
+        btn.disabled = false;
+      } else {
+        input.classList.add('invalid'); input.classList.remove('valid');
+        helper.className = 'field-helper error';
+        helper.textContent = 'Mã nhận diện chỉ gồm số (7–12 chữ số). Kiểm tra lại nhé.';
+        btn.disabled = true;
+      }
+    }
+
+    function setupTokenCopyAnim() {
+      const sim = document.querySelector('.tg-sim-small');
+      const cursor = document.getElementById('token-cursor');
+      const ripple = document.getElementById('token-ripple');
+      const tip = document.getElementById('token-copied-tip');
+      const target = document.getElementById('token-copy-target');
+      if (!sim || !cursor || !target) return;
+
+      requestAnimationFrame(() => {
+        const sr = sim.getBoundingClientRect();
+        const tr = target.getBoundingClientRect();
+        const tx = tr.left - sr.left + tr.width * 0.5;
+        const ty = tr.top - sr.top + tr.height * 0.5;
+        const DUR = 2500;
+
+        if (ripple) {
+          ripple.style.top = (ty - 14) + 'px';
+          ripple.style.left = (tx - 14) + 'px';
+        }
+        if (tip) {
+          tip.style.top = (ty - 30) + 'px';
+          tip.style.left = (tx - 20) + 'px';
+        }
+
+        cursor.getAnimations().forEach(a => a.cancel());
+        cursor.animate([
+          { top: (ty - 40) + 'px', left: (tx - 100) + 'px', opacity: 0, offset: 0 },
+          { top: (ty - 40) + 'px', left: (tx - 100) + 'px', opacity: 1, offset: 0.10 },
+          { top: ty + 'px', left: tx + 'px', opacity: 1, offset: 0.40 },
+          { top: ty + 'px', left: tx + 'px', opacity: 1, offset: 0.50 },
+          { top: ty + 'px', left: tx + 'px', opacity: 0, offset: 0.70 },
+          { top: ty + 'px', left: tx + 'px', opacity: 0, offset: 1 },
+        ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+
+        if (ripple) {
+          ripple.getAnimations().forEach(a => a.cancel());
+          ripple.animate([
+            { transform: 'scale(0)', opacity: 0, offset: 0 },
+            { transform: 'scale(0)', opacity: 0, offset: 0.44 },
+            { transform: 'scale(1)', opacity: 0.6, offset: 0.48 },
+            { transform: 'scale(3)', opacity: 0, offset: 0.55 },
+            { transform: 'scale(0)', opacity: 0, offset: 1 },
+          ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+        }
+
+        if (tip) {
+          tip.getAnimations().forEach(a => a.cancel());
+          tip.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.49 },
+            { opacity: 1, offset: 0.52 },
+            { opacity: 1, offset: 0.68 },
+            { opacity: 0, offset: 0.74 },
+            { opacity: 0, offset: 1 },
+          ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+        }
+      });
+    }
+
+    function setupIdCopyAnim() {
+      const sim = document.getElementById('id-sim');
+      const cursor = document.getElementById('id-cursor');
+      const ripple = document.getElementById('id-ripple');
+      const tip = document.getElementById('id-copied-tip');
+      const target = document.getElementById('id-copy-target');
+      if (!sim || !cursor || !target) return;
+
+      requestAnimationFrame(() => {
+        const sr = sim.getBoundingClientRect();
+        const tr = target.getBoundingClientRect();
+        const tx = tr.left - sr.left + tr.width * 0.5;
+        const ty = tr.top - sr.top + tr.height * 0.5;
+        const DUR = 2500;
+
+        if (ripple) { ripple.style.top = (ty - 14) + 'px'; ripple.style.left = (tx - 14) + 'px'; }
+        if (tip) { tip.style.top = (ty - 30) + 'px'; tip.style.left = (tx - 20) + 'px'; }
+
+        cursor.getAnimations().forEach(a => a.cancel());
+        cursor.animate([
+          { top: (ty - 40) + 'px', left: (tx - 100) + 'px', opacity: 0, offset: 0 },
+          { top: (ty - 40) + 'px', left: (tx - 100) + 'px', opacity: 1, offset: 0.10 },
+          { top: ty + 'px', left: tx + 'px', opacity: 1, offset: 0.40 },
+          { top: ty + 'px', left: tx + 'px', opacity: 1, offset: 0.50 },
+          { top: ty + 'px', left: tx + 'px', opacity: 0, offset: 0.70 },
+          { top: ty + 'px', left: tx + 'px', opacity: 0, offset: 1 },
+        ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+
+        if (ripple) {
+          ripple.getAnimations().forEach(a => a.cancel());
+          ripple.animate([
+            { transform: 'scale(0)', opacity: 0, offset: 0 },
+            { transform: 'scale(0)', opacity: 0, offset: 0.44 },
+            { transform: 'scale(1)', opacity: 0.6, offset: 0.48 },
+            { transform: 'scale(3)', opacity: 0, offset: 0.55 },
+            { transform: 'scale(0)', opacity: 0, offset: 1 },
+          ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+        }
+
+        if (tip) {
+          tip.getAnimations().forEach(a => a.cancel());
+          tip.animate([
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.49 },
+            { opacity: 1, offset: 0.52 },
+            { opacity: 1, offset: 0.68 },
+            { opacity: 0, offset: 0.74 },
+            { opacity: 0, offset: 1 },
+          ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+        }
+      });
+    }
+
+    function setupSimAnimation() {
+      const sim = document.querySelector('.tg-sim');
+      const cursor = document.querySelector('.tg-cursor');
+      const rippleLink = document.querySelector('.tg-ripple-link');
+      const rippleStart = document.querySelector('.tg-ripple-start');
+      const linkEl = document.querySelector('.tg-msg-link.glow');
+      const startEl = document.querySelector('.tg-start-pill.glow');
+      if (!sim || !cursor || !linkEl || !startEl) return;
+
+      requestAnimationFrame(() => {
+        const sr = sim.getBoundingClientRect();
+        const lr = linkEl.getBoundingClientRect();
+        const str = startEl.getBoundingClientRect();
+
+        const lx = lr.left - sr.left + lr.width * 0.6;
+        const ly = lr.top - sr.top + lr.height * 0.5;
+        const sx = str.left - sr.left + str.width * 0.5;
+        const sy = str.top - sr.top + str.height * 0.5;
+
+        rippleLink.style.top = (ly - 14) + 'px';
+        rippleLink.style.left = (lx - 14) + 'px';
+        rippleStart.style.top = (sy - 14) + 'px';
+        rippleStart.style.left = (sx - 14) + 'px';
+
+        const DUR = 6000;
+
+        cursor.getAnimations().forEach(a => a.cancel());
+        cursor.animate([
+          { top: (ly - 50) + 'px', left: (lx - 120) + 'px', opacity: 0, offset: 0 },
+          { top: (ly - 50) + 'px', left: (lx - 120) + 'px', opacity: 1, offset: 0.06 },
+          { top: ly + 'px', left: lx + 'px', opacity: 1, offset: 0.30 },
+          { top: ly + 'px', left: lx + 'px', opacity: 1, offset: 0.36 },
+          { top: ly + 'px', left: lx + 'px', opacity: 0, offset: 0.42 },
+          { top: (sy - 80) + 'px', left: (sx - 50) + 'px', opacity: 0, offset: 0.48 },
+          { top: (sy - 80) + 'px', left: (sx - 50) + 'px', opacity: 1, offset: 0.54 },
+          { top: sy + 'px', left: sx + 'px', opacity: 1, offset: 0.72 },
+          { top: sy + 'px', left: sx + 'px', opacity: 1, offset: 0.78 },
+          { top: sy + 'px', left: sx + 'px', opacity: 0, offset: 0.86 },
+          { top: sy + 'px', left: sx + 'px', opacity: 0, offset: 1 },
+        ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+
+        rippleLink.getAnimations().forEach(a => a.cancel());
+        rippleLink.animate([
+          { transform: 'scale(0)', opacity: 0, offset: 0 },
+          { transform: 'scale(0)', opacity: 0, offset: 0.32 },
+          { transform: 'scale(1)', opacity: 0.6, offset: 0.36 },
+          { transform: 'scale(3)', opacity: 0, offset: 0.42 },
+          { transform: 'scale(0)', opacity: 0, offset: 1 },
+        ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+
+        rippleStart.getAnimations().forEach(a => a.cancel());
+        rippleStart.animate([
+          { transform: 'scale(0)', opacity: 0, offset: 0 },
+          { transform: 'scale(0)', opacity: 0, offset: 0.74 },
+          { transform: 'scale(1)', opacity: 0.6, offset: 0.78 },
+          { transform: 'scale(3)', opacity: 0, offset: 0.84 },
+          { transform: 'scale(0)', opacity: 0, offset: 1 },
+        ], { duration: DUR, iterations: Infinity, easing: 'ease-in-out' });
+      });
+    }
+
+    function simulateTest(forceState) {
+      document.getElementById('test-loading').style.display = 'block';
+      document.getElementById('test-success').style.display = 'none';
+      document.getElementById('test-failure').style.display = 'none';
+      if (forceState === 'loading') {
+        setTimeout(() => {
+          document.getElementById('test-loading').style.display = 'none';
+          document.getElementById('test-success').style.display = 'block';
+        }, 2500);
+      } else if (forceState === 'success') {
+        document.getElementById('test-loading').style.display = 'none';
+        document.getElementById('test-success').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

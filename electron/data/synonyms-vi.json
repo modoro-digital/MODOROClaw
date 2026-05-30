@@ -1,0 +1,3355 @@
+{
+  "gia": [
+    "giá",
+    "bao nhiêu",
+    "bao nhiu",
+    "bnh",
+    "tiền",
+    "cost",
+    "price",
+    "chi phí",
+    "giá tiền",
+    "giá cả",
+    "giá bán"
+  ],
+  "bao nhieu": [
+    "bao nhiêu",
+    "bnh",
+    "bnhieu",
+    "how much",
+    "mấy tiền",
+    "mấy đồng",
+    "giá bao nhiêu"
+  ],
+  "tien": [
+    "tiền",
+    "money",
+    "cash",
+    "đồng",
+    "vnd",
+    "vnđ",
+    "việt nam đồng"
+  ],
+  "chi phi": [
+    "chi phí",
+    "cost",
+    "expense",
+    "tốn",
+    "tổng chi phí",
+    "phí tổn"
+  ],
+  "khuyen mai": [
+    "khuyến mãi",
+    "km",
+    "promo",
+    "promotion",
+    "ưu đãi",
+    "deal",
+    "sale"
+  ],
+  "giam gia": [
+    "giảm giá",
+    "giảm",
+    "sale",
+    "discount",
+    "off",
+    "hạ giá",
+    "bớt giá"
+  ],
+  "chiet khau": [
+    "chiết khấu",
+    "ck",
+    "discount",
+    "rebate",
+    "commission",
+    "hoa hồng"
+  ],
+  "hoa don": [
+    "hoá đơn",
+    "hóa đơn",
+    "invoice",
+    "bill",
+    "receipt",
+    "vat",
+    "xuất hoá đơn"
+  ],
+  "thanh toan": [
+    "thanh toán",
+    "payment",
+    "pay",
+    "trả tiền",
+    "chuyển khoản",
+    "ck",
+    "checkout"
+  ],
+  "tra gop": [
+    "trả góp",
+    "installment",
+    "trả góp 0%",
+    "góp",
+    "trả dần"
+  ],
+  "phi": [
+    "phí",
+    "fee",
+    "charge",
+    "lệ phí",
+    "phụ phí"
+  ],
+  "combo": [
+    "combo",
+    "gói",
+    "package",
+    "bundle",
+    "trọn gói",
+    "set"
+  ],
+  "uu dai": [
+    "ưu đãi",
+    "deal",
+    "offer",
+    "chương trình",
+    "promotion"
+  ],
+  "voucher": [
+    "voucher",
+    "mã giảm",
+    "mã giảm giá",
+    "coupon",
+    "code",
+    "mã khuyến mãi"
+  ],
+  "ma giam": [
+    "mã giảm",
+    "mã giảm giá",
+    "coupon",
+    "discount code",
+    "voucher",
+    "mã km"
+  ],
+  "flash sale": [
+    "flash sale",
+    "sale chớp nhoáng",
+    "giảm sốc",
+    "khung giờ vàng",
+    "deal sốc"
+  ],
+  "black friday": [
+    "black friday",
+    "bf",
+    "thứ sáu đen",
+    "siêu sale cuối năm"
+  ],
+  "sinh nhat": [
+    "sinh nhật",
+    "birthday",
+    "sn",
+    "mừng sinh nhật",
+    "quà sinh nhật"
+  ],
+  "event": [
+    "event",
+    "sự kiện",
+    "chương trình",
+    "lễ hội",
+    "hội chợ"
+  ],
+  "tra truoc": [
+    "trả trước",
+    "down payment",
+    "đặt cọc",
+    "cọc",
+    "deposit"
+  ],
+  "coc": [
+    "cọc",
+    "đặt cọc",
+    "deposit",
+    "tiền cọc",
+    "booking"
+  ],
+  "tien mat": [
+    "tiền mặt",
+    "cash",
+    "tm",
+    "tiền tươi"
+  ],
+  "chuyen khoan": [
+    "chuyển khoản",
+    "ck",
+    "bank transfer",
+    "transfer",
+    "chuyển tiền"
+  ],
+  "the tin dung": [
+    "thẻ tín dụng",
+    "credit card",
+    "cc",
+    "visa",
+    "mastercard"
+  ],
+  "vi dien tu": [
+    "ví điện tử",
+    "e-wallet",
+    "momo",
+    "zalopay",
+    "viettel pay",
+    "shopeepay"
+  ],
+  "gia re": [
+    "giá rẻ",
+    "rẻ",
+    "cheap",
+    "affordable",
+    "giá tốt",
+    "giá mềm"
+  ],
+  "gia cao": [
+    "giá cao",
+    "đắt",
+    "expensive",
+    "mắc",
+    "giá chát"
+  ],
+  "gia niem yet": [
+    "giá niêm yết",
+    "giá gốc",
+    "listed price",
+    "msrp",
+    "giá list"
+  ],
+  "gia si": [
+    "giá sỉ",
+    "giá buôn",
+    "wholesale",
+    "giá đại lý"
+  ],
+  "gia le": [
+    "giá lẻ",
+    "retail",
+    "giá bán lẻ"
+  ],
+  "bang gia": [
+    "bảng giá",
+    "price list",
+    "pricelist",
+    "catalogue giá"
+  ],
+  "tam tinh": [
+    "tạm tính",
+    "subtotal",
+    "tổng tạm tính"
+  ],
+  "tong tien": [
+    "tổng tiền",
+    "total",
+    "tổng",
+    "thành tiền",
+    "tổng cộng"
+  ],
+  "thue": [
+    "thuế",
+    "tax",
+    "vat",
+    "thuế giá trị gia tăng"
+  ],
+  "tra lai": [
+    "trả lại",
+    "hoàn tiền",
+    "refund",
+    "hoàn lại"
+  ],
+  "no": [
+    "nợ",
+    "debt",
+    "công nợ",
+    "dư nợ"
+  ],
+  "dat coc": [
+    "đặt cọc",
+    "cọc",
+    "deposit",
+    "booking fee"
+  ],
+  "phi giao dich": [
+    "phí giao dịch",
+    "transaction fee",
+    "phí ngân hàng"
+  ],
+  "lai suat": [
+    "lãi suất",
+    "interest",
+    "lãi",
+    "interest rate"
+  ],
+  "the atm": [
+    "thẻ atm",
+    "atm",
+    "thẻ ngân hàng",
+    "debit card",
+    "thẻ ghi nợ"
+  ],
+  "qr code": [
+    "qr code",
+    "qr",
+    "mã qr",
+    "quét mã",
+    "scan qr"
+  ],
+  "mien phi": [
+    "miễn phí",
+    "free",
+    "không mất phí",
+    "mp",
+    "free ship"
+  ],
+  "phu thu": [
+    "phụ thu",
+    "extra fee",
+    "surcharge",
+    "phí cộng thêm"
+  ],
+  "hoan thanh": [
+    "hoàn thành",
+    "done",
+    "xong",
+    "hoàn tất"
+  ],
+  "san pham": [
+    "sản phẩm",
+    "sp",
+    "product",
+    "hàng",
+    "mặt hàng",
+    "item"
+  ],
+  "thong so": [
+    "thông số",
+    "specs",
+    "specification",
+    "cấu hình",
+    "parameter"
+  ],
+  "dung luong": [
+    "dung lượng",
+    "capacity",
+    "storage",
+    "gb",
+    "tb",
+    "bộ nhớ"
+  ],
+  "mau": [
+    "mẫu",
+    "model",
+    "template",
+    "sample",
+    "kiểu"
+  ],
+  "mau sac": [
+    "màu sắc",
+    "color",
+    "colour",
+    "màu",
+    "bảng màu"
+  ],
+  "size": [
+    "size",
+    "kích thước",
+    "cỡ",
+    "số đo",
+    "size số"
+  ],
+  "kich thuoc": [
+    "kích thước",
+    "size",
+    "dimension",
+    "kích cỡ",
+    "kt"
+  ],
+  "trong luong": [
+    "trọng lượng",
+    "weight",
+    "cân nặng",
+    "nặng",
+    "kg"
+  ],
+  "chat lieu": [
+    "chất liệu",
+    "material",
+    "vải",
+    "chất vải",
+    "cl"
+  ],
+  "chuc nang": [
+    "chức năng",
+    "function",
+    "feature",
+    "tính năng",
+    "công dụng"
+  ],
+  "tinh nang": [
+    "tính năng",
+    "feature",
+    "chức năng",
+    "công dụng",
+    "đặc điểm"
+  ],
+  "bao hanh": [
+    "bảo hành",
+    "warranty",
+    "bh",
+    "đổi mới",
+    "sửa chữa",
+    "guarantee"
+  ],
+  "ram": [
+    "ram",
+    "bộ nhớ ram",
+    "memory",
+    "ram gb"
+  ],
+  "rom": [
+    "rom",
+    "bộ nhớ trong",
+    "storage",
+    "internal storage"
+  ],
+  "pin": [
+    "pin",
+    "battery",
+    "dung lượng pin",
+    "mah"
+  ],
+  "camera": [
+    "camera",
+    "cam",
+    "máy ảnh",
+    "mp",
+    "megapixel"
+  ],
+  "man hinh": [
+    "màn hình",
+    "screen",
+    "display",
+    "inch",
+    "lcd",
+    "oled"
+  ],
+  "chip": [
+    "chip",
+    "cpu",
+    "processor",
+    "vi xử lý",
+    "chipset"
+  ],
+  "he dieu hanh": [
+    "hệ điều hành",
+    "os",
+    "android",
+    "ios",
+    "windows"
+  ],
+  "phien ban": [
+    "phiên bản",
+    "version",
+    "ver",
+    "bản",
+    "đời"
+  ],
+  "model": [
+    "model",
+    "mã sản phẩm",
+    "mã",
+    "sku"
+  ],
+  "thuong hieu": [
+    "thương hiệu",
+    "brand",
+    "hãng",
+    "nhà sản xuất",
+    "hãng sản xuất"
+  ],
+  "xuat xu": [
+    "xuất xứ",
+    "origin",
+    "nơi sản xuất",
+    "made in",
+    "nguồn gốc"
+  ],
+  "hang chinh hang": [
+    "hàng chính hãng",
+    "chính hãng",
+    "authentic",
+    "genuine",
+    "original"
+  ],
+  "hang nhap": [
+    "hàng nhập",
+    "imported",
+    "xách tay",
+    "nhập khẩu"
+  ],
+  "hang noi dia": [
+    "hàng nội địa",
+    "domestic",
+    "vn",
+    "việt nam"
+  ],
+  "hang cu": [
+    "hàng cũ",
+    "second hand",
+    "used",
+    "qua sử dụng",
+    "đã qua sử dụng"
+  ],
+  "hang moi": [
+    "hàng mới",
+    "new",
+    "brand new",
+    "99%",
+    "nguyên seal"
+  ],
+  "hang like new": [
+    "like new",
+    "99%",
+    "98%",
+    "như mới",
+    "gần như mới"
+  ],
+  "chong nuoc": [
+    "chống nước",
+    "waterproof",
+    "kháng nước",
+    "ip68",
+    "ip67"
+  ],
+  "chong bui": [
+    "chống bụi",
+    "dustproof",
+    "ip rating"
+  ],
+  "ket noi": [
+    "kết nối",
+    "connectivity",
+    "wifi",
+    "bluetooth",
+    "5g",
+    "4g"
+  ],
+  "wifi": [
+    "wifi",
+    "wi-fi",
+    "wireless",
+    "mạng wifi"
+  ],
+  "bluetooth": [
+    "bluetooth",
+    "bt",
+    "kết nối không dây"
+  ],
+  "usb": [
+    "usb",
+    "cổng usb",
+    "type-c",
+    "usb-c",
+    "lightning"
+  ],
+  "sac nhanh": [
+    "sạc nhanh",
+    "fast charge",
+    "quick charge",
+    "fast charging",
+    "w"
+  ],
+  "sac khong day": [
+    "sạc không dây",
+    "wireless charging",
+    "qi",
+    "magsafe"
+  ],
+  "am thanh": [
+    "âm thanh",
+    "audio",
+    "sound",
+    "loa",
+    "speaker"
+  ],
+  "loa": [
+    "loa",
+    "speaker",
+    "âm thanh",
+    "dolby"
+  ],
+  "tai nghe": [
+    "tai nghe",
+    "headphone",
+    "earphone",
+    "airpod",
+    "headset"
+  ],
+  "phu kien": [
+    "phụ kiện",
+    "accessory",
+    "pk",
+    "ốp",
+    "dây sạc"
+  ],
+  "op lung": [
+    "ốp lưng",
+    "case",
+    "vỏ",
+    "bao da",
+    "ốp"
+  ],
+  "cuong luc": [
+    "cường lực",
+    "tempered glass",
+    "dán màn hình",
+    "kính cường lực"
+  ],
+  "cap sac": [
+    "cáp sạc",
+    "dây sạc",
+    "charging cable",
+    "dây cáp"
+  ],
+  "cu sac": [
+    "củ sạc",
+    "adapter",
+    "charger",
+    "sạc"
+  ],
+  "ong kinh": [
+    "ống kính",
+    "lens",
+    "zoom",
+    "góc rộng"
+  ],
+  "do phan giai": [
+    "độ phân giải",
+    "resolution",
+    "pixel",
+    "4k",
+    "hd",
+    "full hd"
+  ],
+  "refresh rate": [
+    "refresh rate",
+    "tần số quét",
+    "hz",
+    "120hz",
+    "90hz"
+  ],
+  "do sang": [
+    "độ sáng",
+    "brightness",
+    "nits"
+  ],
+  "do tuong phan": [
+    "độ tương phản",
+    "contrast",
+    "contrast ratio"
+  ],
+  "danh gia": [
+    "đánh giá",
+    "review",
+    "nhận xét",
+    "rating",
+    "star",
+    "sao"
+  ],
+  "bao bi": [
+    "bao bì",
+    "packaging",
+    "hộp",
+    "đóng gói"
+  ],
+  "hop": [
+    "hộp",
+    "box",
+    "pack",
+    "gói"
+  ],
+  "seal": [
+    "seal",
+    "niêm phong",
+    "nguyên seal",
+    "chưa bóc"
+  ],
+  "chung nhan": [
+    "chứng nhận",
+    "certification",
+    "certificate",
+    "iso",
+    "ce"
+  ],
+  "tieu chuan": [
+    "tiêu chuẩn",
+    "standard",
+    "chuẩn",
+    "quy chuẩn"
+  ],
+  "do ben": [
+    "độ bền",
+    "durability",
+    "bền",
+    "tuổi thọ",
+    "long lasting"
+  ],
+  "thoi han su dung": [
+    "thời hạn sử dụng",
+    "hạn sử dụng",
+    "hsd",
+    "expiry",
+    "expiration date"
+  ],
+  "ngay san xuat": [
+    "ngày sản xuất",
+    "nsx",
+    "manufacture date",
+    "mfg"
+  ],
+  "van chuyen": [
+    "vận chuyển",
+    "vc",
+    "shipping",
+    "giao hàng",
+    "ship"
+  ],
+  "giao hang": [
+    "giao hàng",
+    "delivery",
+    "ship",
+    "gh",
+    "giao tận nơi"
+  ],
+  "ship": [
+    "ship",
+    "shipping",
+    "giao hàng",
+    "vận chuyển"
+  ],
+  "phi ship": [
+    "phí ship",
+    "phí vận chuyển",
+    "shipping fee",
+    "ship phí"
+  ],
+  "noi thanh": [
+    "nội thành",
+    "inner city",
+    "trong thành phố",
+    "hà nội",
+    "tphcm"
+  ],
+  "ngoai thanh": [
+    "ngoại thành",
+    "suburb",
+    "ngoài thành phố",
+    "tỉnh"
+  ],
+  "cod": [
+    "cod",
+    "ship cod",
+    "thu tiền hộ",
+    "thanh toán khi nhận",
+    "nhận hàng trả tiền"
+  ],
+  "tinh": [
+    "tỉnh",
+    "province",
+    "tỉnh thành",
+    "khác tỉnh",
+    "liên tỉnh"
+  ],
+  "gio giao": [
+    "giờ giao",
+    "delivery hour",
+    "thời gian giao",
+    "giao lúc mấy giờ"
+  ],
+  "thoi gian giao": [
+    "thời gian giao",
+    "delivery time",
+    "bao lâu nhận",
+    "mấy ngày giao"
+  ],
+  "giao nhanh": [
+    "giao nhanh",
+    "fast delivery",
+    "express",
+    "hoả tốc",
+    "giao trong ngày"
+  ],
+  "giao trong ngay": [
+    "giao trong ngày",
+    "same day",
+    "same day delivery",
+    "giao trong 24h"
+  ],
+  "hoa toc": [
+    "hoả tốc",
+    "express",
+    "giao nhanh",
+    "instant delivery",
+    "2h"
+  ],
+  "ghn": [
+    "ghn",
+    "giao hàng nhanh",
+    "ghtk",
+    "giao hàng tiết kiệm"
+  ],
+  "ghtk": [
+    "ghtk",
+    "giao hàng tiết kiệm",
+    "ghn"
+  ],
+  "viettel post": [
+    "viettel post",
+    "vtp",
+    "viettelpost",
+    "bưu điện viettel"
+  ],
+  "vn post": [
+    "vnpost",
+    "vn post",
+    "bưu điện",
+    "ems"
+  ],
+  "j&t": [
+    "j&t",
+    "jt",
+    "j&t express"
+  ],
+  "grab": [
+    "grab",
+    "grabexpress",
+    "grab express"
+  ],
+  "ahamove": [
+    "ahamove",
+    "aha",
+    "giao xe máy"
+  ],
+  "be": [
+    "be",
+    "be delivery",
+    "giao be"
+  ],
+  "lalamove": [
+    "lalamove",
+    "lala"
+  ],
+  "free ship": [
+    "free ship",
+    "freeship",
+    "miễn phí vận chuyển",
+    "miễn phí ship",
+    "mp ship"
+  ],
+  "tracking": [
+    "tracking",
+    "theo dõi đơn",
+    "mã vận đơn",
+    "track",
+    "số vận đơn"
+  ],
+  "van don": [
+    "vận đơn",
+    "tracking number",
+    "mã vận đơn",
+    "airway bill"
+  ],
+  "dia chi giao": [
+    "địa chỉ giao",
+    "delivery address",
+    "nơi nhận",
+    "đc nhận"
+  ],
+  "nguoi nhan": [
+    "người nhận",
+    "recipient",
+    "người nhận hàng"
+  ],
+  "so dien thoai": [
+    "số điện thoại",
+    "sđt",
+    "sdt",
+    "phone number",
+    "mobile"
+  ],
+  "giao that bai": [
+    "giao thất bại",
+    "failed delivery",
+    "không nhận được",
+    "ship fail"
+  ],
+  "hang den noi": [
+    "hàng đến nơi",
+    "delivered",
+    "đã giao",
+    "giao xong"
+  ],
+  "dang giao": [
+    "đang giao",
+    "in transit",
+    "đang vận chuyển",
+    "đang trên đường"
+  ],
+  "da nhan": [
+    "đã nhận",
+    "received",
+    "nhận được",
+    "lấy được"
+  ],
+  "huy giao": [
+    "huỷ giao",
+    "cancel delivery",
+    "huỷ đơn",
+    "không nhận"
+  ],
+  "kho hang": [
+    "kho hàng",
+    "warehouse",
+    "kho",
+    "nhập kho"
+  ],
+  "dong goi": [
+    "đóng gói",
+    "packaging",
+    "gói hàng",
+    "wrap"
+  ],
+  "giao quoc te": [
+    "giao quốc tế",
+    "international shipping",
+    "ship quốc tế",
+    "gửi nước ngoài"
+  ],
+  "bao hiem hang": [
+    "bảo hiểm hàng",
+    "shipping insurance",
+    "bảo hiểm vận chuyển"
+  ],
+  "ngay nhan": [
+    "ngày nhận",
+    "delivery date",
+    "ngày nhận được"
+  ],
+  "hoan tra": [
+    "hoàn trả",
+    "đổi trả",
+    "return",
+    "refund",
+    "trả hàng",
+    "đổi hàng"
+  ],
+  "doi tra": [
+    "đổi trả",
+    "return",
+    "exchange",
+    "đổi hàng",
+    "trả hàng"
+  ],
+  "hoan tien": [
+    "hoàn tiền",
+    "refund",
+    "trả lại tiền",
+    "money back"
+  ],
+  "loi": [
+    "lỗi",
+    "error",
+    "defect",
+    "hư",
+    "sự cố"
+  ],
+  "hong": [
+    "hỏng",
+    "hư",
+    "broken",
+    "not working",
+    "hư hỏng"
+  ],
+  "doi hang": [
+    "đổi hàng",
+    "exchange",
+    "đổi sản phẩm",
+    "đổi mới"
+  ],
+  "tra hang": [
+    "trả hàng",
+    "return",
+    "gửi trả",
+    "hoàn hàng"
+  ],
+  "chinh sach": [
+    "chính sách",
+    "policy",
+    "quy định",
+    "điều khoản"
+  ],
+  "dieu khoan": [
+    "điều khoản",
+    "terms",
+    "terms of service",
+    "điều kiện"
+  ],
+  "dam bao": [
+    "đảm bảo",
+    "guarantee",
+    "cam kết",
+    "bảo đảm"
+  ],
+  "cam ket": [
+    "cam kết",
+    "commit",
+    "đảm bảo",
+    "guarantee"
+  ],
+  "khong dung": [
+    "không đúng",
+    "sai",
+    "wrong",
+    "không như mô tả",
+    "không khớp"
+  ],
+  "sai": [
+    "sai",
+    "wrong",
+    "incorrect",
+    "không đúng"
+  ],
+  "nham": [
+    "nhầm",
+    "wrong",
+    "sai",
+    "gửi nhầm"
+  ],
+  "thieu": [
+    "thiếu",
+    "missing",
+    "short",
+    "không đủ",
+    "hụt"
+  ],
+  "du": [
+    "dư",
+    "thừa",
+    "extra",
+    "dôi ra"
+  ],
+  "bi be": [
+    "bị bể",
+    "bị vỡ",
+    "broken",
+    "nứt",
+    "vỡ"
+  ],
+  "bi xuoc": [
+    "bị xước",
+    "scratched",
+    "xây xát",
+    "trầy"
+  ],
+  "bi moc": [
+    "bị móc",
+    "bị móp",
+    "dented",
+    "móp méo"
+  ],
+  "khong chay": [
+    "không chạy",
+    "not working",
+    "không hoạt động",
+    "không lên"
+  ],
+  "khong nhan": [
+    "không nhận",
+    "cannot detect",
+    "không nhận diện",
+    "không phát hiện"
+  ],
+  "qua han": [
+    "quá hạn",
+    "expired",
+    "hết hạn",
+    "past due"
+  ],
+  "het han": [
+    "hết hạn",
+    "expired",
+    "quá hạn",
+    "expire"
+  ],
+  "thu hoi": [
+    "thu hồi",
+    "recall",
+    "gọi về",
+    "triệu hồi"
+  ],
+  "yeu cau": [
+    "yêu cầu",
+    "request",
+    "đề nghị",
+    "gửi yêu cầu"
+  ],
+  "khieu nai": [
+    "khiếu nại",
+    "complaint",
+    "phàn nàn",
+    "phản ánh"
+  ],
+  "bao loi": [
+    "báo lỗi",
+    "report bug",
+    "report error",
+    "ticket"
+  ],
+  "ho tro": [
+    "hỗ trợ",
+    "support",
+    "giúp đỡ",
+    "assist",
+    "help"
+  ],
+  "lien he hoan tra": [
+    "liên hệ hoàn trả",
+    "contact to return",
+    "gọi đổi trả"
+  ],
+  "7 ngay doi tra": [
+    "7 ngày đổi trả",
+    "chính sách 7 ngày",
+    "đổi trả 7 ngày",
+    "1 tuần"
+  ],
+  "30 ngay doi tra": [
+    "30 ngày đổi trả",
+    "đổi trả 30 ngày",
+    "1 tháng đổi trả"
+  ],
+  "con hang": [
+    "còn hàng",
+    "in stock",
+    "available",
+    "còn",
+    "sẵn hàng"
+  ],
+  "het hang": [
+    "hết hàng",
+    "out of stock",
+    "oos",
+    "cháy hàng",
+    "không còn"
+  ],
+  "ton kho": [
+    "tồn kho",
+    "stock",
+    "inventory",
+    "hàng tồn",
+    "số lượng tồn"
+  ],
+  "sap ve": [
+    "sắp về",
+    "coming soon",
+    "incoming",
+    "sắp có",
+    "restock"
+  ],
+  "dat truoc": [
+    "đặt trước",
+    "pre-order",
+    "preorder",
+    "đặt cọc trước",
+    "book"
+  ],
+  "pre-order": [
+    "pre-order",
+    "preorder",
+    "đặt trước",
+    "book trước"
+  ],
+  "so luong": [
+    "số lượng",
+    "quantity",
+    "qty",
+    "sl",
+    "bao nhiêu cái"
+  ],
+  "co san": [
+    "có sẵn",
+    "available",
+    "ready stock",
+    "sẵn"
+  ],
+  "hang sap het": [
+    "hàng sắp hết",
+    "low stock",
+    "sắp cháy",
+    "còn ít"
+  ],
+  "hang da ve": [
+    "hàng đã về",
+    "restocked",
+    "đã có hàng",
+    "về hàng"
+  ],
+  "dat hang": [
+    "đặt hàng",
+    "order",
+    "đặt",
+    "place order",
+    "chốt đơn"
+  ],
+  "don hang": [
+    "đơn hàng",
+    "order",
+    "đh",
+    "đơn"
+  ],
+  "ma don": [
+    "mã đơn",
+    "order id",
+    "mã đơn hàng",
+    "order code"
+  ],
+  "chot don": [
+    "chốt đơn",
+    "confirm order",
+    "đặt xong",
+    "xác nhận đơn"
+  ],
+  "huy don": [
+    "huỷ đơn",
+    "cancel order",
+    "cancel",
+    "bỏ đơn",
+    "xoá đơn"
+  ],
+  "sua don": [
+    "sửa đơn",
+    "edit order",
+    "chỉnh đơn",
+    "update order"
+  ],
+  "tinh trang don": [
+    "tình trạng đơn",
+    "order status",
+    "trạng thái đơn",
+    "status"
+  ],
+  "dang xu ly": [
+    "đang xử lý",
+    "processing",
+    "đang chuẩn bị",
+    "đang pack"
+  ],
+  "da xac nhan": [
+    "đã xác nhận",
+    "confirmed",
+    "xác nhận",
+    "ok đơn"
+  ],
+  "che hang": [
+    "chê hàng",
+    "reject",
+    "từ chối nhận"
+  ],
+  "dem hang": [
+    "đếm hàng",
+    "count stock",
+    "kiểm kê"
+  ],
+  "kiem kho": [
+    "kiểm kho",
+    "stock check",
+    "kiểm kê kho",
+    "inventory check"
+  ],
+  "nhap hang": [
+    "nhập hàng",
+    "restock",
+    "nhập kho",
+    "import stock"
+  ],
+  "xuat hang": [
+    "xuất hàng",
+    "dispatch",
+    "xuất kho",
+    "ship out"
+  ],
+  "con lai": [
+    "còn lại",
+    "remaining",
+    "còn bao nhiêu",
+    "left"
+  ],
+  "hotline": [
+    "hotline",
+    "số điện thoại",
+    "đường dây nóng",
+    "tổng đài",
+    "liên hệ"
+  ],
+  "zalo": [
+    "zalo",
+    "zl",
+    "kênh zalo",
+    "nhắn zalo"
+  ],
+  "messenger": [
+    "messenger",
+    "fb",
+    "facebook",
+    "inbox",
+    "msg"
+  ],
+  "facebook": [
+    "facebook",
+    "fb",
+    "fanpage",
+    "page",
+    "trang fb"
+  ],
+  "dia chi": [
+    "địa chỉ",
+    "address",
+    "đc",
+    "location",
+    "nơi"
+  ],
+  "chi nhanh": [
+    "chi nhánh",
+    "branch",
+    "cơ sở",
+    "cn"
+  ],
+  "showroom": [
+    "showroom",
+    "cửa hàng",
+    "shop",
+    "cửa hiệu",
+    "store"
+  ],
+  "cua hang": [
+    "cửa hàng",
+    "shop",
+    "store",
+    "showroom",
+    "tiệm"
+  ],
+  "gio mo cua": [
+    "giờ mở cửa",
+    "opening hours",
+    "mở cửa mấy giờ",
+    "giờ làm việc"
+  ],
+  "email": [
+    "email",
+    "mail",
+    "thư điện tử",
+    "gmail",
+    "email liên hệ"
+  ],
+  "so dt": [
+    "số đt",
+    "sđt",
+    "sdt",
+    "phone",
+    "số điện thoại",
+    "dt"
+  ],
+  "tong dai": [
+    "tổng đài",
+    "call center",
+    "hotline",
+    "contact center"
+  ],
+  "website": [
+    "website",
+    "web",
+    "trang web",
+    "site",
+    "url"
+  ],
+  "fanpage": [
+    "fanpage",
+    "page",
+    "facebook page",
+    "fb"
+  ],
+  "tiktok": [
+    "tiktok",
+    "tt",
+    "tik tok",
+    "kênh tiktok"
+  ],
+  "instagram": [
+    "instagram",
+    "ig",
+    "insta"
+  ],
+  "youtube": [
+    "youtube",
+    "yt",
+    "kênh youtube",
+    "channel"
+  ],
+  "shopee": [
+    "shopee",
+    "sp",
+    "gian hàng shopee"
+  ],
+  "lazada": [
+    "lazada",
+    "laz",
+    "gian hàng laz"
+  ],
+  "tiki": [
+    "tiki",
+    "tk",
+    "gian hàng tiki"
+  ],
+  "map": [
+    "map",
+    "bản đồ",
+    "google map",
+    "chỉ đường"
+  ],
+  "lien he": [
+    "liên hệ",
+    "contact",
+    "liên lạc",
+    "gọi",
+    "nhắn"
+  ],
+  "tu van": [
+    "tư vấn",
+    "consult",
+    "consultant",
+    "tư vấn viên",
+    "cs"
+  ],
+  "cham soc khach hang": [
+    "chăm sóc khách hàng",
+    "cskh",
+    "customer service",
+    "cs",
+    "hỗ trợ khách"
+  ],
+  "gap nhan vien": [
+    "gặp nhân viên",
+    "talk to agent",
+    "gọi nhân viên",
+    "chuyển nhân viên"
+  ],
+  "luong": [
+    "lương",
+    "salary",
+    "wage",
+    "tiền lương",
+    "pay"
+  ],
+  "thuong": [
+    "thưởng",
+    "bonus",
+    "tiền thưởng",
+    "thưởng nóng",
+    "kpi bonus"
+  ],
+  "ca lam": [
+    "ca làm",
+    "shift",
+    "ca trực",
+    "làm ca",
+    "ca"
+  ],
+  "nghi phep": [
+    "nghỉ phép",
+    "annual leave",
+    "phép năm",
+    "al",
+    "off"
+  ],
+  "nghi om": [
+    "nghỉ ốm",
+    "sick leave",
+    "ốm",
+    "sl"
+  ],
+  "nghi le": [
+    "nghỉ lễ",
+    "holiday",
+    "ngày lễ",
+    "public holiday"
+  ],
+  "nghi tet": [
+    "nghỉ tết",
+    "tết",
+    "lunar new year",
+    "tết âm"
+  ],
+  "quy dinh": [
+    "quy định",
+    "rules",
+    "regulations",
+    "nội quy"
+  ],
+  "hop dong": [
+    "hợp đồng",
+    "contract",
+    "hđ",
+    "hợp đồng lao động"
+  ],
+  "bao hiem": [
+    "bảo hiểm",
+    "insurance",
+    "bhxh",
+    "bhyt",
+    "bhtn"
+  ],
+  "bhxh": [
+    "bhxh",
+    "bảo hiểm xã hội",
+    "social insurance"
+  ],
+  "bhyt": [
+    "bhyt",
+    "bảo hiểm y tế",
+    "health insurance"
+  ],
+  "bhtn": [
+    "bhtn",
+    "bảo hiểm thất nghiệp",
+    "unemployment insurance"
+  ],
+  "onboarding": [
+    "onboarding",
+    "nhận việc",
+    "làm quen",
+    "hội nhập",
+    "orientation"
+  ],
+  "offboarding": [
+    "offboarding",
+    "nghỉ việc",
+    "rời công ty",
+    "thôi việc"
+  ],
+  "phong ban": [
+    "phòng ban",
+    "department",
+    "dept",
+    "bộ phận"
+  ],
+  "chuc vu": [
+    "chức vụ",
+    "position",
+    "title",
+    "job title",
+    "vị trí"
+  ],
+  "sep": [
+    "sếp",
+    "boss",
+    "manager",
+    "trưởng",
+    "lead"
+  ],
+  "nhan vien": [
+    "nhân viên",
+    "employee",
+    "staff",
+    "nv",
+    "worker"
+  ],
+  "tuyen dung": [
+    "tuyển dụng",
+    "recruitment",
+    "hiring",
+    "tuyển người"
+  ],
+  "phong van": [
+    "phỏng vấn",
+    "interview",
+    "pv"
+  ],
+  "cv": [
+    "cv",
+    "hồ sơ",
+    "resume",
+    "sơ yếu lý lịch"
+  ],
+  "thu viec": [
+    "thử việc",
+    "probation",
+    "tv",
+    "thời gian thử việc"
+  ],
+  "chinh thuc": [
+    "chính thức",
+    "official",
+    "permanent",
+    "full-time",
+    "ký hợp đồng"
+  ],
+  "part time": [
+    "part time",
+    "part-time",
+    "bán thời gian",
+    "pt"
+  ],
+  "full time": [
+    "full time",
+    "full-time",
+    "toàn thời gian",
+    "ft"
+  ],
+  "remote": [
+    "remote",
+    "làm từ xa",
+    "wfh",
+    "work from home"
+  ],
+  "tang ca": [
+    "tăng ca",
+    "overtime",
+    "ot",
+    "ngoài giờ"
+  ],
+  "cham cong": [
+    "chấm công",
+    "timekeeping",
+    "attendance",
+    "clock in",
+    "điểm danh"
+  ],
+  "quyet toan thue": [
+    "quyết toán thuế",
+    "tax finalization",
+    "quyết toán",
+    "tncn"
+  ],
+  "thue tncn": [
+    "thuế tncn",
+    "thuế thu nhập cá nhân",
+    "pit",
+    "income tax"
+  ],
+  "phu cap": [
+    "phụ cấp",
+    "allowance",
+    "trợ cấp",
+    "pc"
+  ],
+  "phuc loi": [
+    "phúc lợi",
+    "benefits",
+    "đãi ngộ",
+    "quyền lợi"
+  ],
+  "tang luong": [
+    "tăng lương",
+    "raise",
+    "lên lương",
+    "điều chỉnh lương"
+  ],
+  "review luong": [
+    "review lương",
+    "salary review",
+    "đánh giá lương",
+    "xét lương"
+  ],
+  "thang chuc": [
+    "thăng chức",
+    "promotion",
+    "lên chức",
+    "thăng tiến"
+  ],
+  "ky luat": [
+    "kỷ luật",
+    "discipline",
+    "khiển trách",
+    "warning"
+  ],
+  "canh cao": [
+    "cảnh cáo",
+    "warning",
+    "nhắc nhở",
+    "khiển trách"
+  ],
+  "sa thai": [
+    "sa thải",
+    "fire",
+    "đuổi việc",
+    "chấm dứt hđ"
+  ],
+  "don xin nghi": [
+    "đơn xin nghỉ",
+    "resignation",
+    "đơn xin thôi việc",
+    "nghỉ việc"
+  ],
+  "ban giao": [
+    "bàn giao",
+    "handover",
+    "giao việc",
+    "chuyển giao"
+  ],
+  "dao tao": [
+    "đào tạo",
+    "training",
+    "huấn luyện",
+    "tập huấn"
+  ],
+  "danh gia nhan vien": [
+    "đánh giá nhân viên",
+    "performance review",
+    "kpi",
+    "evaluation"
+  ],
+  "kpi": [
+    "kpi",
+    "chỉ tiêu",
+    "mục tiêu",
+    "target",
+    "okr"
+  ],
+  "okr": [
+    "okr",
+    "mục tiêu quý",
+    "objective",
+    "key result"
+  ],
+  "meeting": [
+    "meeting",
+    "họp",
+    "cuộc họp",
+    "buổi họp"
+  ],
+  "hop team": [
+    "họp team",
+    "team meeting",
+    "họp nhóm",
+    "standup"
+  ],
+  "team building": [
+    "team building",
+    "tb",
+    "du lịch công ty",
+    "outing"
+  ],
+  "du lich cong ty": [
+    "du lịch công ty",
+    "company trip",
+    "team outing",
+    "team building"
+  ],
+  "company culture": [
+    "company culture",
+    "văn hoá công ty",
+    "văn hoá doanh nghiệp",
+    "culture"
+  ],
+  "thanh lap": [
+    "thành lập",
+    "founded",
+    "established",
+    "khai trương",
+    "ra mắt"
+  ],
+  "lich su": [
+    "lịch sử",
+    "history",
+    "câu chuyện",
+    "story"
+  ],
+  "su menh": [
+    "sứ mệnh",
+    "mission",
+    "nhiệm vụ"
+  ],
+  "tam nhin": [
+    "tầm nhìn",
+    "vision",
+    "hướng đi",
+    "định hướng"
+  ],
+  "gia tri": [
+    "giá trị",
+    "value",
+    "values",
+    "giá trị cốt lõi"
+  ],
+  "gia tri cot loi": [
+    "giá trị cốt lõi",
+    "core value",
+    "core values",
+    "cv công ty"
+  ],
+  "founder": [
+    "founder",
+    "người sáng lập",
+    "nhà sáng lập",
+    "co-founder"
+  ],
+  "ceo": [
+    "ceo",
+    "giám đốc",
+    "tổng giám đốc",
+    "gđ",
+    "chief executive"
+  ],
+  "co cau": [
+    "cơ cấu",
+    "structure",
+    "organization",
+    "sơ đồ tổ chức"
+  ],
+  "van phong": [
+    "văn phòng",
+    "office",
+    "trụ sở",
+    "hq",
+    "headquarter"
+  ],
+  "tru so chinh": [
+    "trụ sở chính",
+    "headquarter",
+    "hq",
+    "head office"
+  ],
+  "nhan su": [
+    "nhân sự",
+    "hr",
+    "human resources",
+    "phòng nhân sự"
+  ],
+  "cong ty": [
+    "công ty",
+    "company",
+    "corp",
+    "corporation",
+    "doanh nghiệp"
+  ],
+  "doanh nghiep": [
+    "doanh nghiệp",
+    "business",
+    "enterprise",
+    "company"
+  ],
+  "start up": [
+    "start up",
+    "startup",
+    "khởi nghiệp"
+  ],
+  "quy mo": [
+    "quy mô",
+    "scale",
+    "size",
+    "kích thước công ty"
+  ],
+  "nhan vien cty": [
+    "nhân viên công ty",
+    "total employees",
+    "số lượng nhân viên"
+  ],
+  "san pham chinh": [
+    "sản phẩm chính",
+    "main product",
+    "core product",
+    "flagship"
+  ],
+  "khach hang": [
+    "khách hàng",
+    "customer",
+    "client",
+    "kh"
+  ],
+  "doi tac": [
+    "đối tác",
+    "partner",
+    "partnership"
+  ],
+  "nha cung cap": [
+    "nhà cung cấp",
+    "supplier",
+    "vendor",
+    "ncc"
+  ],
+  "khach muc tieu": [
+    "khách mục tiêu",
+    "target customer",
+    "target market",
+    "tệp khách"
+  ],
+  "thi truong": [
+    "thị trường",
+    "market",
+    "market share"
+  ],
+  "cong nghe": [
+    "công nghệ",
+    "technology",
+    "tech",
+    "tech stack"
+  ],
+  "giai thuong": [
+    "giải thưởng",
+    "award",
+    "prize",
+    "huy chương",
+    "chứng nhận"
+  ],
+  "thanh tich": [
+    "thành tích",
+    "achievement",
+    "result",
+    "kết quả"
+  ],
+  "tang truong": [
+    "tăng trưởng",
+    "growth",
+    "phát triển",
+    "growth rate"
+  ],
+  "ma so thue": [
+    "mã số thuế",
+    "mst",
+    "tax code",
+    "tin"
+  ],
+  "giay phep kinh doanh": [
+    "giấy phép kinh doanh",
+    "gpkd",
+    "business license",
+    "đkkd"
+  ],
+  "linh vuc": [
+    "lĩnh vực",
+    "field",
+    "industry",
+    "ngành"
+  ],
+  "nganh nghe": [
+    "ngành nghề",
+    "industry",
+    "profession",
+    "sector"
+  ],
+  "cach nao": [
+    "cách nào",
+    "how",
+    "làm cách nào",
+    "bằng cách nào"
+  ],
+  "lam sao": [
+    "làm sao",
+    "how",
+    "làm thế nào",
+    "cách nào"
+  ],
+  "nhu the nao": [
+    "như thế nào",
+    "how",
+    "thế nào",
+    "ntn"
+  ],
+  "bao gio": [
+    "bao giờ",
+    "when",
+    "khi nào",
+    "lúc nào"
+  ],
+  "khi nao": [
+    "khi nào",
+    "when",
+    "bao giờ",
+    "lúc nào"
+  ],
+  "o dau": [
+    "ở đâu",
+    "where",
+    "chỗ nào",
+    "tại đâu"
+  ],
+  "vi sao": [
+    "vì sao",
+    "why",
+    "tại sao",
+    "sao"
+  ],
+  "tai sao": [
+    "tại sao",
+    "why",
+    "vì sao",
+    "sao lại"
+  ],
+  "ai": [
+    "ai",
+    "who",
+    "người nào"
+  ],
+  "cai gi": [
+    "cái gì",
+    "what",
+    "gì",
+    "điều gì"
+  ],
+  "co the": [
+    "có thể",
+    "can",
+    "được không",
+    "có được"
+  ],
+  "duoc khong": [
+    "được không",
+    "can i",
+    "okay not",
+    "có được không"
+  ],
+  "co khong": [
+    "có không",
+    "is there",
+    "có hay không",
+    "có k"
+  ],
+  "the nao": [
+    "thế nào",
+    "how",
+    "how about",
+    "sao rồi"
+  ],
+  "bao lau": [
+    "bao lâu",
+    "how long",
+    "mấy lâu",
+    "bn lâu"
+  ],
+  "bao nhieu lau": [
+    "bao nhiêu lâu",
+    "how long",
+    "mất bao lâu",
+    "trong bao lâu"
+  ],
+  "price": [
+    "price",
+    "giá",
+    "cost",
+    "amount"
+  ],
+  "quantity": [
+    "quantity",
+    "qty",
+    "số lượng",
+    "amount"
+  ],
+  "stock": [
+    "stock",
+    "tồn kho",
+    "inventory",
+    "còn hàng"
+  ],
+  "refund": [
+    "refund",
+    "hoàn tiền",
+    "money back",
+    "trả lại tiền"
+  ],
+  "warranty": [
+    "warranty",
+    "bảo hành",
+    "bh",
+    "guarantee"
+  ],
+  "delivery": [
+    "delivery",
+    "giao hàng",
+    "ship",
+    "vận chuyển"
+  ],
+  "support": [
+    "support",
+    "hỗ trợ",
+    "giúp đỡ",
+    "help"
+  ],
+  "address": [
+    "address",
+    "địa chỉ",
+    "đc",
+    "location"
+  ],
+  "contact": [
+    "contact",
+    "liên hệ",
+    "liên lạc",
+    "gọi"
+  ],
+  "order": [
+    "order",
+    "đơn hàng",
+    "đặt hàng",
+    "đơn"
+  ],
+  "payment": [
+    "payment",
+    "thanh toán",
+    "trả tiền",
+    "pay"
+  ],
+  "shipping": [
+    "shipping",
+    "vận chuyển",
+    "giao hàng",
+    "ship"
+  ],
+  "return": [
+    "return",
+    "hoàn trả",
+    "đổi trả",
+    "trả hàng"
+  ],
+  "customer": [
+    "customer",
+    "khách hàng",
+    "kh",
+    "client"
+  ],
+  "product": [
+    "product",
+    "sản phẩm",
+    "sp",
+    "item"
+  ],
+  "service": [
+    "service",
+    "dịch vụ",
+    "dv",
+    "sv"
+  ],
+  "info": [
+    "info",
+    "thông tin",
+    "tt",
+    "information"
+  ],
+  "help": [
+    "help",
+    "giúp",
+    "hỗ trợ",
+    "support"
+  ],
+  "cancel": [
+    "cancel",
+    "huỷ",
+    "cancel order",
+    "bỏ"
+  ],
+  "confirm": [
+    "confirm",
+    "xác nhận",
+    "ok",
+    "đồng ý"
+  ],
+  "available": [
+    "available",
+    "có sẵn",
+    "còn hàng",
+    "sẵn"
+  ],
+  "sp": [
+    "sp",
+    "sản phẩm",
+    "product"
+  ],
+  "km": [
+    "km",
+    "khuyến mãi",
+    "promo",
+    "km giảm"
+  ],
+  "bh": [
+    "bh",
+    "bảo hành",
+    "warranty",
+    "bảo hiểm"
+  ],
+  "vc": [
+    "vc",
+    "vận chuyển",
+    "shipping"
+  ],
+  "dc": [
+    "đc",
+    "được",
+    "địa chỉ",
+    "ok"
+  ],
+  "ko": [
+    "ko",
+    "không",
+    "no",
+    "k"
+  ],
+  "cx": [
+    "cx",
+    "cũng",
+    "cũng vậy"
+  ],
+  "kcl": [
+    "kcl",
+    "không có luôn",
+    "chưa có"
+  ],
+  "e": [
+    "em",
+    "e",
+    "i",
+    "me"
+  ],
+  "a": [
+    "a",
+    "anh",
+    "brother"
+  ],
+  "c": [
+    "c",
+    "chị",
+    "sister"
+  ],
+  "b": [
+    "b",
+    "bạn",
+    "friend"
+  ],
+  "ad": [
+    "ad",
+    "admin",
+    "quản trị viên"
+  ],
+  "shop": [
+    "shop",
+    "cửa hàng",
+    "cửa hiệu",
+    "store"
+  ],
+  "oke": [
+    "oke",
+    "ok",
+    "okay",
+    "đồng ý",
+    "được"
+  ],
+  "ok": [
+    "ok",
+    "oke",
+    "okay",
+    "được",
+    "đồng ý"
+  ],
+  "uk": [
+    "uk",
+    "ừ",
+    "yes",
+    "ok"
+  ],
+  "thks": [
+    "thks",
+    "thanks",
+    "cảm ơn",
+    "tks",
+    "ty"
+  ],
+  "tks": [
+    "tks",
+    "thanks",
+    "cảm ơn",
+    "ty"
+  ],
+  "ty": [
+    "ty",
+    "thank you",
+    "cảm ơn",
+    "thanks"
+  ],
+  "r": [
+    "rồi",
+    "r",
+    "đã"
+  ],
+  "ntn": [
+    "ntn",
+    "như thế nào",
+    "how"
+  ],
+  "z": [
+    "z",
+    "vậy",
+    "vậy à"
+  ],
+  "v": [
+    "vậy",
+    "v",
+    "thế"
+  ],
+  "j": [
+    "j",
+    "gì",
+    "what"
+  ],
+  "dc k": [
+    "đc k",
+    "được không",
+    "được k",
+    "ok chưa"
+  ],
+  "hh": [
+    "hh",
+    "hàng",
+    "hàng hoá"
+  ],
+  "nv": [
+    "nv",
+    "nhân viên",
+    "staff"
+  ],
+  "kh": [
+    "kh",
+    "khách hàng",
+    "customer"
+  ],
+  "cs": [
+    "cs",
+    "chăm sóc",
+    "customer service",
+    "chính sách"
+  ],
+  "cskh": [
+    "cskh",
+    "chăm sóc khách hàng",
+    "customer service"
+  ],
+  "gd": [
+    "gđ",
+    "gd",
+    "giám đốc",
+    "ceo"
+  ],
+  "th": [
+    "th",
+    "thì",
+    "thương hiệu"
+  ],
+  "dh": [
+    "đh",
+    "dh",
+    "đơn hàng"
+  ],
+  "qd": [
+    "qđ",
+    "qd",
+    "quy định"
+  ],
+  "nk": [
+    "nk",
+    "nhập khẩu",
+    "nhập kho"
+  ],
+  "xk": [
+    "xk",
+    "xuất khẩu",
+    "xuất kho"
+  ],
+  "hd": [
+    "hđ",
+    "hd",
+    "hợp đồng",
+    "hoá đơn"
+  ],
+  "hdld": [
+    "hđlđ",
+    "hợp đồng lao động"
+  ],
+  "tg": [
+    "tg",
+    "thời gian",
+    "time"
+  ],
+  "tb": [
+    "tb",
+    "trung bình",
+    "thông báo",
+    "team building"
+  ],
+  "tl": [
+    "tl",
+    "trả lời",
+    "thảo luận"
+  ],
+  "ghi chu": [
+    "ghi chú",
+    "note",
+    "lưu ý",
+    "chú thích"
+  ],
+  "xin chao": [
+    "xin chào",
+    "hello",
+    "hi",
+    "chào"
+  ],
+  "tam biet": [
+    "tạm biệt",
+    "bye",
+    "goodbye",
+    "chào bạn"
+  ],
+  "mua": [
+    "mua",
+    "buy",
+    "purchase",
+    "đặt mua",
+    "order"
+  ],
+  "ban": [
+    "bán",
+    "sell",
+    "sale",
+    "kinh doanh"
+  ],
+  "tim": [
+    "tìm",
+    "search",
+    "find",
+    "look for",
+    "tìm kiếm"
+  ],
+  "xem": [
+    "xem",
+    "view",
+    "see",
+    "check",
+    "xem qua"
+  ],
+  "so sanh": [
+    "so sánh",
+    "compare",
+    "comparison",
+    "đối chiếu"
+  ],
+  "tu van them": [
+    "tư vấn thêm",
+    "more consultation",
+    "tư vấn",
+    "hỏi thêm"
+  ],
+  "hoi": [
+    "hỏi",
+    "ask",
+    "question",
+    "thắc mắc"
+  ],
+  "tra loi": [
+    "trả lời",
+    "answer",
+    "reply",
+    "phản hồi"
+  ],
+  "xac nhan": [
+    "xác nhận",
+    "confirm",
+    "xn",
+    "đồng ý"
+  ],
+  "huy": [
+    "huỷ",
+    "cancel",
+    "bỏ",
+    "không lấy"
+  ],
+  "chinh sua": [
+    "chỉnh sửa",
+    "edit",
+    "sửa",
+    "modify"
+  ],
+  "xoa": [
+    "xoá",
+    "delete",
+    "remove",
+    "xoá đi"
+  ],
+  "them": [
+    "thêm",
+    "add",
+    "bổ sung",
+    "thêm vào"
+  ],
+  "bot": [
+    "bớt",
+    "reduce",
+    "giảm bớt",
+    "giảm"
+  ],
+  "thay doi": [
+    "thay đổi",
+    "change",
+    "update",
+    "cập nhật"
+  ],
+  "cap nhat": [
+    "cập nhật",
+    "update",
+    "mới nhất",
+    "latest"
+  ],
+  "tai": [
+    "tải",
+    "download",
+    "dl",
+    "tải về"
+  ],
+  "cai dat": [
+    "cài đặt",
+    "install",
+    "setting",
+    "setup"
+  ],
+  "dang ky": [
+    "đăng ký",
+    "register",
+    "sign up",
+    "đk"
+  ],
+  "dang nhap": [
+    "đăng nhập",
+    "login",
+    "sign in",
+    "log in",
+    "dn"
+  ],
+  "quen mat khau": [
+    "quên mật khẩu",
+    "forgot password",
+    "reset password"
+  ],
+  "mat khau": [
+    "mật khẩu",
+    "password",
+    "pass",
+    "mk"
+  ],
+  "tai khoan": [
+    "tài khoản",
+    "account",
+    "acc",
+    "tk"
+  ],
+  "du doan": [
+    "dự đoán",
+    "predict",
+    "forecast",
+    "ước tính"
+  ],
+  "chon": [
+    "chọn",
+    "choose",
+    "select",
+    "pick"
+  ],
+  "dat": [
+    "đắt",
+    "expensive",
+    "mắc",
+    "đắt đỏ"
+  ],
+  "kiem tra": [
+    "kiểm tra",
+    "check",
+    "verify",
+    "test"
+  ],
+  "giao dich": [
+    "giao dịch",
+    "transaction",
+    "trade",
+    "gd"
+  ],
+  "gui": [
+    "gửi",
+    "send",
+    "submit",
+    "forward"
+  ],
+  "nhan": [
+    "nhận",
+    "receive",
+    "get",
+    "take"
+  ],
+  "tra": [
+    "trả",
+    "return",
+    "pay back",
+    "hoàn"
+  ],
+  "mo": [
+    "mở",
+    "open",
+    "bật",
+    "turn on"
+  ],
+  "dong": [
+    "đóng",
+    "close",
+    "tắt",
+    "shut"
+  ],
+  "hom nay": [
+    "hôm nay",
+    "today",
+    "bây giờ",
+    "nay"
+  ],
+  "ngay mai": [
+    "ngày mai",
+    "tomorrow",
+    "mai",
+    "next day"
+  ],
+  "hom qua": [
+    "hôm qua",
+    "yesterday",
+    "qua"
+  ],
+  "tuan nay": [
+    "tuần này",
+    "this week",
+    "trong tuần"
+  ],
+  "tuan sau": [
+    "tuần sau",
+    "next week",
+    "tuần tới"
+  ],
+  "thang nay": [
+    "tháng này",
+    "this month"
+  ],
+  "thang sau": [
+    "tháng sau",
+    "next month",
+    "tháng tới"
+  ],
+  "nam nay": [
+    "năm nay",
+    "this year"
+  ],
+  "nam sau": [
+    "năm sau",
+    "next year",
+    "năm tới"
+  ],
+  "gio": [
+    "giờ",
+    "hour",
+    "time",
+    "h"
+  ],
+  "phut": [
+    "phút",
+    "minute",
+    "min",
+    "p"
+  ],
+  "giay": [
+    "giây",
+    "second",
+    "sec",
+    "s"
+  ],
+  "ngay": [
+    "ngày",
+    "day",
+    "date"
+  ],
+  "tuan": [
+    "tuần",
+    "week",
+    "tuần lễ"
+  ],
+  "thang": [
+    "tháng",
+    "month"
+  ],
+  "nam": [
+    "năm",
+    "year",
+    "y"
+  ],
+  "buoi sang": [
+    "buổi sáng",
+    "morning",
+    "sáng",
+    "am"
+  ],
+  "buoi trua": [
+    "buổi trưa",
+    "noon",
+    "trưa"
+  ],
+  "buoi chieu": [
+    "buổi chiều",
+    "afternoon",
+    "chiều",
+    "pm"
+  ],
+  "buoi toi": [
+    "buổi tối",
+    "evening",
+    "tối",
+    "night"
+  ],
+  "dem": [
+    "đêm",
+    "night",
+    "late night",
+    "khuya"
+  ],
+  "cuoi tuan": [
+    "cuối tuần",
+    "weekend",
+    "t7 cn"
+  ],
+  "tot": [
+    "tốt",
+    "good",
+    "okay",
+    "ổn",
+    "ngon"
+  ],
+  "xau": [
+    "xấu",
+    "bad",
+    "tệ",
+    "dở"
+  ],
+  "dep": [
+    "đẹp",
+    "beautiful",
+    "nice",
+    "pretty"
+  ],
+  "nhanh": [
+    "nhanh",
+    "fast",
+    "quick",
+    "speedy"
+  ],
+  "cham": [
+    "chậm",
+    "slow",
+    "chậm chạp"
+  ],
+  "ngon": [
+    "ngon",
+    "delicious",
+    "ngon lành",
+    "tuyệt"
+  ],
+  "re": [
+    "rẻ",
+    "cheap",
+    "affordable",
+    "giá tốt"
+  ],
+  "kieu": [
+    "kiểu",
+    "style",
+    "type",
+    "dạng"
+  ],
+  "loai": [
+    "loại",
+    "type",
+    "category",
+    "kind"
+  ],
+  "nhieu": [
+    "nhiều",
+    "many",
+    "a lot",
+    "lots",
+    "much"
+  ],
+  "it": [
+    "ít",
+    "few",
+    "little",
+    "không nhiều"
+  ],
+  "day du": [
+    "đầy đủ",
+    "complete",
+    "full",
+    "đủ"
+  ],
+  "thieu sot": [
+    "thiếu sót",
+    "missing",
+    "not complete",
+    "thiếu"
+  ],
+  "quan trong": [
+    "quan trọng",
+    "important",
+    "priority",
+    "ưu tiên"
+  ],
+  "uu tien": [
+    "ưu tiên",
+    "priority",
+    "prioritize",
+    "ưu tiên cao"
+  ],
+  "gap": [
+    "gấp",
+    "urgent",
+    "khẩn",
+    "nhanh"
+  ],
+  "khan": [
+    "khẩn",
+    "urgent",
+    "asap",
+    "gấp"
+  ],
+  "moi": [
+    "mới",
+    "new",
+    "brand new",
+    "newest"
+  ],
+  "cu": [
+    "cũ",
+    "old",
+    "used",
+    "đã cũ"
+  ],
+  "hang hieu": [
+    "hàng hiệu",
+    "brand name",
+    "luxury",
+    "cao cấp"
+  ],
+  "cao cap": [
+    "cao cấp",
+    "premium",
+    "high end",
+    "hạng sang"
+  ],
+  "pho thong": [
+    "phổ thông",
+    "common",
+    "basic",
+    "standard"
+  ],
+  "trung cap": [
+    "trung cấp",
+    "mid range",
+    "mid-range",
+    "tầm trung"
+  ],
+  "mau trang": [
+    "màu trắng",
+    "white",
+    "trắng"
+  ],
+  "mau den": [
+    "màu đen",
+    "black",
+    "đen"
+  ],
+  "mau do": [
+    "màu đỏ",
+    "red",
+    "đỏ"
+  ],
+  "mau xanh": [
+    "màu xanh",
+    "blue",
+    "green",
+    "xanh"
+  ],
+  "mau vang": [
+    "màu vàng",
+    "yellow",
+    "gold",
+    "vàng"
+  ],
+  "mau hong": [
+    "màu hồng",
+    "pink",
+    "hồng",
+    "rose gold"
+  ],
+  "mau tim": [
+    "màu tím",
+    "purple",
+    "violet",
+    "tím"
+  ],
+  "mau xam": [
+    "màu xám",
+    "grey",
+    "gray",
+    "xám"
+  ],
+  "mau nau": [
+    "màu nâu",
+    "brown",
+    "nâu"
+  ],
+  "tron": [
+    "trơn",
+    "plain",
+    "không hoạ tiết"
+  ],
+  "hoa tiet": [
+    "hoạ tiết",
+    "pattern",
+    "print",
+    "in hình"
+  ],
+  "cai": [
+    "cái",
+    "piece",
+    "pc",
+    "chiếc",
+    "con"
+  ],
+  "chiec": [
+    "chiếc",
+    "piece",
+    "cái",
+    "một chiếc"
+  ],
+  "goi": [
+    "gói",
+    "pack",
+    "packet",
+    "túi"
+  ],
+  "tui": [
+    "túi",
+    "bag",
+    "túi nilon"
+  ],
+  "thung": [
+    "thùng",
+    "carton",
+    "box",
+    "crate"
+  ],
+  "lon": [
+    "lon",
+    "can",
+    "hộp nhôm"
+  ],
+  "chai": [
+    "chai",
+    "bottle",
+    "lọ"
+  ],
+  "lo": [
+    "lọ",
+    "jar",
+    "chai",
+    "bottle"
+  ],
+  "kg": [
+    "kg",
+    "kilogram",
+    "cân",
+    "ký"
+  ],
+  "gram": [
+    "gram",
+    "g",
+    "gr"
+  ],
+  "lit": [
+    "lít",
+    "liter",
+    "l"
+  ],
+  "ml": [
+    "ml",
+    "mililit",
+    "millilitre"
+  ],
+  "met": [
+    "mét",
+    "meter",
+    "m"
+  ],
+  "cm": [
+    "cm",
+    "centimet",
+    "centimeter"
+  ],
+  "mm": [
+    "mm",
+    "milimet",
+    "millimeter"
+  ],
+  "inch": [
+    "inch",
+    "in",
+    "\""
+  ],
+  "momo": [
+    "momo",
+    "ví momo",
+    "momo wallet"
+  ],
+  "zalopay": [
+    "zalopay",
+    "zp",
+    "ví zalopay"
+  ],
+  "viettelpay": [
+    "viettelpay",
+    "viettel pay",
+    "vtp wallet"
+  ],
+  "shopeepay": [
+    "shopeepay",
+    "airpay",
+    "ví shopee"
+  ],
+  "vnpay": [
+    "vnpay",
+    "vn pay",
+    "qr vnpay"
+  ],
+  "banking": [
+    "banking",
+    "internet banking",
+    "ib",
+    "online banking"
+  ],
+  "visa": [
+    "visa",
+    "thẻ visa",
+    "visa card"
+  ],
+  "mastercard": [
+    "mastercard",
+    "master",
+    "mc"
+  ],
+  "atm": [
+    "atm",
+    "thẻ atm",
+    "rút tiền",
+    "thẻ ngân hàng"
+  ],
+  "napas": [
+    "napas",
+    "thẻ napas",
+    "liên kết napas"
+  ],
+  "hai long": [
+    "hài lòng",
+    "satisfied",
+    "happy",
+    "vui"
+  ],
+  "khong hai long": [
+    "không hài lòng",
+    "unhappy",
+    "dissatisfied",
+    "buồn"
+  ],
+  "phan nan": [
+    "phàn nàn",
+    "complain",
+    "phản ánh",
+    "khiếu nại"
+  ],
+  "khen": [
+    "khen",
+    "praise",
+    "compliment",
+    "review tốt"
+  ],
+  "che": [
+    "chê",
+    "criticize",
+    "review xấu",
+    "chê bai"
+  ],
+  "gioi thieu": [
+    "giới thiệu",
+    "introduce",
+    "refer",
+    "giới thiệu bạn"
+  ],
+  "gop y": [
+    "góp ý",
+    "feedback",
+    "nhận xét",
+    "đóng góp ý kiến"
+  ],
+  "phan hoi": [
+    "phản hồi",
+    "feedback",
+    "response",
+    "reply"
+  ],
+  "tot lam": [
+    "tốt lắm",
+    "very good",
+    "excellent",
+    "tuyệt vời"
+  ],
+  "tuyet voi": [
+    "tuyệt vời",
+    "amazing",
+    "perfect",
+    "xuất sắc"
+  ],
+  "te": [
+    "tệ",
+    "bad",
+    "poor",
+    "kém"
+  ],
+  "binh thuong": [
+    "bình thường",
+    "normal",
+    "average",
+    "ổn"
+  ],
+  "on": [
+    "ổn",
+    "okay",
+    "fine",
+    "được"
+  ],
+  "kem chat luong": [
+    "kém chất lượng",
+    "poor quality",
+    "chất lượng kém",
+    "lởm"
+  ],
+  "chat luong cao": [
+    "chất lượng cao",
+    "high quality",
+    "tốt",
+    "cao cấp"
+  ],
+  "muon mua": [
+    "muốn mua",
+    "want to buy",
+    "định mua",
+    "tính mua"
+  ],
+  "muon xem": [
+    "muốn xem",
+    "want to see",
+    "định xem",
+    "xem thử"
+  ],
+  "muon biet": [
+    "muốn biết",
+    "want to know",
+    "hỏi về"
+  ],
+  "can": [
+    "cần",
+    "need",
+    "muốn"
+  ],
+  "mong": [
+    "mong",
+    "hope",
+    "hy vọng",
+    "wish"
+  ],
+  "thich": [
+    "thích",
+    "like",
+    "yêu thích",
+    "love"
+  ],
+  "ghet": [
+    "ghét",
+    "hate",
+    "không thích"
+  ],
+  "quan tam": [
+    "quan tâm",
+    "interested",
+    "có hứng thú",
+    "để ý"
+  ],
+  "chua quan tam": [
+    "chưa quan tâm",
+    "not interested",
+    "không quan tâm"
+  ],
+  "quyet dinh": [
+    "quyết định",
+    "decide",
+    "chốt",
+    "đưa ra quyết định"
+  ],
+  "suy nghi": [
+    "suy nghĩ",
+    "think",
+    "consider",
+    "cân nhắc"
+  ],
+  "can nhac": [
+    "cân nhắc",
+    "consider",
+    "think about",
+    "suy nghĩ thêm"
+  ],
+  "so sanh them": [
+    "so sánh thêm",
+    "compare more",
+    "xem thêm"
+  ],
+  "tim hieu": [
+    "tìm hiểu",
+    "research",
+    "find out",
+    "xem qua"
+  ],
+  "de y": [
+    "để ý",
+    "pay attention",
+    "lưu ý",
+    "chú ý"
+  ],
+  "chu y": [
+    "chú ý",
+    "attention",
+    "note",
+    "ghi nhớ"
+  ],
+  "ghi nho": [
+    "ghi nhớ",
+    "remember",
+    "note down"
+  ],
+  "luu": [
+    "lưu",
+    "save",
+    "lưu lại",
+    "keep"
+  ],
+  "chia se": [
+    "chia sẻ",
+    "share",
+    "giới thiệu",
+    "lan toả"
+  ],
+  "bao ve": [
+    "bảo vệ",
+    "protect",
+    "safe",
+    "an toàn"
+  ],
+  "an toan": [
+    "an toàn",
+    "safe",
+    "secure",
+    "bảo mật"
+  ],
+  "cam on": [
+    "cảm ơn",
+    "thanks",
+    "thank you",
+    "tks",
+    "ty",
+    "cám ơn"
+  ],
+  "xin loi": [
+    "xin lỗi",
+    "sorry",
+    "apology",
+    "thành thật xin lỗi"
+  ],
+  "chao": [
+    "chào",
+    "hello",
+    "hi",
+    "chào bạn"
+  ],
+  "gap lai": [
+    "gặp lại",
+    "see you again",
+    "hẹn gặp"
+  ],
+  "chuc mung": [
+    "chúc mừng",
+    "congrats",
+    "congratulation"
+  ],
+  "dong y": [
+    "đồng ý",
+    "agree",
+    "ok",
+    "yes",
+    "confirm"
+  ],
+  "khong dong y": [
+    "không đồng ý",
+    "disagree",
+    "không ok",
+    "reject"
+  ],
+  "dung": [
+    "đúng",
+    "correct",
+    "right",
+    "chính xác"
+  ],
+  "chuan": [
+    "chuẩn",
+    "exact",
+    "correct",
+    "đúng chuẩn"
+  ],
+  "chinh xac": [
+    "chính xác",
+    "exact",
+    "precise",
+    "accurate"
+  ],
+  "ro": [
+    "rõ",
+    "clear",
+    "understood",
+    "rõ rồi"
+  ],
+  "hieu": [
+    "hiểu",
+    "understand",
+    "got it",
+    "nhận ra"
+  ],
+  "khong hieu": [
+    "không hiểu",
+    "don't understand",
+    "không rõ",
+    "không biết"
+  ]
+}

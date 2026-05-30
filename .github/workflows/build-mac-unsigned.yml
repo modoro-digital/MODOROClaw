@@ -1,0 +1,80 @@
+name: Build Mac .dmg (unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: 'Which arch to build'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - arm64
+          - x64
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(github.event.inputs.arch == 'arm64' && '{"include":[{"arch":"arm64","runner":"macos-14"}]}' || github.event.inputs.arch == 'x64' && '{"include":[{"arch":"x64","runner":"macos-14"}]}' || '{"include":[{"arch":"arm64","runner":"macos-14"},{"arch":"x64","runner":"macos-14"}]}') }}
+    runs-on: ${{ matrix.runner }}
+    name: Build ${{ matrix.arch }} unsigned
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install electron app deps
+        working-directory: electron
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_target_platform: darwin
+        run: npm install --no-audit --no-fund
+
+      - name: Verify better-sqlite3 binary arch
+        working-directory: electron
+        run: |
+          node -e "
+            const fs=require('fs'),p='node_modules/better-sqlite3/build/Release/better_sqlite3.node';
+            if(!fs.existsSync(p)){console.error('FAIL: binary missing');process.exit(1);}
+            const fd=fs.openSync(p,'r'),buf=Buffer.alloc(16);
+            fs.readSync(fd,buf,0,16,0);fs.closeSync(fd);
+            const magicBE=buf.readUInt32BE(0),magicLE=buf.readUInt32LE(0);
+            if(magicBE!==0xfeedfacf&&magicLE!==0xfeedfacf){console.error('FAIL: not Mach-O 64');process.exit(1);}
+            const cpu=buf.readUInt32LE(4);
+            const detected=cpu===0x0100000c?'arm64':cpu===0x01000007?'x64':'unknown';
+            const want='${{ matrix.arch }}';
+            console.log('better-sqlite3 binary arch:',detected,'target:',want);
+            if(detected!==want){console.error('FAIL: arch mismatch');process.exit(1);}
+            console.log('OK');
+          "
+
+      - name: Prebuild modoro-zalo
+        working-directory: electron
+        run: TARGET_ARCH=${{ matrix.arch }} npm run prebuild:modoro-zalo
+
+      - name: Run smoke tests
+        working-directory: electron
+        run: TARGET_ARCH=${{ matrix.arch }} npm run smoke
+
+      - name: Build DMG (unsigned, no codesign)
+        working-directory: electron
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac --${{ matrix.arch }}
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: 9BizClaw-${{ matrix.arch }}-unsigned
+          path: dist/*.dmg
+          if-no-files-found: error

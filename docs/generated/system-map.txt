@@ -1,0 +1,133 @@
+9BizClaw Generated System Map
+
+Counts
+- apiRoutes: 83
+- ipcHandlers: 144
+- preloadBridges: 137
+- dashboardPages: 12
+- capabilityContracts: 2
+
+Capability Contracts
+- brand-image: Generate brand-aware images with uploaded assets (capabilities/brand-image.contract.json)
+- zalo-cron: Create scheduled Zalo group messages or agent jobs (capabilities/zalo-cron.contract.json)
+
+API Routes
+- /api/attachments/analyze [local-api]
+- /api/auth/token [local-api]
+- /api/brand-assets/import [local-api]
+- /api/brand-assets/list [local-api]
+- /api/brand-assets/save [local-api]
+- /api/capabilities [local-api]
+- /api/ceo-rules/write [local-api]
+- /api/cron/audit [local-api]
+- /api/cron/create [local-api]
+- /api/cron/delete [local-api]
+- /api/cron/list [local-api]
+- /api/cron/replace [local-api]
+- /api/cron/toggle [local-api]
+- /api/customer-memory/write [local-api]
+- /api/exec [local-api]
+- /api/file [local-api]
+- /api/file/copy [local-api]
+- /api/file/delete [local-api]
+- /api/file/download [local-api]
+- /api/file/list [local-api]
+- /api/file/open [local-api]
+- /api/file/read [local-api]
+- /api/file/rename [local-api]
+- /api/file/search [local-api]
+- /api/file/write [local-api]
+- /api/image/generate [local-api]
+- /api/image/generate-and-send-zalo [local-api]
+- /api/image/preferences [local-api]
+- /api/image/skills [local-api]
+- /api/image/status [local-api]
+- /api/internal/9router-redirect [local-api]
+- /api/internal/agent-deliver-zalo [local-api]
+- /api/inventory/adjust [local-api]
+- /api/inventory/alerts [local-api]
+- /api/inventory/check [local-api]
+- /api/inventory/set-min [local-api]
+- /api/knowledge/add [local-api]
+- /api/leave/approve [local-api]
+- /api/leave/list [local-api]
+- /api/leave/request [local-api]
+- /api/leave/summary [local-api]
+- /api/media/describe [local-api]
+- /api/media/list [local-api]
+- /api/media/search [local-api]
+- /api/media/upload [local-api]
+- /api/memory/context [local-api]
+- /api/memory/count [local-api]
+- /api/memory/delete [local-api]
+- /api/memory/events [local-api]
+- /api/memory/list [local-api]
+- /api/memory/prioritize [local-api]
+- /api/memory/search [local-api]
+- /api/memory/status [local-api]
+- /api/memory/supersede [local-api]
+- /api/memory/write [local-api]
+- /api/order/create [local-api]
+- /api/order/list [local-api]
+- /api/order/status [local-api]
+- /api/order/summary [local-api]
+- /api/order/update [local-api]
+- /api/report/daily [local-api]
+- /api/skill/exec [local-api]
+- /api/skill/python-install [local-api]
+- /api/skill/python-status [local-api]
+- /api/skill/test-exec [local-api]
+- /api/system/info [local-api]
+- /api/telegram/send-photo [local-api]
+- /api/user-skills/check-conflict [local-api]
+- /api/user-skills/create [local-api]
+- /api/user-skills/delete [local-api]
+- /api/user-skills/list [local-api]
+- /api/user-skills/restore [local-api]
+- /api/user-skills/toggle [local-api]
+- /api/user-skills/update [local-api]
+- /api/workspace/append [local-api]
+- /api/workspace/list [local-api]
+- /api/workspace/read [local-api]
+- /api/zalo-crm/export [local-api]
+- /api/zalo/friends [local-api]
+- /api/zalo/groups [local-api]
+- /api/zalo/ready [local-api]
+- /api/zalo/send [local-api]
+- /api/zalo/send-media [local-api]
+
+Dashboard Pages
+- 9router
+- calendar
+- image-assets
+- knowledge
+- openclaw
+- overview
+- persona-mix
+- schedules
+- shop-state
+- skills
+- telegram
+- zalo
+
+Large Source Files
+- electron/ui/dashboard.html: 488123 bytes
+- electron/lib/dashboard-ipc.js: 252425 bytes
+- electron/lib/cron-api.js: 168276 bytes
+- electron/lib/cron.js: 130591 bytes
+- electron/ui/wizard.html: 117791 bytes
+- electron/lib/knowledge.js: 96863 bytes
+- electron/lib/channels.js: 94626 bytes
+- electron/lib/gateway.js: 84305 bytes
+- electron/lib/runtime-installer.js: 71770 bytes
+- electron/ui/preview-telegram-redesign.html: 66621 bytes
+- electron/lib/config.js: 61589 bytes
+- electron/lib/workspace.js: 52556 bytes
+- electron/lib/vendor-patches.js: 49200 bytes
+- electron/lib/nine-router.js: 46625 bytes
+- electron/lib/skill-manager.js: 45003 bytes
+- electron/lib/zalo-plugin.js: 43403 bytes
+- electron/lib/boot.js: 37246 bytes
+- electron/lib/ceo-memory.js: 35886 bytes
+- electron/lib/media-library.js: 31821 bytes
+- electron/lib/conversation.js: 30749 bytes
