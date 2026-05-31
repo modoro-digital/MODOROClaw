@@ -698,12 +698,16 @@
   function diagnoseError(msg) {
     const m = (msg || '').toLowerCase();
     return [
-      { label: 'Kết nối Internet',        fail: /enotfound|enetunreach|etimedout|network|fetch failed|socket hang up|getaddrinfo/i.test(m) },
+      // Only flag Internet for clear network-down signals. A bare "fetch failed"
+      // on a machine where the browser works is NOT an internet problem — it's
+      // almost always proxy / HTTPS-scanning antivirus, so it routes to the
+      // "Tường lửa / Proxy" row below instead of falsely accusing the network.
+      { label: 'Kết nối Internet',        fail: /enotfound|enetunreach|network is unreachable|getaddrinfo|no address associated|đang offline|offline/i.test(m) },
       { label: 'Quyền ghi thư mục',       fail: /eperm|eacces|permission denied|access is denied/i.test(m) },
       { label: 'Dung lượng ổ đĩa',        fail: /enospc|no space|disk full/i.test(m) },
       { label: 'Node.js runtime',          fail: /node.*not found|enoent.*node|spawn.*node|cannot find.*node/i.test(m) },
       { label: 'Phần mềm diệt virus',     fail: /ebusy|locked|being used by another|resource busy/i.test(m) },
-      { label: 'Tường lửa / Proxy',        fail: /econnrefused|econnreset|ssl|certificate|proxy|407|403.*forbidden/i.test(m) },
+      { label: 'Tường lửa / Proxy',        fail: /econnrefused|econnreset|ssl|certificate|self-signed|unable to get local issuer|proxy|407|403.*forbidden|socket hang up|und_err|fetch failed/i.test(m) },
       { label: 'Xcode Command Line Tools', fail: /xcode-select|xcode_select|no developer tools/i.test(m) },
     ];
   }

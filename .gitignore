@@ -189,3 +189,7 @@ user-skills/
 /postcss.config.js
 /tsconfig.json
 /.vercelignore
+
+# Local release staging (downloaded CI artifacts + staged release files)
+/mac-artifacts-free/
+/release-assets/

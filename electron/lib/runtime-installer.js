@@ -105,6 +105,7 @@ const ERROR_HINTS = {
   ETIMEDOUT: 'Kết nối quá chậm hoặc timeout. Thử mạng khác hoặc chờ vài phút.',
   TIMEOUT: 'Tải mất quá lâu (>10 phút). Thử mạng nhanh hơn.',
   PROXY: 'Proxy/corporate firewall có thể chặn kết nối. Kiểm tra cấu hình mạng.',
+  FETCH_FAILED: 'Không kết nối được tới máy chủ tải (nodejs.org) dù vẫn vào web được — thường do proxy công ty hoặc phần mềm diệt virus chặn/giải mã HTTPS. Thử: bật 4G điện thoại (hotspot) rồi Thử lại, hoặc tạm tắt mục quét HTTPS/SSL của phần mềm diệt virus.',
   'CERT_HAS_EXPIRED': 'Chứng chỉ TLS hết hạn — có thể do proxy corporate. Thử mạng khác.',
   UNABLE_TO_VERIFY_LEAF_SIGNATURE: 'Lỗi xác thực chứng chỉ TLS. Kiểm tra proxy corporate.',
   ENOSPC: 'Ổ đĩa gần đầy. Giải phóng ít nhất 500 MB trước khi tiếp tục.',
@@ -127,14 +128,21 @@ function detectProxyEnv() {
 
 // Classify a download or install error into a hint category.
 function classifyInstallError(error) {
-  const msg = String(error?.message || error || '').toLowerCase();
-  const code = error?.code || '';
-  if (code === 'ENOTFOUND' || msg.includes('getaddrinfo') || msg.includes('not found')) return 'ENOTFOUND';
-  if (code === 'ETIMEDOUT' || msg.includes('timed out') || msg.includes('timeout')) return 'ETIMEDOUT';
-  if (code === 'ECONNREFUSED') return 'ECONNREFUSED';
-  if (code === 'TIMEDOUT' || msg.includes('timeout')) return 'TIMEOUT';
-  if (msg.includes('proxy')) return 'PROXY';
-  if (msg.includes('certificate') || msg.includes('cert') || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') return 'UNABLE_TO_VERIFY_LEAF_SIGNATURE';
+  // Native fetch() failures surface as `TypeError: fetch failed` with the REAL
+  // reason (ENOTFOUND/ECONNREFUSED/cert/timeout) in error.cause — unwrap it,
+  // else every fetch failure classifies as null and shows no actionable hint.
+  const cause = error && error.cause ? error.cause : null;
+  const msg = String(
+    (error?.message || '') + ' ' + (cause?.message || '') + ' ' + (cause?.code || '') + ' ' + (error || '')
+  ).toLowerCase();
+  const code = error?.code || cause?.code || '';
+  if (code === 'ENOTFOUND' || msg.includes('getaddrinfo') || msg.includes('enotfound')) return 'ENOTFOUND';
+  if (code === 'ETIMEDOUT' || msg.includes('timed out') || msg.includes('etimedout')) return 'ETIMEDOUT';
+  if (code === 'ECONNREFUSED' || msg.includes('econnrefused')) return 'ECONNREFUSED';
+  if (msg.includes('proxy') || code === 'ERR_PROXY_CONNECTION_FAILED') return 'PROXY';
+  if (msg.includes('certificate') || msg.includes('cert') || msg.includes('self-signed') ||
+      msg.includes('unable to get local issuer') || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+      code === 'SELF_SIGNED_CERT_IN_CHAIN' || code === 'ERR_TLS_CERT_ALTNAME_INVALID') return 'UNABLE_TO_VERIFY_LEAF_SIGNATURE';
   if (code === 'CERT_HAS_EXPIRED') return 'CERT_HAS_EXPIRED';
   if (code === 'ENOSPC') return 'ENOSPC';
   if (code === 'EACCES' || msg.includes('eacces') || msg.includes('permission denied')) return 'EACCES';
@@ -143,7 +151,28 @@ function classifyInstallError(error) {
   if (msg.includes('xcode-select') || msg.includes('xcode_select')) return 'XCODE_SELECT';
   if (msg.includes('git error') && (msg.includes('enoent') || msg.includes('errno -4058'))) return 'GIT_ENOENT';
   if (code === 'EBUSY' || msg.includes('ebusy') || msg.includes('resource busy')) return 'EBUSY';
+  if (msg.includes('timeout') || code === 'UND_ERR_CONNECT_TIMEOUT' || code === 'UND_ERR_HEADERS_TIMEOUT') return 'TIMEOUT';
+  // Transport-level failure with no further detail. On a machine where the
+  // browser works, this is almost always proxy/TLS-interception (corporate
+  // network or HTTPS-scanning antivirus) — the download path that recovers it
+  // is the system-proxy/keychain-aware fallback in downloadFile.
+  if (msg.includes('fetch failed') || code === 'ECONNRESET' || code === 'EPROTO' ||
+      msg.includes('socket hang up') || code.startsWith('UND_ERR')) return 'FETCH_FAILED';
   return null;
+}
+
+// Build a diagnostic string that PRESERVES the underlying cause. Native fetch()
+// throws `TypeError: fetch failed` with the real reason in .cause — without this
+// the UI + logs only ever see "fetch failed" and the real problem is invisible.
+function describeInstallError(error) {
+  if (!error) return 'unknown error';
+  let s = String(error.message || error);
+  const cause = error.cause;
+  if (cause) {
+    const detail = cause.code || cause.message || String(cause);
+    if (detail && !s.includes(String(detail))) s += ` (${detail})`;
+  }
+  return s;
 }
 
 // Return an actionable user message for a classified error.
@@ -726,87 +755,116 @@ function getNodeDownloadUrl(targetVersion) {
   }
 }
 
+// Stream a web-standard Response (undici fetch OR Electron net.fetch) to disk.
+async function streamResponseToFile(response, destPath, onProgress) {
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    const err = new Error(`HTTP ${response.status} ${response.statusText}: ${body.slice(0, 200)}`);
+    err.code = 'HTTP_' + response.status;
+    throw err;
+  }
+  const total = parseInt(response.headers.get('content-length') || '0', 10);
+  let downloaded = 0;
+  const reader = response.body.getReader();
+  const ws = fs.createWriteStream(destPath);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      ws.write(Buffer.from(value));
+      downloaded += value.length;
+      if (total > 0 && onProgress) {
+        onProgress({ percent: Math.floor((downloaded / total) * 100), downloaded, total });
+      }
+    }
+    ws.end();
+    await new Promise((res, rej) => { ws.on('finish', res); ws.on('error', rej); });
+  } catch (streamErr) {
+    ws.destroy();
+    try { fs.unlinkSync(destPath); } catch {}
+    throw streamErr;
+  }
+}
+
+// Download via a fetch-like impl (undici global fetch or Electron net.fetch),
+// with a 10-minute abort timeout.
+async function downloadViaFetch(fetchImpl, url, destPath, onProgress) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+  try {
+    const response = await fetchImpl(url, { signal: controller.signal, redirect: 'follow' });
+    await streamResponseToFile(response, destPath, onProgress);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Download via a system tool — curl (Unix) / PowerShell (Windows). These honor the
+// OS proxy config + OS certificate store, so they recover machines where undici
+// fetch fails (corporate proxy / HTTPS-scanning antivirus).
+function downloadViaSystemTool(url, destPath, onProgress) {
+  const isWin = process.platform === 'win32';
+  return new Promise((resolve, reject) => {
+    if (onProgress) onProgress({ percent: 0, downloaded: 0, total: 0 });
+    const client = isWin
+      ? spawn('powershell', ['-NoProfile', '-Command',
+          `Invoke-WebRequest -Uri '${url}' -OutFile '${destPath}' -UseBasicParsing -TimeoutSec 600`], { stdio: 'pipe' })
+      : spawn('curl', ['-fSL', '--connect-timeout', '30', '--max-time', '600', '-o', destPath, url], { stdio: 'pipe' });
+    let stderr = '';
+    client.stderr?.on('data', (d) => { stderr += String(d); });
+    client.on('error', (e) => reject(e));
+    client.on('close', (code) => {
+      if (code !== 0) { reject(new Error(`Download tool exit ${code}: ${stderr.slice(0, 300)}`)); return; }
+      if (onProgress) {
+        try { const size = fs.statSync(destPath).size; onProgress({ percent: 100, downloaded: size, total: size }); }
+        catch { onProgress({ percent: 100, downloaded: 0, total: 0 }); }
+      }
+      resolve();
+    });
+  });
+}
+
 async function downloadFile(url, destPath, onProgress) {
   const isWin = process.platform === 'win32';
 
-  // Attach actionable hint to error for UI display.
+  // Attach actionable hint to error for UI display (preserves .cause).
   function attachHint(e) {
     const hint = getInstallErrorHint(e);
     if (!hint) return e;
-    const wrapped = new Error(e.message + ' | HINT: ' + hint);
-    wrapped.code = e.code;
+    const wrapped = new Error(describeInstallError(e) + ' | HINT: ' + hint);
+    wrapped.code = e.code; wrapped.cause = e.cause;
     return wrapped;
   }
 
-  return new Promise((resolve, reject) => {
-    // Use native fetch if available (Node 18+)
-    let client;
-    if (typeof fetch !== 'undefined') {
-      const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 10 * 60 * 1000);
-      fetch(url, { signal: controller.signal }).then(async (response) => {
-        if (!response.ok) {
-          clearTimeout(fetchTimeout);
-          const body = await response.text().catch(() => '');
-          reject(attachHint(new Error(`HTTP ${response.status} ${response.statusText}: ${body.slice(0, 200)}`)));
-          return;
-        }
-        const total = parseInt(response.headers.get('content-length') || '0', 10);
-        let downloaded = 0;
-        const reader = response.body.getReader();
-        const ws = fs.createWriteStream(destPath);
+  // Attempt order matters for end-user machines behind a proxy or TLS-intercepting
+  // antivirus: undici `fetch` ignores BOTH the OS proxy and the OS certificate store
+  // (it uses Node's bundled CA), so it fails exactly where the browser works.
+  // Electron net.fetch (Chromium stack) and curl/PowerShell DO honor the OS proxy +
+  // cert store, so they recover those machines. Root-caused 2026-05-31.
+  const attempts = [];
+  if (typeof fetch !== 'undefined') {
+    attempts.push({ name: 'fetch', fn: () => downloadViaFetch(fetch, url, destPath, onProgress) });
+  }
+  let electronNet = null;
+  try { electronNet = require('electron').net; } catch {}
+  if (electronNet && typeof electronNet.fetch === 'function') {
+    attempts.push({ name: 'net.fetch', fn: () => downloadViaFetch(electronNet.fetch.bind(electronNet), url, destPath, onProgress) });
+  }
+  attempts.push({ name: isWin ? 'powershell' : 'curl', fn: () => downloadViaSystemTool(url, destPath, onProgress) });
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            ws.write(Buffer.from(value));
-            downloaded += value.length;
-            if (total > 0 && onProgress) {
-              onProgress({ percent: Math.floor((downloaded / total) * 100), downloaded, total });
-            }
-          }
-          ws.end();
-          await new Promise((res, rej) => { ws.on('finish', res); ws.on('error', rej); });
-        } catch (streamErr) {
-          ws.destroy();
-          try { fs.unlinkSync(destPath); } catch {}
-          throw streamErr;
-        }
-        clearTimeout(fetchTimeout);
-        resolve();
-      }).catch((e) => { clearTimeout(fetchTimeout); reject(attachHint(e)); });
+  let lastErr;
+  for (const a of attempts) {
+    try {
+      await a.fn();
+      if (a.name !== 'fetch') console.log('[runtime-installer] download via', a.name, 'succeeded (fetch had failed)');
       return;
-    } else if (isWin) {
-      // Windows: use PowerShell with 10-minute timeout to match download progress bar
-      client = spawn('powershell', [
-        '-NoProfile',
-        '-Command',
-        `Invoke-WebRequest -Uri '${url}' -OutFile '${destPath}' -UseBasicParsing -TimeoutSec 600`
-      ], { stdio: 'pipe' });
-    } else {
-      // Unix: use curl
-      client = spawn('curl', ['-fSL', '-o', destPath, '--progress-bar', url], { stdio: 'pipe' });
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[runtime-installer] download via ${a.name} failed: ${describeInstallError(e)} — trying next method`);
+      try { fs.unlinkSync(destPath); } catch {}
     }
-
-    if (onProgress) onProgress({ percent: 0, downloaded: 0, total: 0 });
-    let stderr = '';
-    client?.stderr?.on('data', (d) => { stderr += String(d); });
-    client.on('error', (e) => { reject(attachHint(e)); });
-    client.on('close', (code) => {
-      if (code !== 0) {
-        reject(attachHint(new Error(`Download failed (exit ${code}): ${stderr}`)));
-      } else {
-        if (onProgress) {
-          try {
-            const size = fs.statSync(destPath).size;
-            onProgress({ percent: 100, downloaded: size, total: size });
-          } catch { onProgress({ percent: 100, downloaded: 0, total: 0 }); }
-        }
-        resolve();
-      }
-    });
-  });
+  }
+  throw attachHint(lastErr || new Error('download failed'));
 }
 
 async function installNode(targetVersion, onProgress) {
@@ -837,7 +895,7 @@ async function installNode(targetVersion, onProgress) {
         }
       });
     } catch (e) {
-      throw new Error(`Không tải được Node.js: ${e.message}`);
+      throw new Error(`Không tải được Node.js: ${describeInstallError(e)}`);
     }
 
     if (expectedArchiveHash) {
@@ -1840,6 +1898,11 @@ module.exports = {
   writeInstalledVersion,
   compareVersions,
   satisfiesMinVersion,
+
+  // Error classification (exported for smoke tests + UI diagnostics)
+  classifyInstallError,
+  getInstallErrorHint,
+  describeInstallError,
 
   // Migration
   cleanupOldBundledFiles,

@@ -106,7 +106,8 @@ if (/execFilePromise\(\s*nodeBin\s*,\s*\[\s*['"]npm['"]/.test(runtimeSrc)) {
 } else {
   pass('npm install does not execute `node npm`');
 }
-requireContains('downloadFile native fetch branch does not fall through to client handlers', runtimeSrc, 'reject(attachHint');
+requireContains('downloadFile surfaces download errors with an actionable hint', runtimeSrc, 'throw attachHint(');
+requireContains('downloadFile falls back to OS-proxy/keychain-aware methods (net.fetch + system tool)', runtimeSrc, 'downloadViaSystemTool');
 requireContains('runtime readiness considers version marker', runtimeSrc, 'runtimeVersion');
 requireContains('runtime install writes marker after fast ready path', runtimeSrc, 'writeInstalledVersion(RUNTIME_INSTALL_VERSION)');
 requireContains('runtime install marker value is 2.4.0', runtimeSrc, "RUNTIME_INSTALL_VERSION = '2.4.0'");

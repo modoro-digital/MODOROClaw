@@ -850,6 +850,18 @@ app.whenReady().then(async () => {
   setTimeout(() => { try { initEmbedder(); } catch (e) { console.warn('[boot] initEmbedder error:', e?.message || e); } }, 0);
   setTimeout(() => { try { bootDiagRunFullCheck(); } catch (e) { console.error('[boot-diag] error:', e?.message || e); } }, 2000);
 
+  // CEO memory maintenance at boot: purge accumulated cron-log task memories.
+  // The deterministic purge (trimOldTaskEntries: DELETE task/source=auto) lived
+  // ONLY inside regenerateCeoMemoryFile, triggered by memory WRITES — which became
+  // rare after the 2026-05-22 notable-only redesign — and the memory-cleanup cron
+  // is disabled by default. So existing installs kept ~99% useless cron-log task
+  // memories forever. Run the purge+regen once per launch (off the boot critical
+  // path) so every install gets cleaned on next open. Idempotent + non-blocking.
+  setTimeout(() => {
+    try { require('./lib/ceo-memory').regenerateCeoMemoryFile(); }
+    catch (e) { console.warn('[ceo-memory] boot maintenance error:', e?.message); }
+  }, 8000);
+
   // CRITICAL for Mac: prevent App Nap from suspending the process. macOS aggressively
   // suspends background apps after ~30s of no UI interaction, which freezes
   // setTimeout/setInterval — including node-cron's internal timer wheel. Without

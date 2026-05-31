@@ -21,16 +21,26 @@ const MODEL_CONFIG = {
   destSubdir: 'vendor/models/Xenova/multilingual-e5-small',
 };
 
-// Expected file sizes (for progress estimation)
+// Exact file sizes at the PINNED revision (MODEL_CONFIG.revision), taken from
+// the HuggingFace API and verified byte-identical on disk. Used by the 95%
+// truncation guard in isModelDownloaded()/getMissingFiles() AND for progress %.
+//
+// IMPORTANT: these MUST be the real sizes. Earlier they were round-number
+// guesses (2KB/5KB/100KB/450MB) that were LARGER than the real files, so the
+// guard flagged every complete file as "truncated" → the download splash
+// re-appeared on every launch and "Một số file chưa tải được" never cleared,
+// even though the model was fully downloaded. The 450MB guess was actually the
+// FULL fp32 model.onnx size, not this quantized file.
+// If you change MODEL_CONFIG.revision, update these to match the new revision.
 const EXPECTED_SIZES = {
-  'tokenizer.json': 500 * 1024,           // ~500 KB
-  'tokenizer_config.json': 2 * 1024,      // ~2 KB
-  'config.json': 5 * 1024,                // ~5 KB
-  'special_tokens_map.json': 100 * 1024,   // ~100 KB
-  'onnx/model_quantized.onnx': 450 * 1024 * 1024, // ~450 MB
+  'tokenizer.json': 17082730,            // 16.3 MB
+  'tokenizer_config.json': 443,          // 443 B
+  'config.json': 658,                    // 658 B
+  'special_tokens_map.json': 167,        // 167 B
+  'onnx/model_quantized.onnx': 118308185, // 112.8 MB (quantized, NOT the 470MB fp32)
 };
 
-const TOTAL_SIZE = Object.values(EXPECTED_SIZES).reduce((a, b) => a + b, 0); // ~451 MB
+const TOTAL_SIZE = Object.values(EXPECTED_SIZES).reduce((a, b) => a + b, 0); // ~129 MB
 
 // =====================================================================
 // Path Helpers

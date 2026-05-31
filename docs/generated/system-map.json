@@ -2090,7 +2090,7 @@
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 252425
+      "bytes": 253046
     },
     {
       "path": "electron/lib/cron-api.js",
@@ -2118,7 +2118,7 @@
     },
     {
       "path": "electron/lib/runtime-installer.js",
-      "bytes": 71770
+      "bytes": 75692
     },
     {
       "path": "electron/ui/preview-telegram-redesign.html",
@@ -2166,7 +2166,7 @@
     },
     {
       "path": "electron/ui/splash.html",
-      "bytes": 26997
+      "bytes": 27419
     },
     {
       "path": "electron/lib/migration.js",
