@@ -2098,7 +2098,7 @@
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 130591
+      "bytes": 130556
     },
     {
       "path": "electron/ui/wizard.html",
