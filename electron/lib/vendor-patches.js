@@ -201,28 +201,29 @@ function ensureWebFetchLocalhostFix(vendorDir, homeDir) {
     // agentChannel; only Telegram direct CEO sessions receive a bearer header.
     // Zalo/customer sessions still hit the Cron API without auth and get 403.
     const TOKEN_MARKER = '// 9BizClaw WEB_FETCH CRON TOKEN PATCH v3';
-    const LEGACY_TOKEN_MARKER = '// 9BizClaw WEB_FETCH CRON TOKEN PATCH';
-    const LEGACY_V2_TOKEN_MARKER = '// 9BizClaw WEB_FETCH CRON TOKEN PATCH v2';
     const CACHE_MARKER = '// 9BizClaw WEB_FETCH LOCAL API CACHE BYPASS';
     const RUN_FUNC = 'async function runWebFetch(params) {';
     const HEADER_BLOCK = `init: { headers: {\n\t\t\t\tAccept: "text/markdown, text/html;q=0.9, */*;q=0.1",\n\t\t\t\t"User-Agent": params.userAgent,\n\t\t\t\t"Accept-Language": "en-US,en;q=0.9"\n\t\t\t} }`;
     const HEADER_HELPER = `async function maybeBuild9BizClawWebFetchHeaders(params) {\n\tconst headers = { Accept: "text/markdown, text/html;q=0.9, */*;q=0.1", "User-Agent": params.userAgent, "Accept-Language": "en-US,en;q=0.9" };\n\ttry {\n\t\tconst agentChannel = String(params.agentChannel || "").trim().toLowerCase();\n\t\tconst sessionKey = String(params.agentSessionKey || "");\n\t\tconst isTelegram = agentChannel === "telegram";\n\t\tif (isTelegram && /^https?:\\/\\/(?:127\\.0\\.0\\.1|localhost):2020[0-3](?:\\/|$)/.test(String(params.url || ""))) {\n\t\t\tconst candidates = [path.join(process.cwd(), "cron-api-token.txt")];\n\t\t\tif (process.env.APPDATA) candidates.push(path.join(process.env.APPDATA, "9bizclaw", "cron-api-token.txt"));\n\t\t\tfor (const tokenPath of candidates) {\n\t\t\t\ttry {\n\t\t\t\t\tconst token = String(await fs.readFile(tokenPath, "utf8")).trim();\n\t\t\t\t\tif (/^[a-f0-9]{48}$/i.test(token)) { headers.Authorization = "Bearer " + token; headers["X-9BizClaw-Agent-Channel"] = "telegram"; headers["X-Source-Channel"] = "telegram"; break; }\n\t\t\t\t} catch {}\n\t\t\t}\n\t\t}\n\t} catch {}\n\treturn headers;\n}\n${TOKEN_MARKER}\n`;
-    const LEGACY_HELPER_RE = /async function maybeBuild9BizClawWebFetchHeaders\(params\) \{[\s\S]*?\/\/ 9BizClaw WEB_FETCH CRON TOKEN PATCH\n/;
+    // LEGACY_HELPER_RE: removed — ALL_LEGACY_RE in the loop handles v1+v2 cleanup
     for (const file of toolFiles) {
       const fp = path.join(distDir, file);
       let src = fs.readFileSync(fp, 'utf-8');
       let changed = false;
       if (!src.includes(TOKEN_MARKER)) {
-        // Remove any legacy version (v1 or v2) before re-injecting v3
-        const LEGACY_V2_RE = /async function maybeBuild9BizClawWebFetchHeaders\(params\) \{[\s\S]*?\/\/ 9BizClaw WEB_FETCH CRON TOKEN PATCH v2\n/;
-        if (LEGACY_V2_RE.test(src)) {
-          src = src.replace(LEGACY_V2_RE, '');
-          console.log('[web-fetch-token-fix] removed legacy v2 helper');
+        // Remove ALL legacy versions (v1, v2, any) in ONE pass using greedy match
+        // from the first function declaration to the final v3 marker.
+        // Non-greedy `*?` in the original regex only matched to the FIRST marker
+        // occurrence, so files with BOTH v1+v2 helpers would leave the v1 marker
+        // after v2 was removed, causing the else-branch to re-inject HEADER_HELPER
+        // a second time → "Identifier has already been declared" SyntaxError.
+        const ALL_LEGACY_RE = /async function maybeBuild9BizClawWebFetchHeaders\(params\) \{[\s\S]*?\/\/ 9BizClaw WEB_FETCH CRON TOKEN PATCH v\d+\n/;
+        if (ALL_LEGACY_RE.test(src)) {
+          src = src.replace(ALL_LEGACY_RE, '');
+          console.log('[web-fetch-token-fix] removed all legacy helpers (v1/v2)');
         }
-        if (src.includes(LEGACY_TOKEN_MARKER) && LEGACY_HELPER_RE.test(src)) {
-          src = src.replace(LEGACY_HELPER_RE, HEADER_HELPER);
-          changed = true;
-        } else if (!src.includes(RUN_FUNC)) {
+        // Now safely inject v3 — no legacy markers remain so this fires exactly once
+        if (!src.includes(RUN_FUNC)) {
           console.warn(`[web-fetch-token-fix] WARNING: ${file} runWebFetch anchor missing`);
           _logPatchFailure(homeDir, 'ensureWebFetchLocalhostFix-token-helper', `runWebFetch anchor missing in ${file}`);
         } else {
@@ -308,29 +309,50 @@ function ensureOpenclawPricingFix(vendorDir) {
     if (!fs.existsSync(distDir)) return;
 
     const urlPattern = /"https:\/\/openrouter\.ai\/api\/v1([^"]*)"/g;
-    const markerStr = '// 9BIZCLAW_OPENROUTER_DISABLED';
+    const urlMarker = '// 9BIZCLAW_OPENROUTER_DISABLED';
+    // The (now dead) pricing fetch still logs `[model-pricing] pricing bootstrap
+    // failed / pricing refresh failed` on every offline/proxy boot. Silence just the
+    // two log.warn calls (leave all refresh logic intact) so no scary error appears.
+    const logPattern = /log\.warn\(`pricing \w+ failed: \$\{String\(error\)\}`\);/g;
+    const logMarker = '// 9BIZCLAW_PRICING_LOG_SILENCED';
     const allFiles = fs.readdirSync(distDir).filter(f => f.endsWith('.js'));
-    let patchedCount = 0, scannedCount = 0;
+    let patchedCount = 0;
 
     for (const fname of allFiles) {
       const filePath = path.join(distDir, fname);
       let content;
       try { content = fs.readFileSync(filePath, 'utf-8'); } catch { continue; }
-      if (!urlPattern.test(content)) continue;
-      scannedCount++;
-      urlPattern.lastIndex = 0;
-      if (content.includes(markerStr)) continue;
-      const patched = content.replace(urlPattern, '"http://127.0.0.1:1/disabled$1"') + `\n${markerStr}\n`;
-      try {
-        fs.writeFileSync(filePath, patched, 'utf-8');
-        patchedCount++;
-        console.log(`[openclaw-pricing-fix] patched ${fname}`);
-      } catch (e) {
-        console.warn(`[openclaw-pricing-fix] write failed ${fname}: ${e.message}`);
+      let changed = false;
+      // 1. OpenRouter pricing URL → unreachable (fail fast on isolated networks)
+      if (!content.includes(urlMarker)) {
+        urlPattern.lastIndex = 0;
+        if (urlPattern.test(content)) {
+          urlPattern.lastIndex = 0;
+          content = content.replace(urlPattern, '"http://127.0.0.1:1/disabled$1"') + `\n${urlMarker}\n`;
+          changed = true;
+        }
+      }
+      // 2. Silence the pricing-bootstrap/refresh failure logs
+      if (!content.includes(logMarker)) {
+        logPattern.lastIndex = 0;
+        if (logPattern.test(content)) {
+          logPattern.lastIndex = 0;
+          content = content.replace(logPattern, '/* 9bizclaw: pricing log silenced */ void 0;') + `\n${logMarker}\n`;
+          changed = true;
+        }
+      }
+      if (changed) {
+        try {
+          fs.writeFileSync(filePath, content, 'utf-8');
+          patchedCount++;
+          console.log(`[openclaw-pricing-fix] patched ${fname}`);
+        } catch (e) {
+          console.warn(`[openclaw-pricing-fix] write failed ${fname}: ${e.message}`);
+        }
       }
     }
-    if (patchedCount > 0) console.log(`[openclaw-pricing-fix] ${patchedCount}/${scannedCount} file(s) patched`);
-    else if (scannedCount > 0) console.log(`[openclaw-pricing-fix] already patched — skipping`);
+    if (patchedCount > 0) console.log(`[openclaw-pricing-fix] ${patchedCount} file(s) patched`);
+    else console.log(`[openclaw-pricing-fix] already patched — skipping`);
   } catch (e) {
     console.warn('[openclaw-pricing-fix] error:', e?.message);
   }

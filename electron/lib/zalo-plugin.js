@@ -23,7 +23,7 @@ let _cachedOpenzcaCliJs = null;
 // NOTE: keep this in EXACT sync with packages/modoro-zalo/src/.fork-version —
 // they are compared on boot; any mismatch re-copies the whole plugin every
 // launch. A smoke guard (smoke-test.js) fails the build if they drift.
-const MODORO_ZALO_FORK_VERSION = 'modoro-zalo-v1.0.11';
+const MODORO_ZALO_FORK_VERSION = 'modoro-zalo-v1.0.20';
 
 // ============================================
 //  GETTERS
@@ -280,7 +280,7 @@ groups: []
 # ${displayName}
 
 ${statusText ? `**Trạng thái Zalo:** ${statusText}\n\n` : ''}---
-*Hồ sơ được import tự động từ openzca cache lúc ${stamp}. Bot sẽ cập nhật thêm info sau mỗi lần tương tác.*
+*Hồ sơ được import tự động từ openzca cache lúc ${stamp}. Bot tự cập nhật hồ sơ định kỳ từ hội thoại.*
 `;
           try { fs.writeFileSync(profilePath, content, 'utf-8'); seededUsers++; }
           catch (e) { console.error('[seedZaloCustomers] write user error:', e.message); }

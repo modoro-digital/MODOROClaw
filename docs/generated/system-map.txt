@@ -112,22 +112,22 @@ Dashboard Pages
 
 Large Source Files
 - electron/ui/dashboard.html: 488123 bytes
-- electron/lib/dashboard-ipc.js: 253046 bytes
+- electron/lib/dashboard-ipc.js: 256464 bytes
 - electron/lib/cron-api.js: 168276 bytes
-- electron/lib/cron.js: 130556 bytes
-- electron/ui/wizard.html: 117791 bytes
+- electron/lib/cron.js: 141477 bytes
+- electron/ui/wizard.html: 124006 bytes
 - electron/lib/knowledge.js: 96863 bytes
-- electron/lib/channels.js: 94626 bytes
+- electron/lib/channels.js: 95939 bytes
 - electron/lib/gateway.js: 84305 bytes
 - electron/lib/runtime-installer.js: 75692 bytes
 - electron/ui/preview-telegram-redesign.html: 66621 bytes
 - electron/lib/config.js: 61589 bytes
 - electron/lib/workspace.js: 52556 bytes
-- electron/lib/vendor-patches.js: 49200 bytes
-- electron/lib/nine-router.js: 46625 bytes
+- electron/lib/vendor-patches.js: 50244 bytes
+- electron/lib/nine-router.js: 47402 bytes
 - electron/lib/skill-manager.js: 45003 bytes
-- electron/lib/zalo-plugin.js: 43403 bytes
+- electron/lib/zalo-plugin.js: 43404 bytes
 - electron/lib/boot.js: 37246 bytes
-- electron/lib/ceo-memory.js: 35886 bytes
+- electron/lib/ceo-memory.js: 36326 bytes
+- electron/lib/conversation.js: 32582 bytes
 - electron/lib/media-library.js: 31821 bytes
-- electron/lib/conversation.js: 30749 bytes

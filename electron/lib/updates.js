@@ -24,13 +24,14 @@ function compareVersions(a, b) {
 }
 
 async function checkForUpdates() {
-  const result = await _checkForUpdatesOnce();
-  if (result === null) {
-    // Retry once after 5s for transient network errors
-    await new Promise(r => setTimeout(r, 5000));
-    return await _checkForUpdatesOnce();
-  }
-  return result;
+  // FREE EDITION: auto-update is DISABLED. The update feed (UPDATE_REPO below)
+  // points at the private Premium repo — pulling from it would upgrade a free
+  // user straight into the VIP/licensed build. Until the free edition has its
+  // own public release repo, this is a hard no-op: no boot check, no "update
+  // available" banner, no download. Returning null makes the dashboard report
+  // "Đã mới nhất". _checkForUpdatesOnce + the download/install helpers stay
+  // defined (still exported) but are unreachable.
+  return null;
 }
 
 async function _checkForUpdatesOnce() {

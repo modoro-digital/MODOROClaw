@@ -157,6 +157,12 @@ function loadStickyChatId(token) {
       const fp = _tokenFingerprint(token);
       if (fp !== data.tokenFingerprint) return null;
     }
+    // Fail-safe: a fingerprint was stored but we couldn't get the current token
+    // (e.g. openclaw.json mid-write) → we cannot prove this sticky chatId belongs
+    // to the current bot. Don't trust it (avoids sending a cron to the wrong chat
+    // if the bot token was ever changed). Old sticky files with no fingerprint
+    // still work for single-bot installs.
+    if (!token && data.tokenFingerprint) return null;
     return data.chatId || null;
   } catch { return null; }
 }
@@ -449,7 +455,8 @@ const _outputFilterPatterns = [
   // authentication token is expired. Please try signing i (reset after 1m 24s)"
   { name: 'http-error-code', re: /\b[45]\d{2}\s*[\[({:]/  },
   { name: 'json-error-object', re: /[{[\s]*"error"\s*[:{]/i },
-  { name: 'api-model-name', re: /\b(?:gpt-\d|gpt-[a-z]|claude-\d|anthropic|deepseek|gemini-\d|llama-\d|mistral-\d|o[134]-(?:mini|preview))/i },
+  // MIRROR of modoro-zalo/src/send.ts __ofBlockPatterns 'api-model-name' — keep identical (CLAUDE.md invariant)
+  { name: 'api-model-name', re: /\b(?:codex|gpt-\d|gpt-[a-z]|claude-\d|anthropic|openai|deepseek|gemini-|llama-|mistral-|o[134]-)/i },
   { name: 'auth-token-error', re: /(?:authentication|auth)\s*(?:token|key|credential).*(?:expired|invalid|failed|missing)|token\s+(?:is\s+)?expired|unauthorized\b/i },
   { name: 'nodejs-error-type', re: /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|URIError|EvalError)\s*:/  },
   { name: 'nodejs-stack-trace', re: /\bat\s+(?:Object\.|Module\.|Function\.|process\.|new\s|async\s|node:)/  },
@@ -752,11 +759,16 @@ async function sendTelegram(text, { skipFilter = false, skipPauseCheck = false }
             // 401/403: token revoked or bot blocked — log to missed-alerts
             if (code === 401 || code === 403) {
               console.error('[sendTelegram] token invalid/blocked:', desc);
-              try {
-                const logPath = path.join(getWorkspace(), 'logs', 'ceo-alerts-missed.log');
-                fs.mkdirSync(path.dirname(logPath), { recursive: true });
-                fs.appendFileSync(logPath, `${new Date().toISOString()}\tTELEGRAM-${code}\t${desc}\t${text.slice(0, 200)}\n`);
-              } catch {}
+              const _ws = getWorkspace();
+              if (_ws) {
+                try {
+                  const logPath = path.join(_ws, 'logs', 'ceo-alerts-missed.log');
+                  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+                  fs.appendFileSync(logPath, `${new Date().toISOString()}\tTELEGRAM-${code}\t${desc}\t${text.slice(0, 200)}\n`);
+                } catch (e) { console.warn('[sendTelegram] missed-alert disk log failed:', e?.message); }
+              } else {
+                console.warn('[sendTelegram] no workspace — missed alert not written to disk');
+              }
               resolve(null);
               return;
             }
@@ -924,6 +936,13 @@ async function sendZaloTo(target, text, opts = {}) {
     const filtered = filterSensitiveOutput(text);
     if (filtered.blocked) {
       console.warn(`[sendZaloTo] output filter blocked (${filtered.pattern})`);
+      // skipOnBlock: callers delivering automated/agent/exec output to a CUSTOMER
+      // group pass this so blocked content is NOT replaced with a polite ack and
+      // pushed to the group (that leaked a stand-in message + reported success).
+      // They should treat blocked as "deliver nothing".
+      if (opts.skipOnBlock) {
+        return { ok: false, blocked: true, error: 'output_blocked: ' + filtered.pattern };
+      }
       text = filtered.text;
     }
   }
@@ -1094,6 +1113,7 @@ function readZaloMediaPolicy() {
 
 function resolveAllowedMediaRoots(extraRoots = []) {
   const ws = getWorkspace();
+  if (!ws) return [];  // No workspace — no allowed media roots
   const roots = [
     path.join(ws, 'media-assets'),
     path.join(ws, 'brand-assets'),

@@ -669,6 +669,15 @@ export async function sendTextModoroZalo(options: SendTextOptions): Promise<Modo
       { name: "process-ack-bare-vi", re: /^\s*(?:dạ\s+)?(?:vâng\s*[,.]?\s*)?(?:dạ\s*[,.]?\s*)?em\s+(?:sẽ\s+)?(?:xử\s*lý|thực\s*hiện|làm|chạy)\s+(?:luôn|ngay|liền|rồi)\s*[.!ạ]*\s*$/is },
       { name: "process-status-bare-vi", re: /^\s*(?:dạ\s+)?em\s+đang\s+(?:xử\s*lý|thực\s*hiện|chạy)\s*[.!ạ]*\s*$/is },
       { name: "process-desc-vi", re: /^\s*(?:dạ\s+)?em\s+(?:sẽ\s+)?(?:xử\s*lý|thực\s*hiện|làm|chạy|kiểm\s*tra)\s+(?:theo|nhiều|quy\s*trình|luồng|lần\s*lượt|từng\s*bước|các\s*bước)/is },
+      // --- Layer L: tool/approval leak — bot must NEVER expose internal exec
+      // approval flow or file-read commands to a Zalo customer. (CEO observed
+      // "/approve <hash> allow-once" + "Get-Content ...skills/...md" leaking to a
+      // live customer.) Mirrors channels.js Layer L into the gateway send path,
+      // which is the path that actually delivers live Zalo replies.
+      { name: "tool-approve-leak", re: /\/approve\s+[a-f0-9]{6,}/i },
+      { name: "tool-allow-once", re: /\ballow-once\b/i },
+      { name: "tool-get-content", re: /\bGet-Content\b/i },
+      { name: "tool-exec-leak", re: /(?:duyệt giúp em|approve.*lệnh|chạy.*lệnh|exec.*command).*(?:file|script|tool)/i },
     ];
     let __ofBlocked: string | null = null;
     for (const __ofP of __ofBlockPatterns) {

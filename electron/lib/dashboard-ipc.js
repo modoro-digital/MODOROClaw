@@ -99,7 +99,7 @@ const {
 const {
   extractConversationHistoryRaw, extractConversationHistory,
   writeDailyMemoryJournal, appendPerCustomerSummaries, trimZaloMemoryFile,
-  withMemoryFileLock, touchIdleMemoryTimer, setIdleMemoryRunCronAgent,
+  withMemoryFileLock, touchIdleMemoryTimer, startIdleMemoryWatcher,
 } = require('./conversation');
 const {
   compareVersions, checkForUpdates, downloadUpdate, installDmgUpdate, openGitHubUrl,
@@ -297,8 +297,9 @@ function startZaloConfigWatcher() {
 
 function registerAllIpcHandlers() {
 
-// Wire idle memory extraction — uses runCronViaSessionOrFallback for reliable delivery
-try { setIdleMemoryRunCronAgent(runCronViaSessionOrFallback); } catch {}
+// Start the idle-memory extraction watcher (fires on a reliable interval, reads
+// CEO Telegram history directly — no longer depends on a re-armable timeout).
+try { startIdleMemoryWatcher(); } catch (e) { console.warn('[idle-memory] watcher init error:', e?.message); }
 // Start auto-refresh watcher (idempotent: gated by ctx.mainWindow availability).
 try { startZaloConfigWatcher(); } catch (e) { console.warn('[zalo-watcher] init error:', e?.message); }
 
@@ -448,6 +449,66 @@ ipcMain.handle('setup-9router-auto', async (_event, opts = {}) => {
         return { success: false, error: 'Không tạo được API key. Thử nhấn lại "Kiểm tra kết nối".' };
       }
       return { success: true, apiKey: apiKeyValue, selectedModel: picked };
+    }
+
+    // --- useFreeModel: ChatGPT couldn't connect (e.g. OTP wall) — fall back to
+    // 9Router's built-in free models. These route with NO provider connection at
+    // zero cost; they don't appear in /v1/models but are fully routable, so we
+    // just point combo "main" at them and hand back an API key.
+    //
+    // Order matters: mimo-v2.5-free is PRIMARY because it returns content
+    // directly. deepseek-v4-flash-free is a heavy-reasoning model — at a normal
+    // reply budget it spends the whole token allowance "thinking" and emits EMPTY
+    // content (verified live: empty at 400 tok, only answers past ~2000 tok), so
+    // it would silently break a customer-facing bot if used first. It stays as a
+    // combo backup (9Router falls through to it only if mimo is unavailable). ---
+    if (opts.useFreeModel) {
+      const FREE_MODELS = ['oc/mimo-v2.5-free', 'oc/deepseek-v4-flash-free'];
+      if (!getRouterProcess()) start9Router();
+      let ready = await waitFor9RouterReady(30000);
+      if (!ready) {
+        const ping = await nineRouterApi('GET', '/api/settings', null, 1500);
+        if (ping.statusCode && ping.statusCode >= 500) {
+          const fixed = await autoFix9RouterSqlite();
+          if (fixed) {
+            stop9Router();
+            await new Promise(r => setTimeout(r, 2500));
+            try { killPort(20128); } catch {}
+            start9Router();
+            ready = await waitFor9RouterReady(30000);
+          }
+        }
+        if (!ready) return { success: false, error: '9Router chưa sẵn sàng. Đợi vài giây rồi thử lại.' };
+      }
+
+      const combosRes = await nineRouterApi('GET', '/api/combos');
+      const combos = combosRes.data?.combos || combosRes.data || [];
+      const mainCombo = (Array.isArray(combos) ? combos : []).find(c => c.name === 'main');
+      // The whole point of this fallback is to GUARANTEE a working model — so a
+      // failed combo write must surface, not return a false success that strands
+      // the user on step 3 with no AI configured.
+      const comboRes = mainCombo
+        ? await nineRouterApi('PUT', `/api/combos/${mainCombo.id}`, { name: 'main', models: FREE_MODELS })
+        : await nineRouterApi('POST', '/api/combos', { name: 'main', models: FREE_MODELS });
+      if (comboRes && comboRes.success === false) {
+        return { success: false, error: 'Không gán được model miễn phí vào combo. Thử lại sau vài giây.' };
+      }
+      console.log('[setup-9router-auto] useFreeModel — combo "main" set to:', FREE_MODELS.join(', '));
+
+      const keysRes = await nineRouterApi('GET', '/api/keys');
+      const keys = keysRes.data?.keys || keysRes.data || [];
+      let apiKeyValue = null;
+      const activeKey = (Array.isArray(keys) ? keys : []).find(k => k.isActive !== false && k.key);
+      if (activeKey) {
+        apiKeyValue = activeKey.key;
+      } else {
+        const createKey = await nineRouterApi('POST', '/api/keys', { name: '9BizClaw' });
+        apiKeyValue = createKey.data?.key?.key || createKey.data?.key || null;
+      }
+      if (!apiKeyValue) {
+        return { success: false, error: 'Không tạo được API key. Thử lại.' };
+      }
+      return { success: true, apiKey: apiKeyValue, selectedModel: FREE_MODELS[0], freeModel: true };
     }
 
     if (opts.ollamaKey) {

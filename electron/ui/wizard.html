@@ -891,6 +891,8 @@
     /* ===== Step 3 sub-screens ===== */
     .sub-screen { display: none; animation: wz-fade 0.4s ease; }
     .sub-screen.active { display: block; }
+    /* Always-visible back button at the top of every Telegram substep. */
+    .wz-substep-back { padding: 5px 12px; font-size: 13px; margin: 0 0 14px; }
 
     .step-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 20px; max-width: 580px; }
 
@@ -1323,6 +1325,18 @@
               </div>
             </div>
 
+            <!-- Fallback: can't connect ChatGPT (e.g. OTP wall) → use built-in free AI -->
+            <div class="wz-instruction" style="border-color:var(--accent-soft,rgba(200,167,90,0.25))">
+              <div class="wz-instruction-body" style="padding-left:0">
+                <p style="margin:0 0 4px">Không kết nối được ChatGPT? Không sao.</p>
+                <p class="wz-help" style="margin:0 0 12px">Bấm nút này — trợ lý sẽ dùng AI miễn phí có sẵn và đi tiếp luôn.</p>
+                <button class="wz-btn wz-btn-primary" onclick="useFreeAIModel()" id="free-ai-btn" type="button" title="Dùng AI miễn phí và tiếp tục">
+                  Dùng AI miễn phí &amp; đi tiếp
+                </button>
+                <div id="free-ai-result" class="wz-hidden" style="margin-top:12px"></div>
+              </div>
+            </div>
+
             <input type="hidden" id="router-api-key" value="">
             <input type="hidden" id="router-model" value="main">
           </section>
@@ -1332,6 +1346,7 @@
 
             <!-- ===== 3.1 WHY CONNECT ===== -->
             <div class="sub-screen active" id="screen-3-1">
+              <button class="wz-btn wz-btn-ghost wz-substep-back" onclick="showStep(2)" type="button">&larr; Quay lại</button>
               <h2>Kết nối Telegram để dùng 9BizClaw mọi lúc, mọi nơi</h2>
               <p class="step-desc">Telegram là kênh anh/chị nhận báo cáo và điều khiển trợ lý AI.</p>
 
@@ -1365,6 +1380,7 @@
 
             <!-- ===== 3.2 CREATE ASSISTANT ===== -->
             <div class="sub-screen" id="screen-3-2">
+              <button class="wz-btn wz-btn-ghost wz-substep-back" onclick="goToTgScreen('3-1')" type="button">&larr; Quay lại</button>
               <div class="trust-bar">
                 <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Dữ liệu local</span>
                 <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Còn ~1 phút</span>
@@ -1576,6 +1592,7 @@
                   </div>
 
                   <div class="dual-cta" style="margin-top:20px">
+                    <button class="wz-btn wz-btn-ghost" onclick="goToTgScreen('3-1')" type="button">&larr; Quay lại</button>
                     <button class="wz-btn wz-btn-primary" onclick="goToTgScreen('3-3')" type="button">
                       Đã nhấn Start, tiếp tục &rarr;
                     </button>
@@ -1586,6 +1603,7 @@
 
             <!-- ===== 3.3 GET USER ID ===== -->
             <div class="sub-screen" id="screen-3-3">
+              <button class="wz-btn wz-btn-ghost wz-substep-back" onclick="goToTgScreen('3-2')" type="button">&larr; Quay lại</button>
               <div class="trust-bar">
                 <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Dữ liệu local</span>
                 <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Gần xong</span>
@@ -1690,15 +1708,19 @@
                     </div>
                     <div class="field-helper" id="userid-helper" style="display:none"></div>
                   </div>
-                  <button class="wz-btn wz-btn-primary" id="btn-to-3-4" disabled onclick="goToTgScreen('3-4')" type="button">
-                    Kiểm tra kết nối &rarr;
-                  </button>
+                  <div class="dual-cta">
+                    <button class="wz-btn wz-btn-ghost" onclick="goToTgScreen('3-2')" type="button">&larr; Quay lại</button>
+                    <button class="wz-btn wz-btn-primary" id="btn-to-3-4" disabled onclick="goToTgScreen('3-4')" type="button">
+                      Kiểm tra kết nối &rarr;
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- ===== 3.4 TEST ===== -->
             <div class="sub-screen" id="screen-3-4">
+              <button class="wz-btn wz-btn-ghost wz-substep-back" onclick="goToTgScreen('3-3')" type="button">&larr; Quay lại</button>
               <div class="test-state" id="test-loading">
                 <div class="test-spinner"></div>
                 <div class="test-headline">Đang gửi tin nhắn thử...</div>
@@ -1916,8 +1938,14 @@
     }
 
     function navBack() {
-      // On step 3, always go back to step 2 (sub-screens have their own internal nav)
-      if (currentStep === 3) { showStep(2); return; }
+      // On step 3, step BACKWARD through the Telegram sub-screens; only leave to
+      // step 2 from the first sub-screen. (Footer "Quay lại" must never dead-end.)
+      if (currentStep === 3) {
+        const order = ['3-1', '3-2', '3-3', '3-4'];
+        const i = order.indexOf(_currentTgScreen);
+        if (i > 0) { goToTgScreen(order[i - 1]); return; }
+        showStep(2); return;
+      }
       const ci = stepIdx(currentStep);
       const prev = STEP_ORDER[ci - 1];
       if (prev) showStep(prev);
@@ -2044,6 +2072,38 @@
       }
     }
 
+    // Fallback when ChatGPT won't connect (OTP wall, no account): point the
+    // combo at 9Router's built-in free model so the assistant works immediately.
+    async function useFreeAIModel() {
+      const btn = document.getElementById('free-ai-btn');
+      const result = document.getElementById('free-ai-result');
+      btn.disabled = true; btn.classList.add('loading');
+      result.classList.remove('wz-hidden');
+      result.className = 'wz-alert';
+      result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('refresh-cw',18)}</span><div><strong>Đang thiết lập AI miễn phí...</strong></div>`;
+      try {
+        const res = await window.claw.setup9RouterAuto({ useFreeModel: true });
+        if (res.success && res.selectedModel) {
+          window._aiModelReady = true;
+          document.getElementById('router-api-key').value = res.apiKey || '';
+          result.className = 'wz-alert success';
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('check',18)}</span><div><strong>Đã sẵn sàng với AI miễn phí.</strong> Đang chuyển sang bước tiếp theo...</div>`;
+          // Combo created — continue the wizard like a normal successful connect.
+          setTimeout(() => { try { navNext(); } catch (_) {} }, 600);
+        } else {
+          window._aiModelReady = false;
+          result.className = 'wz-alert error';
+          result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div>${esc(res.error || 'Chưa thiết lập được AI miễn phí. Thử lại sau vài giây.')}</div>`;
+        }
+      } catch (e) {
+        window._aiModelReady = false;
+        result.className = 'wz-alert error';
+        result.innerHTML = `<span style="flex-shrink:0;margin-top:1px">${icon('lightbulb',18)}</span><div>${esc(e.message || 'Lỗi thiết lập AI miễn phí. Thử lại.')}</div>`;
+      } finally {
+        btn.disabled = false; btn.classList.remove('loading');
+      }
+    }
+
     // ===== Step 3: Sub-screen navigation + progressive disclosure =====
     let _currentTgScreen = '3-1';
     const _tgScreenOrder = ['3-1', '3-2', '3-3', '3-4'];
@@ -2081,6 +2141,47 @@
         if (nxt.id === 'pd-3-3-2') setTimeout(setupIdCopyAnim, 100);
         setTimeout(() => nxt.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
       }
+    }
+
+    // Step BACK one progressive-disclosure substep: re-activate the previous
+    // substep (re-locking the current one). From the FIRST substep, leave to the
+    // previous sub-screen. This is what powers the "← Quay lại" button injected
+    // into every PD substep — so the user can always undo a step.
+    function goBackPD(screen, curStep) {
+      if (curStep <= 1) {
+        const order = ['3-1', '3-2', '3-3', '3-4'];
+        const i = order.indexOf(screen);
+        if (i > 0) goToTgScreen(order[i - 1]); else showStep(2);
+        return;
+      }
+      const cur = document.getElementById('pd-' + screen + '-' + curStep);
+      const prev = document.getElementById('pd-' + screen + '-' + (curStep - 1));
+      if (cur) { cur.classList.remove('active', 'done'); cur.classList.add('locked'); }
+      if (prev) {
+        prev.classList.remove('done', 'locked'); prev.classList.add('active');
+        setTimeout(() => prev.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+      }
+    }
+
+    // Inject a "← Quay lại" button into EVERY PD substep body so a back button is
+    // present on each substep (the user's requirement). Only the active substep
+    // shows its body, so exactly one back button is visible at a time.
+    function injectPdBackButtons() {
+      document.querySelectorAll('#step-3 .pd-step').forEach((step) => {
+        const m = step.id.match(/^pd-(\d-\d)-(\d+)$/);
+        if (!m) return;
+        const screen = m[1];
+        const n = parseInt(m[2], 10);
+        const body = step.querySelector('.pd-body');
+        if (!body || body.querySelector('.pd-back')) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wz-btn wz-btn-ghost pd-back';
+        btn.style.cssText = 'padding:5px 12px;font-size:13px;margin:0 0 12px';
+        btn.innerHTML = '&larr; Quay lại';
+        btn.addEventListener('click', () => goBackPD(screen, n));
+        body.insertBefore(btn, body.firstChild);
+      });
     }
 
     async function pasteInto(inputId) {
@@ -2482,6 +2583,7 @@
 
       mountIcons();
       bindChoices();
+      injectPdBackButtons();
       setProgress(1);
 
       // Pre-start 9Router so it's ready by the time user reaches step 2

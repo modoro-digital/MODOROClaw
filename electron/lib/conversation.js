@@ -4,6 +4,8 @@ const path = require('path');
 const ctx = require('./context');
 const { getWorkspace, auditLog } = require('./workspace');
 const { call9Router } = require('./nine-router');
+const ceoMem = require('./ceo-memory');
+const { captureAndStore } = require('./ceo-memory-capture');
 
 // Wire point: set by main.js so conversation.js can fire CEO Telegram alerts
 // when customer memory is written (except routine daily cron summaries).
@@ -318,10 +320,9 @@ async function writeDailyMemoryJournal({ date = new Date() } = {}) {
         const allMsgs = [];
         for (const msgs of bySender.values()) allMsgs.push(...msgs);
         const cleanedForDedup = allMsgs.join(' ').replace(/\[\d{2}:\d{2}\]/g, '').replace(/\d{4}-\d{2}-\d{2}/g, '').slice(0, 800);
-        const { searchMemory, writeMemory } = require('./ceo-memory');
+        const { searchMemory, writeMemory } = ceoMem;
         const existing = await searchMemory(cleanedForDedup, { limit: 1, bumpRelevance: false });
         if (existing.length > 0 && existing[0].score > 0.85) {
-          const ceoMem = require('./ceo-memory');
           const db = ceoMem.getMemoryDb();
           if (db) {
             db.prepare('UPDATE ceo_memories SET relevance_score = MIN(relevance_score + 0.1, 5.0), updated_at = ? WHERE id = ?').run(new Date().toISOString(), existing[0].id);
@@ -489,14 +490,14 @@ async function appendPerCustomerSummaries(ws, dateStr, sinceMs) {
             const hasGenderLine = /^gender:\s*.+$/im.test(currentContent);
             if (hasGenderLine) {
               currentContent = currentContent.replace(/^gender:\s*.+$/im, `gender: ${extractedGender}`);
-              fs.writeFileSync(profilePath, currentContent, 'utf-8');
+              fs.writeFileSync(profilePath, currentContent, 'utf-8'); // SACRED-OK: targeted gender-field update in customer profile
               console.log(`[journal] updated gender=${extractedGender} in zalo-users/${senderId}.md`);
             } else if (currentContent.startsWith('---')) {
               const secondDash = currentContent.indexOf('---', 3);
               if (secondDash > 0) {
                 const frontmatter = currentContent.slice(0, secondDash);
                 currentContent = frontmatter + `gender: ${extractedGender}\n` + currentContent.slice(secondDash);
-                fs.writeFileSync(profilePath, currentContent, 'utf-8');
+                fs.writeFileSync(profilePath, currentContent, 'utf-8'); // SACRED-OK: targeted gender-field insert in customer profile
                 console.log(`[journal] wrote gender=${extractedGender} to zalo-users/${senderId}.md`);
               }
             }
@@ -562,7 +563,7 @@ function trimCustomerMemoryFile(filePath, maxBytes = 50 * 1024) {
 }
 
 async function appendCustomerSummary(channel, senderId, data) {
-  const dirMap = { zalo: 'zalo-users' };
+  const dirMap = { zalo: 'zalo-users', whatsapp: 'whatsapp-users' };
   const dir = dirMap[channel] || channel + '-users';
   const ws = getWorkspace();
   if (!ws) return;
@@ -582,47 +583,72 @@ async function appendCustomerSummary(channel, senderId, data) {
 //  depend on LLM deciding to call the memory tool.
 // ---------------------------------------------------------------------------
 
-const IDLE_MEMORY_EXTRACT_MS = 60 * 60 * 1000; // 1 hour
-let _idleMemoryTimer = null;
+// Extraction cadence. The OLD design used a single setTimeout re-armed on every
+// gateway run. Because '[session-freeze] prompt CACHE' fires on EVERY run — incl.
+// Zalo customer traffic — any active bot reset the 1h timer before it elapsed, so
+// extraction NEVER fired and ceo_memories stayed empty for days. The new design is
+// a periodic watcher that fires when the CEO has settled (quiet ≥ QUIET_MS) and
+// there is substantial CEO *Telegram* conversation, throttled to once / MIN_GAP,
+// with a FORCE fallback so even a 24/7-busy bot still extracts periodically.
+const IDLE_MEMORY_QUIET_MS = 20 * 60 * 1000;        // CEO settled ≥20 min
+const IDLE_MEMORY_MIN_GAP_MS = 2 * 60 * 60 * 1000;  // ≥2h between extractions
+const IDLE_MEMORY_FORCE_MS = 6 * 60 * 60 * 1000;    // force at least every 6h
+const IDLE_MEMORY_CHECK_MS = 15 * 60 * 1000;        // watcher tick
 let _idleMemoryLastActivity = 0;
+let _idleMemoryLastExtractAt = 0;
 let _idleMemoryInFlight = false;
-let _runCronAgentPromptFn = null;
+let _idleMemoryWatcher = null;
 
-function setIdleMemoryRunCronAgent(fn) { _runCronAgentPromptFn = fn; }
+// Records that gateway activity happened (CEO Telegram or Zalo). Only a coarse
+// "something happened recently" signal — actual extraction reads CEO Telegram
+// history directly, so Zalo-only traffic never produces junk memories.
+function touchIdleMemoryTimer() { _idleMemoryLastActivity = Date.now(); }
 
-function touchIdleMemoryTimer() {
-  if (_idleMemoryInFlight) return;
-  _idleMemoryLastActivity = Date.now();
-  if (_idleMemoryTimer) clearTimeout(_idleMemoryTimer);
-  _idleMemoryTimer = setTimeout(_runIdleMemoryExtraction, IDLE_MEMORY_EXTRACT_MS);
+// Drives extraction on a reliable interval instead of a re-armable timeout.
+function startIdleMemoryWatcher() {
+  if (_idleMemoryWatcher) return;
+  // Avoid an immediate re-extraction right after a restart.
+  _idleMemoryLastExtractAt = Date.now();
+  _idleMemoryWatcher = setInterval(() => { _runIdleMemoryExtraction().catch(() => {}); }, IDLE_MEMORY_CHECK_MS);
+  if (_idleMemoryWatcher.unref) _idleMemoryWatcher.unref();
 }
 
 async function _runIdleMemoryExtraction() {
   if (_idleMemoryInFlight) return;
-  if (!_runCronAgentPromptFn) return;
-  const elapsed = Date.now() - _idleMemoryLastActivity;
-  if (elapsed < IDLE_MEMORY_EXTRACT_MS - 5000) return;
+  if (!_idleMemoryLastActivity) return; // nothing has happened yet
+  const now = Date.now();
+  const settled = now - _idleMemoryLastActivity >= IDLE_MEMORY_QUIET_MS;
+  const gap = now - _idleMemoryLastExtractAt;
+  // Fire when CEO has settled and it's been ≥2h, OR force every 6h (busy bot).
+  if (!((settled && gap >= IDLE_MEMORY_MIN_GAP_MS) || gap >= IDLE_MEMORY_FORCE_MS)) return;
   _idleMemoryInFlight = true;
   try {
-    const sinceMs = Date.now() - 2 * 60 * 60 * 1000;
-    const history = extractConversationHistory({ sinceMs, maxMessages: 50, channels: ['telegram'], maxPerSender: 0 });
-    if (!history || history.length < 50) {
-      console.log('[idle-memory] no substantial CEO conversation in last 2h — skipping');
+    const sinceMs = now - 3 * 60 * 60 * 1000;
+    const history = extractConversationHistory({ sinceMs, maxMessages: 80, channels: ['telegram'], maxPerSender: 0 });
+    if (!history || history.length < 120) {
+      // No real CEO conversation (e.g. only Zalo traffic) — skip silently, no cost.
       return;
     }
-    const prompt =
-      `Hệ thống tự động: phiên CEO idle 1 giờ. Đọc transcript bên dưới và extract MỌI thông tin đáng ghi nhớ.\n\n` +
-      `Với MỖI fact/quyết định/sở thích/quy trình mới, gọi POST /api/memory/write với:\n` +
-      `- type: "preference" | "decision" | "procedure" | "entity_note"\n` +
-      `- content: nội dung ngắn gọn (<200 chars)\n` +
-      `- source: "auto"\n\n` +
-      `KHÔNG ghi: chào hỏi, "ok", task đã xong, kết quả cron, nội dung lặp memory đã có.\n` +
-      `Nếu KHÔNG có gì mới đáng nhớ → trả lời 1 dòng "Không có thông tin mới cần ghi nhớ." và DỪNG.\n` +
-      `KHÔNG gửi message cho CEO. KHÔNG dùng emoji.\n\n` +
-      `--- TRANSCRIPT GẦN ĐÂY ---\n${history}\n--- HẾT ---`;
-    console.log('[idle-memory] extracting memories from CEO idle session...');
-    await _runCronAgentPromptFn(prompt, { label: 'idle-memory-extract' });
-    try { auditLog('idle_memory_extract', { sinceMs, historyLen: history.length }); } catch {}
+    _idleMemoryLastExtractAt = now;
+    const { writeMemory, searchMemory } = ceoMem;
+    console.log('[idle-memory] extracting memories from recent CEO conversation...');
+    const res = await captureAndStore(history, {
+      modelCall: call9Router,
+      readExistingMemories: async () => { try { return fs.readFileSync(path.join(getWorkspace(), 'CEO-MEMORY.md'), 'utf-8'); } catch { return ''; } },
+      searchMemory: (q, opts) => searchMemory(q, opts),
+      writeMemory: opts => writeMemory(opts),
+      onMissed: (m) => {
+        try {
+          const logDir = path.join(getWorkspace(), 'logs');
+          if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+          fs.appendFileSync(path.join(logDir, 'memory-missed.log'), JSON.stringify({ t: new Date().toISOString(), ...m }) + '\n');
+        } catch (e) {
+          console.warn('[idle-memory] onMissed log failed:', e?.message);
+        }
+      },
+    });
+    console.log('[idle-memory] captured', res.written, 'written,', res.deduped, 'deduped,', res.skipped, 'skipped');
+    try { auditLog('idle_memory_extract', { written: res.written, deduped: res.deduped, skipped: res.skipped, sinceMs, historyChars: history.length }); } catch {}
     console.log('[idle-memory] extraction complete');
   } catch (e) {
     console.warn('[idle-memory] extraction failed:', e?.message);
@@ -632,10 +658,11 @@ async function _runIdleMemoryExtraction() {
 }
 
 function stopIdleMemoryTimer() {
-  if (_idleMemoryTimer) { clearTimeout(_idleMemoryTimer); _idleMemoryTimer = null; }
+  if (_idleMemoryWatcher) { clearInterval(_idleMemoryWatcher); _idleMemoryWatcher = null; }
 }
 
 module.exports = {
+  sanitizeMemorySummary,
   extractConversationHistoryRaw,
   extractConversationHistory,
   writeDailyMemoryJournal,
@@ -646,6 +673,6 @@ module.exports = {
   withMemoryFileLock: _withMemoryFileLock,
   setMemoryWriteNotifyCeo,
   touchIdleMemoryTimer,
+  startIdleMemoryWatcher,
   stopIdleMemoryTimer,
-  setIdleMemoryRunCronAgent,
 };

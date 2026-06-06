@@ -816,7 +816,13 @@ function regenerateCeoMemoryFile() {
 
   const filePath = path.join(ws, 'CEO-MEMORY.md');
   const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
-  if (md.trim() !== current.trim()) {
+  // Count "- " bullet lines in each file (fact lines). If new content has more facts
+  // than current, always write (even if the _norm collapse makes strings equal — e.g.
+  // "fact1\nfact2" vs "fact1\nfact2\nfact3" both collapse to single-line strings).
+  const countLines = s => ((s || '').match(/^(\s*)-\s/gm) || []).length;
+  const currentFacts = countLines(current);
+  const newFacts = countLines(md);
+  if (newFacts !== currentFacts || md.trim() !== current.trim()) {
     fs.writeFileSync(filePath, md, 'utf-8');
     console.log('[ceo-memory] CEO-MEMORY.md regenerated (' + totalChars + ' chars, ' + allRows.length + ' active memories)');
   }

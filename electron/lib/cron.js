@@ -60,8 +60,9 @@ setJournalCronRun(journalCronRun);
 
 function inferMemoryTaskType(text) {
   const t = String(text || '').toLowerCase();
-  if (/sheet|excel|xlsx/.test(t)) return 'document_generation';
-  if (/zalo|telegram/.test(t)) return 'channel_workflow';
+  if (/sheet|excel|xlsx|google|gmail|drive|calendar/.test(t)) return 'google_workspace';
+  if (/facebook|fanpage|insight|fb\b/.test(t)) return 'facebook';
+  if (/zalo|whatsapp|telegram|lark/.test(t)) return 'channel_workflow';
   if (/docx|word|pptx|powerpoint|pdf|slide/.test(t)) return 'document_generation';
   if (/ảnh|hình|image|poster|banner/.test(t)) return 'image_generation';
   return 'workflow';
@@ -184,23 +185,34 @@ async function selfTestOpenClawAgent() {
  * @param {string} stdout - Raw stdout from openclaw agent process
  * @returns {{ text: string, mediaUrls: string[] } | null}
  */
+function _extractPayload(parsed) {
+  const payloads = parsed?.result?.payloads || parsed?.payloads || [];
+  if (Array.isArray(payloads) && payloads.length > 0) {
+    const first = payloads[0];
+    return { text: first.text || '', mediaUrls: first.mediaUrls || first.mediaUrl || [] };
+  }
+  if (parsed?.text) return { text: parsed.text, mediaUrls: [] };
+  return null;
+}
+
 function parseAgentJsonOutput(stdout) {
   if (!stdout) return null;
   const trimmed = stdout.trim();
   try {
-    const parsed = JSON.parse(trimmed);
-    // Look for result.payloads[0].text (openclaw's standard response shape)
-    const payloads = parsed?.result?.payloads || parsed?.payloads || [];
-    if (Array.isArray(payloads) && payloads.length > 0) {
-      const first = payloads[0];
-      return { text: first.text || '', mediaUrls: first.mediaUrls || first.mediaUrl || [] };
-    }
-    // Fallback: direct text field
-    if (parsed?.text) return { text: parsed.text, mediaUrls: [] };
-    return null;
+    return _extractPayload(JSON.parse(trimmed));
   } catch {
-    // Not JSON — treat entire stdout as plain text reply
-    return { text: trimmed, mediaUrls: [] };
+    // stdout wasn't pure JSON. The agent runs with --json, so non-JSON means the
+    // process emitted a banner / log / deprecation line around (or instead of) the
+    // JSON. NEVER deliver the raw blob — that leaks internal logs to the CEO or a
+    // customer group. Try to salvage the embedded JSON object; otherwise return
+    // null so the caller treats it as a parse failure (no delivery) instead.
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      try { return _extractPayload(JSON.parse(trimmed.slice(start, end + 1))); } catch {}
+    }
+    console.warn('[cron-agent] agent stdout was not valid JSON — not delivering raw output');
+    return null;
   }
 }
 
@@ -220,16 +232,23 @@ const _processStatusLineRe = /^\s*(?:dạ\s+)?em\s+đang\s+(?:xử\s*lý|thực\
 // No match: "Dạ em ghi nhận rồi ạ" (has content after ack)
 const _bareAckLineRe = /^\s*(?:dạ|vâng|dạ vâng)\s*[,.]?\s*(?:ạ\s*[.!]?)?\s*$/i;
 
-function _stripProcessAcks(text) {
-  // Full-message check: if entire text is a process description, strip it all
-  const full = text.trim();
-  if (_processDescRe.test(full)) return '';
+// A process-description line that ALSO carries result data (a colon, digits, or
+// a result token) is a real report — keep it. Only strip a process-description
+// line when it is pure process narration with no data payload. This prevents the
+// whole-message wipe that erased legitimate CEO cron reports starting with
+// phrases like "Em kiểm tra theo yêu cầu rồi: doanh thu...".
+const _resultBearingRe = /[:0-9]|kết\s*quả|doanh|đơn|triệu/i;
 
+function _stripProcessAcks(text) {
   const lines = text.split('\n');
   const cleaned = lines.filter(line => {
     const t = line.trim();
     if (!t) return true;
-    return !_processAckLineRe.test(t) && !_processStatusLineRe.test(t) && !_bareAckLineRe.test(t);
+    if (_processAckLineRe.test(t) || _processStatusLineRe.test(t) || _bareAckLineRe.test(t)) return false;
+    // Per-line process-description strip — but never wipe a line that carries
+    // actual data (digits, a colon, or a result token).
+    if (_processDescRe.test(t) && !_resultBearingRe.test(t)) return false;
+    return true;
   });
   return cleaned.join('\n').trim();
 }
@@ -274,10 +293,18 @@ async function deliverCronResultToZalo(replyText, zaloTarget, label) {
   const isGroup = target.isGroup === true;
   const targetLabel = target.label || targetId;
   try {
-    const result = await sendZaloTo({ id: String(targetId), isGroup }, cleaned.slice(0, 5000));
+    // skipOnBlock: defense-in-depth — even if channels.js's output filter has a
+    // pattern cron.js's filterSensitiveOutput lacks, a block here returns
+    // {blocked:true} instead of substituting a polite ack into the customer group.
+    const result = await sendZaloTo({ id: String(targetId), isGroup }, cleaned.slice(0, 5000), { skipOnBlock: true });
     if (result && result.ok) {
       console.log(`[cron-agent] Zalo delivery OK → ${isGroup ? 'group' : 'user'} ${targetLabel}`);
       return true;
+    }
+    if (result && result.blocked) {
+      console.log(`[cron-agent] Zalo delivery for "${label}" blocked at transport filter — alerting CEO`);
+      try { await _alertCronBlocked(label, result.error || 'transport-filter', 'nhóm Zalo'); } catch {}
+      return false;
     }
     // sendZaloTo returned {ok:false, error} — try CEO alert as last resort
     console.warn(`[cron-agent] Zalo delivery to "${targetLabel}" failed: ${(result && result.error) || 'unknown'}, alerting CEO instead`);
@@ -300,12 +327,15 @@ async function deliverCronResultToZalo(replyText, zaloTarget, label) {
 // nhận…" ack, so the CEO gets a content-less message at EVERY cron fire when the
 // model errors (the reported bug). A failed cron must produce NO message here —
 // genuine spawn/exit failures are still surfaced via the retry/fatal path.
+// Returns a status string: 'empty' | 'blocked' | 'delivered' | 'error'.
+// (Caller uses this to journal accurately — a filter-blocked fire must not be
+// recorded as 'ok' when nothing reached the CEO.)
 async function deliverCronResultToTelegram(replyText, label) {
-  if (!replyText) return true;
+  if (!replyText) return 'empty';
   const cleaned = _stripProcessAcks(String(replyText));
   if (!cleaned || cleaned.length < 5 || /^\s*DONE\s*[.!]?\s*$/i.test(cleaned)) {
     console.log(`[cron-agent] Telegram delivery for "${label}" skipped — no CEO-facing content (ack/DONE only)`);
-    return true;
+    return 'empty';
   }
   try {
     const f = filterSensitiveOutput(cleaned);
@@ -313,32 +343,42 @@ async function deliverCronResultToTelegram(replyText, label) {
       console.log(`[cron-agent] Telegram delivery for "${label}" skipped — reply blocked by output filter (${f.pattern})`);
       try { auditLog('cron_telegram_blocked', { label, pattern: f.pattern }); } catch {}
       await _alertCronBlocked(label, f.pattern, 'Telegram');
-      return true;
+      return 'blocked';
     }
   } catch {}
   try {
     await sendTelegram(cleaned);
+    return 'delivered';
   } catch (e) {
     console.warn(`[cron-agent] Telegram delivery failed:`, e?.message);
+    return 'error';
   }
-  return true;
 }
 
 const CRON_PROMPT_MAX_BYTES = 24000;
+
+/** Cap a prompt to stay within the Windows CreateProcess 32KB argv limit.
+ *  openclaw has NO --message-file / --params @file / stdin input, so BOTH the
+ *  CLI `agent --message` path AND the `gateway call sessions.send --params` path
+ *  carry the whole prompt in argv and hit the same ~32KB limit. This must be
+ *  applied to BOTH paths (previously only the CLI path capped → the session path
+ *  threw ENAMETOOLONG and wasted a spawn before falling back). When capped, a
+ *  note instructs the agent to summarize from the data it received. */
+function capCronPromptBytes(prompt) {
+  const promptBytes = Buffer.byteLength(prompt, 'utf-8');
+  if (promptBytes <= CRON_PROMPT_MAX_BYTES) return prompt;
+  console.warn(`[cron-agent] prompt ${(promptBytes / 1024).toFixed(1)}KB exceeds ${(CRON_PROMPT_MAX_BYTES / 1024).toFixed(0)}KB argv limit — capping (openclaw has no file/stdin input)`);
+  const buf = Buffer.from(prompt, 'utf-8');
+  let end = CRON_PROMPT_MAX_BYTES;
+  while (end > 0 && (buf[end] & 0xC0) === 0x80) end--;
+  return buf.subarray(0, end).toString('utf-8') + '\n\n[... nội dung bị cắt do giới hạn kỹ thuật. Tóm tắt từ dữ liệu có sẵn.]';
+}
 
 /** Build openclaw agent CLI args. Defaults to 'full' profile if self-test hasn't run yet.
  *  Caps prompt at 24KB to stay within Windows CreateProcess 32KB argv limit. */
 function buildAgentArgs(prompt, chatId, useJson = false) {
   const idStr = String(chatId);
-  let safePrompt = prompt;
-  const promptBytes = Buffer.byteLength(prompt, 'utf-8');
-  if (promptBytes > CRON_PROMPT_MAX_BYTES) {
-    console.warn(`[cron-agent] prompt ${(promptBytes / 1024).toFixed(1)}KB exceeds ${(CRON_PROMPT_MAX_BYTES / 1024).toFixed(0)}KB limit — truncating`);
-    const buf = Buffer.from(prompt, 'utf-8');
-    let end = CRON_PROMPT_MAX_BYTES;
-    while (end > 0 && (buf[end] & 0xC0) === 0x80) end--;
-    safePrompt = buf.subarray(0, end).toString('utf-8') + '\n\n[... nội dung bị cắt do giới hạn kỹ thuật. Tóm tắt từ dữ liệu có sẵn.]';
-  }
+  const safePrompt = capCronPromptBytes(prompt);
   const base = ['agent', '--message', safePrompt];
   if (useJson) base.push('--json');
   const profile = _agentFlagProfile || 'full';
@@ -377,6 +417,42 @@ function isFatalErr(stderr, exitCode) {
       || s.includes('e2big')
       || s.includes('arg list too long')
       || (exitCode === 127);
+}
+
+// True when the failure is the openclaw agent losing its gateway connection and
+// (slowly) falling back to a cold embedded run — the class that gets SIGKILLed by
+// the cron timeout (exit -9, "gateway closed (1006 abnormal closure)"). Used to
+// ensure a warm gateway before retrying instead of re-spawning the same cold path.
+function isGatewayDropErr(stderr) {
+  const s = (stderr || '').toLowerCase();
+  return s.includes('falling back to embedded')
+      || s.includes('gateway closed')
+      || s.includes('abnormal closure')
+      || s.includes('1006');
+}
+
+// Ensure the gateway is warm before a cron agent runs. If the gateway is truly
+// unresponsive — isGatewayAlive(15s) will NOT false-positive a busy-but-alive
+// gateway — openclaw would otherwise fall back to a COLD EMBEDDED run that is slow
+// (cold start + reasoning model) and gets SIGKILLed by the cron timeout (exit -9).
+// startOpenClaw is re-entrant-guarded and no-ops if the gateway is actually up, so
+// a responsive gateway is never killed. Returns { aliveAtStart } for diagnostics.
+async function ensureGatewayWarmForCron(label) {
+  let aliveAtStart = true;
+  try {
+    const gw = getGateway();
+    if (typeof gw.isGatewayAlive === 'function') {
+      aliveAtStart = await gw.isGatewayAlive(15000);
+      if (!aliveAtStart) {
+        console.warn(`[cron] gateway not alive before "${label || 'cron'}" — starting to avoid cold-embedded fallback`);
+        try { auditLog('cron_gateway_warm', { label: label || 'cron', aliveAtStart: false, action: 'start' }); } catch {}
+        if (typeof gw.startOpenClaw === 'function') await gw.startOpenClaw({ silent: true });
+      }
+    }
+  } catch (e) {
+    console.warn('[cron] ensureGatewayWarmForCron error:', e?.message);
+  }
+  return { aliveAtStart };
 }
 
 function parseSafeOpenzcaMsgSend(shellCmd) {
@@ -440,14 +516,15 @@ async function runSafeExecCommand(shellCmd, { label } = {}) {
   }
   if (targetIds.length === 1) {
     console.log(`[cron-exec] "${label || 'cron'}" rerouted to safe Zalo sender`);
-    const result = await sendZaloTo({ id: targetIds[0], isGroup }, text, { profile });
+    const result = await sendZaloTo({ id: targetIds[0], isGroup }, text, { profile, skipOnBlock: true });
+    if (result && result.blocked) { try { journalCronRun({ phase: 'blocked', label: label || 'cron', mode: 'safe-openzca' }); } catch {} }
     return result && result.ok;
   }
   console.log(`[cron-exec] "${label || 'cron'}" broadcast to ${targetIds.length} targets`);
   let sent = 0;
   for (let t = 0; t < targetIds.length; t++) {
     try {
-      const result = await sendZaloTo({ id: targetIds[t], isGroup }, text, { profile });
+      const result = await sendZaloTo({ id: targetIds[t], isGroup }, text, { profile, skipOnBlock: true });
       if (result && result.ok) sent++;
       else console.warn(`[cron-exec] broadcast target ${targetIds[t]} failed: ${(result && result.error) || 'unknown'}`);
     } catch (e) {
@@ -473,7 +550,11 @@ let _cronAgentQueueDepth = 0;
  */
 async function runCronAgentPrompt(prompt, opts = {}) {
   if (_cronAgentQueueDepth >= 10) {
-    console.warn(`[cron-agent] queue full (depth=${_cronAgentQueueDepth}) — rejecting "${opts?.label || 'cron'}"`);
+    // Don't drop a scheduled job silently — journal + alert the CEO (fail-loud).
+    const lbl = opts?.label || 'cron';
+    console.warn(`[cron-agent] queue full (depth=${_cronAgentQueueDepth}) — rejecting "${lbl}"`);
+    try { journalCronRun({ phase: 'fail', label: lbl, reason: 'queue-full' }); } catch {}
+    try { sendCeoAlert(`*Cron quá tải*\n\nLịch "${lbl}" bị bỏ qua vì hàng đợi đầy (gateway đang chậm). Em sẽ chạy lại lần lịch kế tiếp.`).catch(e => console.warn('[auto-fix] promise rejected:', e?.message)); } catch {}
     return false;
   }
   _cronAgentQueueDepth++;
@@ -485,7 +566,7 @@ async function runCronAgentPrompt(prompt, opts = {}) {
   return run;
 }
 
-async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, isOneTime, timeoutMs = CRON_AGENT_TIMEOUT_MS } = {}) {
+async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, isOneTime, suppressDelivery, timeoutMs = CRON_AGENT_TIMEOUT_MS } = {}) {
   const niceLabel = label || 'cron';
 
   // PAUSE CHECK 2026-05-15: if this cron targets Zalo and Zalo channel is
@@ -569,7 +650,11 @@ async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, isOneTime, t
     finalPrompt += '\n\n[Kết quả của task này sẽ được gửi trực tiếp đến Zalo. CHỈ output nội dung cuối cùng dành cho người nhận. TUYỆT ĐỐI KHÔNG mô tả quy trình, bước làm, workflow, hay giải thích cách em xử lý. Nếu đã hoàn thành qua tool call và không cần gửi thêm gì, chỉ output: DONE]';
   }
   const args = buildAgentArgs(finalPrompt, chatId, true);
-  const promptHasNewline = prompt.includes('\n');
+  // Guard against cmd.exe truncation must be computed from what is ACTUALLY
+  // spawned (finalPrompt), not the original prompt. finalPrompt always begins
+  // with "[AUTO-MODE]\n", so it always contains a newline → the cmd-shell
+  // fallback (which truncates multi-line argv) must never be allowed here.
+  const promptHasNewline = finalPrompt.includes('\n');
   let lastErr = '';
   let lastCode = -1;
   for (let attempt = 1; attempt <= CRON_AGENT_MAX_RETRIES; attempt++) {
@@ -585,20 +670,38 @@ async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, isOneTime, t
       const agentReply = parseAgentJsonOutput(res.stdout || '');
       const replyText = agentReply?.text?.trim();
       console.log(`[cron-agent] "${niceLabel}" done in ${durMs}ms, reply length=${replyText ? replyText.length : 0} chars`);
-      // Deliver to target channel
+      if (!agentReply && (res.stdout || '').trim().length > 20) {
+        // Agent exited 0 but produced unparseable (non-JSON) stdout — nothing
+        // delivered. Surface it in the journal rather than silently dropping.
+        // Return here so the same fire is NOT double-journaled as 'ok' below
+        // (replyText is falsy, so no delivery would run anyway — but the trailing
+        // ok journal would still fire without this early return).
+        try { journalCronRun({ phase: 'fail', label: niceLabel, reason: 'agent-output-not-json' }); } catch {}
+        return false;
+      }
+      // Deliver to target channel. suppressDelivery: multi-step substeps deliver
+      // NOWHERE (their text is work-in-progress chatter; the real output goes via
+      // tool calls inside the step) — prevents per-step spam to BOTH the Zalo group
+      // and the CEO's Telegram.
       let zaloOk = true;
-      if (zaloTarget && replyText) {
+      let tgStatus = 'n/a';
+      if (suppressDelivery) {
+        // no-op: step chatter is not delivered to any channel
+      } else if (zaloTarget && replyText) {
         zaloOk = await deliverCronResultToZalo(replyText, zaloTarget, niceLabel);
       } else if (replyText && !zaloTarget) {
-        await deliverCronResultToTelegram(replyText, niceLabel);
+        tgStatus = await deliverCronResultToTelegram(replyText, niceLabel);
       }
-      journalCronRun({ phase: 'ok', label: niceLabel, attempt, durMs, profile: _agentFlagProfile, viaCmdShell: res.viaCmdShell, zaloDelivered: !!zaloTarget });
+      // Don't record 'ok' when the result was blocked by the output filter and
+      // nothing reached the CEO — journal it as 'blocked' so it's not invisible.
+      const journalPhase = tgStatus === 'blocked' ? 'blocked' : 'ok';
+      journalCronRun({ phase: journalPhase, label: niceLabel, attempt, durMs, profile: _agentFlagProfile, viaCmdShell: res.viaCmdShell, zaloDelivered: !!zaloTarget, telegram: tgStatus });
       console.log(`[cron-agent] "${niceLabel}" delivered${zaloTarget ? ' (Telegram+zalo)' : ' (Telegram only)'} in ${durMs}ms (viaCmdShell=${res.viaCmdShell})`);
       return zaloOk;
     }
     lastCode = res.code;
     lastErr = (res.stderr || res.stdout || '').slice(0, 800);
-    journalCronRun({ phase: 'retry', label: niceLabel, attempt, durMs, code: res.code, err: lastErr.slice(0, 300), viaCmdShell: res.viaCmdShell });
+    journalCronRun({ phase: 'retry', label: niceLabel, attempt, durMs, code: res.code, gatewayDrop: isGatewayDropErr(lastErr), err: lastErr.slice(0, 300), viaCmdShell: res.viaCmdShell });
     console.error(`[cron-agent] "${niceLabel}" attempt ${attempt} failed (code ${res.code}): ${lastErr.slice(0, 200)}`);
 
     if (isFatalErr(lastErr, res.code)) {
@@ -624,14 +727,19 @@ async function _runCronAgentPromptImpl(prompt, { label, zaloTarget, isOneTime, t
     }
 
     if (attempt < CRON_AGENT_MAX_RETRIES) {
+      // If the agent lost the gateway and cold-embedded-failed, warm the gateway
+      // before retrying — otherwise the retry re-spawns the same doomed cold path.
+      if (isGatewayDropErr(lastErr)) { try { await ensureGatewayWarmForCron(niceLabel); } catch {} }
       const backoffMs = isTransientErr(lastErr) ? attempt * CRON_TRANSIENT_BACKOFF_BASE_MS : attempt * CRON_DEFAULT_BACKOFF_BASE_MS;
       await new Promise((r) => setTimeout(r, backoffMs));
     }
   }
 
-  journalCronRun({ phase: 'fail', label: niceLabel, code: lastCode, err: lastErr.slice(0, 400) });
+  const gwDrop = isGatewayDropErr(lastErr);
+  journalCronRun({ phase: 'fail', label: niceLabel, code: lastCode, gatewayDrop: gwDrop, err: lastErr.slice(0, 400) });
   try {
-    await sendCeoAlert(`*Cron "${niceLabel}" thất bại sau 3 lần*\n\nExit code: \`${lastCode}\`\n\`\`\`\n${lastErr.slice(0, 500)}\n\`\`\``);
+    const diag = gwDrop ? `\n\n_Chẩn đoán: gateway rớt giữa chừng → openclaw chạy embedded (cold) → quá thời gian → bị dừng. Lần sau bot tự khởi động lại gateway trước khi chạy._` : '';
+    await sendCeoAlert(`*Cron "${niceLabel}" thất bại sau 3 lần*\n\nExit code: \`${lastCode}\`\n\`\`\`\n${lastErr.slice(0, 500)}\n\`\`\`${diag}`);
   } catch {}
   return false;
 }
@@ -1224,8 +1332,9 @@ function buildZaloFollowUpPrompt(candidates) {
 
   if (candidates.length === 0) {
     return (
+      `Gửi cho CEO NỘI DUNG CHÍNH XÁC NHƯ SAU (không thêm chữ, không hỏi lại, không bịa):\n\n` +
       `Không có khách nào cần follow-up hôm nay.\n\n` +
-      `Gửi cho CEO báo cáo ngắn này qua tin nhắn. KHÔNG emoji, KHÔNG hỏi lại.`
+      `Gửi qua tool sessions_send.`
     );
   }
 
@@ -1247,7 +1356,7 @@ function buildZaloFollowUpPrompt(candidates) {
     blocks.join('\n\n') +
     `\n\n` +
     `Với mỗi khách, thêm dòng "Gợi ý nhắn:" với 1 câu nhắn tin tự nhiên, cụ thể theo ngữ cảnh của khách đó. Không dùng template. Không bắt đầu bằng "Chào anh/chị" thuần túy.\n\n` +
-    `Gửi cho CEO báo cáo đầy đủ này qua tin nhắn. KHÔNG emoji, KHÔNG hỏi lại CEO, KHÔNG bịa thêm khách ngoài danh sách trên.`
+    `Gửi đúng tool sessions_send. KHÔNG emoji, KHÔNG hỏi lại CEO, KHÔNG bịa thêm khách ngoài danh sách trên.`
   );
 }
 
@@ -1382,6 +1491,11 @@ async function runMultiStepCronPrompt(prompt, opts = {}) {
     try {
       const ok = await runCronAgentPrompt(stepPrompt, {
         ...opts,
+        // Per-step text replies are work-in-progress chatter ("Buoc xong…") — they
+        // must NOT be delivered to ANY channel (group OR the CEO's Telegram). The
+        // actual deliverable happens via a tool call inside the relevant step.
+        zaloTarget: undefined,
+        suppressDelivery: true,
         label: `${niceLabel} [${step.stepNum}/${total}]`,
       });
       const dur = Date.now() - t0;
@@ -1412,6 +1526,10 @@ async function runMultiStepCronPrompt(prompt, opts = {}) {
 // ============================================================
 
 async function runCronViaSessionOrFallback(prompt, opts = {}) {
+  // Warm the gateway FIRST so the cron uses the running (fast) gateway instead of
+  // openclaw's slow cold-embedded fallback (which exceeds the cron timeout → SIGKILL
+  // exit -9). Only restarts when the gateway is genuinely dead (see helper).
+  await ensureGatewayWarmForCron(opts.label);
   // Multi-step detection: ONLY for [AUTO-MODE] prompts with numbered steps.
   // Non-AUTO-MODE prompts (evening briefing, morning report) may contain
   // numbered lists as formatting — splitting them destroys context.
@@ -1430,7 +1548,10 @@ async function runCronViaSessionOrFallback(prompt, opts = {}) {
   }
   const sessionKey = await getCeoSessionKey();
   if (sessionKey) {
-    const ok = await sendToGatewaySession(sessionKey, prompt);
+    // Cap before session-send too: sessions.send carries the prompt in --params
+    // argv (same 32KB Windows limit as the CLI path), so an uncapped weekly report
+    // would throw ENAMETOOLONG here and waste a spawn before falling back.
+    const ok = await sendToGatewaySession(sessionKey, capCronPromptBytes(prompt));
     if (ok) {
       journalCronRun({ phase: 'ok', label: opts.label || 'cron', mode: 'session-send' });
       return true;
@@ -1980,9 +2101,13 @@ function _seedRecentFiresFromAudit() {
       try {
         const e = JSON.parse(line);
         if (!e || e.event !== 'cron_fired') continue;
-        const ts = e.ts ? Date.parse(e.ts) : 0;
+        // auditLog writes { t, event, pid, ...meta } — timestamp is `t`, and meta
+        // (id/label) is spread at top level. Reading e.ts / e.meta.id (the old
+        // code) always yielded undefined → the entire crash-recovery dedup was a
+        // no-op → CEO reports could double-fire on a restart-within-the-minute.
+        const ts = e.t ? Date.parse(e.t) : 0;
         if (!ts || ts < cutoff) continue;
-        const id = e.meta?.id || e.meta?.label;
+        const id = e.id || e.label;
         if (!id) continue;
         // Mark as in-flight so the next fire (if it happens within 5min) skips.
         // Auto-expire after the remaining grace window.
@@ -1996,6 +2121,20 @@ function _seedRecentFiresFromAudit() {
     }
     if (seeded > 0) console.log(`[cron] seeded ${seeded} recent fire(s) from audit log (crash recovery idempotency)`);
   } catch (e) { console.warn('[cron] _seedRecentFiresFromAudit error:', e?.message); }
+}
+
+// A one-time cron whose fire time already passed (machine asleep / app closed
+// across the scheduled minute). Previously deleted SILENTLY — a missed customer
+// commitment with zero trace. We do NOT auto-fire it late (the moment may be
+// wrong for a time-sensitive customer-group post); instead surface it to the CEO
+// (fail-loud) then remove. Idempotent: removal clears it so the next restart
+// won't re-alert.
+async function _handlePastDueOneTime(c) {
+  try {
+    const when = (() => { try { return new Date(c.oneTimeAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }); } catch { return c.oneTimeAt; } })();
+    await sendCeoAlert(`*Cron một lần bị lỡ*\n\nLịch "${c.label || c.id}" đáng lẽ chạy lúc ${when} nhưng máy đang tắt/ngủ lúc đó. Em không tự chạy trễ để tránh gửi sai thời điểm — anh tạo lại nếu vẫn cần nhé.`);
+  } catch (e) { console.warn('[cron] past-due alert failed:', e?.message); }
+  try { await _removeCustomCronById(c.id); } catch (e) { console.error(`[cron] remove past-due ${c.id} failed:`, e?.message); }
 }
 
 // Late-binding getter for _saveZaloManagerInFlight (lives in dashboard-ipc.js)
@@ -2206,11 +2345,19 @@ function _startCronJobsInner() {
     }
 
     if (cronExpr && handler) {
-      try {
-        const job = cron.schedule(cronExpr, handler, { timezone: 'Asia/Ho_Chi_Minh' });
-        cronJobs.push({ id: s.id, job });
-        console.log(`[cron] Scheduled ${s.id}: ${cronExpr}`);
-      } catch (e) { console.error(`[cron] Failed to schedule ${s.id}:`, e.message); }
+      if (typeof cron.validate === 'function' && !cron.validate(cronExpr)) {
+        // A corrupt time field in schedules.json (e.g. "9:" → "  9 * * *") used to
+        // make cron.schedule throw and the builtin schedule was silently skipped.
+        // Surface it instead of letting a CEO report quietly never fire.
+        console.error(`[cron] builtin ${s.id} has INVALID cronExpr "${cronExpr}" — skipping + alerting`);
+        try { sendCeoAlert(`*Lịch "${s.id}" lỗi cấu hình giờ*\n\nGiờ đặt không hợp lệ (\`${cronExpr}\`) nên lịch này sẽ KHÔNG chạy. Anh kiểm tra lại giờ trong cài đặt nhé.`).catch(e => console.warn('[auto-fix] promise rejected:', e?.message)); } catch {}
+      } else {
+        try {
+          const job = cron.schedule(cronExpr, handler, { timezone: 'Asia/Ho_Chi_Minh' });
+          cronJobs.push({ id: s.id, job });
+          console.log(`[cron] Scheduled ${s.id}: ${cronExpr}`);
+        } catch (e) { console.error(`[cron] Failed to schedule ${s.id}:`, e.message); }
+      }
     }
   }
 
@@ -2264,8 +2411,8 @@ function _startCronJobsInner() {
           continue;
         }
         if (delayMs < -60000) {
-          console.log(`[cron] oneTime ${c.id} already past (${c.oneTimeAt}) — removing`);
-          _removeCustomCronById(c.id).catch(e => console.error(`[cron] remove past-due ${c.id} failed:`, e?.message));
+          console.log(`[cron] oneTime ${c.id} already past (${c.oneTimeAt}) — alerting CEO + removing`);
+          _handlePastDueOneTime(c).catch(e => console.error(`[cron] past-due ${c.id} failed:`, e?.message));
           continue;
         }
         const effectiveDelay = Math.max(delayMs, 1000);
@@ -2328,8 +2475,8 @@ function _startCronJobsInner() {
           continue;
         }
         if (delayMs < -60000) {
-          console.log(`[cron] oneTime ${c.id} already past (${c.oneTimeAt}) — removing`);
-          _removeCustomCronById(c.id).catch(e => console.error(`[cron] remove past-due ${c.id} failed:`, e?.message));
+          console.log(`[cron] oneTime ${c.id} already past (${c.oneTimeAt}) — alerting CEO + removing`);
+          _handlePastDueOneTime(c).catch(e => console.error(`[cron] past-due ${c.id} failed:`, e?.message));
           continue;
         }
         const effectiveDelay = Math.max(delayMs, 1000);
@@ -2416,6 +2563,7 @@ function _startCronJobsInner() {
     }
   }
 
+  // Facebook scheduled posts: not included in the free edition.
 }
 
 // SEPARATE LOCK 2026-05-15: unrelated knowledge / workspace appends used to
@@ -2588,11 +2736,18 @@ async function replayMissedCrons(sinceMs) {
     if (c.isBuiltin) {
       try { await sendCeoAlert(`[Cron resume] Lịch "${c.label}" đáng lẽ chạy lúc ${new Date(lastMatch).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} nhưng máy đang ngủ. Em sẽ chạy lại lúc lịch tiếp theo.`); } catch {}
     } else if (c.prompt) {
+      // Dedup against a near-simultaneous scheduled fire: hold the same
+      // _cronInFlight key the scheduled handler checks, so node-cron firing this
+      // cron while replay is mid-run is skipped (no double-deliver on wake).
+      const niceId = c.id || c.label || 'replay';
+      if (global._cronInFlight && global._cronInFlight.get(niceId)) { skipped++; continue; }
+      if (global._cronInFlight) global._cronInFlight.set(niceId, true);
       try {
         if (c.prompt.startsWith('exec:')) await runCronAgentPrompt(c.prompt, { label: c.label, zaloTarget: c.zaloTarget, isOneTime: !!c.oneTimeAt });
         else await runCronViaSessionOrFallback(c.prompt, { label: c.label, zaloTarget: c.zaloTarget, isOneTime: !!c.oneTimeAt });
         replayed++;
       } catch (e) { console.warn(`[replayMissedCrons] ${c.id} failed:`, e?.message); }
+      finally { if (global._cronInFlight) global._cronInFlight.delete(niceId); }
     }
   }
   console.log(`[replayMissedCrons] done — replayed=${replayed} skipped=${skipped} gapMin=${Math.round(gapMs / 60_000)}`);

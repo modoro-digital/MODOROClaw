@@ -1554,41 +1554,11 @@ async function fastWatchdogTick() {
           if (!zlPid) {
             _fwZaloMissCount++;
             if (_fwZaloMissCount === 3) {
+              // Track timestamp so heartbeat watchdog skips duplicate alert (dedup fix).
               global._zaloListenerAlertSentAt = Date.now();
-              console.warn('[fast-watchdog] Zalo listener not running (3 checks)');
-            }
-            if (_fwZaloMissCount === 6) {
-              // Zalo listener confirmed dead ~120s and the plugin did not self-
-              // recover. The lever to respawn it is a gateway restart (the
-              // modoro-zalo plugin spawns the openzca listener on load). The OLD
-              // code did a raw openclaw.json rewrite to "reload the plugin", but
-              // openclaw's config reloader turns ANY external write into a FULL
-              // gateway restart — with NO rate limit and racing this watchdog's
-              // own restart logic (the documented cascade). Do an EXPLICIT,
-              // rate-limited restart instead (_fwCanRestart caps at 5/hr →
-              // cannot cascade); if rate-limited, alert the CEO so the outage is
-              // never silent.
-              if (_fwCanRestart() && !ctx.startOpenClawInFlight && !ctx.gatewayRestartInFlight && _gatewayIntentionalStopDepth === 0) {
-                console.warn('[fast-watchdog] Zalo listener dead 6 checks — one rate-limited gateway restart to respawn it');
-                _fwRestartTimestamps.push(Date.now());
-                ctx.gatewayRestartInFlight = true;
-                try { await stopOpenClaw(); await startOpenClaw({ silent: true }); }
-                catch (e) { console.error('[fast-watchdog] Zalo-recovery restart error:', e?.message); }
-                finally { ctx.gatewayRestartInFlight = false; }
-              } else {
-                const _now = Date.now();
-                const _lastAlert = global._zaloDownAlertSentAt || 0;
-                if (_now - _lastAlert > 30 * 60 * 1000) {
-                  global._zaloDownAlertSentAt = _now;
-                  console.warn('[fast-watchdog] Zalo listener dead 6 checks but restart rate-limited/in-flight — alerting CEO');
-                  sendCeoAlert('Kênh Zalo đang tạm dừng (listener không chạy) và đã chạm giới hạn tự khởi động lại. Bot Telegram vẫn hoạt động. Vui lòng mở lại app để khôi phục Zalo.').catch(() => {});
-                } else {
-                  console.warn('[fast-watchdog] Zalo listener dead 6 checks — rate-limited, CEO already alerted recently');
-                }
-              }
-            }
-            if (_fwZaloMissCount > 0 && _fwZaloMissCount % 15 === 0 && _fwZaloMissCount <= 60) {
-              console.warn(`[fast-watchdog] Zalo listener still dead (${_fwZaloMissCount} checks)`);
+              console.warn('[fast-watchdog] Zalo listener not running (3 checks) — NOT restarting gateway. Zalo may need QR re-login.');
+              // Alert CEO once, don't spam
+              sendCeoAlert('Zalo listener không chạy. Nếu Zalo không nhận tin, vào tab Zalo bấm "Đổi tài khoản" để quét QR lại.').catch(() => {});
             }
           } else {
             _fwZaloMissCount = 0;

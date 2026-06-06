@@ -1667,7 +1667,7 @@ try {
   }
   const vendorPatchSrc = fs.readFileSync(path.join(__dirname, '..', 'lib', 'vendor-patches.js'), 'utf-8');
   const hasWebFetchTokenPatch =
-    vendorPatchSrc.includes('9BizClaw WEB_FETCH CRON TOKEN PATCH v2') &&
+    vendorPatchSrc.includes('9BizClaw WEB_FETCH CRON TOKEN PATCH v3') &&
     vendorPatchSrc.includes('9BizClaw WEB_FETCH LOCAL API CACHE BYPASS') &&
     vendorPatchSrc.includes('skip9BizClawLocalApiCache') &&
     vendorPatchSrc.includes('params.agentChannel') &&
@@ -2074,10 +2074,14 @@ try {
   const zaloPlugin = fs.readFileSync(path.join(__dirname, '..', 'lib', 'zalo-plugin.js'), 'utf-8');
   const forkVerM = zaloPlugin.match(/MODORO_ZALO_FORK_VERSION\s*=\s*'([^']+)'/);
   const forkVerConst = forkVerM ? forkVerM[1] : null;
-  if (forkVerConst === 'modoro-zalo-v1.0.11') {
-    pass('MODORO_ZALO_FORK_VERSION bumped to v1.0.11');
+  // Don't pin an exact version (breaks on every routine fork bump). The real bug
+  // this guards — constant != .fork-version file → plugin re-copied every boot — is
+  // covered by the sync sub-check below. Here we only require the constant to be
+  // present and well-formed.
+  if (forkVerConst && /^modoro-zalo-v\d+\.\d+\.\d+$/.test(forkVerConst)) {
+    pass(`MODORO_ZALO_FORK_VERSION present and well-formed (${forkVerConst})`);
   } else {
-    fail('fork version', `MODORO_ZALO_FORK_VERSION is ${forkVerConst} — expected modoro-zalo-v1.0.11 (patched fork will not reach existing installs)`);
+    fail('fork version', `MODORO_ZALO_FORK_VERSION is ${forkVerConst} — expected a modoro-zalo-vX.Y.Z string (patched fork will not reach existing installs)`);
   }
   const forkVerFile = (() => {
     try { return fs.readFileSync(path.join(__dirname, '..', 'packages', 'modoro-zalo', 'src', '.fork-version'), 'utf-8').trim(); }

@@ -2090,7 +2090,7 @@
     },
     {
       "path": "electron/lib/dashboard-ipc.js",
-      "bytes": 253046
+      "bytes": 256464
     },
     {
       "path": "electron/lib/cron-api.js",
@@ -2098,11 +2098,11 @@
     },
     {
       "path": "electron/lib/cron.js",
-      "bytes": 130556
+      "bytes": 141477
     },
     {
       "path": "electron/ui/wizard.html",
-      "bytes": 117791
+      "bytes": 124006
     },
     {
       "path": "electron/lib/knowledge.js",
@@ -2110,7 +2110,7 @@
     },
     {
       "path": "electron/lib/channels.js",
-      "bytes": 94626
+      "bytes": 95939
     },
     {
       "path": "electron/lib/gateway.js",
@@ -2134,11 +2134,11 @@
     },
     {
       "path": "electron/lib/vendor-patches.js",
-      "bytes": 49200
+      "bytes": 50244
     },
     {
       "path": "electron/lib/nine-router.js",
-      "bytes": 46625
+      "bytes": 47402
     },
     {
       "path": "electron/lib/skill-manager.js",
@@ -2146,7 +2146,7 @@
     },
     {
       "path": "electron/lib/zalo-plugin.js",
-      "bytes": 43403
+      "bytes": 43404
     },
     {
       "path": "electron/lib/boot.js",
@@ -2154,15 +2154,15 @@
     },
     {
       "path": "electron/lib/ceo-memory.js",
-      "bytes": 35886
+      "bytes": 36326
+    },
+    {
+      "path": "electron/lib/conversation.js",
+      "bytes": 32582
     },
     {
       "path": "electron/lib/media-library.js",
       "bytes": 31821
-    },
-    {
-      "path": "electron/lib/conversation.js",
-      "bytes": 30749
     },
     {
       "path": "electron/ui/splash.html",
