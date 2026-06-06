@@ -18,7 +18,7 @@
 
 Code free đã có comment "LOG ONLY, never restart" (dòng 1542-1546) nhưng nhánh `_fwZaloMissCount === 6` BÊN DƯỚI vẫn restart — fix dở dang, comment mâu thuẫn code.
 
-**Fix:** Copy đúng logic bản premium (`PeterBui85/9BizClaw-Premium` — đang chạy ổn). Xóa hẳn nhánh `=== 6` restart cascade; chỉ còn: 3 lần miss → log "NOT restarting gateway" + 1 alert CEO ("vào tab Zalo bấm Đổi tài khoản để quét QR lại"). Telegram giờ ĐỘC LẬP với sức khỏe Zalo. Verified `node --check` pass; block giờ khớp premium verbatim.
+**Fix:** Copy đúng logic bản premium (`PeterBui85/9BizClaw-Premium` — đang chạy ổn). Xóa hẳn nhánh `=== 6` restart cascade; chỉ còn: 3 lần miss → log "NOT restarting gateway" **log-only, KHÔNG gửi alert CEO** (bỏ `sendCeoAlert` theo yêu cầu — tránh spam Telegram khi Zalo cần re-login). Telegram giờ ĐỘC LẬP với sức khỏe Zalo. Verified `node --check` pass.
 
 **Lưu ý vận hành:** Zalo vẫn cần QR re-login sạch (1 tài khoản duy nhất) để kênh Zalo hoạt động lại — nhưng việc đó không còn ảnh hưởng Telegram.
 

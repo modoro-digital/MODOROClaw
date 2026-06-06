@@ -1557,8 +1557,6 @@ async function fastWatchdogTick() {
               // Track timestamp so heartbeat watchdog skips duplicate alert (dedup fix).
               global._zaloListenerAlertSentAt = Date.now();
               console.warn('[fast-watchdog] Zalo listener not running (3 checks) — NOT restarting gateway. Zalo may need QR re-login.');
-              // Alert CEO once, don't spam
-              sendCeoAlert('Zalo listener không chạy. Nếu Zalo không nhận tin, vào tab Zalo bấm "Đổi tài khoản" để quét QR lại.').catch(() => {});
             }
           } else {
             _fwZaloMissCount = 0;
